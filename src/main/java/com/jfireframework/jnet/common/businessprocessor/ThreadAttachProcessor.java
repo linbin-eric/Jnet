@@ -70,7 +70,7 @@ public class ThreadAttachProcessor implements Runnable
                 ChannelContext serverChannelContext = task.getChannelContext();
                 if (serverChannelContext.isOpen())
                 {
-                    Object result = ProcesserUtil.process(serverChannelContext, serverChannelContext.inProcessors(), task.getData(), task.getInitIndex());
+                    Object result = ProcesserUtil.process(serverChannelContext, serverChannelContext.processors(), task.getData(), task.getInitIndex());
                     if (result instanceof ByteBuf<?>)
                     {
                         serverChannelContext.sendBufStorage().putBuf((ByteBuf<?>) result);

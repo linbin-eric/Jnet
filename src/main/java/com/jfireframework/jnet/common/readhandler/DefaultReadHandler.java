@@ -35,7 +35,7 @@ public class DefaultReadHandler implements ReadHandler
         this.channelContext = channelContext;
         this.readProcessor = readProcessor;
         bufStorage = channelContext.sendBufStorage();
-        inProcessors = channelContext.inProcessors();
+        inProcessors = channelContext.processors();
     }
     
     @Override
