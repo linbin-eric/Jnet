@@ -6,7 +6,7 @@ import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ReadProcessor;
 import com.jfireframework.jnet.common.api.WriteHandler;
-import com.jfireframework.jnet.common.bufstorage.BufStorage;
+import com.jfireframework.jnet.common.bufstorage.SendBufStorage;
 import com.jfireframework.jnet.common.businessprocessor.MutlisAttachProcessor;
 import com.jfireframework.jnet.common.decodec.FrameDecodec;
 import com.jfireframework.jnet.common.readprocessor.MutliAttachReadHandler;
@@ -16,14 +16,14 @@ public class MutliAttachChannelContext extends BaseChannelContext
 {
     private final MutlisAttachProcessor processor;
     
-    public MutliAttachChannelContext(MutlisAttachProcessor processor, ExecutorService businessExecutorService, BufStorage bufStorage, int maxMerge, AioListener aioListener, StreamProcessor[] inProcessors, StreamProcessor[] outProcessors, AsynchronousSocketChannel socketChannel, FrameDecodec frameDecodec)
+    public MutliAttachChannelContext(MutlisAttachProcessor processor, ExecutorService businessExecutorService, SendBufStorage bufStorage, int maxMerge, AioListener aioListener, StreamProcessor[] inProcessors, StreamProcessor[] outProcessors, AsynchronousSocketChannel socketChannel, FrameDecodec frameDecodec)
     {
         super(businessExecutorService, bufStorage, maxMerge, aioListener, inProcessors, outProcessors, socketChannel, frameDecodec);
         this.processor = processor;
     }
     
     @Override
-    protected ReadProcessor buildReadProcessor(ExecutorService businessExecutorService, AioListener serverListener, ChannelContext channelContext, BufStorage bufStorage, WriteHandler writeHandler, StreamProcessor[] inProcessors)
+    protected ReadProcessor buildReadProcessor(ExecutorService businessExecutorService, AioListener serverListener, ChannelContext channelContext, SendBufStorage bufStorage, WriteHandler writeHandler, StreamProcessor[] inProcessors)
     {
         return new MutliAttachReadHandler(processor);
     }

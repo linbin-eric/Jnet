@@ -8,7 +8,7 @@ import com.jfireframework.baseutil.concurrent.SpscQueue;
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.WriteHandler;
-import com.jfireframework.jnet.common.bufstorage.BufStorage;
+import com.jfireframework.jnet.common.bufstorage.SendBufStorage;
 import com.jfireframework.jnet.common.streamprocessor.ProcesserUtil;
 import com.jfireframework.jnet.common.streamprocessor.ProcessorTask;
 import com.jfireframework.jnet.common.streamprocessor.StreamProcessor;
@@ -21,14 +21,14 @@ public class ChannelAttachProcessor implements Runnable
     private final CpuCachePadingInt    status         = new CpuCachePadingInt(IDLE);
     private final ExecutorService      executorService;
     private final AioListener          serverListener;
-    private final BufStorage           bufStorage;
+    private final SendBufStorage           bufStorage;
     private final WriteHandler         writeHandler;
     private final StreamProcessor[]    inProcessors;
     private final ChannelContext       channelContext;
     private static final int           SPIN_THRESHOLD = 1 << 7;
     private int                        spin           = 0;
     
-    public ChannelAttachProcessor(ExecutorService executorService, AioListener serverListener, ChannelContext channelContext, BufStorage bufStorage, WriteHandler writeHandler, StreamProcessor[] inProcessors)
+    public ChannelAttachProcessor(ExecutorService executorService, AioListener serverListener, ChannelContext channelContext, SendBufStorage bufStorage, WriteHandler writeHandler, StreamProcessor[] inProcessors)
     {
         this.executorService = executorService;
         this.serverListener = serverListener;

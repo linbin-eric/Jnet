@@ -7,7 +7,7 @@ import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ReadHandler;
 import com.jfireframework.jnet.common.api.ReadProcessor;
-import com.jfireframework.jnet.common.bufstorage.BufStorage;
+import com.jfireframework.jnet.common.bufstorage.SendBufStorage;
 import com.jfireframework.jnet.common.decodec.DecodeResult;
 import com.jfireframework.jnet.common.decodec.FrameDecodec;
 import com.jfireframework.jnet.common.exception.EndOfStreamException;
@@ -23,7 +23,7 @@ public class DefaultReadHandler implements ReadHandler
     protected final AioListener               channelLisntener;
     protected volatile boolean                readPending = false;
     protected final ReadProcessor             readProcessor;
-    protected final BufStorage                bufStorage;
+    protected final SendBufStorage                bufStorage;
     protected final StreamProcessor[]         inProcessors;
     
     public DefaultReadHandler(ReadProcessor readProcessor, AsynchronousSocketChannel socketChannel, FrameDecodec frameDecodec, ByteBuf<?> ioBuf, AioListener channelListener, ChannelContext channelContext)
@@ -34,7 +34,7 @@ public class DefaultReadHandler implements ReadHandler
         this.channelLisntener = channelListener;
         this.channelContext = channelContext;
         this.readProcessor = readProcessor;
-        bufStorage = channelContext.bufStorage();
+        bufStorage = channelContext.sendBufStorage();
         inProcessors = channelContext.inProcessors();
     }
     

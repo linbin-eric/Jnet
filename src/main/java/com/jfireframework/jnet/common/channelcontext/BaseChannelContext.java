@@ -12,7 +12,7 @@ import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ReadHandler;
 import com.jfireframework.jnet.common.api.ReadProcessor;
 import com.jfireframework.jnet.common.api.WriteHandler;
-import com.jfireframework.jnet.common.bufstorage.BufStorage;
+import com.jfireframework.jnet.common.bufstorage.SendBufStorage;
 import com.jfireframework.jnet.common.decodec.FrameDecodec;
 import com.jfireframework.jnet.common.readhandler.DefaultReadHandler;
 import com.jfireframework.jnet.common.streamprocessor.ProcesserUtil;
@@ -26,7 +26,7 @@ public abstract class BaseChannelContext implements ChannelContext
     protected final WriteHandler                       writeHandler;
     protected final AioListener                        aioListener;
     protected final FrameDecodec                       frameDecodec;
-    protected final BufStorage                         bufStorage;
+    protected final SendBufStorage                         bufStorage;
     protected final ByteBuf<?>                         ioBuf;
     protected final StreamProcessor[]                  inProcessors;
     protected final StreamProcessor[]                  outProcessors;
@@ -53,7 +53,7 @@ public abstract class BaseChannelContext implements ChannelContext
     
     public BaseChannelContext(//
             ExecutorService businessExecutorService, //
-            BufStorage bufStorage, //
+            SendBufStorage bufStorage, //
             int maxMerge, //
             AioListener aioListener, //
             StreamProcessor[] inProcessors, //
@@ -72,7 +72,7 @@ public abstract class BaseChannelContext implements ChannelContext
         writeHandler = new DefaultWriteHandler(maxMerge, socketChannel, aioListener, bufStorage, this);
     }
     
-    protected abstract ReadProcessor buildReadProcessor(ExecutorService businessExecutorService, AioListener serverListener, ChannelContext channelContext, BufStorage bufStorage, WriteHandler writeHandler, StreamProcessor[] inProcessors);
+    protected abstract ReadProcessor buildReadProcessor(ExecutorService businessExecutorService, AioListener serverListener, ChannelContext channelContext, SendBufStorage bufStorage, WriteHandler writeHandler, StreamProcessor[] inProcessors);
     
     @Override
     public void push(Object send, int index) throws Throwable
@@ -116,7 +116,7 @@ public abstract class BaseChannelContext implements ChannelContext
     }
     
     @Override
-    public BufStorage bufStorage()
+    public SendBufStorage sendBufStorage()
     {
         return bufStorage;
     }

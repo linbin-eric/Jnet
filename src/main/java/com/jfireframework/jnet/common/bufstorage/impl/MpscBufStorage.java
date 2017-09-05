@@ -2,9 +2,9 @@ package com.jfireframework.jnet.common.bufstorage.impl;
 
 import com.jfireframework.baseutil.collection.buffer.ByteBuf;
 import com.jfireframework.baseutil.concurrent.MPSCQueue;
-import com.jfireframework.jnet.common.bufstorage.BufStorage;
+import com.jfireframework.jnet.common.bufstorage.SendBufStorage;
 
-public class MpscBufStorage implements BufStorage
+public class MpscBufStorage implements SendBufStorage
 {
     private MPSCQueue<ByteBuf<?>> storage = new MPSCQueue<>();
     

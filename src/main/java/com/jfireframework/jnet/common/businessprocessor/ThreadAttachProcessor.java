@@ -73,7 +73,7 @@ public class ThreadAttachProcessor implements Runnable
                     Object result = ProcesserUtil.process(serverChannelContext, serverChannelContext.inProcessors(), task.getData(), task.getInitIndex());
                     if (result instanceof ByteBuf<?>)
                     {
-                        serverChannelContext.bufStorage().putBuf((ByteBuf<?>) result);
+                        serverChannelContext.sendBufStorage().putBuf((ByteBuf<?>) result);
                         serverChannelContext.registerWrite();
                     }
                 }

@@ -6,7 +6,7 @@ import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ReadProcessor;
 import com.jfireframework.jnet.common.api.WriteHandler;
-import com.jfireframework.jnet.common.bufstorage.BufStorage;
+import com.jfireframework.jnet.common.bufstorage.SendBufStorage;
 import com.jfireframework.jnet.common.businessprocessor.ChannelAttachProcessor;
 import com.jfireframework.jnet.common.decodec.FrameDecodec;
 import com.jfireframework.jnet.common.readprocessor.ChannelAttachReadProcessor;
@@ -17,7 +17,7 @@ public class ChannelAttachChannelContext extends BaseChannelContext
     
     public ChannelAttachChannelContext(//
             ExecutorService businessExecutorService, //
-            BufStorage bufStorage, //
+            SendBufStorage bufStorage, //
             int maxMerge, //
             AioListener aioListener, //
             StreamProcessor[] inProcessors, //
@@ -29,7 +29,7 @@ public class ChannelAttachChannelContext extends BaseChannelContext
     }
     
     @Override
-    protected ReadProcessor buildReadProcessor(ExecutorService businessExecutorService, AioListener serverListener, ChannelContext channelContext, BufStorage bufStorage, WriteHandler writeHandler, StreamProcessor[] inProcessors)
+    protected ReadProcessor buildReadProcessor(ExecutorService businessExecutorService, AioListener serverListener, ChannelContext channelContext, SendBufStorage bufStorage, WriteHandler writeHandler, StreamProcessor[] inProcessors)
     {
         ChannelAttachProcessor channelAttachProcessor = new ChannelAttachProcessor(businessExecutorService, serverListener, channelContext, bufStorage, writeHandler, inProcessors);
         return new ChannelAttachReadProcessor(channelAttachProcessor);

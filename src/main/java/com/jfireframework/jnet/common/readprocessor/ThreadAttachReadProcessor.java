@@ -5,7 +5,7 @@ import com.jfireframework.baseutil.collection.buffer.ByteBuf;
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ReadProcessor;
-import com.jfireframework.jnet.common.bufstorage.BufStorage;
+import com.jfireframework.jnet.common.bufstorage.SendBufStorage;
 import com.jfireframework.jnet.common.businessprocessor.ThreadAttachProcessor;
 import com.jfireframework.jnet.common.streamprocessor.ProcessorTask;
 import com.jfireframework.jnet.common.streamprocessor.StreamProcessor;
@@ -23,7 +23,7 @@ public class ThreadAttachReadProcessor implements ReadProcessor
     }
     
     @Override
-    public void process(ByteBuf<?> buf, BufStorage bufStorage, StreamProcessor[] inProcessors, ChannelContext channelContext) throws Throwable
+    public void process(ByteBuf<?> buf, SendBufStorage bufStorage, StreamProcessor[] inProcessors, ChannelContext channelContext) throws Throwable
     {
         ProcessorTask task = new ProcessorTask(buf, 0, channelContext);
         ThreadAttachProcessor processor = processLocal.get();

@@ -7,7 +7,7 @@ import com.jfireframework.baseutil.concurrent.CpuCachePadingInt;
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.WriteHandler;
-import com.jfireframework.jnet.common.bufstorage.BufStorage;
+import com.jfireframework.jnet.common.bufstorage.SendBufStorage;
 import com.jfireframework.jnet.common.util.ByteBufFactory;
 
 public class DefaultWriteHandler implements WriteHandler
@@ -21,10 +21,9 @@ public class DefaultWriteHandler implements WriteHandler
     private final ChannelContext            channelContext;
     private final AsynchronousSocketChannel socketChannel;
     private final AioListener               aioListener;
-    private final BufStorage                bufStorage;
+    private final SendBufStorage                bufStorage;
     private static final int                SPIN_THRESHOLD   = 1 << 7;
-    
-    public DefaultWriteHandler(int maxMerge, AsynchronousSocketChannel socketChannel, AioListener channelListener, BufStorage bufStorage, ChannelContext serverChannelContext)
+    public DefaultWriteHandler(int maxMerge, AsynchronousSocketChannel socketChannel, AioListener channelListener, SendBufStorage bufStorage, ChannelContext serverChannelContext)
     {
         bufArray = new ByteBuf<?>[maxMerge];
         this.maxMerge = maxMerge;
