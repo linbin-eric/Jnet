@@ -1,0 +1,48 @@
+package com.jfireframework.jnet.server.accepthandler.impl;
+
+import java.io.IOException;
+import java.nio.channels.AsynchronousServerSocketChannel;
+import java.nio.channels.AsynchronousSocketChannel;
+import java.nio.channels.CompletionHandler;
+import com.jfireframework.jnet.common.api.AioListener;
+import com.jfireframework.jnet.common.api.ChannelContext;
+import com.jfireframework.jnet.common.api.Configuration;
+import com.jfireframework.jnet.common.build.ChannelContextBuilder;
+
+public class AcceptHandler implements CompletionHandler<AsynchronousSocketChannel, Object>
+{
+	protected final ChannelContextBuilder			channelContextBuilder;
+	protected final AsynchronousServerSocketChannel	serverSocketChannel;
+	protected final AioListener						serverListener;
+	
+	public AcceptHandler(AsynchronousServerSocketChannel serverSocketChannel, ChannelContextBuilder channelContextBuilder, AioListener serverListener)
+	{
+		this.channelContextBuilder = channelContextBuilder;
+		this.serverSocketChannel = serverSocketChannel;
+		this.serverListener = serverListener;
+	}
+	
+	@Override
+	public void completed(AsynchronousSocketChannel socketChannel, Object attachment)
+	{
+		Configuration configuration = channelContextBuilder.onConnect(socketChannel, serverListener);
+		ChannelContext serverChannelContext = configuration.config();
+		channelContextBuilder.afterContextBuild(serverChannelContext);
+		serverChannelContext.registerRead();
+		serverSocketChannel.accept(null, this);
+	}
+	
+	@Override
+	public void failed(Throwable exc, Object attachment)
+	{
+		try
+		{
+			serverSocketChannel.close();
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
+	}
+	
+}
