@@ -104,7 +104,7 @@ public abstract class BaseChannelContext implements ChannelContext
     }
     
     @Override
-    public StreamProcessor[] processors()
+    public StreamProcessor[] inProcessors()
     {
         return inProcessors;
     }

@@ -31,7 +31,7 @@ public interface ChannelContext
 	 * 
 	 * @return
 	 */
-	StreamProcessor[] processors();;
+	StreamProcessor[] inProcessors();;
 	
 	/**
 	 * 向一个通道发送一个数据，进行对应处理的处理器
