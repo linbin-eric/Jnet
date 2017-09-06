@@ -1,6 +1,8 @@
 package com.jfireframework.jnet.common.decodec.impl;
 
 import com.jfireframework.baseutil.collection.buffer.ByteBuf;
+import com.jfireframework.baseutil.collection.buffer.DirectByteBuf;
+import com.jfireframework.baseutil.collection.buffer.HeapByteBuf;
 import com.jfireframework.jnet.common.decodec.DecodeResult;
 import com.jfireframework.jnet.common.decodec.DecodeResultType;
 import com.jfireframework.jnet.common.decodec.FrameDecodec;
@@ -8,7 +10,7 @@ import com.jfireframework.jnet.common.util.ByteBufFactory;
 
 public class TotalLengthFieldBasedFrameDecoderByHeap implements FrameDecodec
 {
-    // 代表长度字段开始读取的位置
+	// 代表长度字段开始读取的位置
     private final int          lengthFieldOffset;
     // 代表长度字段自身的长度。支持1,2,4.如果是1则使用unsignedbyte方式读取。如果是2则使用unsignedshort方式读取,4使用int方式读取。
     private final int          lengthFieldLength;
@@ -26,7 +28,7 @@ public class TotalLengthFieldBasedFrameDecoderByHeap implements FrameDecodec
      * @param skipBytes 解析后的报文需要跳过的位数
      * @param maxLength
      */
-    public TotalLengthFieldBasedFrameDecoderByHeap(int lengthFieldOffset, int lengthFieldLength, int skipBytes, int maxLength)
+	public TotalLengthFieldBasedFrameDecoderByHeap(int lengthFieldOffset, int lengthFieldLength, int skipBytes, int maxLength)
     {
         this.lengthFieldLength = lengthFieldLength;
         this.lengthFieldOffset = lengthFieldOffset;
@@ -39,9 +41,17 @@ public class TotalLengthFieldBasedFrameDecoderByHeap implements FrameDecodec
     public DecodeResult decodec(ByteBuf<?> ioBuffer)
     {
         ioBuffer.maskRead();
-        if (lengthFieldEndOffset > ioBuffer.remainRead())
+        int left = ioBuffer.remainRead();
+        if (left == 0)
         {
             result.setType(DecodeResultType.LESS_THAN_PROTOCOL);
+            ioBuffer.compact();
+            return result;
+        }
+        if (lengthFieldEndOffset > left)
+        {
+            result.setType(DecodeResultType.BUF_NOT_ENOUGH);
+            result.setNeed(lengthFieldEndOffset);
             return result;
         }
         // iobuffer中可能包含好几个报文，所以这里应该是增加的方式而不是直接设置的方式
@@ -75,7 +85,7 @@ public class TotalLengthFieldBasedFrameDecoderByHeap implements FrameDecodec
         }
         else
         {
-            ByteBuf<?> buf = ByteBufFactory.allocate(length);
+            ByteBuf<?> buf = HeapByteBuf.allocate(length);
             buf.put(ioBuffer, length);
             ioBuffer.addReadIndex(length);
             if (skipBytes != 0)

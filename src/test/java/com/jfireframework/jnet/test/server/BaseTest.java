@@ -37,6 +37,7 @@ import com.jfireframework.jnet.common.channelcontext.MutliAttachConfiguration.Mu
 import com.jfireframework.jnet.common.channelcontext.SimpleConfiguration;
 import com.jfireframework.jnet.common.channelcontext.ThreadAttchConfiguration;
 import com.jfireframework.jnet.common.decodec.impl.TotalLengthFieldBasedFrameDecoder;
+import com.jfireframework.jnet.common.decodec.impl.TotalLengthFieldBasedFrameDecoderByHeap;
 import com.jfireframework.jnet.common.streamprocessor.LengthEncodeProcessor;
 import com.jfireframework.jnet.common.streamprocessor.ProcessorIndexFlag;
 import com.jfireframework.jnet.common.streamprocessor.StreamProcessor;
@@ -54,8 +55,8 @@ import com.jfireframework.jnet.server.build.AioServerBuilder;
 public class BaseTest
 {
 	private int									port			= 8546;
-	private int									clientThreadNum	= 30;
-	private int									sendCount		= 50000;
+	private int									clientThreadNum	= 1;
+	private int									sendCount		= 1000000;
 	private CountDownLatch						latch			= new CountDownLatch(sendCount);
 	private ConcurrentHashMap<String, String>	res				= new ConcurrentHashMap<>();
 	private ConcurrentLinkedQueue<String>		waitForSend		= new ConcurrentLinkedQueue<>();
@@ -122,7 +123,7 @@ public class BaseTest
 					{
 						final String traceId = TRACEID.newTraceId();
 						Configuration configuration = new SimpleConfiguration(aioListener, //
-						        new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 500), //
+						        new TotalLengthFieldBasedFrameDecoderByHeap(0, 4, 4, 500), //
 						        new StreamProcessor[] { new StreamProcessor() {
 							        
 							        @Override
@@ -284,7 +285,7 @@ public class BaseTest
 					@Override
 					public Configuration onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
 					{
-						Configuration configuration = new SimpleConfiguration(aioListener, new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 500), //
+						Configuration configuration = new SimpleConfiguration(aioListener, new TotalLengthFieldBasedFrameDecoderByHeap(0, 4, 4, 500), //
 						        new StreamProcessor[] { new StreamProcessor() {
 							        
 							        final String traceId = TRACEID.newTraceId();
@@ -341,7 +342,7 @@ public class BaseTest
 					public Configuration onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
 					{
 						Configuration configuration = new ChannelAttachConfiguration(executorService, //
-						        aioListener, new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 500), //
+						        aioListener, new TotalLengthFieldBasedFrameDecoderByHeap(0, 4, 4, 500), //
 						        new StreamProcessor[] { new StreamProcessor() {
 							        
 							        @Override
@@ -393,7 +394,7 @@ public class BaseTest
 					public Configuration onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
 					{
 						Configuration configuration = new ThreadAttchConfiguration(executorService, //
-						        aioListener, new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 500), //
+						        aioListener, new TotalLengthFieldBasedFrameDecoderByHeap(0, 4, 4, 500), //
 						        new StreamProcessor[] { new StreamProcessor() {
 							        
 							        @Override
@@ -457,7 +458,7 @@ public class BaseTest
 					{
 						int andIncrement = index.getAndIncrement();
 						
-						Configuration configuration = new MutliAttachConfiguration(processors[andIncrement & mask], aioListener, new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 500), //
+						Configuration configuration = new MutliAttachConfiguration(processors[andIncrement & mask], aioListener, new TotalLengthFieldBasedFrameDecoderByHeap(0, 4, 4, 500), //
 						        new StreamProcessor[] { new StreamProcessor() {
 							        
 							        @Override
@@ -511,9 +512,10 @@ public class BaseTest
 	@Test
 	public void test() throws Throwable
 	{
+		
 		AioServer aioServer = buildServer();
 		aioServer.start();
-		ExecutorService executorService = Executors.newFixedThreadPool(clientThreadNum, new ThreadFactory() {
+		ExecutorService executorService = Executors.newCachedThreadPool(new ThreadFactory() {
 			int i = 0;
 			
 			@Override
