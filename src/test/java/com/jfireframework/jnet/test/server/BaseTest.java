@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import com.jfireframework.baseutil.TRACEID;
 import com.jfireframework.baseutil.collection.buffer.ByteBuf;
 import com.jfireframework.baseutil.collection.buffer.DirectByteBuf;
+import com.jfireframework.baseutil.collection.buffer.HeapByteBuf;
 import com.jfireframework.jnet.client.build.AioClientBuilder;
 import com.jfireframework.jnet.client.client.AioClient;
 import com.jfireframework.jnet.common.IoMode;
@@ -53,8 +54,8 @@ import com.jfireframework.jnet.server.build.AioServerBuilder;
 public class BaseTest
 {
 	private int									port			= 8546;
-	private int									clientThreadNum	= 10;
-	private int									sendCount		= 500000;
+	private int									clientThreadNum	= 30;
+	private int									sendCount		= 50000;
 	private CountDownLatch						latch			= new CountDownLatch(sendCount);
 	private ConcurrentHashMap<String, String>	res				= new ConcurrentHashMap<>();
 	private ConcurrentLinkedQueue<String>		waitForSend		= new ConcurrentLinkedQueue<>();
@@ -313,7 +314,7 @@ public class BaseTest
 							        {
 								        String str = (String) data;
 								        logger.debug("traceId:{} 单位端发出消息:{}", traceId, str);
-								        ByteBuf<?> buf = DirectByteBuf.allocate(100);
+								        ByteBuf<?> buf = HeapByteBuf.allocate(100);
 								        buf.addWriteIndex(4);
 								        buf.writeString(str);
 								        return buf;
@@ -365,7 +366,7 @@ public class BaseTest
 							        public Object process(Object data, ProcessorIndexFlag result, ChannelContext context) throws Throwable
 							        {
 								        String str = (String) data;
-								        ByteBuf<?> buf = DirectByteBuf.allocate(100);
+								        ByteBuf<?> buf = HeapByteBuf.allocate(100);
 								        buf.addWriteIndex(4);
 								        buf.writeString(str);
 								        return buf;
@@ -417,7 +418,7 @@ public class BaseTest
 							        public Object process(Object data, ProcessorIndexFlag result, ChannelContext context) throws Throwable
 							        {
 								        String str = (String) data;
-								        ByteBuf<?> buf = DirectByteBuf.allocate(100);
+								        ByteBuf<?> buf = HeapByteBuf.allocate(100);
 								        buf.addWriteIndex(4);
 								        buf.writeString(str);
 								        return buf;
