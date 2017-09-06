@@ -31,7 +31,7 @@ public class ThreadAttchConfiguration implements Configuration
     private ReadProcessor                                   readProcessor;
     private static final ThreadLocal<ThreadAttachProcessor> processLocal = new ThreadLocal<>();
     
-	public ThreadAttchConfiguration(final ExecutorService executorService, final AioListener aioListener, FrameDecodec frameDecodec, StreamProcessor[] inProcessors, StreamProcessor[] outProcessors, int maxMerge, AsynchronousSocketChannel socketChannel, SendBufStorage sendBufStorage, ByteBuf<?> inCachedBuf, ByteBuf<?> outCachedBuf)
+    public ThreadAttchConfiguration(final ExecutorService executorService, final AioListener aioListener, FrameDecodec frameDecodec, StreamProcessor[] inProcessors, StreamProcessor[] outProcessors, int maxMerge, AsynchronousSocketChannel socketChannel, SendBufStorage sendBufStorage, ByteBuf<?> inCachedBuf, ByteBuf<?> outCachedBuf)
     {
         this.aioListener = aioListener;
         this.frameDecodec = frameDecodec;
@@ -68,7 +68,7 @@ public class ThreadAttchConfiguration implements Configuration
     
     class ThreadAttachProcessor implements Runnable
     {
-    	private final Queue<ProcessorTask> tasks          = new MPSCQueue<>();
+        private final Queue<ProcessorTask> tasks          = new MPSCQueue<>();
         private static final int           IDLE           = 0;
         private static final int           WORK           = 1;
         private final CpuCachePadingInt    status         = new CpuCachePadingInt(WORK);
@@ -87,7 +87,7 @@ public class ThreadAttchConfiguration implements Configuration
         {
             status.set(WORK);
             owner = Thread.currentThread();
-            do
+            end: do
             {
                 ProcessorTask task = tasks.poll();
                 if (task == null)
@@ -117,6 +117,10 @@ public class ThreadAttchConfiguration implements Configuration
                             {
                                 LockSupport.park();
                                 status.set(WORK);
+                                if (Thread.currentThread().isInterrupted())
+                                {
+                                    break end;
+                                }
                             }
                         }
                     }
