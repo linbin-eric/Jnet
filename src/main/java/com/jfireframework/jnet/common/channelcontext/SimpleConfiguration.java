@@ -1,4 +1,4 @@
-package com.jfireframework.jnet.common.util;
+package com.jfireframework.jnet.common.channelcontext;
 
 import java.nio.channels.AsynchronousSocketChannel;
 import com.jfireframework.baseutil.collection.buffer.ByteBuf;
@@ -7,7 +7,6 @@ import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.Configuration;
 import com.jfireframework.jnet.common.api.ReadProcessor;
 import com.jfireframework.jnet.common.bufstorage.SendBufStorage;
-import com.jfireframework.jnet.common.channelcontext.BaseChannelContext;
 import com.jfireframework.jnet.common.decodec.FrameDecodec;
 import com.jfireframework.jnet.common.streamprocessor.ProcesserUtil;
 import com.jfireframework.jnet.common.streamprocessor.StreamProcessor;

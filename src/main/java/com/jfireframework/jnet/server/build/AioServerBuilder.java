@@ -2,6 +2,7 @@ package com.jfireframework.jnet.server.build;
 
 import java.nio.channels.AsynchronousChannelGroup;
 import java.util.concurrent.ThreadFactory;
+import com.jfireframework.baseutil.StringUtil;
 import com.jfireframework.baseutil.exception.JustThrowException;
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.build.ChannelContextBuilder;
@@ -20,6 +21,10 @@ public class AioServerBuilder
 	{
 		try
 		{
+			if (channelContextBuilder == null)
+			{
+				throw new NullPointerException(StringUtil.format("channelContextBuilder 不能为空"));
+			}
 			if (channelGroup == null)
 			{
 				channelGroup = AsynchronousChannelGroup.withFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2 + 1, new ThreadFactory() {

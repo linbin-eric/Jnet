@@ -23,7 +23,7 @@ public class AioServer
 		this.ip = ip;
 		this.port = port;
 		this.channelGroup = channelGroup;
-		acceptHandler = new AcceptHandler(serverSocketChannel, serverChannelContextBuilder, serverListener);
+		acceptHandler = new AcceptHandler(serverChannelContextBuilder, serverListener);
 	}
 	
 	/**
@@ -37,7 +37,7 @@ public class AioServer
 		{
 			serverSocketChannel = AsynchronousServerSocketChannel.open(channelGroup);
 			serverSocketChannel.bind(new InetSocketAddress(ip, port), 0);
-			serverSocketChannel.accept(null, acceptHandler);
+			serverSocketChannel.accept(serverSocketChannel, acceptHandler);
 		}
 		catch (IOException e)
 		{

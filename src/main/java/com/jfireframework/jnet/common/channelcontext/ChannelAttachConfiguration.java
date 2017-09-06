@@ -1,4 +1,4 @@
-package com.jfireframework.jnet.common.util;
+package com.jfireframework.jnet.common.channelcontext;
 
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.Queue;
@@ -11,7 +11,6 @@ import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.Configuration;
 import com.jfireframework.jnet.common.api.ReadProcessor;
 import com.jfireframework.jnet.common.bufstorage.SendBufStorage;
-import com.jfireframework.jnet.common.channelcontext.BaseChannelContext;
 import com.jfireframework.jnet.common.decodec.FrameDecodec;
 import com.jfireframework.jnet.common.streamprocessor.ProcesserUtil;
 import com.jfireframework.jnet.common.streamprocessor.ProcessorTask;
@@ -29,7 +28,6 @@ public class ChannelAttachConfiguration implements Configuration
 	private ByteBuf<?>					inCachedBuf;
 	private ByteBuf<?>					outCachedBuf;
 	private ReadProcessor				readProcessor;
-	private ChannelContext				channelContext;
 	private ExecutorService				executorService;
 	
 	public ChannelAttachConfiguration(ExecutorService executorService, AioListener aioListener, FrameDecodec frameDecodec, StreamProcessor[] inProcessors, StreamProcessor[] outProcessors, int maxMerge, AsynchronousSocketChannel socketChannel, SendBufStorage sendBufStorage, ByteBuf<?> inCachedBuf, ByteBuf<?> outCachedBuf)
@@ -104,6 +102,7 @@ public class ChannelAttachConfiguration implements Configuration
 				}
 				try
 				{
+					ChannelContext channelContext = task.getChannelContext();
 					Object result = ProcesserUtil.process(channelContext, inProcessors, task.getData(), task.getInitIndex());
 					if (result instanceof ByteBuf<?>)
 					{
@@ -113,6 +112,7 @@ public class ChannelAttachConfiguration implements Configuration
 				}
 				catch (Throwable e)
 				{
+					ChannelContext channelContext = task.getChannelContext();
 					aioListener.catchException(e, channelContext);
 					if (channelContext.isOpen() == false)
 					{

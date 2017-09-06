@@ -1,7 +1,8 @@
-package com.jfireframework.jnet.common.util;
+package com.jfireframework.jnet.common.channelcontext;
 
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.Queue;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.locks.LockSupport;
 import com.jfireframework.baseutil.collection.buffer.ByteBuf;
 import com.jfireframework.baseutil.concurrent.CpuCachePadingInt;
@@ -11,26 +12,26 @@ import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.Configuration;
 import com.jfireframework.jnet.common.api.ReadProcessor;
 import com.jfireframework.jnet.common.bufstorage.SendBufStorage;
-import com.jfireframework.jnet.common.channelcontext.BaseChannelContext;
 import com.jfireframework.jnet.common.decodec.FrameDecodec;
 import com.jfireframework.jnet.common.streamprocessor.ProcesserUtil;
 import com.jfireframework.jnet.common.streamprocessor.ProcessorTask;
 import com.jfireframework.jnet.common.streamprocessor.StreamProcessor;
 
-public class MutliAttachConfiguration implements Configuration
+public class ThreadAttchConfiguration implements Configuration
 {
-    protected AioListener               aioListener;
-    protected FrameDecodec              frameDecodec;
-    protected StreamProcessor[]         inProcessors;
-    protected StreamProcessor[]         outProcessors;
-    private int                         maxMerge = 10;
-    protected AsynchronousSocketChannel socketChannel;
-    private SendBufStorage              sendBufStorage;
-    private ByteBuf<?>                  inCachedBuf;
-    private ByteBuf<?>                  outCachedBuf;
-    private ReadProcessor               readProcessor;
+    protected AioListener                                   aioListener;
+    protected FrameDecodec                                  frameDecodec;
+    protected StreamProcessor[]                             inProcessors;
+    protected StreamProcessor[]                             outProcessors;
+    private int                                             maxMerge     = 10;
+    protected AsynchronousSocketChannel                     socketChannel;
+    private SendBufStorage                                  sendBufStorage;
+    private ByteBuf<?>                                      inCachedBuf;
+    private ByteBuf<?>                                      outCachedBuf;
+    private ReadProcessor                                   readProcessor;
+    private static final ThreadLocal<ThreadAttachProcessor> processLocal = new ThreadLocal<>();
     
-    public MutliAttachConfiguration(AioListener aioListener, FrameDecodec frameDecodec, StreamProcessor[] inProcessors, StreamProcessor[] outProcessors, int maxMerge, AsynchronousSocketChannel socketChannel, SendBufStorage sendBufStorage, ByteBuf<?> inCachedBuf, ByteBuf<?> outCachedBuf)
+	public ThreadAttchConfiguration(final ExecutorService executorService, final AioListener aioListener, FrameDecodec frameDecodec, StreamProcessor[] inProcessors, StreamProcessor[] outProcessors, int maxMerge, AsynchronousSocketChannel socketChannel, SendBufStorage sendBufStorage, ByteBuf<?> inCachedBuf, ByteBuf<?> outCachedBuf)
     {
         this.aioListener = aioListener;
         this.frameDecodec = frameDecodec;
@@ -47,6 +48,13 @@ public class MutliAttachConfiguration implements Configuration
             public void process(ByteBuf<?> buf, SendBufStorage bufStorage, StreamProcessor[] inProcessors, ChannelContext channelContext) throws Throwable
             {
                 ProcessorTask task = new ProcessorTask(buf, 0, channelContext);
+                ThreadAttachProcessor processor = processLocal.get();
+                if (processor == null)
+                {
+                    processor = new ThreadAttachProcessor(aioListener);
+                    executorService.execute(processor);
+                    processLocal.set(processor);
+                }
                 processor.commit(task);
             }
         };
@@ -58,15 +66,21 @@ public class MutliAttachConfiguration implements Configuration
         return new BaseChannelContext(readProcessor, sendBufStorage, maxMerge, aioListener, inProcessors, outProcessors, socketChannel, frameDecodec, inCachedBuf, outCachedBuf);
     }
     
-    class MutlisAttachProcessor implements Runnable
+    class ThreadAttachProcessor implements Runnable
     {
-        private final Queue<ProcessorTask> tasks          = new MPSCQueue<>();
+    	private final Queue<ProcessorTask> tasks          = new MPSCQueue<>();
         private static final int           IDLE           = 0;
         private static final int           WORK           = 1;
         private final CpuCachePadingInt    status         = new CpuCachePadingInt(WORK);
+        private final AioListener          serverListener;
         private static final int           SPIN_THRESHOLD = 1 << 7;
         private int                        spin           = 0;
         private volatile Thread            owner;
+        
+        public ThreadAttachProcessor(AioListener serverListener)
+        {
+            this.serverListener = serverListener;
+        }
         
         @Override
         public void run()
@@ -122,7 +136,7 @@ public class MutliAttachConfiguration implements Configuration
                 }
                 catch (Throwable e)
                 {
-                    aioListener.catchException(e, task.getChannelContext());
+                    serverListener.catchException(e, task.getChannelContext());
                 }
             } while (true);
         }

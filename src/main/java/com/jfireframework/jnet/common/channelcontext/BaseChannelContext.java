@@ -71,7 +71,7 @@ public class BaseChannelContext implements ChannelContext
 		this.inCachedBuf = inCachedBuf;
 		this.outCachedBuf = outCachedBuf;
 		writeHandler = new DefaultWriteHandler(outCachedBuf, maxMerge, socketChannel, aioListener, sendBufStorage, this);
-		readHandler = new DefaultReadHandler(readProcessor, socketChannel, frameDecodec, outCachedBuf, aioListener, this);
+		readHandler = new DefaultReadHandler(readProcessor, socketChannel, frameDecodec, inCachedBuf, aioListener, this);
 	}
 	
 	@Override

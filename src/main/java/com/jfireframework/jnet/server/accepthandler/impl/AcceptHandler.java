@@ -9,35 +9,33 @@ import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.Configuration;
 import com.jfireframework.jnet.common.build.ChannelContextBuilder;
 
-public class AcceptHandler implements CompletionHandler<AsynchronousSocketChannel, Object>
+public class AcceptHandler implements CompletionHandler<AsynchronousSocketChannel, AsynchronousServerSocketChannel>
 {
-	protected final ChannelContextBuilder			channelContextBuilder;
-	protected final AsynchronousServerSocketChannel	serverSocketChannel;
-	protected final AioListener						serverListener;
+	protected final ChannelContextBuilder	channelContextBuilder;
+	protected final AioListener				serverListener;
 	
-	public AcceptHandler(AsynchronousServerSocketChannel serverSocketChannel, ChannelContextBuilder channelContextBuilder, AioListener serverListener)
+	public AcceptHandler(ChannelContextBuilder channelContextBuilder, AioListener serverListener)
 	{
 		this.channelContextBuilder = channelContextBuilder;
-		this.serverSocketChannel = serverSocketChannel;
 		this.serverListener = serverListener;
 	}
 	
 	@Override
-	public void completed(AsynchronousSocketChannel socketChannel, Object attachment)
+	public void completed(AsynchronousSocketChannel socketChannel, AsynchronousServerSocketChannel serverChannel)
 	{
 		Configuration configuration = channelContextBuilder.onConnect(socketChannel, serverListener);
 		ChannelContext serverChannelContext = configuration.config();
 		channelContextBuilder.afterContextBuild(serverChannelContext);
 		serverChannelContext.registerRead();
-		serverSocketChannel.accept(null, this);
+		serverChannel.accept(serverChannel, this);
 	}
 	
 	@Override
-	public void failed(Throwable exc, Object attachment)
+	public void failed(Throwable exc, AsynchronousServerSocketChannel serverChannel)
 	{
 		try
 		{
-			serverSocketChannel.close();
+			serverChannel.close();
 		}
 		catch (IOException e)
 		{
