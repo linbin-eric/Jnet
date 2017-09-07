@@ -29,13 +29,8 @@ import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ChannelContextBuilder;
 import com.jfireframework.jnet.common.api.Configuration;
 import com.jfireframework.jnet.common.api.StreamProcessor;
-import com.jfireframework.jnet.common.bufstorage.impl.MpscBufStorage;
-import com.jfireframework.jnet.common.bufstorage.impl.SpscBufStorage;
-import com.jfireframework.jnet.common.configuration.ChannelAttachConfiguration;
-import com.jfireframework.jnet.common.configuration.MutliAttachConfiguration;
+import com.jfireframework.jnet.common.configuration.ConfigurationTemplate;
 import com.jfireframework.jnet.common.configuration.MutliAttachConfiguration.MutlisAttachProcessor;
-import com.jfireframework.jnet.common.configuration.SimpleConfiguration;
-import com.jfireframework.jnet.common.configuration.ThreadAttchConfiguration;
 import com.jfireframework.jnet.common.decodec.impl.TotalLengthFieldBasedFrameDecoder;
 import com.jfireframework.jnet.common.decodec.impl.TotalLengthFieldBasedFrameDecoderByHeap;
 import com.jfireframework.jnet.common.streamprocessor.LengthEncodeProcessor;
@@ -117,8 +112,7 @@ public class BaseTest
 					public Configuration onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
 					{
 						final String traceId = TRACEID.newTraceId();
-						Configuration configuration = new SimpleConfiguration(aioListener, //
-						        new TotalLengthFieldBasedFrameDecoderByHeap(0, 4, 4, 500), //
+						Configuration configuration = ConfigurationTemplate.simple(new TotalLengthFieldBasedFrameDecoderByHeap(0, 4, 4, 500), //
 						        new StreamProcessor[] { new StreamProcessor() {
 							        
 							        @Override
@@ -131,8 +125,7 @@ public class BaseTest
 							        }
 						        }
 						        }, //
-						        null, //
-						        10, socketChannel, new SpscBufStorage(), DirectByteBuf.allocate(128), DirectByteBuf.allocate(128));
+						        null, socketChannel);
 						return configuration;
 					}
 					
@@ -149,8 +142,7 @@ public class BaseTest
 					@Override
 					public Configuration onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
 					{
-						Configuration configuration = new ChannelAttachConfiguration(serverExecutor, //
-						        aioListener, new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 500), //
+						Configuration configuration = ConfigurationTemplate.channelAttch(serverExecutor, new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 500), //
 						        new StreamProcessor[] { new StreamProcessor() {
 							        
 							        @Override
@@ -161,8 +153,7 @@ public class BaseTest
 								        return buf;
 							        }
 						        } }, //
-						        null, //
-						        10, socketChannel, new SpscBufStorage(), DirectByteBuf.allocate(128), DirectByteBuf.allocate(128));
+						        null, socketChannel);
 						return configuration;
 					}
 					
@@ -180,8 +171,7 @@ public class BaseTest
 					@Override
 					public Configuration onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
 					{
-						Configuration configuration = new ThreadAttchConfiguration(serverExecutor, //
-						        aioListener, new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 500), //
+						Configuration configuration = ConfigurationTemplate.threadAttch(serverExecutor, new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 500), //
 						        new StreamProcessor[] { new StreamProcessor() {
 							        
 							        @Override
@@ -192,8 +182,7 @@ public class BaseTest
 								        return buf;
 							        }
 						        } }, //
-						        null, //
-						        10, socketChannel, new MpscBufStorage(), DirectByteBuf.allocate(128), DirectByteBuf.allocate(128));
+						        null, socketChannel);
 						return configuration;
 					}
 					
@@ -224,19 +213,20 @@ public class BaseTest
 					{
 						int andIncrement = index.getAndIncrement();
 						
-						Configuration configuration = new MutliAttachConfiguration(processors[andIncrement & mask], aioListener, new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 500), //
-						        new StreamProcessor[] { new StreamProcessor() {
-							        
-							        @Override
-							        public Object process(Object data, ChannelContext context) throws Throwable
-							        {
-								        ByteBuf<?> buf = (ByteBuf<?>) data;
-								        buf.readIndex(0);
-								        return buf;
-							        }
-						        } }, //
-						        null, //
-						        10, socketChannel, new MpscBufStorage(), DirectByteBuf.allocate(128), DirectByteBuf.allocate(128));
+						Configuration configuration =
+						        
+						        ConfigurationTemplate.mutliAttch(processors[andIncrement & mask], new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 500), //
+						                new StreamProcessor[] { new StreamProcessor() {
+							                
+							                @Override
+							                public Object process(Object data, ChannelContext context) throws Throwable
+							                {
+								                ByteBuf<?> buf = (ByteBuf<?>) data;
+								                buf.readIndex(0);
+								                return buf;
+							                }
+						                } }, //
+						                null, socketChannel);
 						return configuration;
 					}
 					
@@ -279,42 +269,43 @@ public class BaseTest
 					@Override
 					public Configuration onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
 					{
-						Configuration configuration = new SimpleConfiguration(aioListener, new TotalLengthFieldBasedFrameDecoderByHeap(0, 4, 4, 500), //
-						        new StreamProcessor[] { new StreamProcessor() {
-							        
-							        final String traceId = TRACEID.newTraceId();
-							        
-							        @Override
-							        public Object process(Object data, ChannelContext context) throws Throwable
-							        {
-								        ByteBuf<?> buf = (ByteBuf<?>) data;
-								        Integer value = buf.readInt();
-								        sendContent[value] += 1;
-								        logger.debug("traceId:{} 单位端收到消息:{}", traceId, value);
-								        buf.release();
-								        latch.countDown();
-								        return null;
-							        }
-						        }
-								
-								}, //
-						        new StreamProcessor[] { new StreamProcessor() {
-							        final String traceId = TRACEID.newTraceId();
-							        
-							        @Override
-							        public Object process(Object data, ChannelContext context) throws Throwable
-							        {
-								        Integer str = (Integer) data;
-								        logger.debug("traceId:{} 单位端发出消息:{}", traceId, str);
-								        ByteBuf<?> buf = HeapByteBuf.allocate(100);
-								        buf.addWriteIndex(4);
-								        buf.writeInt(str);
-								        return buf;
-							        }
-						        }, new LengthEncodeProcessor(0, 4)
-								
-								}, //
-						        10, socketChannel, new SpscBufStorage(), DirectByteBuf.allocate(128), DirectByteBuf.allocate(128));
+						Configuration configuration =
+						        
+						        ConfigurationTemplate.simple(new TotalLengthFieldBasedFrameDecoderByHeap(0, 4, 4, 500), //
+						                new StreamProcessor[] { new StreamProcessor() {
+							                
+							                final String traceId = TRACEID.newTraceId();
+							                
+							                @Override
+							                public Object process(Object data, ChannelContext context) throws Throwable
+							                {
+								                ByteBuf<?> buf = (ByteBuf<?>) data;
+								                Integer value = buf.readInt();
+								                sendContent[value] += 1;
+								                logger.debug("traceId:{} 单位端收到消息:{}", traceId, value);
+								                buf.release();
+								                latch.countDown();
+								                return null;
+							                }
+						                }
+										
+										}, //
+						                new StreamProcessor[] { new StreamProcessor() {
+							                final String traceId = TRACEID.newTraceId();
+							                
+							                @Override
+							                public Object process(Object data, ChannelContext context) throws Throwable
+							                {
+								                Integer str = (Integer) data;
+								                logger.debug("traceId:{} 单位端发出消息:{}", traceId, str);
+								                ByteBuf<?> buf = HeapByteBuf.allocate(100);
+								                buf.addWriteIndex(4);
+								                buf.writeInt(str);
+								                return buf;
+							                }
+						                }, new LengthEncodeProcessor(0, 4)
+										
+										}, socketChannel);
 						return configuration;
 					}
 					
@@ -325,15 +316,14 @@ public class BaseTest
 				};
 				break;
 			case CHANNEL_ATTACH:
+				clientExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2 + 1);
 				channelContextBuilder = new ChannelContextBuilder() {
-					
-					ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2 + 1);
 					
 					@Override
 					public Configuration onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
 					{
-						Configuration configuration = new ChannelAttachConfiguration(executorService, //
-						        aioListener, new TotalLengthFieldBasedFrameDecoderByHeap(0, 4, 4, 500), //
+						Configuration configuration = ConfigurationTemplate.channelAttch(clientExecutor, //
+						        new TotalLengthFieldBasedFrameDecoderByHeap(0, 4, 4, 500), //
 						        new StreamProcessor[] { new StreamProcessor() {
 							        
 							        @Override
@@ -363,7 +353,7 @@ public class BaseTest
 						        }, new LengthEncodeProcessor(0, 4)
 								
 								}, //
-						        10, socketChannel, new SpscBufStorage(), DirectByteBuf.allocate(128), DirectByteBuf.allocate(128));
+						        socketChannel);
 						return configuration;
 					}
 					
@@ -381,8 +371,7 @@ public class BaseTest
 					@Override
 					public Configuration onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
 					{
-						Configuration configuration = new ThreadAttchConfiguration(clientExecutor, //
-						        aioListener, new TotalLengthFieldBasedFrameDecoderByHeap(0, 4, 4, 500), //
+						Configuration configuration = ConfigurationTemplate.threadAttch(clientExecutor, new TotalLengthFieldBasedFrameDecoderByHeap(0, 4, 4, 500), //
 						        new StreamProcessor[] { new StreamProcessor() {
 							        
 							        @Override
@@ -411,8 +400,7 @@ public class BaseTest
 							        }
 						        }, new LengthEncodeProcessor(0, 4)
 								
-								}, //
-						        10, socketChannel, new MpscBufStorage(), DirectByteBuf.allocate(128), DirectByteBuf.allocate(128));
+								}, socketChannel);
 						return configuration;
 					}
 					
@@ -443,7 +431,7 @@ public class BaseTest
 					{
 						int andIncrement = index.getAndIncrement();
 						
-						Configuration configuration = new MutliAttachConfiguration(processors[andIncrement & mask], aioListener, new TotalLengthFieldBasedFrameDecoderByHeap(0, 4, 4, 500), //
+						Configuration configuration = ConfigurationTemplate.mutliAttch(processors[andIncrement & mask], new TotalLengthFieldBasedFrameDecoderByHeap(0, 4, 4, 500), //
 						        new StreamProcessor[] { new StreamProcessor() {
 							        
 							        @Override
@@ -472,8 +460,7 @@ public class BaseTest
 							        }
 						        }, new LengthEncodeProcessor(0, 4)
 								
-								}, //
-						        10, socketChannel, new MpscBufStorage(), DirectByteBuf.allocate(128), DirectByteBuf.allocate(128));
+								}, socketChannel);
 						return configuration;
 					}
 					

@@ -46,6 +46,9 @@ public class DefaultChannelContext implements ChannelContext
 																		}
 																	});
 	private final Object								attachment;
+	private final ReadProcessor							readProcessor;
+	private final FrameDecodec							frameDecodec;
+	private final int									maxMerge;
 	
 	public DefaultChannelContext(//
 	        ReadProcessor readProcessor, //
@@ -60,15 +63,18 @@ public class DefaultChannelContext implements ChannelContext
 	        ByteBuf<?> outCachedBuf, //
 	        Object attachment)
 	{
+		this.readProcessor = readProcessor;
 		this.socketChannel = socketChannel;
 		this.inProcessors = inProcessors;
 		this.outProcessors = outProcessors;
 		this.sendBufStorage = sendBufStorage;
 		this.inCachedBuf = inCachedBuf;
 		this.outCachedBuf = outCachedBuf;
-		writeHandler = new DefaultWriteHandler(outCachedBuf, maxMerge, socketChannel, aioListener, sendBufStorage, this);
-		readHandler = new DefaultReadHandler(readProcessor, socketChannel, frameDecodec, inCachedBuf, aioListener, this);
+		this.frameDecodec = frameDecodec;
+		this.maxMerge = maxMerge;
 		this.attachment = attachment;
+		writeHandler = new DefaultWriteHandler(aioListener, this);
+		readHandler = new DefaultReadHandler(aioListener, this);
 	}
 	
 	@Override
@@ -134,6 +140,36 @@ public class DefaultChannelContext implements ChannelContext
 	public Object attachment()
 	{
 		return attachment;
+	}
+	
+	@Override
+	public void process(ByteBuf<?> packet) throws Throwable
+	{
+		readProcessor.process(packet, this);
+	}
+	
+	@Override
+	public ByteBuf<?> inCachedBuf()
+	{
+		return inCachedBuf;
+	}
+	
+	@Override
+	public ByteBuf<?> outCachedBuf()
+	{
+		return outCachedBuf;
+	}
+	
+	@Override
+	public FrameDecodec frameDecodec()
+	{
+		return frameDecodec;
+	}
+	
+	@Override
+	public int maxMerge()
+	{
+		return maxMerge;
 	}
 	
 }

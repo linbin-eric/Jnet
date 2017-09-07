@@ -12,26 +12,26 @@ import com.jfireframework.jnet.common.util.ByteBufFactory;
 
 public class DefaultWriteHandler implements WriteHandler
 {
-	private final ByteBuf<?>				outCachedBuf;
-	private final ByteBuf<?>[]				bufArray;
+	private static final int				SPIN_THRESHOLD		= 1 << 7;
 	private final static int				WORK				= 1;
 	private final static int				IDLE				= 2;
+	private final ByteBuf<?>				outCachedBuf;
+	private final ByteBuf<?>[]				bufArray;
 	private final CpuCachePadingInt			status				= new CpuCachePadingInt(IDLE);
 	private final ChannelContext			channelContext;
 	private final AsynchronousSocketChannel	socketChannel;
 	private final AioListener				aioListener;
 	private final SendBufStorage			bufStorage;
 	private int								currentSendCount	= 0;
-	private static final int				SPIN_THRESHOLD		= 1 << 7;
 	
-	public DefaultWriteHandler(ByteBuf<?> outCachedBuf, int maxMerge, AsynchronousSocketChannel socketChannel, AioListener channelListener, SendBufStorage bufStorage, ChannelContext serverChannelContext)
+	public DefaultWriteHandler(AioListener aioListener, ChannelContext serverChannelContext)
 	{
-		bufArray = new ByteBuf<?>[maxMerge];
-		this.outCachedBuf = outCachedBuf;
+		this.aioListener = aioListener;
 		this.channelContext = serverChannelContext;
-		this.socketChannel = socketChannel;
-		this.aioListener = channelListener;
-		this.bufStorage = bufStorage;
+		bufArray = new ByteBuf<?>[serverChannelContext.maxMerge()];
+		outCachedBuf = serverChannelContext.outCachedBuf();
+		socketChannel = serverChannelContext.socketChannel();
+		bufStorage = serverChannelContext.sendBufStorage();
 	}
 	
 	@Override

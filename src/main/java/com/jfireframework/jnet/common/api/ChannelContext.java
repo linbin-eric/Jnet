@@ -1,7 +1,9 @@
 package com.jfireframework.jnet.common.api;
 
 import java.nio.channels.AsynchronousSocketChannel;
+import com.jfireframework.baseutil.collection.buffer.ByteBuf;
 import com.jfireframework.jnet.common.bufstorage.SendBufStorage;
+import com.jfireframework.jnet.common.decodec.FrameDecodec;
 
 public interface ChannelContext
 {
@@ -14,6 +16,14 @@ public interface ChannelContext
 	Object attachment();
 	
 	SendBufStorage sendBufStorage();
+	
+	/**
+	 * 处理从通道读取到的报文
+	 * 
+	 * @param packet
+	 * @throws Throwable
+	 */
+	void process(ByteBuf<?> packet) throws Throwable;
 	
 	void registerRead();
 	
@@ -50,4 +60,12 @@ public interface ChannelContext
 	AsynchronousSocketChannel socketChannel();
 	
 	boolean isOpen();
+	
+	ByteBuf<?> inCachedBuf();
+	
+	ByteBuf<?> outCachedBuf();
+	
+	FrameDecodec frameDecodec();
+	
+	int maxMerge();
 }

@@ -62,7 +62,7 @@ public class ThreadAttchConfiguration extends AbstractConfiguration
 		{
 			status.set(WORK);
 			owner = Thread.currentThread();
-			end: do
+			termination: do
 			{
 				ProcessorTask task = tasks.poll();
 				if (task == null)
@@ -94,7 +94,7 @@ public class ThreadAttchConfiguration extends AbstractConfiguration
 								status.set(WORK);
 								if (Thread.currentThread().isInterrupted())
 								{
-									break end;
+									break termination;
 								}
 							}
 						}

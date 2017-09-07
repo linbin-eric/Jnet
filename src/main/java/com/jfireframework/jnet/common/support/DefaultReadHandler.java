@@ -6,7 +6,6 @@ import com.jfireframework.baseutil.collection.buffer.ByteBuf;
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ReadHandler;
-import com.jfireframework.jnet.common.api.ReadProcessor;
 import com.jfireframework.jnet.common.api.StreamProcessor;
 import com.jfireframework.jnet.common.bufstorage.SendBufStorage;
 import com.jfireframework.jnet.common.decodec.DecodeResult;
@@ -20,20 +19,18 @@ public class DefaultReadHandler implements ReadHandler
 	protected final ByteBuf<?>					ioBuf;
 	protected final ChannelContext				channelContext;
 	protected final AsynchronousSocketChannel	socketChannel;
-	protected final AioListener					channelLisntener;
-	protected volatile boolean					readPending	= false;
-	protected final ReadProcessor				readProcessor;
+	protected final AioListener					aioListener;
 	protected final SendBufStorage				bufStorage;
 	protected final StreamProcessor[]			inProcessors;
+	protected volatile boolean					readPending	= false;
 	
-	public DefaultReadHandler(ReadProcessor readProcessor, AsynchronousSocketChannel socketChannel, FrameDecodec frameDecodec, ByteBuf<?> ioBuf, AioListener channelListener, ChannelContext channelContext)
+	public DefaultReadHandler(AioListener aioListener, ChannelContext channelContext)
 	{
-		this.socketChannel = socketChannel;
-		this.frameDecodec = frameDecodec;
-		this.ioBuf = ioBuf;
-		this.channelLisntener = channelListener;
+		this.aioListener = aioListener;
 		this.channelContext = channelContext;
-		this.readProcessor = readProcessor;
+		socketChannel = channelContext.socketChannel();
+		frameDecodec = channelContext.frameDecodec();
+		ioBuf = channelContext.inCachedBuf();
 		bufStorage = channelContext.sendBufStorage();
 		inProcessors = channelContext.inProcessors();
 	}
@@ -81,7 +78,7 @@ public class DefaultReadHandler implements ReadHandler
 					return;
 				case NORMAL:
 					ByteBuf<?> packet = decodeResult.getBuf();
-					readProcessor.process(packet, channelContext);
+					channelContext.process(packet);
 			}
 		}
 	}
@@ -100,7 +97,7 @@ public class DefaultReadHandler implements ReadHandler
 	
 	protected void catchThrowable(Throwable e, ChannelContext context)
 	{
-		channelLisntener.catchException(e, context);
+		aioListener.catchException(e, context);
 	}
 	
 	public void registerRead()
@@ -110,14 +107,14 @@ public class DefaultReadHandler implements ReadHandler
 			throw new UnsupportedOperationException();
 		}
 		readPending = true;
-		channelLisntener.readRegister(channelContext);
+		aioListener.readRegister(channelContext);
 		try
 		{
 			socketChannel.read(getWriteBuffer(), null, this);
 		}
 		catch (Exception e)
 		{
-			channelLisntener.catchException(e, channelContext);
+			aioListener.catchException(e, channelContext);
 		}
 	}
 	
