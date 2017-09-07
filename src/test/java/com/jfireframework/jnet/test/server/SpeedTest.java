@@ -23,20 +23,19 @@ import com.jfireframework.jnet.client.client.AioClient;
 import com.jfireframework.jnet.common.IoMode;
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
+import com.jfireframework.jnet.common.api.ChannelContextBuilder;
 import com.jfireframework.jnet.common.api.Configuration;
+import com.jfireframework.jnet.common.api.StreamProcessor;
 import com.jfireframework.jnet.common.bufstorage.impl.MpscBufStorage;
 import com.jfireframework.jnet.common.bufstorage.impl.SpscBufStorage;
-import com.jfireframework.jnet.common.build.ChannelContextBuilder;
-import com.jfireframework.jnet.common.channelcontext.ChannelAttachConfiguration;
-import com.jfireframework.jnet.common.channelcontext.MutliAttachConfiguration;
-import com.jfireframework.jnet.common.channelcontext.MutliAttachConfiguration.MutlisAttachProcessor;
-import com.jfireframework.jnet.common.channelcontext.SimpleConfiguration;
-import com.jfireframework.jnet.common.channelcontext.ThreadAttchConfiguration;
+import com.jfireframework.jnet.common.configuration.ChannelAttachConfiguration;
+import com.jfireframework.jnet.common.configuration.MutliAttachConfiguration;
+import com.jfireframework.jnet.common.configuration.MutliAttachConfiguration.MutlisAttachProcessor;
+import com.jfireframework.jnet.common.configuration.SimpleConfiguration;
+import com.jfireframework.jnet.common.configuration.ThreadAttchConfiguration;
 import com.jfireframework.jnet.common.decodec.impl.TotalLengthFieldBasedFrameDecoder;
 import com.jfireframework.jnet.common.streamprocessor.LengthEncodeProcessor;
-import com.jfireframework.jnet.common.streamprocessor.ProcessorIndexFlag;
-import com.jfireframework.jnet.common.streamprocessor.StreamProcessor;
-import com.jfireframework.jnet.common.util.DefaultAioListener;
+import com.jfireframework.jnet.common.support.DefaultAioListener;
 import com.jfireframework.jnet.server.AioServer;
 import com.jfireframework.jnet.server.build.AioServerBuilder;
 
@@ -95,7 +94,7 @@ public class SpeedTest
 						        new StreamProcessor[] { new StreamProcessor() {
 							        
 							        @Override
-							        public Object process(Object data, ProcessorIndexFlag result, ChannelContext context) throws Throwable
+							        public Object process(Object data, ChannelContext context) throws Throwable
 							        {
 								        ByteBuf<?> buf = (ByteBuf<?>) data;
 								        buf.readIndex(0);
@@ -127,7 +126,7 @@ public class SpeedTest
 						        new StreamProcessor[] { new StreamProcessor() {
 							        
 							        @Override
-							        public Object process(Object data, ProcessorIndexFlag result, ChannelContext context) throws Throwable
+							        public Object process(Object data, ChannelContext context) throws Throwable
 							        {
 								        ByteBuf<?> buf = (ByteBuf<?>) data;
 								        buf.readIndex(0);
@@ -158,7 +157,7 @@ public class SpeedTest
 						        new StreamProcessor[] { new StreamProcessor() {
 							        
 							        @Override
-							        public Object process(Object data, ProcessorIndexFlag result, ChannelContext context) throws Throwable
+							        public Object process(Object data, ChannelContext context) throws Throwable
 							        {
 								        ByteBuf<?> buf = (ByteBuf<?>) data;
 								        buf.readIndex(0);
@@ -201,7 +200,7 @@ public class SpeedTest
 						        new StreamProcessor[] { new StreamProcessor() {
 							        
 							        @Override
-							        public Object process(Object data, ProcessorIndexFlag result, ChannelContext context) throws Throwable
+							        public Object process(Object data, ChannelContext context) throws Throwable
 							        {
 								        ByteBuf<?> buf = (ByteBuf<?>) data;
 								        buf.readIndex(0);
@@ -256,7 +255,7 @@ public class SpeedTest
 						        new StreamProcessor[] { new StreamProcessor() {
 							        
 							        @Override
-							        public Object process(Object data, ProcessorIndexFlag result, ChannelContext context) throws Throwable
+							        public Object process(Object data, ChannelContext context) throws Throwable
 							        {
 								        ByteBuf<?> buf = (ByteBuf<?>) data;
 								        buf.release();
@@ -273,7 +272,7 @@ public class SpeedTest
 						        new StreamProcessor[] { new StreamProcessor() {
 							        
 							        @Override
-							        public Object process(Object data, ProcessorIndexFlag result, ChannelContext context) throws Throwable
+							        public Object process(Object data, ChannelContext context) throws Throwable
 							        {
 								        ByteBuf<?> buf = HeapByteBuf.allocate(28);
 								        buf.addWriteIndex(4);
@@ -306,7 +305,7 @@ public class SpeedTest
 						        new StreamProcessor[] { new StreamProcessor() {
 							        
 							        @Override
-							        public Object process(Object data, ProcessorIndexFlag result, ChannelContext context) throws Throwable
+							        public Object process(Object data, ChannelContext context) throws Throwable
 							        {
 								        ByteBuf<?> buf = (ByteBuf<?>) data;
 								        buf.release();
@@ -323,7 +322,7 @@ public class SpeedTest
 						        new StreamProcessor[] { new StreamProcessor() {
 							        
 							        @Override
-							        public Object process(Object data, ProcessorIndexFlag result, ChannelContext context) throws Throwable
+							        public Object process(Object data, ChannelContext context) throws Throwable
 							        {
 								        ByteBuf<?> buf = HeapByteBuf.allocate(28);
 								        buf.addWriteIndex(4);
@@ -356,7 +355,7 @@ public class SpeedTest
 						        new StreamProcessor[] { new StreamProcessor() {
 							        
 							        @Override
-							        public Object process(Object data, ProcessorIndexFlag result, ChannelContext context) throws Throwable
+							        public Object process(Object data, ChannelContext context) throws Throwable
 							        {
 								        ByteBuf<?> buf = (ByteBuf<?>) data;
 								        buf.release();
@@ -373,7 +372,7 @@ public class SpeedTest
 						        new StreamProcessor[] { new StreamProcessor() {
 							        
 							        @Override
-							        public Object process(Object data, ProcessorIndexFlag result, ChannelContext context) throws Throwable
+							        public Object process(Object data, ChannelContext context) throws Throwable
 							        {
 								        ByteBuf<?> buf = HeapByteBuf.allocate(28);
 								        buf.addWriteIndex(4);
@@ -418,7 +417,7 @@ public class SpeedTest
 						        new StreamProcessor[] { new StreamProcessor() {
 							        
 							        @Override
-							        public Object process(Object data, ProcessorIndexFlag result, ChannelContext context) throws Throwable
+							        public Object process(Object data, ChannelContext context) throws Throwable
 							        {
 								        ByteBuf<?> buf = (ByteBuf<?>) data;
 								        buf.release();
@@ -435,7 +434,7 @@ public class SpeedTest
 						        new StreamProcessor[] { new StreamProcessor() {
 							        
 							        @Override
-							        public Object process(Object data, ProcessorIndexFlag result, ChannelContext context) throws Throwable
+							        public Object process(Object data, ChannelContext context) throws Throwable
 							        {
 								        ByteBuf<?> buf = HeapByteBuf.allocate(28);
 								        buf.addWriteIndex(4);

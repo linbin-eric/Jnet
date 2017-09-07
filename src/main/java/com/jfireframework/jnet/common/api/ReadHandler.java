@@ -4,5 +4,5 @@ import java.nio.channels.CompletionHandler;
 
 public interface ReadHandler extends CompletionHandler<Integer, Void>
 {
-    public void registerRead();
+	void registerRead();
 }

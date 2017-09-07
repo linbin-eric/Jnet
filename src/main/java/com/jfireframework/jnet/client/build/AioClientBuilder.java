@@ -6,8 +6,8 @@ import com.jfireframework.baseutil.exception.JustThrowException;
 import com.jfireframework.jnet.client.client.AioClient;
 import com.jfireframework.jnet.client.client.impl.AbstractClient;
 import com.jfireframework.jnet.common.api.AioListener;
-import com.jfireframework.jnet.common.build.ChannelContextBuilder;
-import com.jfireframework.jnet.common.util.DefaultAioListener;
+import com.jfireframework.jnet.common.api.ChannelContextBuilder;
+import com.jfireframework.jnet.common.support.DefaultAioListener;
 
 public class AioClientBuilder
 {

@@ -1,12 +1,10 @@
 package com.jfireframework.jnet.common.decodec.impl;
 
 import com.jfireframework.baseutil.collection.buffer.ByteBuf;
-import com.jfireframework.baseutil.collection.buffer.DirectByteBuf;
 import com.jfireframework.baseutil.collection.buffer.HeapByteBuf;
 import com.jfireframework.jnet.common.decodec.DecodeResult;
 import com.jfireframework.jnet.common.decodec.DecodeResultType;
 import com.jfireframework.jnet.common.decodec.FrameDecodec;
-import com.jfireframework.jnet.common.util.ByteBufFactory;
 
 public class TotalLengthFieldBasedFrameDecoderByHeap implements FrameDecodec
 {

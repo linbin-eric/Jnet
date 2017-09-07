@@ -6,8 +6,8 @@ import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
+import com.jfireframework.jnet.common.api.ChannelContextBuilder;
 import com.jfireframework.jnet.common.api.Configuration;
-import com.jfireframework.jnet.common.build.ChannelContextBuilder;
 
 public class AcceptHandler implements CompletionHandler<AsynchronousSocketChannel, AsynchronousServerSocketChannel>
 {

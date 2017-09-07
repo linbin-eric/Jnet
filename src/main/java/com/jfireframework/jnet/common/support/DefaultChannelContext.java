@@ -1,4 +1,4 @@
-package com.jfireframework.jnet.common.channelcontext;
+package com.jfireframework.jnet.common.support;
 
 import java.io.IOException;
 import java.nio.channels.AsynchronousSocketChannel;
@@ -9,27 +9,23 @@ import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ReadHandler;
 import com.jfireframework.jnet.common.api.ReadProcessor;
+import com.jfireframework.jnet.common.api.StreamProcessor;
 import com.jfireframework.jnet.common.api.WriteHandler;
 import com.jfireframework.jnet.common.bufstorage.SendBufStorage;
 import com.jfireframework.jnet.common.decodec.FrameDecodec;
-import com.jfireframework.jnet.common.readhandler.DefaultReadHandler;
 import com.jfireframework.jnet.common.streamprocessor.ProcesserUtil;
-import com.jfireframework.jnet.common.streamprocessor.StreamProcessor;
-import com.jfireframework.jnet.common.writehandler.DefaultWriteHandler;
 
-public class BaseChannelContext implements ChannelContext
+public class DefaultChannelContext implements ChannelContext
 {
-	protected ReadHandler								readHandler;
-	protected final WriteHandler						writeHandler;
-	protected final AioListener							aioListener;
-	protected final FrameDecodec						frameDecodec;
-	protected final SendBufStorage						sendBufStorage;
-	protected final ByteBuf<?>							inCachedBuf;
-	protected final ByteBuf<?>							outCachedBuf;
-	protected final StreamProcessor[]					inProcessors;
-	protected final StreamProcessor[]					outProcessors;
-	protected final AsynchronousSocketChannel			socketChannel;
-	protected final ResourceCloseAgent<ChannelContext>	closeAgent	= new ResourceCloseAgent<ChannelContext>(this, new ResourceCloseCallback<ChannelContext>() {
+	private final ReadHandler							readHandler;
+	private final WriteHandler							writeHandler;
+	private final SendBufStorage						sendBufStorage;
+	private final ByteBuf<?>							inCachedBuf;
+	private final ByteBuf<?>							outCachedBuf;
+	private final StreamProcessor[]						inProcessors;
+	private final StreamProcessor[]						outProcessors;
+	private final AsynchronousSocketChannel				socketChannel;
+	private final ResourceCloseAgent<ChannelContext>	closeAgent	= new ResourceCloseAgent<ChannelContext>(this, new ResourceCloseCallback<ChannelContext>() {
 																		
 																		@Override
 																		public void onClose(ChannelContext resource)
@@ -49,8 +45,9 @@ public class BaseChannelContext implements ChannelContext
 																			}
 																		}
 																	});
+	private final Object								attachment;
 	
-	public BaseChannelContext(//
+	public DefaultChannelContext(//
 	        ReadProcessor readProcessor, //
 	        SendBufStorage sendBufStorage, //
 	        int maxMerge, //
@@ -60,24 +57,24 @@ public class BaseChannelContext implements ChannelContext
 	        AsynchronousSocketChannel socketChannel, //
 	        FrameDecodec frameDecodec, //
 	        ByteBuf<?> inCachedBuf, //
-	        ByteBuf<?> outCachedBuf)
+	        ByteBuf<?> outCachedBuf, //
+	        Object attachment)
 	{
 		this.socketChannel = socketChannel;
 		this.inProcessors = inProcessors;
 		this.outProcessors = outProcessors;
 		this.sendBufStorage = sendBufStorage;
-		this.aioListener = aioListener;
-		this.frameDecodec = frameDecodec;
 		this.inCachedBuf = inCachedBuf;
 		this.outCachedBuf = outCachedBuf;
 		writeHandler = new DefaultWriteHandler(outCachedBuf, maxMerge, socketChannel, aioListener, sendBufStorage, this);
 		readHandler = new DefaultReadHandler(readProcessor, socketChannel, frameDecodec, inCachedBuf, aioListener, this);
+		this.attachment = attachment;
 	}
 	
 	@Override
 	public void push(Object send, int index) throws Throwable
 	{
-		Object finalResult = ProcesserUtil.process(this, outProcessors, send, index);
+		Object finalResult = ProcesserUtil.process(this, outProcessors, send);
 		if (finalResult instanceof ByteBuf<?>)
 		{
 			sendBufStorage.putBuf((ByteBuf<?>) finalResult);
@@ -131,6 +128,12 @@ public class BaseChannelContext implements ChannelContext
 	public void registerRead()
 	{
 		readHandler.registerRead();
+	}
+	
+	@Override
+	public Object attachment()
+	{
+		return attachment;
 	}
 	
 }

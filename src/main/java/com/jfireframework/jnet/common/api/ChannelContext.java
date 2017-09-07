@@ -2,10 +2,17 @@ package com.jfireframework.jnet.common.api;
 
 import java.nio.channels.AsynchronousSocketChannel;
 import com.jfireframework.jnet.common.bufstorage.SendBufStorage;
-import com.jfireframework.jnet.common.streamprocessor.StreamProcessor;
 
 public interface ChannelContext
 {
+	
+	/**
+	 * 与当前通道关联的一个附属对象
+	 * 
+	 * @return
+	 */
+	Object attachment();
+	
 	SendBufStorage sendBufStorage();
 	
 	void registerRead();

@@ -1,9 +1,6 @@
-package com.jfireframework.jnet.common.build;
+package com.jfireframework.jnet.common.api;
 
 import java.nio.channels.AsynchronousSocketChannel;
-import com.jfireframework.jnet.common.api.AioListener;
-import com.jfireframework.jnet.common.api.ChannelContext;
-import com.jfireframework.jnet.common.api.Configuration;
 
 public interface ChannelContextBuilder
 {

@@ -5,5 +5,5 @@ import com.jfireframework.baseutil.collection.buffer.ByteBuf;
 
 public interface WriteHandler extends CompletionHandler<Integer, ByteBuf<?>>
 {
-    public void registerWrite();
+     void registerWrite();
 }

@@ -11,8 +11,8 @@ import com.jfireframework.baseutil.exception.JustThrowException;
 import com.jfireframework.jnet.client.client.AioClient;
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
+import com.jfireframework.jnet.common.api.ChannelContextBuilder;
 import com.jfireframework.jnet.common.api.Configuration;
-import com.jfireframework.jnet.common.build.ChannelContextBuilder;
 
 public class AbstractClient implements AioClient
 {
