@@ -54,8 +54,8 @@ import com.jfireframework.jnet.server.build.AioServerBuilder;
 public class BaseTest
 {
     private int                            port            = 8546;
-    private int                            clientThreadNum = 10;
-    private int                            sendCount       = 5000000;
+    private int                            clientThreadNum = 30;
+    private int                            sendCount       = 10000000;
     private CountDownLatch                 latch           = new CountDownLatch(sendCount);
     private ConcurrentLinkedQueue<Integer> waitForSend     = new ConcurrentLinkedQueue<>();
     private int[]                          sendContent;
