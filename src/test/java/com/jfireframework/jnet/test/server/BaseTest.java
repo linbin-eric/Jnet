@@ -21,8 +21,8 @@ import com.jfireframework.baseutil.TRACEID;
 import com.jfireframework.baseutil.collection.buffer.ByteBuf;
 import com.jfireframework.baseutil.collection.buffer.DirectByteBuf;
 import com.jfireframework.baseutil.collection.buffer.HeapByteBuf;
-import com.jfireframework.jnet.client.build.AioClientBuilder;
-import com.jfireframework.jnet.client.client.AioClient;
+import com.jfireframework.jnet.client.AioClient;
+import com.jfireframework.jnet.client.AioClientBuilder;
 import com.jfireframework.jnet.common.IoMode;
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
@@ -36,7 +36,7 @@ import com.jfireframework.jnet.common.decodec.impl.TotalLengthFieldBasedFrameDec
 import com.jfireframework.jnet.common.streamprocessor.LengthEncodeProcessor;
 import com.jfireframework.jnet.common.support.DefaultAioListener;
 import com.jfireframework.jnet.server.AioServer;
-import com.jfireframework.jnet.server.build.AioServerBuilder;
+import com.jfireframework.jnet.server.AioServerBuilder;
 
 /**
  * 基本测试。用于验证代码的正确性

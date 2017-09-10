@@ -1,4 +1,4 @@
-package com.jfireframework.jnet.server.accepthandler.impl;
+package com.jfireframework.jnet.server;
 
 import java.io.IOException;
 import java.nio.channels.AsynchronousServerSocketChannel;

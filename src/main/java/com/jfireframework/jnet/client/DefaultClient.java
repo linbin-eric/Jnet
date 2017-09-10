@@ -1,4 +1,4 @@
-package com.jfireframework.jnet.client.client.impl;
+package com.jfireframework.jnet.client;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -8,13 +8,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import com.jfireframework.baseutil.exception.JustThrowException;
-import com.jfireframework.jnet.client.client.AioClient;
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ChannelContextBuilder;
 import com.jfireframework.jnet.common.api.Configuration;
 
-public class AbstractClient implements AioClient
+public class DefaultClient implements AioClient
 {
 	private static final int					connectTimeout	= 10;
 	protected final AsynchronousChannelGroup	channelGroup;
@@ -24,7 +23,7 @@ public class AbstractClient implements AioClient
 	protected final ChannelContextBuilder		clientChannelContextBuilder;
 	protected ChannelContext					clientChannelContext;
 	
-	public AbstractClient(ChannelContextBuilder clientChannelContextBuilder, AsynchronousChannelGroup channelGroup, String serverIp, int port, AioListener aioListener)
+	public DefaultClient(ChannelContextBuilder clientChannelContextBuilder, AsynchronousChannelGroup channelGroup, String serverIp, int port, AioListener aioListener)
 	{
 		this.channelGroup = channelGroup;
 		this.serverIp = serverIp;

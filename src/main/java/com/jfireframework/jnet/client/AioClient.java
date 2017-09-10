@@ -1,4 +1,4 @@
-package com.jfireframework.jnet.client.client;
+package com.jfireframework.jnet.client;
 
 public interface AioClient
 {
