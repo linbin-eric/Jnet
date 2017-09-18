@@ -5,13 +5,13 @@ import java.util.concurrent.ThreadFactory;
 import com.jfireframework.baseutil.StringUtil;
 import com.jfireframework.baseutil.exception.JustThrowException;
 import com.jfireframework.jnet.common.api.AioListener;
-import com.jfireframework.jnet.common.api.ChannelContextBuilder;
+import com.jfireframework.jnet.common.api.ChannelConnectListener;
 import com.jfireframework.jnet.common.support.DefaultAioListener;
 
 public class AioServerBuilder
 {
 	private AioListener					aioListener;
-	private ChannelContextBuilder		channelContextBuilder;
+	private ChannelConnectListener		channelContextBuilder;
 	private int							port	= -1;
 	private String						bindIp	= "0.0.0.0";
 	private AsynchronousChannelGroup	channelGroup;
@@ -49,7 +49,7 @@ public class AioServerBuilder
 		}
 	}
 	
-	public void setChannelContextBuilder(ChannelContextBuilder channelContextBuilder)
+	public void setChannelContextBuilder(ChannelConnectListener channelContextBuilder)
 	{
 		this.channelContextBuilder = channelContextBuilder;
 	}

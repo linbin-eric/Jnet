@@ -26,7 +26,7 @@ import com.jfireframework.jnet.client.AioClientBuilder;
 import com.jfireframework.jnet.common.IoMode;
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
-import com.jfireframework.jnet.common.api.ChannelContextBuilder;
+import com.jfireframework.jnet.common.api.ChannelConnectListener;
 import com.jfireframework.jnet.common.api.Configuration;
 import com.jfireframework.jnet.common.api.StreamProcessor;
 import com.jfireframework.jnet.common.configuration.ConfigurationTemplate;
@@ -100,13 +100,13 @@ public class BaseTest
 		logger.info("开始测试，服务端模式:{},客户端模式:{}", serverIoMode, clientIoMode);
 	}
 	
-	ChannelContextBuilder build(IoMode iomode, AioListener aioListener)
+	ChannelConnectListener build(IoMode iomode, AioListener aioListener)
 	{
-		ChannelContextBuilder channelContextBuilder = null;
+		ChannelConnectListener channelContextBuilder = null;
 		switch (iomode)
 		{
 			case SIMPLE:
-				channelContextBuilder = new ChannelContextBuilder() {
+				channelContextBuilder = new ChannelConnectListener() {
 					
 					@Override
 					public Configuration onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
@@ -129,15 +129,11 @@ public class BaseTest
 						return configuration;
 					}
 					
-					@Override
-					public void afterContextBuild(ChannelContext serverChannelContext)
-					{
-					}
 				};
 				break;
 			case CHANNEL_ATTACH:
 				serverExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2 + 1);
-				channelContextBuilder = new ChannelContextBuilder() {
+				channelContextBuilder = new ChannelConnectListener() {
 					
 					@Override
 					public Configuration onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
@@ -157,16 +153,11 @@ public class BaseTest
 						return configuration;
 					}
 					
-					@Override
-					public void afterContextBuild(ChannelContext serverChannelContext)
-					{
-						
-					}
 				};
 				break;
 			case THREAD_ATTACH:
 				serverExecutor = Executors.newCachedThreadPool();
-				channelContextBuilder = new ChannelContextBuilder() {
+				channelContextBuilder = new ChannelConnectListener() {
 					
 					@Override
 					public Configuration onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
@@ -186,11 +177,6 @@ public class BaseTest
 						return configuration;
 					}
 					
-					@Override
-					public void afterContextBuild(ChannelContext serverChannelContext)
-					{
-						
-					}
 				};
 				break;
 			case MUTLI_ATTACH:
@@ -205,7 +191,7 @@ public class BaseTest
 					serverExecutor.submit(each);
 				}
 				final int mask = processors.length - 1;
-				channelContextBuilder = new ChannelContextBuilder() {
+				channelContextBuilder = new ChannelConnectListener() {
 					AtomicInteger index = new AtomicInteger(0);
 					
 					@Override
@@ -230,10 +216,6 @@ public class BaseTest
 						return configuration;
 					}
 					
-					@Override
-					public void afterContextBuild(ChannelContext serverChannelContext)
-					{
-					}
 				};
 				break;
 		}
@@ -260,11 +242,11 @@ public class BaseTest
 		clientBuilder.setServerIp("127.0.0.1");
 		clientBuilder.setPort(port);
 		clientBuilder.setAioListener(aioListener);
-		ChannelContextBuilder channelContextBuilder = null;
+		ChannelConnectListener channelContextBuilder = null;
 		switch (clientIoMode)
 		{
 			case SIMPLE:
-				channelContextBuilder = new ChannelContextBuilder() {
+				channelContextBuilder = new ChannelConnectListener() {
 					
 					@Override
 					public Configuration onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
@@ -309,15 +291,11 @@ public class BaseTest
 						return configuration;
 					}
 					
-					@Override
-					public void afterContextBuild(ChannelContext serverChannelContext)
-					{
-					}
 				};
 				break;
 			case CHANNEL_ATTACH:
 				clientExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2 + 1);
-				channelContextBuilder = new ChannelContextBuilder() {
+				channelContextBuilder = new ChannelConnectListener() {
 					
 					@Override
 					public Configuration onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
@@ -357,16 +335,11 @@ public class BaseTest
 						return configuration;
 					}
 					
-					@Override
-					public void afterContextBuild(ChannelContext serverChannelContext)
-					{
-						
-					}
 				};
 				break;
 			case THREAD_ATTACH:
 				clientExecutor = Executors.newCachedThreadPool();
-				channelContextBuilder = new ChannelContextBuilder() {
+				channelContextBuilder = new ChannelConnectListener() {
 					
 					@Override
 					public Configuration onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
@@ -404,11 +377,6 @@ public class BaseTest
 						return configuration;
 					}
 					
-					@Override
-					public void afterContextBuild(ChannelContext serverChannelContext)
-					{
-						
-					}
 				};
 				break;
 			case MUTLI_ATTACH:
@@ -423,7 +391,7 @@ public class BaseTest
 					clientExecutor.submit(each);
 				}
 				final int mask = processors.length - 1;
-				channelContextBuilder = new ChannelContextBuilder() {
+				channelContextBuilder = new ChannelConnectListener() {
 					AtomicInteger index = new AtomicInteger(0);
 					
 					@Override
@@ -464,10 +432,6 @@ public class BaseTest
 						return configuration;
 					}
 					
-					@Override
-					public void afterContextBuild(ChannelContext serverChannelContext)
-					{
-					}
 				};
 				break;
 			default:

@@ -7,7 +7,7 @@ import java.nio.channels.AsynchronousServerSocketChannel;
 import java.util.concurrent.TimeUnit;
 import com.jfireframework.baseutil.exception.JustThrowException;
 import com.jfireframework.jnet.common.api.AioListener;
-import com.jfireframework.jnet.common.api.ChannelContextBuilder;
+import com.jfireframework.jnet.common.api.ChannelConnectListener;
 
 public class AioServer
 {
@@ -17,7 +17,7 @@ public class AioServer
 	private int								port;
 	private AcceptHandler					acceptHandler;
 	
-	public AioServer(String ip, int port, AsynchronousChannelGroup channelGroup, ChannelContextBuilder serverChannelContextBuilder, AioListener serverListener)
+	public AioServer(String ip, int port, AsynchronousChannelGroup channelGroup, ChannelConnectListener serverChannelContextBuilder, AioListener serverListener)
 	{
 		this.ip = ip;
 		this.port = port;

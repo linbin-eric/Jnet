@@ -10,7 +10,7 @@ import java.util.concurrent.TimeoutException;
 import com.jfireframework.baseutil.exception.JustThrowException;
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
-import com.jfireframework.jnet.common.api.ChannelContextBuilder;
+import com.jfireframework.jnet.common.api.ChannelConnectListener;
 import com.jfireframework.jnet.common.api.Configuration;
 
 public class DefaultClient implements AioClient
@@ -20,10 +20,10 @@ public class DefaultClient implements AioClient
 	protected final String						serverIp;
 	protected final int							port;
 	protected final AioListener					aioListener;
-	protected final ChannelContextBuilder		clientChannelContextBuilder;
+	protected final ChannelConnectListener		clientChannelContextBuilder;
 	protected ChannelContext					clientChannelContext;
 	
-	public DefaultClient(ChannelContextBuilder clientChannelContextBuilder, AsynchronousChannelGroup channelGroup, String serverIp, int port, AioListener aioListener)
+	public DefaultClient(ChannelConnectListener clientChannelContextBuilder, AsynchronousChannelGroup channelGroup, String serverIp, int port, AioListener aioListener)
 	{
 		this.channelGroup = channelGroup;
 		this.serverIp = serverIp;

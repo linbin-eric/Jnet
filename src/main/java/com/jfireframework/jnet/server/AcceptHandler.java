@@ -6,15 +6,15 @@ import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
-import com.jfireframework.jnet.common.api.ChannelContextBuilder;
+import com.jfireframework.jnet.common.api.ChannelConnectListener;
 import com.jfireframework.jnet.common.api.Configuration;
 
 public class AcceptHandler implements CompletionHandler<AsynchronousSocketChannel, AsynchronousServerSocketChannel>
 {
-	protected final ChannelContextBuilder	channelContextBuilder;
+	protected final ChannelConnectListener	channelContextBuilder;
 	protected final AioListener				serverListener;
 	
-	public AcceptHandler(ChannelContextBuilder channelContextBuilder, AioListener serverListener)
+	public AcceptHandler(ChannelConnectListener channelContextBuilder, AioListener serverListener)
 	{
 		this.channelContextBuilder = channelContextBuilder;
 		this.serverListener = serverListener;
@@ -25,7 +25,6 @@ public class AcceptHandler implements CompletionHandler<AsynchronousSocketChanne
 	{
 		Configuration configuration = channelContextBuilder.onConnect(socketChannel, serverListener);
 		ChannelContext serverChannelContext = configuration.config();
-		channelContextBuilder.afterContextBuild(serverChannelContext);
 		serverChannelContext.registerRead();
 		serverChannel.accept(serverChannel, this);
 	}
