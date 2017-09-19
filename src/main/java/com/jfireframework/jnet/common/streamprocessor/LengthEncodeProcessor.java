@@ -45,5 +45,10 @@ public class LengthEncodeProcessor implements StreamProcessor
 			return null;
 		}
 	}
+
+	@Override
+	public void initialize(ChannelContext channelContext)
+	{
+	}
 	
 }

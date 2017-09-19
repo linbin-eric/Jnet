@@ -45,6 +45,8 @@ public abstract class AbstractConfiguration implements Configuration
 	@Override
 	public ChannelContext config()
 	{
+		inProcessors = inProcessors == null ? new StreamProcessor[0] : inProcessors;
+		outProcessors = outProcessors == null ? new StreamProcessor[0] : outProcessors;
 		return new DefaultChannelContext(readProcessor, sendBufStorage, maxMerge, aioListener, inProcessors, outProcessors, socketChannel, frameDecodec, inCachedBuf, outCachedBuf, attachment);
 	}
 	

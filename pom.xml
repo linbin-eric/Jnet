@@ -16,6 +16,12 @@
 	<dependencies>
 		<dependency>
 			<groupId>com.jfireframework</groupId>
+			<artifactId>schedule</artifactId>
+			<version>1.0</version>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>com.jfireframework</groupId>
 			<artifactId>baseutil</artifactId>
 			<version>1.2</version>
 		</dependency>

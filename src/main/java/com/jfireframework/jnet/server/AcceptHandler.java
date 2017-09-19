@@ -8,6 +8,7 @@ import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ChannelConnectListener;
 import com.jfireframework.jnet.common.api.Configuration;
+import com.jfireframework.jnet.common.api.StreamProcessor;
 
 public class AcceptHandler implements CompletionHandler<AsynchronousSocketChannel, AsynchronousServerSocketChannel>
 {
@@ -25,6 +26,14 @@ public class AcceptHandler implements CompletionHandler<AsynchronousSocketChanne
 	{
 		Configuration configuration = channelContextBuilder.onConnect(socketChannel, serverListener);
 		ChannelContext serverChannelContext = configuration.config();
+		for (StreamProcessor each : serverChannelContext.inProcessors())
+		{
+			each.initialize(serverChannelContext);
+		}
+		for (StreamProcessor each : serverChannelContext.outProcessors())
+		{
+			each.initialize(serverChannelContext);
+		}
 		serverChannelContext.registerRead();
 		serverChannel.accept(serverChannel, this);
 	}

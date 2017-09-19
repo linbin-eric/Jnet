@@ -12,6 +12,7 @@ import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ChannelConnectListener;
 import com.jfireframework.jnet.common.api.Configuration;
+import com.jfireframework.jnet.common.api.StreamProcessor;
 
 public class DefaultClient implements AioClient
 {
@@ -41,6 +42,14 @@ public class DefaultClient implements AioClient
 			socketChannel.connect(new InetSocketAddress(serverIp, port)).get(connectTimeout, TimeUnit.SECONDS);
 			Configuration config = clientChannelContextBuilder.onConnect(socketChannel, aioListener);
 			clientChannelContext = config.config();
+			for (StreamProcessor each : clientChannelContext.inProcessors())
+			{
+				each.initialize(clientChannelContext);
+			}
+			for (StreamProcessor each : clientChannelContext.outProcessors())
+			{
+				each.initialize(clientChannelContext);
+			}
 			clientChannelContext.registerRead();
 		}
 		catch (IOException | InterruptedException | ExecutionException | TimeoutException e)
