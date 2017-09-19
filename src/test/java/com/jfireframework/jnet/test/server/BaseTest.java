@@ -123,6 +123,13 @@ public class BaseTest
 								        buf.readIndex(0);
 								        return buf;
 							        }
+
+									@Override
+									public void initialize(ChannelContext channelContext)
+									{
+										// TODO Auto-generated method stub
+										
+									}
 						        }
 						        }, //
 						        null, socketChannel);
@@ -148,6 +155,13 @@ public class BaseTest
 								        buf.readIndex(0);
 								        return buf;
 							        }
+
+									@Override
+									public void initialize(ChannelContext channelContext)
+									{
+										// TODO Auto-generated method stub
+										
+									}
 						        } }, //
 						        null, socketChannel);
 						return configuration;
@@ -172,6 +186,13 @@ public class BaseTest
 								        buf.readIndex(0);
 								        return buf;
 							        }
+
+									@Override
+									public void initialize(ChannelContext channelContext)
+									{
+										// TODO Auto-generated method stub
+										
+									}
 						        } }, //
 						        null, socketChannel);
 						return configuration;
@@ -211,6 +232,13 @@ public class BaseTest
 								                buf.readIndex(0);
 								                return buf;
 							                }
+
+											@Override
+											public void initialize(ChannelContext channelContext)
+											{
+												// TODO Auto-generated method stub
+												
+											}
 						                } }, //
 						                null, socketChannel);
 						return configuration;
@@ -269,6 +297,13 @@ public class BaseTest
 								                latch.countDown();
 								                return null;
 							                }
+
+											@Override
+											public void initialize(ChannelContext channelContext)
+											{
+												// TODO Auto-generated method stub
+												
+											}
 						                }
 										
 										}, //
@@ -285,6 +320,13 @@ public class BaseTest
 								                buf.writeInt(str);
 								                return buf;
 							                }
+
+											@Override
+											public void initialize(ChannelContext channelContext)
+											{
+												// TODO Auto-generated method stub
+												
+											}
 						                }, new LengthEncodeProcessor(0, 4)
 										
 										}, socketChannel);
@@ -314,6 +356,13 @@ public class BaseTest
 								        latch.countDown();
 								        return null;
 							        }
+
+									@Override
+									public void initialize(ChannelContext channelContext)
+									{
+										// TODO Auto-generated method stub
+										
+									}
 						        }
 								
 								}, //
@@ -328,6 +377,13 @@ public class BaseTest
 								        buf.writeInt(str);
 								        return buf;
 							        }
+
+									@Override
+									public void initialize(ChannelContext channelContext)
+									{
+										// TODO Auto-generated method stub
+										
+									}
 						        }, new LengthEncodeProcessor(0, 4)
 								
 								}, //
@@ -357,6 +413,13 @@ public class BaseTest
 								        latch.countDown();
 								        return null;
 							        }
+
+									@Override
+									public void initialize(ChannelContext channelContext)
+									{
+										// TODO Auto-generated method stub
+										
+									}
 						        }
 								
 								}, //
@@ -371,6 +434,13 @@ public class BaseTest
 								        buf.writeInt(str);
 								        return buf;
 							        }
+
+									@Override
+									public void initialize(ChannelContext channelContext)
+									{
+										// TODO Auto-generated method stub
+										
+									}
 						        }, new LengthEncodeProcessor(0, 4)
 								
 								}, socketChannel);
@@ -412,6 +482,13 @@ public class BaseTest
 								        latch.countDown();
 								        return null;
 							        }
+
+									@Override
+									public void initialize(ChannelContext channelContext)
+									{
+										// TODO Auto-generated method stub
+										
+									}
 						        }
 								
 								}, //
@@ -426,6 +503,13 @@ public class BaseTest
 								        buf.writeInt(str);
 								        return buf;
 							        }
+
+									@Override
+									public void initialize(ChannelContext channelContext)
+									{
+										// TODO Auto-generated method stub
+										
+									}
 						        }, new LengthEncodeProcessor(0, 4)
 								
 								}, socketChannel);
