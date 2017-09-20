@@ -100,13 +100,13 @@ public class SpeedTest
 								        buf.readIndex(0);
 								        return buf;
 							        }
-
-									@Override
-									public void initialize(ChannelContext channelContext)
-									{
-										// TODO Auto-generated method stub
-										
-									}
+							        
+							        @Override
+							        public void initialize(ChannelContext channelContext)
+							        {
+								        // TODO Auto-generated method stub
+								        
+							        }
 						        }
 						        }, //
 						        null, //
@@ -135,13 +135,13 @@ public class SpeedTest
 								        buf.readIndex(0);
 								        return buf;
 							        }
-
-									@Override
-									public void initialize(ChannelContext channelContext)
-									{
-										// TODO Auto-generated method stub
-										
-									}
+							        
+							        @Override
+							        public void initialize(ChannelContext channelContext)
+							        {
+								        // TODO Auto-generated method stub
+								        
+							        }
 						        } }, //
 						        null, //
 						        10, socketChannel, new SpscBufStorage(), DirectByteBuf.allocate(128), DirectByteBuf.allocate(128));
@@ -168,13 +168,13 @@ public class SpeedTest
 								        buf.readIndex(0);
 								        return buf;
 							        }
-
-									@Override
-									public void initialize(ChannelContext channelContext)
-									{
-										// TODO Auto-generated method stub
-										
-									}
+							        
+							        @Override
+							        public void initialize(ChannelContext channelContext)
+							        {
+								        // TODO Auto-generated method stub
+								        
+							        }
 						        } }, //
 						        null, //
 						        10, socketChannel, new MpscBufStorage(), DirectByteBuf.allocate(128), DirectByteBuf.allocate(128));
@@ -213,13 +213,13 @@ public class SpeedTest
 								        buf.readIndex(0);
 								        return buf;
 							        }
-
-									@Override
-									public void initialize(ChannelContext channelContext)
-									{
-										// TODO Auto-generated method stub
-										
-									}
+							        
+							        @Override
+							        public void initialize(ChannelContext channelContext)
+							        {
+								        // TODO Auto-generated method stub
+								        
+							        }
 						        } }, //
 						        null, //
 						        10, socketChannel, new MpscBufStorage(), DirectByteBuf.allocate(128), DirectByteBuf.allocate(128));
@@ -239,7 +239,7 @@ public class SpeedTest
 		serverBuilder.setPort(port);
 		AioListener aioListener = new DefaultAioListener();
 		serverBuilder.setAioListener(aioListener);
-		serverBuilder.setChannelContextBuilder(build(serverMode, aioListener));
+		serverBuilder.setChannelConnectListener(build(serverMode, aioListener));
 		AioServer aioServer = serverBuilder.build();
 		return aioServer;
 	}
@@ -275,13 +275,13 @@ public class SpeedTest
 								        }
 								        return null;
 							        }
-
-									@Override
-									public void initialize(ChannelContext channelContext)
-									{
-										// TODO Auto-generated method stub
-										
-									}
+							        
+							        @Override
+							        public void initialize(ChannelContext channelContext)
+							        {
+								        // TODO Auto-generated method stub
+								        
+							        }
 						        }
 								
 								}, //
@@ -295,13 +295,13 @@ public class SpeedTest
 								        buf.put((byte[]) data);
 								        return buf;
 							        }
-
-									@Override
-									public void initialize(ChannelContext channelContext)
-									{
-										// TODO Auto-generated method stub
-										
-									}
+							        
+							        @Override
+							        public void initialize(ChannelContext channelContext)
+							        {
+								        // TODO Auto-generated method stub
+								        
+							        }
 						        }, new LengthEncodeProcessor(0, 4)
 								
 								}, //
@@ -335,13 +335,13 @@ public class SpeedTest
 								        }
 								        return null;
 							        }
-
-									@Override
-									public void initialize(ChannelContext channelContext)
-									{
-										// TODO Auto-generated method stub
-										
-									}
+							        
+							        @Override
+							        public void initialize(ChannelContext channelContext)
+							        {
+								        // TODO Auto-generated method stub
+								        
+							        }
 						        }
 								
 								}, //
@@ -355,13 +355,13 @@ public class SpeedTest
 								        buf.put((byte[]) data);
 								        return buf;
 							        }
-
-									@Override
-									public void initialize(ChannelContext channelContext)
-									{
-										// TODO Auto-generated method stub
-										
-									}
+							        
+							        @Override
+							        public void initialize(ChannelContext channelContext)
+							        {
+								        // TODO Auto-generated method stub
+								        
+							        }
 						        }, new LengthEncodeProcessor(0, 4)
 								
 								}, //
@@ -394,13 +394,13 @@ public class SpeedTest
 								        }
 								        return null;
 							        }
-
-									@Override
-									public void initialize(ChannelContext channelContext)
-									{
-										// TODO Auto-generated method stub
-										
-									}
+							        
+							        @Override
+							        public void initialize(ChannelContext channelContext)
+							        {
+								        // TODO Auto-generated method stub
+								        
+							        }
 						        }
 								
 								}, //
@@ -414,13 +414,13 @@ public class SpeedTest
 								        buf.put((byte[]) data);
 								        return buf;
 							        }
-
-									@Override
-									public void initialize(ChannelContext channelContext)
-									{
-										// TODO Auto-generated method stub
-										
-									}
+							        
+							        @Override
+							        public void initialize(ChannelContext channelContext)
+							        {
+								        // TODO Auto-generated method stub
+								        
+							        }
 						        }, new LengthEncodeProcessor(0, 4)
 								
 								}, //
@@ -465,13 +465,13 @@ public class SpeedTest
 								        }
 								        return null;
 							        }
-
-									@Override
-									public void initialize(ChannelContext channelContext)
-									{
-										// TODO Auto-generated method stub
-										
-									}
+							        
+							        @Override
+							        public void initialize(ChannelContext channelContext)
+							        {
+								        // TODO Auto-generated method stub
+								        
+							        }
 						        }
 								
 								}, //
@@ -485,13 +485,13 @@ public class SpeedTest
 								        buf.put((byte[]) data);
 								        return buf;
 							        }
-
-									@Override
-									public void initialize(ChannelContext channelContext)
-									{
-										// TODO Auto-generated method stub
-										
-									}
+							        
+							        @Override
+							        public void initialize(ChannelContext channelContext)
+							        {
+								        // TODO Auto-generated method stub
+								        
+							        }
 						        }, new LengthEncodeProcessor(0, 4)
 								
 								}, //
@@ -504,7 +504,7 @@ public class SpeedTest
 			default:
 				break;
 		}
-		clientBuilder.setChannelContextBuilder(channelContextBuilder);
+		clientBuilder.setChannelConnectListener(channelContextBuilder);
 		return clientBuilder;
 	}
 	

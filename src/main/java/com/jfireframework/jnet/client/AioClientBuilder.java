@@ -18,13 +18,13 @@ public class AioClientBuilder
 	private String						serverIp	= "0.0.0.0";
 	private AsynchronousChannelGroup	channelGroup;
 	private AioListener					aioListener;
-	private ChannelConnectListener		channelContextBuilder;
+	private ChannelConnectListener		channelConnectListener;
 	
 	public synchronized AioClient build()
 	{
 		try
 		{
-			if (channelContextBuilder == null)
+			if (channelConnectListener == null)
 			{
 				throw new NullPointerException();
 			}
@@ -44,7 +44,7 @@ public class AioClientBuilder
 			{
 				aioListener = new DefaultAioListener();
 			}
-			return new DefaultClient(channelContextBuilder, channelGroup, serverIp, port, aioListener);
+			return new DefaultClient(channelConnectListener, channelGroup, serverIp, port, aioListener);
 		}
 		catch (Throwable e)
 		{
@@ -72,9 +72,9 @@ public class AioClientBuilder
 		this.aioListener = aioListener;
 	}
 	
-	public void setChannelContextBuilder(ChannelConnectListener channelContextBuilder)
+	public void setChannelConnectListener(ChannelConnectListener channelConnectListener)
 	{
-		this.channelContextBuilder = channelContextBuilder;
+		this.channelConnectListener = channelConnectListener;
 	}
 	
 }

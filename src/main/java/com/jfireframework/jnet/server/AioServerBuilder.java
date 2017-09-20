@@ -11,7 +11,7 @@ import com.jfireframework.jnet.common.support.DefaultAioListener;
 public class AioServerBuilder
 {
 	private AioListener					aioListener;
-	private ChannelConnectListener		channelContextBuilder;
+	private ChannelConnectListener		channelConnectListener;
 	private int							port	= -1;
 	private String						bindIp	= "0.0.0.0";
 	private AsynchronousChannelGroup	channelGroup;
@@ -20,7 +20,7 @@ public class AioServerBuilder
 	{
 		try
 		{
-			if (channelContextBuilder == null)
+			if (channelConnectListener == null)
 			{
 				throw new NullPointerException(StringUtil.format("channelContextBuilder 不能为空"));
 			}
@@ -40,7 +40,7 @@ public class AioServerBuilder
 			{
 				aioListener = new DefaultAioListener();
 			}
-			AioServer aioServer = new AioServer(bindIp, port, channelGroup, channelContextBuilder, aioListener);
+			AioServer aioServer = new AioServer(bindIp, port, channelGroup, channelConnectListener, aioListener);
 			return aioServer;
 		}
 		catch (Throwable e)
@@ -49,9 +49,9 @@ public class AioServerBuilder
 		}
 	}
 	
-	public void setChannelContextBuilder(ChannelConnectListener channelContextBuilder)
+	public void setChannelConnectListener(ChannelConnectListener channelConnectListener)
 	{
-		this.channelContextBuilder = channelContextBuilder;
+		this.channelConnectListener = channelConnectListener;
 	}
 	
 	public void setPort(int port)
