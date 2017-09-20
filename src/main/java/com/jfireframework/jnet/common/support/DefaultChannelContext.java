@@ -45,7 +45,7 @@ public class DefaultChannelContext implements ChannelContext
 																			}
 																		}
 																	});
-	private final Object								attachment;
+	private Object										attachment;
 	private final ReadProcessor							readProcessor;
 	private final FrameDecodec							frameDecodec;
 	private final int									maxMerge;
@@ -137,7 +137,7 @@ public class DefaultChannelContext implements ChannelContext
 	}
 	
 	@Override
-	public Object attachment()
+	public Object getAttachment()
 	{
 		return attachment;
 	}
@@ -170,6 +170,12 @@ public class DefaultChannelContext implements ChannelContext
 	public int maxMerge()
 	{
 		return maxMerge;
+	}
+	
+	@Override
+	public void setAttachment(Object attachment)
+	{
+		this.attachment = attachment;
 	}
 	
 }

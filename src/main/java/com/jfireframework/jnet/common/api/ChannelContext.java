@@ -13,7 +13,14 @@ public interface ChannelContext
 	 * 
 	 * @return
 	 */
-	Object attachment();
+	Object getAttachment();
+	
+	/**
+	 * 设置关联的附属对象
+	 * 
+	 * @param attachment
+	 */
+	void setAttachment(Object attachment);
 	
 	SendBufStorage sendBufStorage();
 	
