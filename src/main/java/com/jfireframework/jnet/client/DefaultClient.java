@@ -68,6 +68,6 @@ public class DefaultClient implements AioClient
 	@Override
 	public void write(Object packet) throws Throwable
 	{
-		clientChannelContext.push(packet, 0);
+		clientChannelContext.push(packet);
 	}
 }

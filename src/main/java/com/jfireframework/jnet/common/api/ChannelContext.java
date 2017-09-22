@@ -40,10 +40,9 @@ public interface ChannelContext
 	 * 推送一个数据到通道中准备发送
 	 * 
 	 * @param send
-	 * @param index
 	 * @throws Throwable
 	 */
-	void push(Object send, int index) throws Throwable;
+	void push(Object send) throws Throwable;
 	
 	/**
 	 * 注意，方法的内部实现保证close方法实际上只会被调用一次。返回true意味着真正的调用了close方法。返回false，就意味着有别人已经调用了close方法

@@ -78,7 +78,7 @@ public class DefaultChannelContext implements ChannelContext
 	}
 	
 	@Override
-	public void push(Object send, int index) throws Throwable
+	public void push(Object send) throws Throwable
 	{
 		Object finalResult = ProcesserUtil.process(this, outProcessors, send);
 		if (finalResult instanceof ByteBuf<?>)
