@@ -7,7 +7,7 @@
 		<artifactId>parent</artifactId>
 		<version>1.0.1</version>
 	</parent>
-	<version>1.1-SNAPSHOT</version>
+	<version>1.1</version>
 	<artifactId>jnet</artifactId>
 	<name>jnet</name>
 	<properties>
@@ -23,7 +23,7 @@
 		<dependency>
 			<groupId>com.jfireframework</groupId>
 			<artifactId>baseutil</artifactId>
-			<version>1.2.1-SNAPSHOT</version>
+			<version>1.2.1</version>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>
