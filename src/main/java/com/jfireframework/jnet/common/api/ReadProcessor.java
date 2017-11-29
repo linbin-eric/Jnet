@@ -1,8 +1,19 @@
 package com.jfireframework.jnet.common.api;
 
-import com.jfireframework.baseutil.collection.buffer.ByteBuf;
-
 public interface ReadProcessor
 {
-	void process(ByteBuf<?> buf, ChannelContext channelContext) throws Throwable;
+    /**
+     * 通道初始化时被调用
+     * 
+     * @param channelContext
+     */
+    void initialize(ChannelContext channelContext);
+    
+    /**
+     * 处理器数据
+     * 
+     * @param data
+     * @param chain
+     */
+    void process(Object data, ProcessorChain chain, ChannelContext channelContext);
 }

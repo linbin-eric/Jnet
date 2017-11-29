@@ -7,7 +7,7 @@
 		<artifactId>parent</artifactId>
 		<version>1.0.1</version>
 	</parent>
-	<version>1.1</version>
+	<version>1.2-SNAPSHOT</version>
 	<artifactId>jnet</artifactId>
 	<name>jnet</name>
 	<properties>

@@ -30,11 +30,11 @@ import com.jfireframework.jnet.common.bufstorage.impl.MpscBufStorage;
 import com.jfireframework.jnet.common.bufstorage.impl.SpscBufStorage;
 import com.jfireframework.jnet.common.configuration.ChannelAttachConfiguration;
 import com.jfireframework.jnet.common.configuration.MutliAttachConfiguration;
-import com.jfireframework.jnet.common.configuration.MutliAttachConfiguration.MutlisAttachProcessor;
 import com.jfireframework.jnet.common.configuration.SimpleConfiguration;
 import com.jfireframework.jnet.common.configuration.ThreadAttchConfiguration;
-import com.jfireframework.jnet.common.decodec.impl.TotalLengthFieldBasedFrameDecoder;
-import com.jfireframework.jnet.common.streamprocessor.LengthEncodeProcessor;
+import com.jfireframework.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
+import com.jfireframework.jnet.common.streamprocessor.LengthEncoder;
+import com.jfireframework.jnet.common.streamprocessor.worker.MutlisAttachWorker;
 import com.jfireframework.jnet.common.support.DefaultAioListener;
 import com.jfireframework.jnet.server.AioServer;
 import com.jfireframework.jnet.server.AioServerBuilder;
@@ -184,13 +184,13 @@ public class SpeedTest
 				};
 				break;
 			case MUTLI_ATTACH:
-				final MutlisAttachProcessor[] processors = new MutlisAttachProcessor[1 << 5];
+				final MutlisAttachWorker[] processors = new MutlisAttachWorker[1 << 5];
 				for (int i = 0; i < processors.length; i++)
 				{
-					processors[i] = new MutlisAttachProcessor(aioListener);
+					processors[i] = new MutlisAttachWorker(aioListener);
 				}
 				ExecutorService executorService = Executors.newCachedThreadPool();
-				for (MutlisAttachProcessor each : processors)
+				for (MutlisAttachWorker each : processors)
 				{
 					executorService.submit(each);
 				}
@@ -302,7 +302,7 @@ public class SpeedTest
 								        // TODO Auto-generated method stub
 								        
 							        }
-						        }, new LengthEncodeProcessor(0, 4)
+						        }, new LengthEncoder(0, 4)
 								
 								}, //
 						        10, socketChannel, new SpscBufStorage(), DirectByteBuf.allocate(128), DirectByteBuf.allocate(128));
@@ -362,7 +362,7 @@ public class SpeedTest
 								        // TODO Auto-generated method stub
 								        
 							        }
-						        }, new LengthEncodeProcessor(0, 4)
+						        }, new LengthEncoder(0, 4)
 								
 								}, //
 						        10, socketChannel, new SpscBufStorage(), DirectByteBuf.allocate(128), DirectByteBuf.allocate(128));
@@ -421,7 +421,7 @@ public class SpeedTest
 								        // TODO Auto-generated method stub
 								        
 							        }
-						        }, new LengthEncodeProcessor(0, 4)
+						        }, new LengthEncoder(0, 4)
 								
 								}, //
 						        10, socketChannel, new MpscBufStorage(), DirectByteBuf.allocate(128), DirectByteBuf.allocate(128));
@@ -431,13 +431,13 @@ public class SpeedTest
 				};
 				break;
 			case MUTLI_ATTACH:
-				final MutlisAttachProcessor[] processors = new MutlisAttachProcessor[1 << 5];
+				final MutlisAttachWorker[] processors = new MutlisAttachWorker[1 << 5];
 				for (int i = 0; i < processors.length; i++)
 				{
-					processors[i] = new MutlisAttachProcessor(aioListener);
+					processors[i] = new MutlisAttachWorker(aioListener);
 				}
 				ExecutorService executorService = Executors.newCachedThreadPool();
-				for (MutlisAttachProcessor each : processors)
+				for (MutlisAttachWorker each : processors)
 				{
 					executorService.submit(each);
 				}
@@ -492,7 +492,7 @@ public class SpeedTest
 								        // TODO Auto-generated method stub
 								        
 							        }
-						        }, new LengthEncodeProcessor(0, 4)
+						        }, new LengthEncoder(0, 4)
 								
 								}, //
 						        10, socketChannel, new MpscBufStorage(), DirectByteBuf.allocate(128), DirectByteBuf.allocate(128));

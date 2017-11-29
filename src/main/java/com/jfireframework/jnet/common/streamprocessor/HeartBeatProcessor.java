@@ -1,9 +1,11 @@
 package com.jfireframework.jnet.common.streamprocessor;
 
+import java.io.IOException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import com.jfireframework.jnet.common.api.ChannelContext;
-import com.jfireframework.jnet.common.api.StreamProcessor;
+import com.jfireframework.jnet.common.api.ProcessorChain;
+import com.jfireframework.jnet.common.api.ReadProcessor;
 import com.jfireframework.schedule.api.Timer;
 import com.jfireframework.schedule.api.Timetask;
 import com.jfireframework.schedule.handler.SimpleExpireHandler;
@@ -16,7 +18,7 @@ import com.jfireframework.schedule.trigger.RepeatDelayTrigger;
  * @author linbin
  *
  */
-public class HeartBeatProcessor implements StreamProcessor
+public class HeartBeatProcessor implements ReadProcessor
 {
     private static final Timer TIMER;
     static
@@ -29,13 +31,6 @@ public class HeartBeatProcessor implements StreamProcessor
     public HeartBeatProcessor(long heartBeatDuration, TimeUnit unit)
     {
         this.heartBeatDuration = unit.toMillis(heartBeatDuration);
-    }
-    
-    @Override
-    public Object process(Object data, ChannelContext context) throws Throwable
-    {
-        lastBeatTime = System.currentTimeMillis();
-        return data;
     }
     
     @Override
@@ -57,11 +52,25 @@ public class HeartBeatProcessor implements StreamProcessor
                 long now = System.currentTimeMillis();
                 if (now - lastBeatTime > heartBeatDuration)
                 {
-                    channelContext.close();
+                    try
+                    {
+                        channelContext.socketChannel().close();
+                    }
+                    catch (IOException e)
+                    {
+                        e.printStackTrace();
+                    }
                     canceled = true;
                 }
             }
         }, heartBeatDuration, TimeUnit.MILLISECONDS));
+    }
+    
+    @Override
+    public void process(Object data, ProcessorChain chain, ChannelContext channelContext)
+    {
+        lastBeatTime = System.currentTimeMillis();
+        chain.chain(data);
     }
     
 }

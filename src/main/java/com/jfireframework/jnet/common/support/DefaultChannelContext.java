@@ -1,181 +1,59 @@
 package com.jfireframework.jnet.common.support;
 
-import java.io.IOException;
 import java.nio.channels.AsynchronousSocketChannel;
 import com.jfireframework.baseutil.collection.buffer.ByteBuf;
-import com.jfireframework.baseutil.resource.ResourceCloseAgent;
-import com.jfireframework.baseutil.resource.ResourceCloseCallback;
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
-import com.jfireframework.jnet.common.api.ReadHandler;
+import com.jfireframework.jnet.common.api.ProcessorChain;
 import com.jfireframework.jnet.common.api.ReadProcessor;
-import com.jfireframework.jnet.common.api.StreamProcessor;
-import com.jfireframework.jnet.common.api.WriteHandler;
-import com.jfireframework.jnet.common.bufstorage.SendBufStorage;
-import com.jfireframework.jnet.common.decodec.FrameDecodec;
-import com.jfireframework.jnet.common.streamprocessor.ProcesserUtil;
+import com.jfireframework.jnet.common.util.ChainUtil;
 
 public class DefaultChannelContext implements ChannelContext
 {
-	private final ReadHandler							readHandler;
-	private final WriteHandler							writeHandler;
-	private final SendBufStorage						sendBufStorage;
-	private final ByteBuf<?>							inCachedBuf;
-	private final ByteBuf<?>							outCachedBuf;
-	private final StreamProcessor[]						inProcessors;
-	private final StreamProcessor[]						outProcessors;
-	private final AsynchronousSocketChannel				socketChannel;
-	private final ResourceCloseAgent<ChannelContext>	closeAgent	= new ResourceCloseAgent<ChannelContext>(this, new ResourceCloseCallback<ChannelContext>() {
-																		
-																		@Override
-																		public void onClose(ChannelContext resource)
-																		{
-																			try
-																			{
-																				socketChannel.close();
-																			}
-																			catch (IOException e)
-																			{
-																				e.printStackTrace();
-																			}
-																			finally
-																			{
-																				inCachedBuf.release();
-																				outCachedBuf.release();
-																			}
-																		}
-																	});
-	private Object										attachment;
-	private final ReadProcessor							readProcessor;
-	private final FrameDecodec							frameDecodec;
-	private final int									maxMerge;
-	
-	public DefaultChannelContext(//
-	        ReadProcessor readProcessor, //
-	        SendBufStorage sendBufStorage, //
-	        int maxMerge, //
-	        AioListener aioListener, //
-	        StreamProcessor[] inProcessors, //
-	        StreamProcessor[] outProcessors, //
-	        AsynchronousSocketChannel socketChannel, //
-	        FrameDecodec frameDecodec, //
-	        ByteBuf<?> inCachedBuf, //
-	        ByteBuf<?> outCachedBuf, //
-	        Object attachment)
-	{
-		this.readProcessor = readProcessor;
-		this.socketChannel = socketChannel;
-		this.inProcessors = inProcessors;
-		this.outProcessors = outProcessors;
-		this.sendBufStorage = sendBufStorage;
-		this.inCachedBuf = inCachedBuf;
-		this.outCachedBuf = outCachedBuf;
-		this.frameDecodec = frameDecodec;
-		this.maxMerge = maxMerge;
-		this.attachment = attachment;
-		writeHandler = new DefaultWriteHandler(aioListener, this);
-		readHandler = new DefaultReadHandler(aioListener, this);
-	}
-	
-	@Override
-	public void push(Object send) throws Throwable
-	{
-		Object finalResult = ProcesserUtil.process(this, outProcessors, send);
-		if (finalResult instanceof ByteBuf<?>)
-		{
-			sendBufStorage.putBuf((ByteBuf<?>) finalResult);
-			writeHandler.registerWrite();
-		}
-	}
-	
-	@Override
-	public void registerWrite()
-	{
-		writeHandler.registerWrite();
-	}
-	
-	@Override
-	public boolean close()
-	{
-		return closeAgent.close();
-	}
-	
-	@Override
-	public boolean isOpen()
-	{
-		return closeAgent.isOpen();
-	}
-	
-	@Override
-	public StreamProcessor[] inProcessors()
-	{
-		return inProcessors;
-	}
-	
-	@Override
-	public StreamProcessor[] outProcessors()
-	{
-		return outProcessors;
-	}
-	
-	@Override
-	public SendBufStorage sendBufStorage()
-	{
-		return sendBufStorage;
-	}
-	
-	@Override
-	public AsynchronousSocketChannel socketChannel()
-	{
-		return socketChannel;
-	}
-	
-	@Override
-	public void registerRead()
-	{
-		readHandler.registerRead();
-	}
-	
-	@Override
-	public Object getAttachment()
-	{
-		return attachment;
-	}
-	
-	@Override
-	public void process(ByteBuf<?> packet) throws Throwable
-	{
-		readProcessor.process(packet, this);
-	}
-	
-	@Override
-	public ByteBuf<?> inCachedBuf()
-	{
-		return inCachedBuf;
-	}
-	
-	@Override
-	public ByteBuf<?> outCachedBuf()
-	{
-		return outCachedBuf;
-	}
-	
-	@Override
-	public FrameDecodec frameDecodec()
-	{
-		return frameDecodec;
-	}
-	
-	@Override
-	public int maxMerge()
-	{
-		return maxMerge;
-	}
-	
-	@Override
-	public void setAttachment(Object attachment)
-	{
-		this.attachment = attachment;
-	}
-	
+    private volatile Object                 attachment;
+    private final WriteHandler              writeHandler;
+    private final AsynchronousSocketChannel socketChannel;
+    private final ProcessorChain            chain;
+    
+    public DefaultChannelContext(AsynchronousSocketChannel socketChannel, int maxMerge, AioListener aioListener, ReadProcessor... readProcessors)
+    {
+        this.socketChannel = socketChannel;
+        writeHandler = new WriteHandler(aioListener, this, maxMerge);
+        for (ReadProcessor each : readProcessors)
+        {
+            each.initialize(this);
+        }
+        chain = ChainUtil.demo(readProcessors, this);
+    }
+    
+    @Override
+    public Object getAttachment()
+    {
+        return attachment;
+    }
+    
+    @Override
+    public void setAttachment(Object attachment)
+    {
+        this.attachment = attachment;
+    }
+    
+    @Override
+    public void read(ByteBuf<?> packet)
+    {
+        chain.chain(packet);
+    }
+    
+    @Override
+    public void write(ByteBuf<?> buf)
+    {
+        writeHandler.write(buf);
+    }
+    
+    @Override
+    public AsynchronousSocketChannel socketChannel()
+    {
+        return socketChannel;
+    }
+    
 }
