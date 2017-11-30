@@ -16,55 +16,55 @@ import com.jfireframework.jnet.common.support.ReadHandler;
 
 public class DefaultClient implements AioClient
 {
-    private static final int                 connectTimeout = 10;
-    protected final AsynchronousChannelGroup channelGroup;
-    protected final String                   serverIp;
-    protected final int                      port;
-    protected final AioListener              aioListener;
-    protected final ChannelConnectListener   clientChannelContextBuilder;
-    protected ChannelContext                 clientChannelContext;
-    
-    public DefaultClient(ChannelConnectListener clientChannelContextBuilder, AsynchronousChannelGroup channelGroup, String serverIp, int port, AioListener aioListener)
-    {
-        this.channelGroup = channelGroup;
-        this.serverIp = serverIp;
-        this.port = port;
-        this.aioListener = aioListener;
-        this.clientChannelContextBuilder = clientChannelContextBuilder;
-    }
-    
-    @Override
-    public void connect()
-    {
-        try
-        {
-            AsynchronousSocketChannel socketChannel = AsynchronousSocketChannel.open(channelGroup);
-            socketChannel.connect(new InetSocketAddress(serverIp, port)).get(connectTimeout, TimeUnit.SECONDS);
-            ChannelContext channelContext = clientChannelContextBuilder.onConnect(socketChannel, aioListener);
-            new ReadHandler(aioListener, channelContext).start();
-        }
-        catch (IOException | InterruptedException | ExecutionException | TimeoutException e)
-        {
-            throw new JustThrowException(e);
-        }
-    }
-    
-    @Override
-    public void close()
-    {
-        try
-        {
-            clientChannelContext.socketChannel().close();
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
-    }
-    
-    @Override
-    public void write(ByteBuf<?> packet)
-    {
-        clientChannelContext.write(packet);
-    }
+	private static final int					connectTimeout	= 10;
+	protected final AsynchronousChannelGroup	channelGroup;
+	protected final String						serverIp;
+	protected final int							port;
+	protected final AioListener					aioListener;
+	protected final ChannelConnectListener		clientChannelContextBuilder;
+	protected ChannelContext					channelContext;
+	
+	public DefaultClient(ChannelConnectListener clientChannelContextBuilder, AsynchronousChannelGroup channelGroup, String serverIp, int port, AioListener aioListener)
+	{
+		this.channelGroup = channelGroup;
+		this.serverIp = serverIp;
+		this.port = port;
+		this.aioListener = aioListener;
+		this.clientChannelContextBuilder = clientChannelContextBuilder;
+	}
+	
+	@Override
+	public void connect()
+	{
+		try
+		{
+			AsynchronousSocketChannel socketChannel = AsynchronousSocketChannel.open(channelGroup);
+			socketChannel.connect(new InetSocketAddress(serverIp, port)).get(connectTimeout, TimeUnit.SECONDS);
+			channelContext = clientChannelContextBuilder.onConnect(socketChannel, aioListener);
+			new ReadHandler(aioListener, channelContext).start();
+		}
+		catch (IOException | InterruptedException | ExecutionException | TimeoutException e)
+		{
+			throw new JustThrowException(e);
+		}
+	}
+	
+	@Override
+	public void close()
+	{
+		try
+		{
+			channelContext.socketChannel().close();
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
+	}
+	
+	@Override
+	public void write(ByteBuf<?> packet)
+	{
+		channelContext.write(packet);
+	}
 }
