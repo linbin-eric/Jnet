@@ -15,27 +15,24 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import com.jfireframework.baseutil.StringUtil;
 import com.jfireframework.baseutil.collection.buffer.ByteBuf;
-import com.jfireframework.baseutil.collection.buffer.DirectByteBuf;
 import com.jfireframework.baseutil.collection.buffer.HeapByteBuf;
 import com.jfireframework.baseutil.time.Timewatch;
 import com.jfireframework.jnet.client.AioClient;
 import com.jfireframework.jnet.client.AioClientBuilder;
 import com.jfireframework.jnet.common.IoMode;
 import com.jfireframework.jnet.common.api.AioListener;
-import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ChannelConnectListener;
-import com.jfireframework.jnet.common.api.Configuration;
-import com.jfireframework.jnet.common.api.StreamProcessor;
-import com.jfireframework.jnet.common.bufstorage.impl.MpscBufStorage;
-import com.jfireframework.jnet.common.bufstorage.impl.SpscBufStorage;
-import com.jfireframework.jnet.common.configuration.ChannelAttachConfiguration;
-import com.jfireframework.jnet.common.configuration.MutliAttachConfiguration;
-import com.jfireframework.jnet.common.configuration.SimpleConfiguration;
-import com.jfireframework.jnet.common.configuration.ThreadAttchConfiguration;
+import com.jfireframework.jnet.common.api.ChannelContext;
+import com.jfireframework.jnet.common.api.ProcessorChain;
+import com.jfireframework.jnet.common.api.ReadProcessor;
 import com.jfireframework.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
-import com.jfireframework.jnet.common.streamprocessor.LengthEncoder;
+import com.jfireframework.jnet.common.streamprocessor.ChannelAttachProcessor;
+import com.jfireframework.jnet.common.streamprocessor.MutliAttachIoProcessor;
+import com.jfireframework.jnet.common.streamprocessor.ThreadAttachIoProcessor;
 import com.jfireframework.jnet.common.streamprocessor.worker.MutlisAttachWorker;
 import com.jfireframework.jnet.common.support.DefaultAioListener;
+import com.jfireframework.jnet.common.support.DefaultChannelContext;
+import com.jfireframework.jnet.common.util.ReadProcessorAdapter;
 import com.jfireframework.jnet.server.AioServer;
 import com.jfireframework.jnet.server.AioServerBuilder;
 
@@ -43,8 +40,8 @@ import com.jfireframework.jnet.server.AioServerBuilder;
 public class SpeedTest
 {
 	private int		port			= 8546;
-	private int		clientThreadNum	= 100;
-	private int		sendCount		= 5000;
+	private int		clientThreadNum	= 10;
+	private int		sendCount		= 100000;
 	private int		sum				= clientThreadNum * sendCount;
 	private IoMode	serverMode;
 	private IoMode	clientMode;
@@ -81,37 +78,27 @@ public class SpeedTest
 	ChannelConnectListener build(IoMode iomode, AioListener aioListener)
 	{
 		ChannelConnectListener channelContextBuilder = null;
+		final ReadProcessor processor = new ReadProcessorAdapter() {
+			
+			@Override
+			public void process(Object data, ProcessorChain chain, ChannelContext channelContext)
+			{
+				ByteBuf<?> buf = (ByteBuf<?>) data;
+				buf.readIndex(0);
+				channelContext.write(buf);
+			}
+		};
 		switch (iomode)
 		{
 			case SIMPLE:
 				channelContextBuilder = new ChannelConnectListener() {
 					
 					@Override
-					public Configuration onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
+					public ChannelContext onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
 					{
-						Configuration configuration = new SimpleConfiguration(aioListener, //
-						        new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 500), //
-						        new StreamProcessor[] { new StreamProcessor() {
-							        
-							        @Override
-							        public Object process(Object data, ChannelContext context) throws Throwable
-							        {
-								        ByteBuf<?> buf = (ByteBuf<?>) data;
-								        buf.readIndex(0);
-								        return buf;
-							        }
-							        
-							        @Override
-							        public void initialize(ChannelContext channelContext)
-							        {
-								        // TODO Auto-generated method stub
-								        
-							        }
-						        }
-						        }, //
-						        null, //
-						        10, socketChannel, new SpscBufStorage(), DirectByteBuf.allocate(128), DirectByteBuf.allocate(128));
-						return configuration;
+						return new DefaultChannelContext(socketChannel, 10, aioListener, //
+						        new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 5000000), //
+						        processor);
 					}
 					
 				};
@@ -122,30 +109,12 @@ public class SpeedTest
 					ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2 + 1);
 					
 					@Override
-					public Configuration onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
+					public ChannelContext onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
 					{
-						Configuration configuration = new ChannelAttachConfiguration(executorService, //
-						        aioListener, new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 500), //
-						        new StreamProcessor[] { new StreamProcessor() {
-							        
-							        @Override
-							        public Object process(Object data, ChannelContext context) throws Throwable
-							        {
-								        ByteBuf<?> buf = (ByteBuf<?>) data;
-								        buf.readIndex(0);
-								        return buf;
-							        }
-							        
-							        @Override
-							        public void initialize(ChannelContext channelContext)
-							        {
-								        // TODO Auto-generated method stub
-								        
-							        }
-						        } }, //
-						        null, //
-						        10, socketChannel, new SpscBufStorage(), DirectByteBuf.allocate(128), DirectByteBuf.allocate(128));
-						return configuration;
+						return new DefaultChannelContext(socketChannel, 10, aioListener, //
+						        new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 5000000), //
+						        new ChannelAttachProcessor(executorService), //
+						        processor);
 					}
 					
 				};
@@ -155,75 +124,39 @@ public class SpeedTest
 					ExecutorService executorService = Executors.newCachedThreadPool();
 					
 					@Override
-					public Configuration onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
+					public ChannelContext onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
 					{
-						Configuration configuration = new ThreadAttchConfiguration(executorService, //
-						        aioListener, new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 500), //
-						        new StreamProcessor[] { new StreamProcessor() {
-							        
-							        @Override
-							        public Object process(Object data, ChannelContext context) throws Throwable
-							        {
-								        ByteBuf<?> buf = (ByteBuf<?>) data;
-								        buf.readIndex(0);
-								        return buf;
-							        }
-							        
-							        @Override
-							        public void initialize(ChannelContext channelContext)
-							        {
-								        // TODO Auto-generated method stub
-								        
-							        }
-						        } }, //
-						        null, //
-						        10, socketChannel, new MpscBufStorage(), DirectByteBuf.allocate(128), DirectByteBuf.allocate(128));
-						return configuration;
+						return new DefaultChannelContext(socketChannel, 10, aioListener, //
+						        new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 5000000), //
+						        new ThreadAttachIoProcessor(executorService), //
+						        processor);
 					}
 					
 				};
 				break;
 			case MUTLI_ATTACH:
-				final MutlisAttachWorker[] processors = new MutlisAttachWorker[1 << 5];
-				for (int i = 0; i < processors.length; i++)
+				final MutlisAttachWorker[] workers = new MutlisAttachWorker[1 << 5];
+				for (int i = 0; i < workers.length; i++)
 				{
-					processors[i] = new MutlisAttachWorker(aioListener);
+					workers[i] = new MutlisAttachWorker();
 				}
 				ExecutorService executorService = Executors.newCachedThreadPool();
-				for (MutlisAttachWorker each : processors)
+				for (MutlisAttachWorker each : workers)
 				{
 					executorService.submit(each);
 				}
-				final int mask = processors.length - 1;
+				final int mask = workers.length - 1;
 				channelContextBuilder = new ChannelConnectListener() {
 					AtomicInteger index = new AtomicInteger(0);
 					
 					@Override
-					public Configuration onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
+					public ChannelContext onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
 					{
 						int andIncrement = index.getAndIncrement();
-						
-						Configuration configuration = new MutliAttachConfiguration(processors[andIncrement & mask], aioListener, new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 500), //
-						        new StreamProcessor[] { new StreamProcessor() {
-							        
-							        @Override
-							        public Object process(Object data, ChannelContext context) throws Throwable
-							        {
-								        ByteBuf<?> buf = (ByteBuf<?>) data;
-								        buf.readIndex(0);
-								        return buf;
-							        }
-							        
-							        @Override
-							        public void initialize(ChannelContext channelContext)
-							        {
-								        // TODO Auto-generated method stub
-								        
-							        }
-						        } }, //
-						        null, //
-						        10, socketChannel, new MpscBufStorage(), DirectByteBuf.allocate(128), DirectByteBuf.allocate(128));
-						return configuration;
+						return new DefaultChannelContext(socketChannel, 10, aioListener, //
+						        new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 5000000), //
+						        new MutliAttachIoProcessor(workers[andIncrement & mask]), //
+						        processor);
 					}
 					
 				};
@@ -252,61 +185,31 @@ public class SpeedTest
 		AioListener aioListener = new DefaultAioListener();
 		clientBuilder.setAioListener(aioListener);
 		ChannelConnectListener channelContextBuilder = null;
+		final ReadProcessor processor = new ReadProcessorAdapter() {
+			
+			@Override
+			public void process(Object data, ProcessorChain chain, ChannelContext channelContext)
+			{
+				ByteBuf<?> buf = (ByteBuf<?>) data;
+				buf.release();
+				int now = total.incrementAndGet();
+				if (now == sum)
+				{
+					latch.countDown();
+				}
+			}
+		};
 		switch (clientMode)
 		{
 			case SIMPLE:
 				channelContextBuilder = new ChannelConnectListener() {
 					
 					@Override
-					public Configuration onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
+					public ChannelContext onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
 					{
-						Configuration configuration = new SimpleConfiguration(aioListener, new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 500), //
-						        new StreamProcessor[] { new StreamProcessor() {
-							        
-							        @Override
-							        public Object process(Object data, ChannelContext context) throws Throwable
-							        {
-								        ByteBuf<?> buf = (ByteBuf<?>) data;
-								        buf.release();
-								        int now = total.incrementAndGet();
-								        if (now == sum)
-								        {
-									        latch.countDown();
-								        }
-								        return null;
-							        }
-							        
-							        @Override
-							        public void initialize(ChannelContext channelContext)
-							        {
-								        // TODO Auto-generated method stub
-								        
-							        }
-						        }
-								
-								}, //
-						        new StreamProcessor[] { new StreamProcessor() {
-							        
-							        @Override
-							        public Object process(Object data, ChannelContext context) throws Throwable
-							        {
-								        ByteBuf<?> buf = HeapByteBuf.allocate(28);
-								        buf.addWriteIndex(4);
-								        buf.put((byte[]) data);
-								        return buf;
-							        }
-							        
-							        @Override
-							        public void initialize(ChannelContext channelContext)
-							        {
-								        // TODO Auto-generated method stub
-								        
-							        }
-						        }, new LengthEncoder(0, 4)
-								
-								}, //
-						        10, socketChannel, new SpscBufStorage(), DirectByteBuf.allocate(128), DirectByteBuf.allocate(128));
-						return configuration;
+						return new DefaultChannelContext(socketChannel, 10, aioListener, //
+						        new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 5000000), //
+						        processor);
 					}
 					
 				};
@@ -317,56 +220,12 @@ public class SpeedTest
 					ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2 + 1);
 					
 					@Override
-					public Configuration onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
+					public ChannelContext onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
 					{
-						Configuration configuration = new ChannelAttachConfiguration(executorService, //
-						        aioListener, new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 500), //
-						        new StreamProcessor[] { new StreamProcessor() {
-							        
-							        @Override
-							        public Object process(Object data, ChannelContext context) throws Throwable
-							        {
-								        ByteBuf<?> buf = (ByteBuf<?>) data;
-								        buf.release();
-								        int now = total.incrementAndGet();
-								        if (now == sum)
-								        {
-									        latch.countDown();
-								        }
-								        return null;
-							        }
-							        
-							        @Override
-							        public void initialize(ChannelContext channelContext)
-							        {
-								        // TODO Auto-generated method stub
-								        
-							        }
-						        }
-								
-								}, //
-						        new StreamProcessor[] { new StreamProcessor() {
-							        
-							        @Override
-							        public Object process(Object data, ChannelContext context) throws Throwable
-							        {
-								        ByteBuf<?> buf = HeapByteBuf.allocate(28);
-								        buf.addWriteIndex(4);
-								        buf.put((byte[]) data);
-								        return buf;
-							        }
-							        
-							        @Override
-							        public void initialize(ChannelContext channelContext)
-							        {
-								        // TODO Auto-generated method stub
-								        
-							        }
-						        }, new LengthEncoder(0, 4)
-								
-								}, //
-						        10, socketChannel, new SpscBufStorage(), DirectByteBuf.allocate(128), DirectByteBuf.allocate(128));
-						return configuration;
+						return new DefaultChannelContext(socketChannel, 10, aioListener, //
+						        new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 5000000), //
+						        new ChannelAttachProcessor(executorService), //
+						        processor);
 					}
 					
 				};
@@ -376,56 +235,12 @@ public class SpeedTest
 					ExecutorService executorService = Executors.newCachedThreadPool();
 					
 					@Override
-					public Configuration onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
+					public ChannelContext onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
 					{
-						Configuration configuration = new ThreadAttchConfiguration(executorService, //
-						        aioListener, new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 500), //
-						        new StreamProcessor[] { new StreamProcessor() {
-							        
-							        @Override
-							        public Object process(Object data, ChannelContext context) throws Throwable
-							        {
-								        ByteBuf<?> buf = (ByteBuf<?>) data;
-								        buf.release();
-								        int now = total.incrementAndGet();
-								        if (now == sum)
-								        {
-									        latch.countDown();
-								        }
-								        return null;
-							        }
-							        
-							        @Override
-							        public void initialize(ChannelContext channelContext)
-							        {
-								        // TODO Auto-generated method stub
-								        
-							        }
-						        }
-								
-								}, //
-						        new StreamProcessor[] { new StreamProcessor() {
-							        
-							        @Override
-							        public Object process(Object data, ChannelContext context) throws Throwable
-							        {
-								        ByteBuf<?> buf = HeapByteBuf.allocate(28);
-								        buf.addWriteIndex(4);
-								        buf.put((byte[]) data);
-								        return buf;
-							        }
-							        
-							        @Override
-							        public void initialize(ChannelContext channelContext)
-							        {
-								        // TODO Auto-generated method stub
-								        
-							        }
-						        }, new LengthEncoder(0, 4)
-								
-								}, //
-						        10, socketChannel, new MpscBufStorage(), DirectByteBuf.allocate(128), DirectByteBuf.allocate(128));
-						return configuration;
+						return new DefaultChannelContext(socketChannel, 10, aioListener, //
+						        new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 5000000), //
+						        new ThreadAttachIoProcessor(executorService), //
+						        processor);
 					}
 					
 				};
@@ -434,7 +249,7 @@ public class SpeedTest
 				final MutlisAttachWorker[] processors = new MutlisAttachWorker[1 << 5];
 				for (int i = 0; i < processors.length; i++)
 				{
-					processors[i] = new MutlisAttachWorker(aioListener);
+					processors[i] = new MutlisAttachWorker();
 				}
 				ExecutorService executorService = Executors.newCachedThreadPool();
 				for (MutlisAttachWorker each : processors)
@@ -446,57 +261,13 @@ public class SpeedTest
 					AtomicInteger index = new AtomicInteger(0);
 					
 					@Override
-					public Configuration onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
+					public ChannelContext onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
 					{
 						int andIncrement = index.getAndIncrement();
-						
-						Configuration configuration = new MutliAttachConfiguration(processors[andIncrement & mask], aioListener, new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 500), //
-						        new StreamProcessor[] { new StreamProcessor() {
-							        
-							        @Override
-							        public Object process(Object data, ChannelContext context) throws Throwable
-							        {
-								        ByteBuf<?> buf = (ByteBuf<?>) data;
-								        buf.release();
-								        int now = total.incrementAndGet();
-								        if (now == sum)
-								        {
-									        latch.countDown();
-								        }
-								        return null;
-							        }
-							        
-							        @Override
-							        public void initialize(ChannelContext channelContext)
-							        {
-								        // TODO Auto-generated method stub
-								        
-							        }
-						        }
-								
-								}, //
-						        new StreamProcessor[] { new StreamProcessor() {
-							        
-							        @Override
-							        public Object process(Object data, ChannelContext context) throws Throwable
-							        {
-								        ByteBuf<?> buf = HeapByteBuf.allocate(28);
-								        buf.addWriteIndex(4);
-								        buf.put((byte[]) data);
-								        return buf;
-							        }
-							        
-							        @Override
-							        public void initialize(ChannelContext channelContext)
-							        {
-								        // TODO Auto-generated method stub
-								        
-							        }
-						        }, new LengthEncoder(0, 4)
-								
-								}, //
-						        10, socketChannel, new MpscBufStorage(), DirectByteBuf.allocate(128), DirectByteBuf.allocate(128));
-						return configuration;
+						return new DefaultChannelContext(socketChannel, 10, aioListener, //
+						        new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 5000000), //
+						        new MutliAttachIoProcessor(processors[andIncrement & mask]), //
+						        processor);
 					}
 					
 				};
@@ -548,7 +319,10 @@ public class SpeedTest
 					{
 						try
 						{
-							client.write(content);
+							ByteBuf<?> buf = HeapByteBuf.allocate(28);
+							buf.writeInt(content.length + 4);
+							buf.put(content);
+							client.write(buf);
 						}
 						catch (Throwable e)
 						{

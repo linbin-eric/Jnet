@@ -36,6 +36,7 @@ public class FixLengthDecoder implements ReadProcessor
             
             if (ioBuf.remainRead() < frameLength)
             {
+            	ioBuf.compact();
                 return;
             }
             ByteBuf<?> buf = DirectByteBuf.allocate(frameLength);

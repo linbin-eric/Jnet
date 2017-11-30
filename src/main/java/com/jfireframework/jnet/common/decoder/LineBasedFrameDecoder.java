@@ -44,6 +44,7 @@ public class LineBasedFrameDecoder implements ReadProcessor
                 }
                 else
                 {
+                	ioBuffer.compact();
                     return;
                 }
             }
