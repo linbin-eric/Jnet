@@ -1,4 +1,4 @@
-package com.jfireframework.jnet.common.streamprocessor;
+package com.jfireframework.jnet.common.processor;
 
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;

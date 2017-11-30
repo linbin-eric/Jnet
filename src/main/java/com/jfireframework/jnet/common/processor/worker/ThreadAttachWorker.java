@@ -1,4 +1,4 @@
-package com.jfireframework.jnet.common.streamprocessor.worker;
+package com.jfireframework.jnet.common.processor.worker;
 
 import java.io.IOException;
 import java.util.Queue;
@@ -8,24 +8,25 @@ import com.jfireframework.baseutil.concurrent.MPSCQueue;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
 
-public class MutlisAttachWorker implements Runnable
+public class ThreadAttachWorker implements Runnable
 {
-    private final Queue<MutliAttachEntity> entities          = new MPSCQueue<>();
-    private static final int               IDLE           = 0;
-    private static final int               WORK           = 1;
-    private final CpuCachePadingInt        status         = new CpuCachePadingInt(WORK);
-    private static final int               SPIN_THRESHOLD = 1 << 7;
-    private int                            spin           = 0;
-    private volatile Thread                owner;
+    private final Queue<ThreadAttachEntity> entities       = new MPSCQueue<>();
+    private static final int                IDLE           = 0;
+    private static final int                WORK           = 1;
+    private final CpuCachePadingInt         status         = new CpuCachePadingInt(WORK);
+    private static final int                SPIN_THRESHOLD = 1 << 7;
+    private int                             spin           = 0;
+    private volatile Thread                 owner;
     
     @Override
     public void run()
     {
         status.set(WORK);
         owner = Thread.currentThread();
-        termination: do
+        termination: //
+        do
         {
-            MutliAttachEntity entity = entities.poll();
+            ThreadAttachEntity entity = entities.poll();
             if (entity == null)
             {
                 spin = 0;
@@ -81,7 +82,7 @@ public class MutlisAttachWorker implements Runnable
     
     public void commit(ProcessorChain chain, Object data, ChannelContext channelContext)
     {
-        entities.offer(new MutliAttachEntity(channelContext, chain, data));
+        entities.offer(new ThreadAttachEntity(channelContext, chain, data));
         tryExecute();
     }
     
@@ -94,13 +95,13 @@ public class MutlisAttachWorker implements Runnable
         }
     }
     
-    class MutliAttachEntity
+    class ThreadAttachEntity
     {
         ChannelContext channelContext;
         ProcessorChain chain;
         Object         data;
         
-        public MutliAttachEntity(ChannelContext channelContext, ProcessorChain chain, Object data)
+        public ThreadAttachEntity(ChannelContext channelContext, ProcessorChain chain, Object data)
         {
             this.channelContext = channelContext;
             this.chain = chain;

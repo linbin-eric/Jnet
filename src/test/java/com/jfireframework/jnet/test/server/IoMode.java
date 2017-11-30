@@ -1,4 +1,4 @@
-package com.jfireframework.jnet.common;
+package com.jfireframework.jnet.test.server;
 
 public enum IoMode
 {

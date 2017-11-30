@@ -1,4 +1,4 @@
-package com.jfireframework.jnet.common.streamprocessor;
+package com.jfireframework.jnet.common.processor;
 
 import com.jfireframework.baseutil.collection.buffer.ByteBuf;
 import com.jfireframework.jnet.common.api.ChannelContext;

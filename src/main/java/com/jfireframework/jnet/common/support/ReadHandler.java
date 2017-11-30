@@ -7,7 +7,6 @@ import com.jfireframework.baseutil.collection.buffer.ByteBuf;
 import com.jfireframework.baseutil.collection.buffer.DirectByteBuf;
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
-import com.jfireframework.jnet.common.exception.EndOfStreamException;
 
 public class ReadHandler implements CompletionHandler<Integer, Void>
 {
@@ -31,9 +30,9 @@ public class ReadHandler implements CompletionHandler<Integer, Void>
 	@Override
 	public void completed(Integer read, Void nothing)
 	{
+		// read为-1意味着输入流到了终点，但是还有输出流，所以不可以关闭通道
 		if (read == -1)
 		{
-			catchThrowable(EndOfStreamException.instance, channelContext);
 			return;
 		}
 		ioBuf.addWriteIndex(read);

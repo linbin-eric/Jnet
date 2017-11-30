@@ -1,4 +1,4 @@
-package com.jfireframework.jnet.common.streamprocessor.worker;
+package com.jfireframework.jnet.common.processor.worker;
 
 import java.io.IOException;
 import java.util.Queue;

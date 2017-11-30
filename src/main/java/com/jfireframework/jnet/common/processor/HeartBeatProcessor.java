@@ -1,4 +1,4 @@
-package com.jfireframework.jnet.common.streamprocessor;
+package com.jfireframework.jnet.common.processor;
 
 import java.io.IOException;
 import java.util.concurrent.Executors;

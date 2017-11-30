@@ -1,10 +1,10 @@
-package com.jfireframework.jnet.common.streamprocessor;
+package com.jfireframework.jnet.common.processor;
 
 import java.util.concurrent.ExecutorService;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
 import com.jfireframework.jnet.common.api.ReadProcessor;
-import com.jfireframework.jnet.common.streamprocessor.worker.ThreadAttachWorker;
+import com.jfireframework.jnet.common.processor.worker.ThreadAttachWorker;
 
 public class ThreadAttachIoProcessor implements ReadProcessor
 {

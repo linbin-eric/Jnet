@@ -1,17 +1,18 @@
-package com.jfireframework.jnet.common.streamprocessor;
+package com.jfireframework.jnet.common.processor;
 
+import java.util.concurrent.ExecutorService;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
 import com.jfireframework.jnet.common.api.ReadProcessor;
-import com.jfireframework.jnet.common.streamprocessor.worker.MutlisAttachWorker;
+import com.jfireframework.jnet.common.processor.worker.ChannelAttachWorker;
 
-public class MutliAttachIoProcessor implements ReadProcessor
+public class ChannelAttachProcessor implements ReadProcessor
 {
-    private final MutlisAttachWorker worker;
+    private final ChannelAttachWorker worker;
     
-    public MutliAttachIoProcessor(MutlisAttachWorker worker)
+    public ChannelAttachProcessor(ExecutorService executorService)
     {
-        this.worker = worker;
+        worker = new ChannelAttachWorker(executorService);
     }
     
     @Override
@@ -24,7 +25,7 @@ public class MutliAttachIoProcessor implements ReadProcessor
     @Override
     public void process(Object data, ProcessorChain chain, ChannelContext channelContext)
     {
-        worker.commit(chain, data, channelContext);
+        worker.commit(channelContext, chain, data);
     }
     
 }
