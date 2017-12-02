@@ -24,7 +24,7 @@ public class LengthEncoder implements ReadProcessor<Object>
     }
     
     @Override
-    public void process(Object data, ProcessorChain chain, ChannelContext channelContext)
+    public void process(Object data, ProcessorChain chain, ChannelContext channelContext) throws Throwable
     {
         if (data instanceof ByteBuf)
         {

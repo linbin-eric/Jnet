@@ -15,5 +15,5 @@ public interface ReadProcessor<T>
      * @param data
      * @param chain
      */
-    void process(T data, ProcessorChain chain, ChannelContext channelContext);
+    void process(T data, ProcessorChain chain, ChannelContext channelContext) throws Throwable;
 }

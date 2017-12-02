@@ -8,5 +8,5 @@ public interface ProcessorChain
      * 
      * @param data
      */
-    void chain(Object data);
+    void chain(Object data) throws Throwable;
 }

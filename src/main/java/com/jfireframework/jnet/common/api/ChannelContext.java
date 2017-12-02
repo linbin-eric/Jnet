@@ -25,7 +25,7 @@ public interface ChannelContext
      * @param packet
      * @throws Throwable
      */
-    void read(ByteBuf<?> packet);
+    void read(ByteBuf<?> packet) throws Throwable;
     
     /**
      * 向通道写出数据

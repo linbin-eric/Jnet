@@ -39,7 +39,7 @@ public class DefaultChannelContext implements ChannelContext
     }
     
     @Override
-    public void read(ByteBuf<?> packet)
+    public void read(ByteBuf<?> packet) throws Throwable
     {
         chain.chain(packet);
     }

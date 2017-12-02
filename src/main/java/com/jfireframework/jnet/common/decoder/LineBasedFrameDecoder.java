@@ -29,7 +29,7 @@ public class LineBasedFrameDecoder implements ReadProcessor<ByteBuf<?>>
     }
     
     @Override
-    public void process(ByteBuf<?> ioBuffer, ProcessorChain chain, ChannelContext channelContext)
+    public void process(ByteBuf<?> ioBuffer, ProcessorChain chain, ChannelContext channelContext) throws Throwable
     {
         do
         {

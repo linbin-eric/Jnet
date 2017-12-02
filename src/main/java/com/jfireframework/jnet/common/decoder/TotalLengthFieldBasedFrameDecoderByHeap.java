@@ -42,7 +42,7 @@ public class TotalLengthFieldBasedFrameDecoderByHeap implements ReadProcessor<By
     }
     
     @Override
-    public void process(ByteBuf<?> ioBuffer, ProcessorChain chain, ChannelContext channelContext)
+    public void process(ByteBuf<?> ioBuffer, ProcessorChain chain, ChannelContext channelContext) throws Throwable
     {
         do
         {

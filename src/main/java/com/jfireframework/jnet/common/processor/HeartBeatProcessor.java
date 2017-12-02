@@ -67,7 +67,7 @@ public class HeartBeatProcessor implements ReadProcessor<Object>
     }
     
     @Override
-    public void process(Object data, ProcessorChain chain, ChannelContext channelContext)
+    public void process(Object data, ProcessorChain chain, ChannelContext channelContext) throws Throwable
     {
         lastBeatTime = System.currentTimeMillis();
         chain.chain(data);

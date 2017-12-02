@@ -14,7 +14,7 @@ public class SimpleIoProcessor implements ReadProcessor<Object>
     }
     
     @Override
-    public void process(Object data, ProcessorChain chain, ChannelContext channelContext)
+    public void process(Object data, ProcessorChain chain, ChannelContext channelContext) throws Throwable
     {
         chain.chain(data);
     }

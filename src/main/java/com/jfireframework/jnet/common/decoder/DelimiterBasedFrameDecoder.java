@@ -37,7 +37,7 @@ public class DelimiterBasedFrameDecoder implements ReadProcessor<ByteBuf<?>>
     }
     
     @Override
-    public void process(ByteBuf<?> ioBuf, ProcessorChain chain, ChannelContext channelContext)
+    public void process(ByteBuf<?> ioBuf, ProcessorChain chain, ChannelContext channelContext) throws Throwable
     {
         do
         {

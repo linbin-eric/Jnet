@@ -20,7 +20,7 @@ public class ChainUtil
                 this.processor = (ReadProcessor<? super Object>) processor;
             }
             
-            public abstract void execCurrent(Object data);
+            public abstract void execCurrent(Object data) throws Throwable;
             
         }
         InternelProcessorChain last = new InternelProcessorChain(null, null) {
@@ -43,13 +43,13 @@ public class ChainUtil
             last = new InternelProcessorChain(nextNode, processors[i]) {
                 
                 @Override
-                public void chain(Object data)
+                public void chain(Object data) throws Throwable
                 {
                     next.execCurrent(data);
                 }
                 
                 @Override
-                public void execCurrent(Object data)
+                public void execCurrent(Object data) throws Throwable
                 {
                     processor.process(data, this, channelContext);
                 }
@@ -58,7 +58,7 @@ public class ChainUtil
         InternelProcessorChain result = new InternelProcessorChain(last, null) {
             
             @Override
-            public void chain(Object data)
+            public void chain(Object data) throws Throwable
             {
                 next.execCurrent(data);
             }
