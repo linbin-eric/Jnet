@@ -4,7 +4,7 @@ import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
 import com.jfireframework.jnet.common.api.ReadProcessor;
 
-public class SimpleIoProcessor implements ReadProcessor
+public class SimpleIoProcessor implements ReadProcessor<Object>
 {
     
     @Override

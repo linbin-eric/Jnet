@@ -6,7 +6,7 @@ import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
 import com.jfireframework.jnet.common.api.ReadProcessor;
 
-public class FixLengthDecoder implements ReadProcessor
+public class FixLengthDecoder implements ReadProcessor<ByteBuf<?>>
 {
     private final int frameLength;
     
@@ -28,15 +28,14 @@ public class FixLengthDecoder implements ReadProcessor
     }
     
     @Override
-    public void process(Object data, ProcessorChain chain, ChannelContext channelContext)
+    public void process(ByteBuf<?> ioBuf, ProcessorChain chain, ChannelContext channelContext)
     {
-        ByteBuf<?> ioBuf = (ByteBuf<?>) data;
         do
         {
             
             if (ioBuf.remainRead() < frameLength)
             {
-            	ioBuf.compact();
+                ioBuf.compact();
                 return;
             }
             ByteBuf<?> buf = DirectByteBuf.allocate(frameLength);

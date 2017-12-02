@@ -6,7 +6,7 @@ import com.jfireframework.jnet.common.api.ProcessorChain;
 import com.jfireframework.jnet.common.api.ReadProcessor;
 import com.jfireframework.jnet.common.processor.worker.ThreadAttachWorker;
 
-public class ThreadAttachIoProcessor implements ReadProcessor
+public class ThreadAttachIoProcessor implements ReadProcessor<Object>
 {
     private final ExecutorService                        executorService;
     private static final ThreadLocal<ThreadAttachWorker> localWorkers = new ThreadLocal<>();

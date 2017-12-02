@@ -13,55 +13,54 @@ import com.jfireframework.jnet.common.exception.TooLongException;
  * @author 林斌
  * 
  */
-public class DelimiterBasedFrameDecoder implements ReadProcessor
+public class DelimiterBasedFrameDecoder implements ReadProcessor<ByteBuf<?>>
 {
-	private byte[]	delimiter;
-	private int		maxLength;
-	
-	/**
-	 * 
-	 * @param delimiter 解码使用的特定字节数组
-	 * @param maxLength 读取的码流最大长度。超过这个长度还未发现结尾分割字节数组，就会抛出异常
-	 */
-	public DelimiterBasedFrameDecoder(byte[] delimiter, int maxLength)
-	{
-		this.maxLength = maxLength;
-		this.delimiter = delimiter;
-	}
-	
-	@Override
-	public void initialize(ChannelContext channelContext)
-	{
-		// TODO Auto-generated method stub
-		
-	}
-	
-	@Override
-	public void process(Object data, ProcessorChain chain, ChannelContext channelContext)
-	{
-		ByteBuf<?> ioBuffer = (ByteBuf<?>) data;
-		do
-		{
-			if (ioBuffer.remainRead() > maxLength)
-			{
-				throw new TooLongException();
-			}
-			ioBuffer.maskRead();
-			int index = ioBuffer.indexOf(delimiter);
-			if (index == -1)
-			{
-				ioBuffer.compact();
-				return;
-			}
-			else
-			{
-				int contentLength = index - ioBuffer.readIndex();
-				DirectByteBuf buf = DirectByteBuf.allocate(contentLength);
-				buf.put(ioBuffer, contentLength);
-				ioBuffer.readIndex(index + delimiter.length);
-				chain.chain(buf);
-			}
-		} while (true);
-	}
-	
+    private byte[] delimiter;
+    private int    maxLength;
+    
+    /**
+     * 
+     * @param delimiter 解码使用的特定字节数组
+     * @param maxLength 读取的码流最大长度。超过这个长度还未发现结尾分割字节数组，就会抛出异常
+     */
+    public DelimiterBasedFrameDecoder(byte[] delimiter, int maxLength)
+    {
+        this.maxLength = maxLength;
+        this.delimiter = delimiter;
+    }
+    
+    @Override
+    public void initialize(ChannelContext channelContext)
+    {
+        // TODO Auto-generated method stub
+        
+    }
+    
+    @Override
+    public void process(ByteBuf<?> ioBuf, ProcessorChain chain, ChannelContext channelContext)
+    {
+        do
+        {
+            if (ioBuf.remainRead() > maxLength)
+            {
+                throw new TooLongException();
+            }
+            ioBuf.maskRead();
+            int index = ioBuf.indexOf(delimiter);
+            if (index == -1)
+            {
+                ioBuf.compact();
+                return;
+            }
+            else
+            {
+                int contentLength = index - ioBuf.readIndex();
+                DirectByteBuf buf = DirectByteBuf.allocate(contentLength);
+                buf.put(ioBuf, contentLength);
+                ioBuf.readIndex(index + delimiter.length);
+                chain.chain(buf);
+            }
+        } while (true);
+    }
+    
 }

@@ -6,7 +6,7 @@ import com.jfireframework.jnet.common.api.ProcessorChain;
 import com.jfireframework.jnet.common.api.ReadProcessor;
 import com.jfireframework.jnet.common.processor.worker.ChannelAttachWorker;
 
-public class ChannelAttachProcessor implements ReadProcessor
+public class ChannelAttachProcessor implements ReadProcessor<Object>
 {
     private final ChannelAttachWorker worker;
     

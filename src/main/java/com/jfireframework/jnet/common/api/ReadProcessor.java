@@ -1,6 +1,6 @@
 package com.jfireframework.jnet.common.api;
 
-public interface ReadProcessor
+public interface ReadProcessor<T>
 {
     /**
      * 通道初始化时被调用
@@ -15,5 +15,5 @@ public interface ReadProcessor
      * @param data
      * @param chain
      */
-    void process(Object data, ProcessorChain chain, ChannelContext channelContext);
+    void process(T data, ProcessorChain chain, ChannelContext channelContext);
 }

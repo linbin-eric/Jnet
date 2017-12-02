@@ -7,7 +7,7 @@ import com.jfireframework.jnet.common.api.ProcessorChain;
 import com.jfireframework.jnet.common.api.ReadProcessor;
 import com.jfireframework.jnet.common.exception.TooLongException;
 
-public class LineBasedFrameDecoder implements ReadProcessor
+public class LineBasedFrameDecoder implements ReadProcessor<ByteBuf<?>>
 {
     private int maxLineLength;
     
@@ -29,9 +29,8 @@ public class LineBasedFrameDecoder implements ReadProcessor
     }
     
     @Override
-    public void process(Object data, ProcessorChain chain, ChannelContext channelContext)
+    public void process(ByteBuf<?> ioBuffer, ProcessorChain chain, ChannelContext channelContext)
     {
-        ByteBuf<?> ioBuffer = (ByteBuf<?>) data;
         do
         {
             
@@ -44,7 +43,7 @@ public class LineBasedFrameDecoder implements ReadProcessor
                 }
                 else
                 {
-                	ioBuffer.compact();
+                    ioBuffer.compact();
                     return;
                 }
             }

@@ -15,15 +15,15 @@ public class DefaultChannelContext implements ChannelContext
     private final AsynchronousSocketChannel socketChannel;
     private final ProcessorChain            chain;
     
-    public DefaultChannelContext(AsynchronousSocketChannel socketChannel, int maxMerge, AioListener aioListener, ReadProcessor... readProcessors)
+    public DefaultChannelContext(AsynchronousSocketChannel socketChannel, int maxMerge, AioListener aioListener, ReadProcessor<?>... readProcessors)
     {
         this.socketChannel = socketChannel;
         writeHandler = new WriteHandler(aioListener, this, maxMerge);
-        for (ReadProcessor each : readProcessors)
+        for (ReadProcessor<?> each : readProcessors)
         {
             each.initialize(this);
         }
-        chain = ChainUtil.demo(readProcessors, this);
+        chain = ChainUtil.parse(readProcessors, this);
     }
     
     @Override

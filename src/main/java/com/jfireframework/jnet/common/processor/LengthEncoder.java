@@ -5,7 +5,7 @@ import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
 import com.jfireframework.jnet.common.api.ReadProcessor;
 
-public class LengthEncoder implements ReadProcessor
+public class LengthEncoder implements ReadProcessor<Object>
 {
     // 代表长度字段开始读取的位置
     private final int lengthFieldOffset;

@@ -18,7 +18,7 @@ import com.jfireframework.schedule.trigger.RepeatDelayTrigger;
  * @author linbin
  *
  */
-public class HeartBeatProcessor implements ReadProcessor
+public class HeartBeatProcessor implements ReadProcessor<Object>
 {
     private static final Timer TIMER;
     static

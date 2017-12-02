@@ -6,68 +6,69 @@ import com.jfireframework.jnet.common.api.ReadProcessor;
 
 public class ChainUtil
 {
-	public static ProcessorChain demo(final ReadProcessor[] processors, final ChannelContext channelContext)
-	{
-		abstract class InternelProcessorChain implements ProcessorChain
-		{
-			protected final InternelProcessorChain	next;
-			protected final ReadProcessor			processor;
-			
-			public InternelProcessorChain(InternelProcessorChain next, ReadProcessor processor)
-			{
-				this.next = next;
-				this.processor = processor;
-			}
-			
-			public abstract void execCurrent(Object data);
-			
-		}
-		InternelProcessorChain last = new InternelProcessorChain(null, null) {
-			
-			@Override
-			public void chain(Object data)
-			{
-				
-			}
-			
-			@Override
-			public void execCurrent(Object data)
-			{
-				throw new NullPointerException("没有下一个节点了");
-			}
-		};
-		for (int i = processors.length - 1; i > -1; i--)
-		{
-			InternelProcessorChain nextNode = last;
-			last = new InternelProcessorChain(nextNode, processors[i]) {
-				
-				@Override
-				public void chain(Object data)
-				{
-					next.execCurrent(data);
-				}
-				
-				@Override
-				public void execCurrent(Object data)
-				{
-					processor.process(data, this, channelContext);
-				}
-			};
-		}
-		InternelProcessorChain result = new InternelProcessorChain(last, null) {
-			
-			@Override
-			public void chain(Object data)
-			{
-				next.execCurrent(data);
-			}
-			
-			@Override
-			public void execCurrent(Object data)
-			{
-				throw new NullPointerException();
-			}
-		};
-		return result;
-	}
+    public static ProcessorChain parse(final ReadProcessor<?>[] processors, final ChannelContext channelContext)
+    {
+        abstract class InternelProcessorChain implements ProcessorChain
+        {
+            protected final InternelProcessorChain        next;
+            protected final ReadProcessor<? super Object> processor;
+            
+            @SuppressWarnings("unchecked")
+            public InternelProcessorChain(InternelProcessorChain next, ReadProcessor<?> processor)
+            {
+                this.next = next;
+                this.processor = (ReadProcessor<? super Object>) processor;
+            }
+            
+            public abstract void execCurrent(Object data);
+            
+        }
+        InternelProcessorChain last = new InternelProcessorChain(null, null) {
+            
+            @Override
+            public void chain(Object data)
+            {
+                
+            }
+            
+            @Override
+            public void execCurrent(Object data)
+            {
+                throw new NullPointerException("没有下一个节点了");
+            }
+        };
+        for (int i = processors.length - 1; i > -1; i--)
+        {
+            InternelProcessorChain nextNode = last;
+            last = new InternelProcessorChain(nextNode, processors[i]) {
+                
+                @Override
+                public void chain(Object data)
+                {
+                    next.execCurrent(data);
+                }
+                
+                @Override
+                public void execCurrent(Object data)
+                {
+                    processor.process(data, this, channelContext);
+                }
+            };
+        }
+        InternelProcessorChain result = new InternelProcessorChain(last, null) {
+            
+            @Override
+            public void chain(Object data)
+            {
+                next.execCurrent(data);
+            }
+            
+            @Override
+            public void execCurrent(Object data)
+            {
+                throw new NullPointerException();
+            }
+        };
+        return result;
+    }
 }
