@@ -56,12 +56,12 @@ public class TotalLengthFieldBasedFrameDecoder implements ReadProcessor<ByteBuf<
             int left = ioBuffer.remainRead();
             if (left == 0)
             {
-                ioBuffer.compact();
+                ioBuffer.compact().ensureCapacity(lengthFieldEndOffset);
                 return;
             }
             if (lengthFieldEndOffset > left)
             {
-                ioBuffer.compact();
+            	ioBuffer.compact().ensureCapacity(lengthFieldEndOffset);
                 return;
             }
             // iobuffer中可能包含好几个报文，所以这里应该是增加的方式而不是直接设置的方式
@@ -88,7 +88,7 @@ public class TotalLengthFieldBasedFrameDecoder implements ReadProcessor<ByteBuf<
             }
             if (length > ioBuffer.remainRead())
             {
-                ioBuffer.compact();
+                ioBuffer.compact().ensureCapacity(length);
                 return;
             }
             else

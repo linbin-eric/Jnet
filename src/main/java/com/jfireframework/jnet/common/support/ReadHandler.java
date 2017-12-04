@@ -1,5 +1,6 @@
 package com.jfireframework.jnet.common.support;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
@@ -33,6 +34,14 @@ public class ReadHandler implements CompletionHandler<Integer, Void>
 		// read为-1意味着输入流到了终点，但是还有输出流，所以不可以关闭通道
 		if (read == -1)
 		{
+			try
+			{
+				socketChannel.close();
+			}
+			catch (IOException e)
+			{
+				catchThrowable(e, channelContext);
+			}
 			return;
 		}
 		ioBuf.addWriteIndex(read);
