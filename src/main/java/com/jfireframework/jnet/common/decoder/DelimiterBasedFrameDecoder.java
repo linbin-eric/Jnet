@@ -6,6 +6,7 @@ import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
 import com.jfireframework.jnet.common.api.ReadProcessor;
 import com.jfireframework.jnet.common.exception.TooLongException;
+import com.jfireframework.pool.ioBuffer.IoBuffer;
 
 /**
  * 特定结束符整包解码器
@@ -13,7 +14,7 @@ import com.jfireframework.jnet.common.exception.TooLongException;
  * @author 林斌
  * 
  */
-public class DelimiterBasedFrameDecoder implements ReadProcessor<ByteBuf<?>>
+public class DelimiterBasedFrameDecoder implements ReadProcessor<IoBuffer>
 {
 	private byte[]	delimiter;
 	private int		maxLength;
