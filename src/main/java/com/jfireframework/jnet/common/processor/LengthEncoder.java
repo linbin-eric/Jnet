@@ -1,9 +1,9 @@
 package com.jfireframework.jnet.common.processor;
 
-import com.jfireframework.baseutil.collection.buffer.ByteBuf;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
 import com.jfireframework.jnet.common.api.ReadProcessor;
+import com.jfireframework.pool.ioBuffer.IoBuffer;
 
 public class LengthEncoder implements ReadProcessor<Object>
 {
@@ -26,20 +26,20 @@ public class LengthEncoder implements ReadProcessor<Object>
     @Override
     public void process(Object data, ProcessorChain chain, ChannelContext channelContext) throws Throwable
     {
-        if (data instanceof ByteBuf)
+        if (data instanceof IoBuffer)
         {
-            ByteBuf<?> buf = (ByteBuf<?>) data;
+            IoBuffer buf = (IoBuffer) data;
             int length = buf.remainRead();
             switch (lengthFieldLength)
             {
                 case 1:
-                    buf.put(lengthFieldOffset, (byte) length);
+                    buf.put((byte) length, lengthFieldOffset);
                     break;
                 case 2:
-                    buf.writeShort(lengthFieldOffset, (short) length);
+                    buf.writeShort((short) length, lengthFieldOffset);
                     break;
                 case 4:
-                    buf.writeInt(lengthFieldOffset, length);
+                    buf.writeInt(length, lengthFieldOffset);
                     break;
                 default:
                     break;

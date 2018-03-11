@@ -1,11 +1,11 @@
 package com.jfireframework.jnet.common.decoder;
 
-import com.jfireframework.baseutil.collection.buffer.ByteBuf;
-import com.jfireframework.baseutil.collection.buffer.DirectByteBuf;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
 import com.jfireframework.jnet.common.api.ReadProcessor;
 import com.jfireframework.jnet.common.exception.TooLongException;
+import com.jfireframework.jnet.common.util.Allocator;
+import com.jfireframework.pool.ioBuffer.IoBuffer;
 
 /**
  * 报文长度整体frame解码器。其中需要解码的长度所代表的长度信息是保温整体的长度信息，也就是包含报文头和报文体一起的总长度
@@ -13,7 +13,7 @@ import com.jfireframework.jnet.common.exception.TooLongException;
  * @author eric(eric@jfire.cn)
  * 
  */
-public class TotalLengthFieldBasedFrameDecoder implements ReadProcessor<ByteBuf<?>>
+public class TotalLengthFieldBasedFrameDecoder implements ReadProcessor<IoBuffer>
 {
     // 代表长度字段开始读取的位置
     private final int lengthFieldOffset;
@@ -48,7 +48,7 @@ public class TotalLengthFieldBasedFrameDecoder implements ReadProcessor<ByteBuf<
     }
     
     @Override
-    public void process(ByteBuf<?> ioBuffer, ProcessorChain chain, ChannelContext channelContext) throws Throwable
+    public void process(IoBuffer ioBuffer, ProcessorChain chain, ChannelContext channelContext) throws Throwable
     {
         do
         {
@@ -56,16 +56,16 @@ public class TotalLengthFieldBasedFrameDecoder implements ReadProcessor<ByteBuf<
             int left = ioBuffer.remainRead();
             if (left == 0)
             {
-                ioBuffer.compact().ensureCapacity(lengthFieldEndOffset);
+                ioBuffer.compact().expansion(lengthFieldEndOffset);
                 return;
             }
             if (lengthFieldEndOffset > left)
             {
-            	ioBuffer.compact().ensureCapacity(lengthFieldEndOffset);
+                ioBuffer.compact().expansion(lengthFieldEndOffset);
                 return;
             }
             // iobuffer中可能包含好几个报文，所以这里应该是增加的方式而不是直接设置的方式
-            ioBuffer.addReadIndex(lengthFieldOffset);
+            ioBuffer.addReadPosi(lengthFieldOffset);
             // 获取到整体报文的长度
             int length = 0;
             switch (lengthFieldLength)
@@ -81,24 +81,24 @@ public class TotalLengthFieldBasedFrameDecoder implements ReadProcessor<ByteBuf<
                     break;
             }
             // 得到整体长度后，开始从头读取这个长度的内容
-            ioBuffer.resetRead();
+            ioBuffer.resetReadPosi();
             if (length >= maxLegnth)
             {
                 throw new TooLongException();
             }
             if (length > ioBuffer.remainRead())
             {
-                ioBuffer.compact().ensureCapacity(length);
+                ioBuffer.compact().expansion(length);
                 return;
             }
             else
             {
-                DirectByteBuf buf = DirectByteBuf.allocate(length);
+                IoBuffer buf = Allocator.allocateDirect(length);
                 buf.put(ioBuffer, length);
-                ioBuffer.addReadIndex(length);
+                ioBuffer.addReadPosi(length);
                 if (skipBytes != 0)
                 {
-                    buf.addReadIndex(skipBytes);
+                    buf.addReadPosi(skipBytes);
                 }
                 chain.chain(buf);
             }
