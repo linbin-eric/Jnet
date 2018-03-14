@@ -4,14 +4,14 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
-import com.jfireframework.baseutil.collection.buffer.ByteBuf;
-import com.jfireframework.baseutil.collection.buffer.DirectByteBuf;
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
+import com.jfireframework.jnet.common.util.Allocator;
+import com.jfireframework.pool.ioBuffer.IoBuffer;
 
 public class ReadHandler implements CompletionHandler<Integer, Void>
 {
-	protected final ByteBuf<?>					ioBuf	= DirectByteBuf.allocate(1024);
+	protected final IoBuffer					ioBuf	= Allocator.allocateDirect(1024);
 	protected final ChannelContext				channelContext;
 	protected final AsynchronousSocketChannel	socketChannel;
 	protected final AioListener					aioListener;
@@ -44,7 +44,7 @@ public class ReadHandler implements CompletionHandler<Integer, Void>
 			}
 			return;
 		}
-		ioBuf.addWriteIndex(read);
+		ioBuf.addWritePosi(read);
 		try
 		{
 			channelContext.read(ioBuf);
@@ -69,7 +69,7 @@ public class ReadHandler implements CompletionHandler<Integer, Void>
 	 */
 	protected ByteBuffer getWriteBuffer()
 	{
-		ByteBuffer ioBuffer = ioBuf.nioBuffer();
+		ByteBuffer ioBuffer = ioBuf.byteBuffer();
 		ioBuffer.position(ioBuffer.limit()).limit(ioBuffer.capacity());
 		return ioBuffer;
 	}

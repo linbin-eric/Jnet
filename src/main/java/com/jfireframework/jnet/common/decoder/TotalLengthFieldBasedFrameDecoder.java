@@ -34,11 +34,11 @@ public class TotalLengthFieldBasedFrameDecoder implements ReadProcessor<IoBuffer
      */
     public TotalLengthFieldBasedFrameDecoder(int lengthFieldOffset, int lengthFieldLength, int skipBytes, int maxLength)
     {
+    	this.lengthFieldOffset = lengthFieldOffset;
         this.lengthFieldLength = lengthFieldLength;
-        this.lengthFieldOffset = lengthFieldOffset;
         this.maxLegnth = maxLength;
-        lengthFieldEndOffset = lengthFieldOffset + lengthFieldLength;
         this.skipBytes = skipBytes;
+        lengthFieldEndOffset = lengthFieldOffset + lengthFieldLength;
     }
     
     @Override

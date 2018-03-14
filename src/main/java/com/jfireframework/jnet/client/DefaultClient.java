@@ -7,12 +7,12 @@ import java.nio.channels.AsynchronousSocketChannel;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import com.jfireframework.baseutil.collection.buffer.ByteBuf;
 import com.jfireframework.baseutil.exception.JustThrowException;
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelConnectListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.support.ReadHandler;
+import com.jfireframework.pool.ioBuffer.IoBuffer;
 
 public class DefaultClient implements AioClient
 {
@@ -63,7 +63,7 @@ public class DefaultClient implements AioClient
 	}
 	
 	@Override
-	public void write(ByteBuf<?> packet)
+	public void write(IoBuffer packet)
 	{
 		channelContext.write(packet);
 	}
