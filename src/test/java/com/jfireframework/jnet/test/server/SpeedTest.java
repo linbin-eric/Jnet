@@ -286,7 +286,7 @@ public class SpeedTest
 	@Test
 	public void test() throws Throwable
 	{
-		for (int i = 0; i < 5; i++)
+		for (int i = 0; i < 2; i++)
 		{
 			dotest();
 		}
