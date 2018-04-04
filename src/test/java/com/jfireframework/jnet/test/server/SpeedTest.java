@@ -44,7 +44,7 @@ import com.jfireframework.pool.ioBuffer.IoBuffer;
 public class SpeedTest
 {
 	private int					port			= 8546;
-	private int					clientThreadNum	= 10;
+	private int					clientThreadNum	= 30;
 	private int					sendCount		= 10000;
 	private int					sum				= clientThreadNum * sendCount;
 	private IoMode				serverMode;
