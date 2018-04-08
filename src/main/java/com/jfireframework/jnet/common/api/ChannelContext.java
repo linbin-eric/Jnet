@@ -1,7 +1,7 @@
 package com.jfireframework.jnet.common.api;
 
 import java.nio.channels.AsynchronousSocketChannel;
-import com.jfireframework.pool.ioBuffer.IoBuffer;
+import com.jfireframework.jnet.common.mem.buffer.IoBuffer;
 
 public interface ChannelContext
 {

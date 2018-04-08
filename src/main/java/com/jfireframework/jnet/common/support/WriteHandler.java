@@ -7,8 +7,8 @@ import com.jfireframework.baseutil.concurrent.CpuCachePadingInt;
 import com.jfireframework.baseutil.concurrent.MPSCQueue;
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
+import com.jfireframework.jnet.common.mem.buffer.IoBuffer;
 import com.jfireframework.jnet.common.util.Allocator;
-import com.jfireframework.pool.ioBuffer.IoBuffer;
 
 public class WriteHandler implements CompletionHandler<Integer, IoBuffer>
 {

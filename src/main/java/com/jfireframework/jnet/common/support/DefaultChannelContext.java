@@ -5,8 +5,8 @@ import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
 import com.jfireframework.jnet.common.api.ReadProcessor;
+import com.jfireframework.jnet.common.mem.buffer.IoBuffer;
 import com.jfireframework.jnet.common.util.ChainUtil;
-import com.jfireframework.pool.ioBuffer.IoBuffer;
 
 public class DefaultChannelContext implements ChannelContext
 {

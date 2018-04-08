@@ -6,8 +6,8 @@ import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
+import com.jfireframework.jnet.common.mem.buffer.IoBuffer;
 import com.jfireframework.jnet.common.util.Allocator;
-import com.jfireframework.pool.ioBuffer.IoBuffer;
 
 public class ReadHandler implements CompletionHandler<Integer, Void>
 {

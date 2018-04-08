@@ -4,8 +4,8 @@ import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
 import com.jfireframework.jnet.common.api.ReadProcessor;
 import com.jfireframework.jnet.common.exception.TooLongException;
+import com.jfireframework.jnet.common.mem.buffer.IoBuffer;
 import com.jfireframework.jnet.common.util.Allocator;
-import com.jfireframework.pool.ioBuffer.IoBuffer;
 
 /**
  * 报文长度整体frame解码器。其中需要解码的长度所代表的长度信息是保温整体的长度信息，也就是包含报文头和报文体一起的总长度

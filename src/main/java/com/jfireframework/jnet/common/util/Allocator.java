@@ -1,9 +1,9 @@
 package com.jfireframework.jnet.common.util;
 
-import com.jfireframework.pool.IoBufferAllocator;
-import com.jfireframework.pool.ioBuffer.IoBuffer;
-import com.jfireframework.pool.support.PooledIoBufferAllocator;
-import com.jfireframework.pool.support.UnPooledIoBufferAllocator;
+import com.jfireframework.jnet.common.mem.buffer.IoBuffer;
+import com.jfireframework.jnet.common.mem.support.IoBufferAllocator;
+import com.jfireframework.jnet.common.mem.support.PooledIoBufferAllocator;
+import com.jfireframework.jnet.common.mem.support.UnPooledIoBufferAllocator;
 
 public class Allocator
 {

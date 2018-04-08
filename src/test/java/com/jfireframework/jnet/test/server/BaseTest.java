@@ -27,6 +27,7 @@ import com.jfireframework.jnet.common.api.ProcessorChain;
 import com.jfireframework.jnet.common.api.ReadProcessor;
 import com.jfireframework.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
 import com.jfireframework.jnet.common.decoder.TotalLengthFieldBasedFrameDecoderByHeap;
+import com.jfireframework.jnet.common.mem.buffer.IoBuffer;
 import com.jfireframework.jnet.common.processor.ChannelAttachProcessor;
 import com.jfireframework.jnet.common.processor.MutliAttachIoProcessor;
 import com.jfireframework.jnet.common.processor.ThreadAttachIoProcessor;
@@ -37,7 +38,6 @@ import com.jfireframework.jnet.common.util.Allocator;
 import com.jfireframework.jnet.common.util.ReadProcessorAdapter;
 import com.jfireframework.jnet.server.AioServer;
 import com.jfireframework.jnet.server.AioServerBuilder;
-import com.jfireframework.pool.ioBuffer.IoBuffer;
 
 /**
  * 基本测试。用于验证代码的正确性

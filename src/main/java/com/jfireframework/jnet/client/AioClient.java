@@ -1,6 +1,6 @@
 package com.jfireframework.jnet.client;
 
-import com.jfireframework.pool.ioBuffer.IoBuffer;
+import com.jfireframework.jnet.common.mem.buffer.IoBuffer;
 
 public interface AioClient
 {

@@ -1,0 +1,133 @@
+package com.jfireframework.jnet.common.mem.chunk;
+
+import com.jfireframework.jnet.common.mem.handler.Handler;
+
+public class ChunkList<T>
+{
+	private Chunk<T>		head;
+	private ChunkList<T>	prev;
+	private ChunkList<T>	next;
+	private int				maxUsage;
+	private int				minUsage;
+	private String			name;
+	
+	public ChunkList(ChunkList<T> next, int maxUsage, int minUsage, String name)
+	{
+		this.name = name;
+		this.next = next;
+		this.maxUsage = maxUsage;
+		this.minUsage = minUsage;
+	}
+	
+	public String toString()
+	{
+		return name;
+	}
+	
+	public void setPrev(ChunkList<T> prev)
+	{
+		this.prev = prev;
+	}
+	
+	public boolean findChunkAndApply(int need, Handler<T> bucket)
+	{
+		if (head == null)
+		{
+			return false;
+		}
+		Chunk<T> select = head;
+		boolean apply = false;
+		while (select != null)
+		{
+			apply = select.apply(need, bucket);
+			if (apply == false)
+			{
+				select = select.next;
+			}
+			else
+			{
+				break;
+			}
+		}
+		if (apply && select.usage() >= maxUsage)
+		{
+			moveToNext(select);
+		}
+		return apply;
+	}
+	
+	private void moveToNext(Chunk<T> chunk)
+	{
+		removeFromCurrentList(chunk);
+		next.addChunk(chunk);
+	}
+	
+	private void moveToPrev(Chunk<T> chunk)
+	{
+		removeFromCurrentList(chunk);
+		if (prev != null)
+		{
+			prev.addChunk(chunk);
+		}
+	}
+	
+	private void removeFromCurrentList(Chunk<T> node)
+	{
+		if (node == head)
+		{
+			head = head.next;
+			if (head != null)
+			{
+				head.pred = null;
+			}
+		}
+		else
+		{
+			Chunk<T> pred = node.pred;
+			Chunk<T> next = node.next;
+			pred.next = next;
+			if (next != null)
+			{
+				next.pred = pred;
+			}
+		}
+		node.parent = null;
+		node.pred = null;
+		node.next = null;
+	}
+	
+	public void addChunk(Chunk<T> chunk)
+	{
+		if (chunk.usage() > maxUsage)
+		{
+			next.addChunk(chunk);
+			return;
+		}
+		if (head == null)
+		{
+			head = chunk;
+		}
+		else
+		{
+			chunk.next = head;
+			head.pred = chunk;
+			head = chunk;
+		}
+		chunk.parent = this;
+	}
+	
+	public void recycle(Handler<T> handler)
+	{
+		Chunk<T> chunk = handler.belong();
+		chunk.recycle(handler);
+		if (chunk.usage() <= minUsage)
+		{
+			moveToPrev(chunk);
+		}
+	}
+	
+	public Chunk<T> head()
+	{
+		return head;
+	}
+}
