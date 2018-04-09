@@ -1,6 +1,7 @@
 package com.jfireframework.jnet.common.mem.handler;
 
 import java.nio.ByteBuffer;
+import com.jfireframework.jnet.common.mem.archon.Archon;
 import com.jfireframework.jnet.common.mem.chunk.Chunk;
 
 public abstract class AbstractHandler<T> implements Handler<T>
@@ -9,6 +10,21 @@ public abstract class AbstractHandler<T> implements Handler<T>
 	protected int			index;
 	protected Chunk<T>		chunk;
 	protected ByteBuffer	cachedByteBuffer;
+	protected int			capacity;
+	protected int			readPosi;
+	protected int			writePosi;
+	
+	public void initialize(int off, int len, T mem, int index, Chunk<T> chunk, Archon<T> archon)
+	{
+		capacity = len;
+		this.mem = mem;
+		this.index = index;
+		this.chunk = chunk;
+		cachedByteBuffer = null;
+		_initialize(off, len, mem, index, chunk, archon);
+	}
+	
+	public abstract void _initialize(int off, int len, T mem, int index, Chunk<T> chunk, Archon<T> archon);
 	
 	@Override
 	public Chunk<T> belong()

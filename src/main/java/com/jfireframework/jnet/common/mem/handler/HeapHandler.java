@@ -6,10 +6,8 @@ import com.jfireframework.jnet.common.mem.chunk.Chunk;
 
 public class HeapHandler extends AbstractHandler<byte[]>
 {
-	protected int	readPosi;
-	protected int	writePosi;
-	protected int	capacity;
-	protected int	offset;
+	
+	private int offset;
 	
 	@Override
 	public String toString()
@@ -18,15 +16,10 @@ public class HeapHandler extends AbstractHandler<byte[]>
 	}
 	
 	@Override
-	public void initialize(int off, int len, byte[] mem, int index, Chunk<byte[]> chunk, Archon<byte[]> archon)
+	public void _initialize(int off, int len, byte[] mem, int index, Chunk<byte[]> chunk, Archon<byte[]> archon)
 	{
 		this.offset = off;
-		capacity = len;
-		this.mem = mem;
-		this.index = index;
-		this.chunk = chunk;
 		readPosi = writePosi = off;
-		cachedByteBuffer = null;
 	}
 	
 	@Override
@@ -318,4 +311,5 @@ public class HeapHandler extends AbstractHandler<byte[]>
 	{
 		writePosi += add;
 	}
+	
 }

@@ -6,23 +6,14 @@ import com.jfireframework.jnet.common.mem.chunk.Chunk;
 
 public class DirectHandler extends AbstractHandler<ByteBuffer>
 {
-	private int	readPosi;
-	private int	writePosi;
-	private int	capacity;
-	
 	@Override
-	public void initialize(int off, int len, ByteBuffer mem, int index, Chunk<ByteBuffer> chunk, Archon<ByteBuffer> archon)
+	public void _initialize(int off, int len, ByteBuffer mem, int index, Chunk<ByteBuffer> chunk, Archon<ByteBuffer> archon)
 	{
 		if (off != 0)
 		{
 			throw new IllegalArgumentException();
 		}
-		capacity = len;
-		this.mem = mem;
-		this.index = index;
-		this.chunk = chunk;
 		readPosi = writePosi = 0;
-		cachedByteBuffer = null;
 	}
 	
 	private void changeToWrite()
