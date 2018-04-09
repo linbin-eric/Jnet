@@ -24,5 +24,5 @@ public class HeapPooledArchon extends PooledArchon<byte[]>
 		HeapChunk heapChunk = new HeapChunk(maxLevel, unit);
 		return heapChunk;
 	}
-	
+
 }

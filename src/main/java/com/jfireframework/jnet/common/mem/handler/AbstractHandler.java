@@ -26,6 +26,27 @@ public abstract class AbstractHandler<T> implements Handler<T>
 	
 	public abstract void _initialize(int off, int len, T mem, int index, Chunk<T> chunk, Archon<T> archon);
 	
+	
+	protected void ensureCapacity(int size)
+	{
+		if (size <= 0)
+		{
+			return;
+		}
+		if (isEnoughWrite(size) == false)
+		{
+			archon.apply(handler.capacity() + size, expansionHandler);
+			expansionHandler.put(handler);
+			archon.recycle(handler);
+			Handler<T> exchange = handler;
+			handler = expansionHandler;
+			expansionHandler = exchange;
+			expansionHandler.destory();
+		}
+	}
+	
+	
+	
 	@Override
 	public Chunk<T> belong()
 	{

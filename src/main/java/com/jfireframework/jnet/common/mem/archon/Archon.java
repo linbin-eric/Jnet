@@ -21,4 +21,13 @@ public interface Archon<T>
 	 * @param bucket
 	 */
 	void recycle(Handler<T> handler);
+	
+	/**
+	 * 对handler进行扩容，扩容流程是先申请一个newSize大小的空间，将handler本身的内容复制过去。然后将handler中的部分回收。<br/>
+	 * 注意：该实现需要有SYNC关键字保护
+	 * 
+	 * @param handler
+	 * @param newSize
+	 */
+	void expansion(Handler<T> handler, int newSize);
 }

@@ -11,5 +11,11 @@ public class DirectUnPooledArchon extends UnPooledArchon<ByteBuffer>
 	{
 		handler.initialize(0, need, ByteBuffer.allocateDirect(need), 0, null, null);
 	}
+
+	@Override
+	public void expansion(Handler<ByteBuffer> handler, int newSize)
+	{
+		handler.initialize(0, newSize, ByteBuffer.allocateDirect(newSize), 0, null, null);
+	}
 	
 }

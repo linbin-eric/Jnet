@@ -10,4 +10,10 @@ public class HeapUnPooledArchon extends UnPooledArchon<byte[]>
 	{
 		handler.initialize(0, need, new byte[need], 0, null, null);
 	}
+
+	@Override
+	public void expansion(Handler<byte[]> handler, int newSize)
+	{
+		handler.initialize(0, newSize, new byte[newSize], 0, null, null);
+	}
 }
