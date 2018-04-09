@@ -15,7 +15,7 @@ public class HeapPooledArchon extends PooledArchon<byte[]>
 	@Override
 	protected void initHugeBucket(Handler<byte[]> handler, int need)
 	{
-		handler.initialize(0, need, new byte[need], 0, null);
+		handler.initialize(0, need, new byte[need], 0, null, null);
 	}
 	
 	@Override

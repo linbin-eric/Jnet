@@ -17,7 +17,7 @@ public class DirectPooledArchon extends PooledArchon<ByteBuffer>
 	protected void initHugeBucket(Handler<ByteBuffer> handler, int need)
 	{
 		ByteBuffer byteBuffer = ByteBuffer.allocateDirect(need);
-		handler.initialize(0, need, byteBuffer, 0, null);
+		handler.initialize(0, need, byteBuffer, 0, null, null);
 	}
 	
 	@Override

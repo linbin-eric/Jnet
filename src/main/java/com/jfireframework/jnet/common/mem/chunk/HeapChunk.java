@@ -19,7 +19,7 @@ public class HeapChunk extends Chunk<byte[]>
 	@Override
 	protected void initHandler(Handler<byte[]> handler, int index, int off, int len)
 	{
-		handler.initialize(off, len, mem, index, this);
+		handler.initialize(off, len, mem, index, this, null);
 	}
 	
 }

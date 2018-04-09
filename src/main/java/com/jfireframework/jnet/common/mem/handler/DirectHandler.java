@@ -1,6 +1,7 @@
 package com.jfireframework.jnet.common.mem.handler;
 
 import java.nio.ByteBuffer;
+import com.jfireframework.jnet.common.mem.archon.Archon;
 import com.jfireframework.jnet.common.mem.chunk.Chunk;
 
 public class DirectHandler extends AbstractHandler<ByteBuffer>
@@ -10,7 +11,7 @@ public class DirectHandler extends AbstractHandler<ByteBuffer>
 	private int	capacity;
 	
 	@Override
-	public void initialize(int off, int len, ByteBuffer mem, int index, Chunk<ByteBuffer> chunk)
+	public void initialize(int off, int len, ByteBuffer mem, int index, Chunk<ByteBuffer> chunk, Archon<ByteBuffer> archon)
 	{
 		if (off != 0)
 		{

@@ -26,7 +26,7 @@ public class DirectChunk extends Chunk<ByteBuffer>
 		ByteBuffer slice = mem.slice();
 		// 恢复到初始状态
 		mem.limit(capacity).position(0);
-		handler.initialize(0, slice.capacity(), slice, index, this);
+		handler.initialize(0, slice.capacity(), slice, index, this, null);
 	}
 	
 }

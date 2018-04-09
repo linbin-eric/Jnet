@@ -1,6 +1,7 @@
 package com.jfireframework.jnet.common.mem.handler;
 
 import java.nio.ByteBuffer;
+import com.jfireframework.jnet.common.mem.archon.Archon;
 import com.jfireframework.jnet.common.mem.chunk.Chunk;
 
 public class HeapHandler extends AbstractHandler<byte[]>
@@ -17,7 +18,7 @@ public class HeapHandler extends AbstractHandler<byte[]>
 	}
 	
 	@Override
-	public void initialize(int off, int len, byte[] mem, int index, Chunk<byte[]> chunk)
+	public void initialize(int off, int len, byte[] mem, int index, Chunk<byte[]> chunk, Archon<byte[]> archon)
 	{
 		this.offset = off;
 		capacity = len;

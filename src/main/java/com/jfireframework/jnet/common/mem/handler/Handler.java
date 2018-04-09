@@ -1,6 +1,7 @@
 package com.jfireframework.jnet.common.mem.handler;
 
 import java.nio.ByteBuffer;
+import com.jfireframework.jnet.common.mem.archon.Archon;
 import com.jfireframework.jnet.common.mem.chunk.Chunk;
 
 /**
@@ -18,11 +19,10 @@ public interface Handler<T>
 	 * @param off mem中可用的起始偏移量
 	 * @param len 可用mem的字节长度
 	 * @param mem 内存
-	 * @param level 申请的这段内存在chunk中的level
 	 * @param index 申请的这段内存在chunk中的index
 	 * @param chunkMem 托管这段内存的chunk
 	 */
-	void initialize(int off, int len, T mem, int index, Chunk<T> chunkMem);
+	void initialize(int off, int len, T mem, int index, Chunk<T> chunkMem, Archon<T> archon);
 	
 	/**
 	 * 销毁所有数据
