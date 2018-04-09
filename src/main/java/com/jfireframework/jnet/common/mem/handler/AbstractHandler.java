@@ -48,12 +48,12 @@ public abstract class AbstractHandler<T> implements Handler<T>
     /**
      * 拷贝src中的数据到自身中。该拷贝方法会复制的信息包含:<br/>
      * 1. 从off到writePosi的所有数据<br/>
-     * 2. readPosi <br/>
-     * 3. writePosi <br/>
+     * 2. src的相对readPosi <br/>
+     * 3. src的相对writePosi <br/>
      * 
      * @param src
      */
-    protected abstract void copy(AbstractHandler<T> src);
+    public abstract void copy(AbstractHandler<T> src);
     
     /**
      * 将src中的内容替换到自身中。该替换方法会替换的信息包含:<br/>
@@ -68,7 +68,7 @@ public abstract class AbstractHandler<T> implements Handler<T>
      * 
      * @param src
      */
-    protected abstract void replace(AbstractHandler<T> src);
+    public abstract void replace(AbstractHandler<T> src);
     
     @Override
     public Chunk<T> belong()
