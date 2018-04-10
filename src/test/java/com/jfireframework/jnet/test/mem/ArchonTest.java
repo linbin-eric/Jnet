@@ -1,13 +1,19 @@
 package com.jfireframework.jnet.test.mem;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import java.lang.reflect.Field;
+import java.nio.ByteBuffer;
 import org.junit.Assert;
 import org.junit.Test;
 import com.jfireframework.jnet.common.mem.archon.Archon;
+import com.jfireframework.jnet.common.mem.archon.DirectPooledArchon;
 import com.jfireframework.jnet.common.mem.archon.HeapPooledArchon;
 import com.jfireframework.jnet.common.mem.archon.PooledArchon;
 import com.jfireframework.jnet.common.mem.chunk.Chunk;
 import com.jfireframework.jnet.common.mem.chunk.ChunkList;
+import com.jfireframework.jnet.common.mem.handler.AbstractHandler;
+import com.jfireframework.jnet.common.mem.handler.DirectHandler;
 import com.jfireframework.jnet.common.mem.handler.HeapHandler;
 
 public class ArchonTest
@@ -64,4 +70,82 @@ public class ArchonTest
 		Assert.assertNotNull(headField.get(c50));
 		Assert.assertNull(headField.get(c25));
 	}
+	
+	/**
+	 * Heap扩容测试
+	 * 
+	 * @throws SecurityException
+	 * @throws NoSuchFieldException
+	 * @throws IllegalAccessException
+	 * @throws IllegalArgumentException
+	 */
+	@Test
+	public void test2() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException
+	{
+		Archon<byte[]> archon = new HeapPooledArchon(4, 1);
+		HeapHandler handler = new HeapHandler();
+		archon.apply(2, handler);
+		handler.put((byte) 0x01);
+		handler.put((byte) 0x02);
+		handler.get();
+		Field field = AbstractHandler.class.getDeclaredField("chunk");
+		field.setAccessible(true);
+		Chunk<byte[]> originChunk = (Chunk<byte[]>) field.get(handler);
+		int originCapacity = handler.capacity();
+		int originReadPosi = handler.getReadPosi();
+		int originWritePosi = handler.getWritePosi();
+		int originIndex = handler.getIndex();
+		assertEquals(2, originCapacity);
+		assertEquals(8, originIndex);
+		assertEquals(1, originReadPosi);
+		assertEquals(2, originWritePosi);
+		archon.expansion(handler, 4);
+		assertEquals(5, handler.getIndex());
+		assertEquals(4, handler.capacity());
+		assertEquals(1, handler.getReadPosi());
+		assertEquals(2, handler.getWritePosi());
+		assertTrue(handler.get(0) == 0x01);
+		assertTrue(handler.get(1) == 0x02);
+		Chunk<byte[]> chunk = (Chunk<byte[]>) field.get(handler);
+		assertTrue(originChunk == chunk);
+	}
+	/**
+	 * Direct扩容测试
+	 * 
+	 * @throws SecurityException
+	 * @throws NoSuchFieldException
+	 * @throws IllegalAccessException
+	 * @throws IllegalArgumentException
+	 */
+	@Test
+	public void test3() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException
+	{
+		Archon<ByteBuffer> archon = new DirectPooledArchon(4, 1);
+		DirectHandler handler = new DirectHandler();
+		archon.apply(2, handler);
+		handler.put((byte) 0x01);
+		handler.put((byte) 0x02);
+		handler.get();
+		Field field = AbstractHandler.class.getDeclaredField("chunk");
+		field.setAccessible(true);
+		Chunk<byte[]> originChunk = (Chunk<byte[]>) field.get(handler);
+		int originCapacity = handler.capacity();
+		int originReadPosi = handler.getReadPosi();
+		int originWritePosi = handler.getWritePosi();
+		int originIndex = handler.getIndex();
+		assertEquals(2, originCapacity);
+		assertEquals(8, originIndex);
+		assertEquals(1, originReadPosi);
+		assertEquals(2, originWritePosi);
+		archon.expansion(handler, 4);
+		assertEquals(5, handler.getIndex());
+		assertEquals(4, handler.capacity());
+		assertEquals(1, handler.getReadPosi());
+		assertEquals(2, handler.getWritePosi());
+		assertTrue(handler.get(0) == 0x01);
+		assertTrue(handler.get(1) == 0x02);
+		Chunk<byte[]> chunk = (Chunk<byte[]>) field.get(handler);
+		assertTrue(originChunk == chunk);
+	}
+	
 }

@@ -16,7 +16,7 @@ public class HeapHandler extends AbstractHandler<byte[]>
     }
     
     @Override
-    public void _initialize(int off, int len, byte[] mem, int index, Chunk<byte[]> chunk, Archon<byte[]> archon)
+    public void _initialize(int off, int capacity, byte[] mem, int index, Chunk<byte[]> chunk, Archon<byte[]> archon)
     {
         this.offset = off;
         readPosi = writePosi = off;
