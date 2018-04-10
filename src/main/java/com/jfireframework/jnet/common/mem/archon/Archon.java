@@ -1,6 +1,6 @@
 package com.jfireframework.jnet.common.mem.archon;
 
-import com.jfireframework.jnet.common.mem.handler.Handler;
+import com.jfireframework.jnet.common.mem.handler.IoBuffer;
 
 public interface Archon<T>
 {
@@ -12,7 +12,7 @@ public interface Archon<T>
 	 * @param bucket
 	 * @return
 	 */
-	void apply(int need, Handler<T> handler);
+	void apply(int need, IoBuffer<T> handler);
 	
 	/**
 	 * 将Bucket中的内存回收。<br/>
@@ -20,7 +20,7 @@ public interface Archon<T>
 	 * 
 	 * @param bucket
 	 */
-	void recycle(Handler<T> handler);
+	void recycle(IoBuffer<T> handler);
 	
 	/**
 	 * 对handler进行扩容，扩容流程是先申请一个newSize大小的空间，将handler本身的内容复制过去。然后将handler中的部分回收。<br/>
@@ -29,5 +29,5 @@ public interface Archon<T>
 	 * @param handler
 	 * @param newSize
 	 */
-	void expansion(Handler<T> handler, int newSize);
+	void expansion(IoBuffer<T> handler, int newSize);
 }

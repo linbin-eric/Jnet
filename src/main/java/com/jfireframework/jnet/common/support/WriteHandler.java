@@ -44,7 +44,7 @@ public class WriteHandler implements CompletionHandler<Integer, IoBuffer>
 			socketChannel.write(buffer, buf, this);
 			return;
 		}
-		buf.clear();
+		buf.clearData();
 		aioListener.afterWrited(channelContext, currentSendCount);
 		writeNextBuf();
 	}

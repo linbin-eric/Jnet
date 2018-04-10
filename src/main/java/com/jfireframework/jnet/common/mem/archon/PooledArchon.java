@@ -2,8 +2,8 @@ package com.jfireframework.jnet.common.mem.archon;
 
 import com.jfireframework.jnet.common.mem.chunk.Chunk;
 import com.jfireframework.jnet.common.mem.chunk.ChunkList;
-import com.jfireframework.jnet.common.mem.handler.AbstractHandler;
-import com.jfireframework.jnet.common.mem.handler.Handler;
+import com.jfireframework.jnet.common.mem.handler.AbstractIoBuffer;
+import com.jfireframework.jnet.common.mem.handler.IoBuffer;
 
 public abstract class PooledArchon<T> implements Archon<T>
 {
@@ -16,7 +16,7 @@ public abstract class PooledArchon<T> implements Archon<T>
 	private int						maxLevel;
 	private int						unit;
 	private int						maxSize;
-	protected ExpansionHandler<T>	expansionHandler;
+	protected ExpansionIoBuffer<T>	expansionIoBuffer;
 	
 	public PooledArchon(int maxLevel, int unit)
 	{
@@ -37,7 +37,7 @@ public abstract class PooledArchon<T> implements Archon<T>
 	}
 	
 	@Override
-	public synchronized void apply(int need, Handler<T> handler)
+	public synchronized void apply(int need, IoBuffer<T> handler)
 	{
 		if (need > maxSize)
 		{
@@ -62,17 +62,17 @@ public abstract class PooledArchon<T> implements Archon<T>
 	
 	@SuppressWarnings("unchecked")
 	@Override
-	public synchronized void expansion(Handler<T> handler, int newSize)
+	public synchronized void expansion(IoBuffer<T> handler, int newSize)
 	{
-		apply(newSize, expansionHandler);
-		((AbstractHandler<T>) expansionHandler).copy((AbstractHandler<T>) handler);
+		apply(newSize, expansionIoBuffer);
+		((AbstractIoBuffer<T>) expansionIoBuffer).copy((AbstractIoBuffer<T>) handler);
 		recycle(handler);
-		((AbstractHandler<T>) handler).replace((AbstractHandler<T>) expansionHandler);
-		expansionHandler.clearForNextCall();
+		((AbstractIoBuffer<T>) handler).replace((AbstractIoBuffer<T>) expansionIoBuffer);
+		expansionIoBuffer.clearForNextCall();
 	}
 	
 	@Override
-	public synchronized void recycle(Handler<T> handler)
+	public synchronized void recycle(IoBuffer<T> handler)
 	{
 		if (handler.belong() == null)
 		{
@@ -91,11 +91,11 @@ public abstract class PooledArchon<T> implements Archon<T>
 		}
 	}
 	
-	protected abstract void initHugeBucket(Handler<T> handler, int need);
+	protected abstract void initHugeBucket(IoBuffer<T> handler, int need);
 	
 	protected abstract Chunk<T> newChunk(int maxLevel, int unit);
 	
-	interface ExpansionHandler<T> extends Handler<T>
+	interface ExpansionIoBuffer<T> extends IoBuffer<T>
 	{
 		void clearForNextCall();
 	}

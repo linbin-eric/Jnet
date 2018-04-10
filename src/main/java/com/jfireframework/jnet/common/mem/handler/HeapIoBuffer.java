@@ -4,7 +4,7 @@ import java.nio.ByteBuffer;
 import com.jfireframework.jnet.common.mem.archon.Archon;
 import com.jfireframework.jnet.common.mem.chunk.Chunk;
 
-public class HeapHandler extends AbstractHandler<byte[]>
+public class HeapIoBuffer extends AbstractIoBuffer<byte[]>
 {
 	
 	private int offset;
@@ -37,7 +37,7 @@ public class HeapHandler extends AbstractHandler<byte[]>
 	}
 	
 	@Override
-	public Handler<byte[]> compact()
+	public IoBuffer<byte[]> compact()
 	{
 		int length = remainRead();
 		System.arraycopy(mem, readPosi, mem, offset, length);
@@ -47,7 +47,7 @@ public class HeapHandler extends AbstractHandler<byte[]>
 	}
 	
 	@Override
-	public Handler<byte[]> get(byte[] content)
+	public IoBuffer<byte[]> get(byte[] content)
 	{
 		System.arraycopy(mem, readPosi, content, 0, content.length);
 		readPosi += content.length;
@@ -55,7 +55,7 @@ public class HeapHandler extends AbstractHandler<byte[]>
 	}
 	
 	@Override
-	public Handler<byte[]> get(byte[] content, int off, int len)
+	public IoBuffer<byte[]> get(byte[] content, int off, int len)
 	{
 		System.arraycopy(mem, readPosi, content, off, len);
 		readPosi += len;
@@ -163,7 +163,7 @@ public class HeapHandler extends AbstractHandler<byte[]>
 	}
 	
 	@Override
-	public Handler<byte[]> clear()
+	public IoBuffer<byte[]> clearData()
 	{
 		readPosi = writePosi = offset;
 		return this;
@@ -182,13 +182,13 @@ public class HeapHandler extends AbstractHandler<byte[]>
 	}
 	
 	@Override
-	public void copy(AbstractHandler<byte[]> src)
+	public void copy(AbstractIoBuffer<byte[]> src)
 	{
-		if (src instanceof HeapHandler == false)
+		if (src instanceof HeapIoBuffer == false)
 		{
 			throw new IllegalArgumentException();
 		}
-		HeapHandler copySrc = (HeapHandler) src;
+		HeapIoBuffer copySrc = (HeapIoBuffer) src;
 		int length = copySrc.writePosi - copySrc.offset;
 		System.arraycopy(copySrc.mem, copySrc.offset, mem, offset, length);
 		writePosi = offset + length;
@@ -196,13 +196,13 @@ public class HeapHandler extends AbstractHandler<byte[]>
 	}
 	
 	@Override
-	public void replace(AbstractHandler<byte[]> src)
+	public void replace(AbstractIoBuffer<byte[]> src)
 	{
-		if (src instanceof HeapHandler == false)
+		if (src instanceof HeapIoBuffer == false)
 		{
 			throw new IllegalArgumentException();
 		}
-		HeapHandler repleaceSrc = (HeapHandler) src;
+		HeapIoBuffer repleaceSrc = (HeapIoBuffer) src;
 		mem = repleaceSrc.mem;
 		chunk = repleaceSrc.chunk;
 		readPosi = repleaceSrc.readPosi;
@@ -240,17 +240,17 @@ public class HeapHandler extends AbstractHandler<byte[]>
 	}
 	
 	@Override
-	protected void _put(Handler<?> handler, int len)
+	protected void _put(IoBuffer<?> handler, int len)
 	{
-		if (handler instanceof HeapHandler)
+		if (handler instanceof HeapIoBuffer)
 		{
-			HeapHandler target = (HeapHandler) handler;
+			HeapIoBuffer target = (HeapIoBuffer) handler;
 			System.arraycopy(target.mem, target.readPosi, mem, writePosi, len);
 			writePosi += len;
 		}
-		else if (handler instanceof DirectHandler)
+		else if (handler instanceof DirectIoBuffer)
 		{
-			DirectHandler source = (DirectHandler) handler;
+			DirectIoBuffer source = (DirectIoBuffer) handler;
 			source.changeToRead();
 			source.mem.get(mem, writePosi, len);
 			writePosi += len;

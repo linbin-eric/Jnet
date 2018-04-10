@@ -4,7 +4,7 @@ import java.nio.ByteBuffer;
 import com.jfireframework.jnet.common.mem.archon.Archon;
 import com.jfireframework.jnet.common.mem.chunk.Chunk;
 
-public class DirectHandler extends AbstractHandler<ByteBuffer>
+public class DirectIoBuffer extends AbstractIoBuffer<ByteBuffer>
 {
 	@Override
 	public void _initialize(int off, int capacity, ByteBuffer mem, int index, Chunk<ByteBuffer> chunk, Archon<ByteBuffer> archon)
@@ -53,7 +53,7 @@ public class DirectHandler extends AbstractHandler<ByteBuffer>
 	}
 	
 	@Override
-	public Handler<ByteBuffer> compact()
+	public IoBuffer<ByteBuffer> compact()
 	{
 		changeToRead();
 		mem.compact();
@@ -63,7 +63,7 @@ public class DirectHandler extends AbstractHandler<ByteBuffer>
 	}
 	
 	@Override
-	public Handler<ByteBuffer> get(byte[] content)
+	public IoBuffer<ByteBuffer> get(byte[] content)
 	{
 		changeToRead();
 		mem.get(content);
@@ -72,7 +72,7 @@ public class DirectHandler extends AbstractHandler<ByteBuffer>
 	}
 	
 	@Override
-	public Handler<ByteBuffer> get(byte[] content, int off, int len)
+	public IoBuffer<ByteBuffer> get(byte[] content, int off, int len)
 	{
 		changeToRead();
 		mem.get(content, off, len);
@@ -163,7 +163,7 @@ public class DirectHandler extends AbstractHandler<ByteBuffer>
 	}
 	
 	@Override
-	public Handler<ByteBuffer> clear()
+	public IoBuffer<ByteBuffer> clearData()
 	{
 		writePosi = readPosi = 0;
 		return this;
@@ -194,13 +194,13 @@ public class DirectHandler extends AbstractHandler<ByteBuffer>
 	}
 	
 	@Override
-	public void copy(AbstractHandler<ByteBuffer> src)
+	public void copy(AbstractIoBuffer<ByteBuffer> src)
 	{
-		if (src instanceof DirectHandler == false)
+		if (src instanceof DirectIoBuffer == false)
 		{
 			throw new IllegalArgumentException();
 		}
-		DirectHandler copySrc = (DirectHandler) src;
+		DirectIoBuffer copySrc = (DirectIoBuffer) src;
 		ByteBuffer srcBuffer = copySrc.mem;
 		int srcWritePosi = copySrc.writePosi;
 		int srcReadPosi = copySrc.readPosi;
@@ -216,13 +216,13 @@ public class DirectHandler extends AbstractHandler<ByteBuffer>
 	}
 	
 	@Override
-	public void replace(AbstractHandler<ByteBuffer> src)
+	public void replace(AbstractIoBuffer<ByteBuffer> src)
 	{
-		if (src instanceof DirectHandler == false)
+		if (src instanceof DirectIoBuffer == false)
 		{
 			throw new IllegalArgumentException();
 		}
-		DirectHandler replaceSrc = (DirectHandler) src;
+		DirectIoBuffer replaceSrc = (DirectIoBuffer) src;
 		mem = replaceSrc.mem;
 		chunk = replaceSrc.chunk;
 		readPosi = replaceSrc.readPosi;
@@ -263,20 +263,20 @@ public class DirectHandler extends AbstractHandler<ByteBuffer>
 	}
 	
 	@Override
-	protected void _put(Handler<?> handler, int len)
+	protected void _put(IoBuffer<?> handler, int len)
 	{
-		if (handler instanceof HeapHandler)
+		if (handler instanceof HeapIoBuffer)
 		{
-			byte[] src = ((HeapHandler) handler).mem;
+			byte[] src = ((HeapIoBuffer) handler).mem;
 			// 需要使用直接的readPosi数据，通过方法获得都是相对数据
 			changeToWrite();
-			mem.put(src, ((HeapHandler) handler).readPosi, len);
+			mem.put(src, ((HeapIoBuffer) handler).readPosi, len);
 			writePosi += len;
 		}
-		else if (handler instanceof DirectHandler)
+		else if (handler instanceof DirectIoBuffer)
 		{
 			changeToWrite();
-			DirectHandler target = (DirectHandler) handler;
+			DirectIoBuffer target = (DirectIoBuffer) handler;
 			target.changeToRead();
 			target.mem.limit(target.mem.position() + len);
 			mem.put(target.mem);

@@ -2,7 +2,7 @@ package com.jfireframework.jnet.common.mem.chunk;
 
 import java.nio.ByteBuffer;
 import com.jfireframework.jnet.common.mem.archon.Archon;
-import com.jfireframework.jnet.common.mem.handler.Handler;
+import com.jfireframework.jnet.common.mem.handler.IoBuffer;
 
 public class DirectChunk extends Chunk<ByteBuffer>
 {
@@ -21,7 +21,7 @@ public class DirectChunk extends Chunk<ByteBuffer>
 	}
 	
 	@Override
-	protected void initHandler(Archon<ByteBuffer> archon, Handler<ByteBuffer> handler, int index, int off, int len)
+	protected void initHandler(Archon<ByteBuffer> archon, IoBuffer<ByteBuffer> handler, int index, int off, int len)
 	{
 		mem.limit(off + len).position(off);
 		ByteBuffer slice = mem.slice();

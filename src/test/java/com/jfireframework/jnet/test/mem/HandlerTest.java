@@ -6,9 +6,9 @@ import org.junit.Test;
 import com.jfireframework.jnet.common.mem.archon.Archon;
 import com.jfireframework.jnet.common.mem.archon.DirectPooledArchon;
 import com.jfireframework.jnet.common.mem.archon.HeapPooledArchon;
-import com.jfireframework.jnet.common.mem.handler.DirectHandler;
-import com.jfireframework.jnet.common.mem.handler.Handler;
-import com.jfireframework.jnet.common.mem.handler.HeapHandler;
+import com.jfireframework.jnet.common.mem.handler.DirectIoBuffer;
+import com.jfireframework.jnet.common.mem.handler.IoBuffer;
+import com.jfireframework.jnet.common.mem.handler.HeapIoBuffer;
 
 public class HandlerTest
 {
@@ -19,7 +19,7 @@ public class HandlerTest
 	public void test()
 	{
 		Archon<byte[]> archon = new HeapPooledArchon(4, 1);
-		Handler<byte[]> handler = new HeapHandler();
+		IoBuffer<byte[]> handler = new HeapIoBuffer();
 		archon.apply(2, handler);
 		handler.put((byte) 0x01);
 		assertEquals(1, handler.remainWrite());
@@ -45,7 +45,7 @@ public class HandlerTest
 	public void test2()
 	{
 		Archon<ByteBuffer> archon = new DirectPooledArchon(4, 1);
-		Handler<ByteBuffer> handler = new DirectHandler();
+		IoBuffer<ByteBuffer> handler = new DirectIoBuffer();
 		archon.apply(2, handler);
 		handler.put((byte) 0x01);
 		assertEquals(1, handler.remainWrite());

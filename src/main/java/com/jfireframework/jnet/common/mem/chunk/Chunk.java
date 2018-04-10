@@ -1,7 +1,7 @@
 package com.jfireframework.jnet.common.mem.chunk;
 
 import com.jfireframework.jnet.common.mem.archon.Archon;
-import com.jfireframework.jnet.common.mem.handler.Handler;
+import com.jfireframework.jnet.common.mem.handler.IoBuffer;
 
 public abstract class Chunk<T>
 {
@@ -58,7 +58,7 @@ public abstract class Chunk<T>
 	
 	protected abstract T initializeMem(int capacity);
 	
-	public boolean apply(int need, Handler<T> bucket, Archon<T> archon)
+	public boolean apply(int need, IoBuffer<T> bucket, Archon<T> archon)
 	{
 		if (pool[1] < need)
 		{
@@ -93,9 +93,9 @@ public abstract class Chunk<T>
 		return false;
 	}
 	
-	protected abstract void initHandler(Archon<T> archon, Handler<T> bucket, int index, int off, int len);
+	protected abstract void initHandler(Archon<T> archon, IoBuffer<T> bucket, int index, int off, int len);
 	
-	public void recycle(Handler<T> bucket)
+	public void recycle(IoBuffer<T> bucket)
 	{
 		int index = bucket.getIndex();
 		int recycle = bucket.capacity();

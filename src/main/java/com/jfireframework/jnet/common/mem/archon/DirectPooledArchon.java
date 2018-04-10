@@ -3,8 +3,8 @@ package com.jfireframework.jnet.common.mem.archon;
 import java.nio.ByteBuffer;
 import com.jfireframework.jnet.common.mem.chunk.Chunk;
 import com.jfireframework.jnet.common.mem.chunk.DirectChunk;
-import com.jfireframework.jnet.common.mem.handler.DirectHandler;
-import com.jfireframework.jnet.common.mem.handler.Handler;
+import com.jfireframework.jnet.common.mem.handler.DirectIoBuffer;
+import com.jfireframework.jnet.common.mem.handler.IoBuffer;
 
 public class DirectPooledArchon extends PooledArchon<ByteBuffer>
 {
@@ -12,11 +12,11 @@ public class DirectPooledArchon extends PooledArchon<ByteBuffer>
 	public DirectPooledArchon(int maxLevel, int unit)
 	{
 		super(maxLevel, unit);
-		expansionHandler = new DirectExpansionHandler();
+		expansionIoBuffer = new DirectIoBufferHandler();
 	}
 	
 	@Override
-	protected void initHugeBucket(Handler<ByteBuffer> handler, int need)
+	protected void initHugeBucket(IoBuffer<ByteBuffer> handler, int need)
 	{
 		ByteBuffer byteBuffer = ByteBuffer.allocateDirect(need);
 		handler.initialize(0, need, byteBuffer, 0, null, null);
@@ -28,7 +28,7 @@ public class DirectPooledArchon extends PooledArchon<ByteBuffer>
 		return new DirectChunk(maxLevel, unit);
 	}
 	
-	class DirectExpansionHandler extends DirectHandler implements ExpansionHandler<ByteBuffer>
+	class DirectIoBufferHandler extends DirectIoBuffer implements ExpansionIoBuffer<ByteBuffer>
 	{
 		
 		@Override

@@ -3,7 +3,7 @@ package com.jfireframework.jnet.common.processor;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
 import com.jfireframework.jnet.common.api.ReadProcessor;
-import com.jfireframework.jnet.common.mem.buffer.IoBuffer;
+import com.jfireframework.jnet.common.mem.handler.IoBuffer;
 
 public class LengthEncoder implements ReadProcessor<Object>
 {

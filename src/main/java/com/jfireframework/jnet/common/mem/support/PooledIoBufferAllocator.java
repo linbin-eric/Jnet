@@ -5,12 +5,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.jfireframework.jnet.common.mem.archon.Archon;
 import com.jfireframework.jnet.common.mem.archon.DirectPooledArchon;
 import com.jfireframework.jnet.common.mem.archon.HeapPooledArchon;
-import com.jfireframework.jnet.common.mem.buffer.AbstractIoBuffer;
-import com.jfireframework.jnet.common.mem.buffer.DirectIoBuffer;
-import com.jfireframework.jnet.common.mem.buffer.HeapIoBuffer;
-import com.jfireframework.jnet.common.mem.buffer.IoBuffer;
-import com.jfireframework.jnet.common.mem.handler.DirectHandler;
-import com.jfireframework.jnet.common.mem.handler.HeapHandler;
+import com.jfireframework.jnet.common.mem.handler.AbstractIoBuffer;
+import com.jfireframework.jnet.common.mem.handler.DirectIoBuffer;
+import com.jfireframework.jnet.common.mem.handler.HeapIoBuffer;
+import com.jfireframework.jnet.common.mem.handler.IoBuffer;
 
 public class PooledIoBufferAllocator implements IoBufferAllocator
 {
@@ -37,25 +35,25 @@ public class PooledIoBufferAllocator implements IoBufferAllocator
 	}
 	
 	@Override
-	public IoBuffer allocate(int initSize)
+	public IoBuffer<?> allocate(int initSize)
 	{
 		int index = idx.incrementAndGet() & mask;
 		AbstractIoBuffer<byte[]> buffer = new HeapIoBuffer();
-		buffer.initialize(heapArchons[index], new HeapHandler(), initSize, new HeapHandler());
+		heapArchons[index].apply(initSize, buffer);
 		return buffer;
 	}
 	
 	@Override
-	public IoBuffer allocateDirect(int initSize)
+	public IoBuffer<?> allocateDirect(int initSize)
 	{
 		int index = idx.incrementAndGet() & mask;
 		AbstractIoBuffer<ByteBuffer> buffer = new DirectIoBuffer();
-		buffer.initialize(directArchons[index], new DirectHandler(), initSize, new DirectHandler());
+		directArchons[index].apply(initSize, buffer);
 		return buffer;
 	}
 	
 	@Override
-	public void release(IoBuffer ioBuffer)
+	public void release(IoBuffer<?> ioBuffer)
 	{
 		ioBuffer.release();
 	}

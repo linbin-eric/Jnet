@@ -4,12 +4,10 @@ import java.nio.ByteBuffer;
 import com.jfireframework.jnet.common.mem.archon.Archon;
 import com.jfireframework.jnet.common.mem.archon.DirectUnPooledArchon;
 import com.jfireframework.jnet.common.mem.archon.HeapUnPooledArchon;
-import com.jfireframework.jnet.common.mem.buffer.AbstractIoBuffer;
-import com.jfireframework.jnet.common.mem.buffer.DirectIoBuffer;
-import com.jfireframework.jnet.common.mem.buffer.HeapIoBuffer;
-import com.jfireframework.jnet.common.mem.buffer.IoBuffer;
-import com.jfireframework.jnet.common.mem.handler.DirectHandler;
-import com.jfireframework.jnet.common.mem.handler.HeapHandler;
+import com.jfireframework.jnet.common.mem.handler.AbstractIoBuffer;
+import com.jfireframework.jnet.common.mem.handler.DirectIoBuffer;
+import com.jfireframework.jnet.common.mem.handler.HeapIoBuffer;
+import com.jfireframework.jnet.common.mem.handler.IoBuffer;
 
 public class UnPooledIoBufferAllocator implements IoBufferAllocator
 {
@@ -17,23 +15,23 @@ public class UnPooledIoBufferAllocator implements IoBufferAllocator
 	private Archon<ByteBuffer>	directArchon	= new DirectUnPooledArchon();
 	
 	@Override
-	public IoBuffer allocate(int initSize)
+	public IoBuffer<?> allocate(int initSize)
 	{
 		AbstractIoBuffer<byte[]> buffer = new HeapIoBuffer();
-		buffer.initialize(heapArchon, new HeapHandler(), initSize, new HeapHandler());
+		heapArchon.apply(initSize, buffer);
 		return buffer;
 	}
 	
 	@Override
-	public IoBuffer allocateDirect(int initSize)
+	public IoBuffer<?> allocateDirect(int initSize)
 	{
 		AbstractIoBuffer<ByteBuffer> buffer = new DirectIoBuffer();
-		buffer.initialize(directArchon, new DirectHandler(), initSize, new DirectHandler());
+		directArchon.apply(initSize, buffer);
 		return buffer;
 	}
 	
 	@Override
-	public void release(IoBuffer ioBuffer)
+	public void release(IoBuffer<?> ioBuffer)
 	{
 		;
 	}

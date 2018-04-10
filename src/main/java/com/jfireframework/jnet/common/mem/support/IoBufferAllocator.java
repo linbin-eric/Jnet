@@ -1,12 +1,12 @@
 package com.jfireframework.jnet.common.mem.support;
 
-import com.jfireframework.jnet.common.mem.buffer.IoBuffer;
+import com.jfireframework.jnet.common.mem.handler.IoBuffer;
 
 public interface IoBufferAllocator
 {
-	IoBuffer allocate(int initSize);
+	IoBuffer<?> allocate(int initSize);
 	
-	IoBuffer allocateDirect(int initSize);
+	IoBuffer<?> allocateDirect(int initSize);
 	
-	void release(IoBuffer ioBuffer);
+	void release(IoBuffer<?> ioBuffer);
 }

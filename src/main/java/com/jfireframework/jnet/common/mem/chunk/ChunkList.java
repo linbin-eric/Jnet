@@ -1,7 +1,7 @@
 package com.jfireframework.jnet.common.mem.chunk;
 
 import com.jfireframework.jnet.common.mem.archon.Archon;
-import com.jfireframework.jnet.common.mem.handler.Handler;
+import com.jfireframework.jnet.common.mem.handler.IoBuffer;
 
 public class ChunkList<T>
 {
@@ -30,7 +30,7 @@ public class ChunkList<T>
 		this.prev = prev;
 	}
 	
-	public boolean findChunkAndApply(int need, Handler<T> bucket, Archon<T> archon)
+	public boolean findChunkAndApply(int need, IoBuffer<T> bucket, Archon<T> archon)
 	{
 		if (head == null)
 		{
@@ -117,7 +117,7 @@ public class ChunkList<T>
 		chunk.parent = this;
 	}
 	
-	public void recycle(Handler<T> handler)
+	public void recycle(IoBuffer<T> handler)
 	{
 		Chunk<T> chunk = handler.belong();
 		chunk.recycle(handler);

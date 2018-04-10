@@ -4,7 +4,7 @@ import java.nio.ByteBuffer;
 import com.jfireframework.jnet.common.mem.archon.Archon;
 import com.jfireframework.jnet.common.mem.chunk.Chunk;
 
-public abstract class AbstractHandler<T> implements Handler<T>
+public abstract class AbstractIoBuffer<T> implements IoBuffer<T>
 {
 	protected T				mem;
 	protected int			index;
@@ -37,7 +37,7 @@ public abstract class AbstractHandler<T> implements Handler<T>
 	 * 
 	 * @param src
 	 */
-	public abstract void copy(AbstractHandler<T> src);
+	public abstract void copy(AbstractIoBuffer<T> src);
 	
 	/**
 	 * 将src中的内容替换到自身中。该替换方法会替换的信息包含:<br/>
@@ -52,7 +52,7 @@ public abstract class AbstractHandler<T> implements Handler<T>
 	 * 
 	 * @param src
 	 */
-	public abstract void replace(AbstractHandler<T> src);
+	public abstract void replace(AbstractIoBuffer<T> src);
 	
 	protected void ensureEnoughWrite(int needToWrite)
 	{
@@ -70,10 +70,19 @@ public abstract class AbstractHandler<T> implements Handler<T>
 	}
 	
 	@Override
+	public void release()
+	{
+		if (archon != null)
+		{
+			archon.recycle(this);
+		}
+	}
+	
+	@Override
 	public void destory()
 	{
-		mem = null;
 		index = -1;
+		mem = null;
 		chunk = null;
 		archon = null;
 		cachedByteBuffer = null;
@@ -108,7 +117,7 @@ public abstract class AbstractHandler<T> implements Handler<T>
 	}
 	
 	@Override
-	public Handler<T> put(byte b)
+	public IoBuffer<T> put(byte b)
 	{
 		ensureEnoughWrite(1);
 		_put(b);
@@ -118,7 +127,7 @@ public abstract class AbstractHandler<T> implements Handler<T>
 	protected abstract void _put(byte b);
 	
 	@Override
-	public Handler<T> put(byte b, int posi)
+	public IoBuffer<T> put(byte b, int posi)
 	{
 		if (posi < 0)
 		{
@@ -132,7 +141,7 @@ public abstract class AbstractHandler<T> implements Handler<T>
 	protected abstract void _put(byte b, int posi);
 	
 	@Override
-	public Handler<T> put(byte[] content)
+	public IoBuffer<T> put(byte[] content)
 	{
 		ensureEnoughWrite(content.length);
 		_put(content);
@@ -142,7 +151,7 @@ public abstract class AbstractHandler<T> implements Handler<T>
 	protected abstract void _put(byte[] content);
 	
 	@Override
-	public Handler<T> put(byte[] content, int off, int len)
+	public IoBuffer<T> put(byte[] content, int off, int len)
 	{
 		ensureEnoughWrite(off + len - getWritePosi());
 		_put(content, off, len);
@@ -152,23 +161,23 @@ public abstract class AbstractHandler<T> implements Handler<T>
 	protected abstract void _put(byte[] content, int off, int len);
 	
 	@Override
-	public Handler<T> put(Handler<?> bucket)
+	public IoBuffer<T> put(IoBuffer<?> bucket)
 	{
 		return put(bucket, bucket.remainRead());
 	}
 	
 	@Override
-	public Handler<T> put(Handler<?> handler, int len)
+	public IoBuffer<T> put(IoBuffer<?> handler, int len)
 	{
 		ensureEnoughWrite(len);
 		_put(handler, len);
 		return this;
 	}
 	
-	protected abstract void _put(Handler<?> handler, int len);
+	protected abstract void _put(IoBuffer<?> handler, int len);
 	
 	@Override
-	public Handler<T> writeInt(int i, int off)
+	public IoBuffer<T> writeInt(int i, int off)
 	{
 		ensureEnoughWrite(off + 4 - getWritePosi());
 		_writeInt(i, off);
@@ -178,7 +187,7 @@ public abstract class AbstractHandler<T> implements Handler<T>
 	protected abstract void _writeInt(int i, int off);
 	
 	@Override
-	public Handler<T> writeShort(short s, int off)
+	public IoBuffer<T> writeShort(short s, int off)
 	{
 		ensureEnoughWrite(off + 2 - getWritePosi());
 		_writeShort(s, off);
@@ -188,7 +197,7 @@ public abstract class AbstractHandler<T> implements Handler<T>
 	protected abstract void _writeShort(short s, int off);
 	
 	@Override
-	public Handler<T> writeLong(long l, int off)
+	public IoBuffer<T> writeLong(long l, int off)
 	{
 		ensureEnoughWrite(off + 8 - getWritePosi());
 		_writeLong(l, off);
@@ -198,7 +207,7 @@ public abstract class AbstractHandler<T> implements Handler<T>
 	protected abstract void _writeLong(long l, int off);
 	
 	@Override
-	public Handler<T> writeInt(int i)
+	public IoBuffer<T> writeInt(int i)
 	{
 		ensureEnoughWrite(4);
 		_writeInt(i);
@@ -208,7 +217,7 @@ public abstract class AbstractHandler<T> implements Handler<T>
 	protected abstract void _writeInt(int i);
 	
 	@Override
-	public Handler<T> writeShort(short s)
+	public IoBuffer<T> writeShort(short s)
 	{
 		ensureEnoughWrite(2);
 		_writeShort(s);
@@ -218,7 +227,7 @@ public abstract class AbstractHandler<T> implements Handler<T>
 	protected abstract void _writeShort(short s);
 	
 	@Override
-	public Handler<T> writeLong(long l)
+	public IoBuffer<T> writeLong(long l)
 	{
 		ensureEnoughWrite(8);
 		_writeLong(l);

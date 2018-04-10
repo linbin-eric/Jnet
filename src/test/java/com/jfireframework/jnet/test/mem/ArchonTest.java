@@ -12,9 +12,9 @@ import com.jfireframework.jnet.common.mem.archon.HeapPooledArchon;
 import com.jfireframework.jnet.common.mem.archon.PooledArchon;
 import com.jfireframework.jnet.common.mem.chunk.Chunk;
 import com.jfireframework.jnet.common.mem.chunk.ChunkList;
-import com.jfireframework.jnet.common.mem.handler.AbstractHandler;
-import com.jfireframework.jnet.common.mem.handler.DirectHandler;
-import com.jfireframework.jnet.common.mem.handler.HeapHandler;
+import com.jfireframework.jnet.common.mem.handler.AbstractIoBuffer;
+import com.jfireframework.jnet.common.mem.handler.DirectIoBuffer;
+import com.jfireframework.jnet.common.mem.handler.HeapIoBuffer;
 
 public class ArchonTest
 {
@@ -41,7 +41,7 @@ public class ArchonTest
 		field = PooledArchon.class.getDeclaredField("c000");
 		field.setAccessible(true);
 		ChunkList<byte[]> c000 = (ChunkList<byte[]>) field.get(archon);
-		HeapHandler handler = new HeapHandler();
+		HeapIoBuffer handler = new HeapIoBuffer();
 		Field headField = ChunkList.class.getDeclaredField("head");
 		headField.setAccessible(true);
 		archon.apply(1, handler);
@@ -83,12 +83,12 @@ public class ArchonTest
 	public void test2() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException
 	{
 		Archon<byte[]> archon = new HeapPooledArchon(4, 1);
-		HeapHandler handler = new HeapHandler();
+		HeapIoBuffer handler = new HeapIoBuffer();
 		archon.apply(2, handler);
 		handler.put((byte) 0x01);
 		handler.put((byte) 0x02);
 		handler.get();
-		Field field = AbstractHandler.class.getDeclaredField("chunk");
+		Field field = AbstractIoBuffer.class.getDeclaredField("chunk");
 		field.setAccessible(true);
 		Chunk<byte[]> originChunk = (Chunk<byte[]>) field.get(handler);
 		int originCapacity = handler.capacity();
@@ -121,12 +121,12 @@ public class ArchonTest
 	public void test3() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException
 	{
 		Archon<ByteBuffer> archon = new DirectPooledArchon(4, 1);
-		DirectHandler handler = new DirectHandler();
+		DirectIoBuffer handler = new DirectIoBuffer();
 		archon.apply(2, handler);
 		handler.put((byte) 0x01);
 		handler.put((byte) 0x02);
 		handler.get();
-		Field field = AbstractHandler.class.getDeclaredField("chunk");
+		Field field = AbstractIoBuffer.class.getDeclaredField("chunk");
 		field.setAccessible(true);
 		Chunk<byte[]> originChunk = (Chunk<byte[]>) field.get(handler);
 		int originCapacity = handler.capacity();

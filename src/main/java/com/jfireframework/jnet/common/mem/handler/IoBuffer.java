@@ -11,7 +11,7 @@ import com.jfireframework.jnet.common.mem.chunk.Chunk;
  *
  * @param <T>
  */
-public interface Handler<T>
+public interface IoBuffer<T>
 {
 	/**
 	 * 将可用内存初始化到handler中。
@@ -23,6 +23,8 @@ public interface Handler<T>
 	 * @param chunkMem 托管这段内存的chunk
 	 */
 	void initialize(int off, int len, T mem, int index, Chunk<T> chunkMem, Archon<T> archon);
+	
+	void release();
 	
 	/**
 	 * 销毁所有数据
@@ -63,15 +65,20 @@ public interface Handler<T>
 	 */
 	void setWritePosi(int writePosi);
 	
-	Handler<T> put(byte b);
+	IoBuffer<T> put(byte b);
 	
-	Handler<T> put(byte b, int posi);
+	IoBuffer<T> put(byte b, int posi);
 	
-	Handler<T> put(byte[] content);
+	IoBuffer<T> put(byte[] content);
 	
-	Handler<T> put(byte[] content, int off, int len);
+	IoBuffer<T> put(byte[] content, int off, int len);
 	
-	Handler<T> clear();
+	/**
+	 * 清除写入数据，恢复readPosi和writePosi到初始状态
+	 * 
+	 * @return
+	 */
+	IoBuffer<T> clearData();
 	
 	byte get();
 	
@@ -81,11 +88,11 @@ public interface Handler<T>
 	
 	int remainWrite();
 	
-	Handler<T> compact();
+	IoBuffer<T> compact();
 	
-	Handler<T> get(byte[] content);
+	IoBuffer<T> get(byte[] content);
 	
-	Handler<T> get(byte[] content, int off, int len);
+	IoBuffer<T> get(byte[] content, int off, int len);
 	
 	/**
 	 * 将一个handler的数据放入本handler。对入参的handler数据无影响
@@ -93,7 +100,7 @@ public interface Handler<T>
 	 * @param handler
 	 * @return
 	 */
-	Handler<T> put(Handler<?> handler);
+	IoBuffer<T> put(IoBuffer<?> handler);
 	
 	/**
 	 * 将一个handler的部分数据放入本handler。对入参的handler数据无影响
@@ -101,7 +108,7 @@ public interface Handler<T>
 	 * @param handler
 	 * @return
 	 */
-	Handler<T> put(Handler<?> handler, int len);
+	IoBuffer<T> put(IoBuffer<?> handler, int len);
 	
 	void addReadPosi(int add);
 	
@@ -127,7 +134,7 @@ public interface Handler<T>
 	 * @param i
 	 * @param off
 	 */
-	Handler<T> writeInt(int i, int off);
+	IoBuffer<T> writeInt(int i, int off);
 	
 	/**
 	 * 在位置off处写入short变量s。该off为相对位置
@@ -135,7 +142,7 @@ public interface Handler<T>
 	 * @param s
 	 * @param off
 	 */
-	Handler<T> writeShort(short s, int off);
+	IoBuffer<T> writeShort(short s, int off);
 	
 	/**
 	 * 在位置off处写入long变量l。该off为相对位置
@@ -143,7 +150,7 @@ public interface Handler<T>
 	 * @param l
 	 * @param off
 	 */
-	Handler<T> writeLong(long l, int off);
+	IoBuffer<T> writeLong(long l, int off);
 	
 	/**
 	 * 写入int变量i
@@ -151,7 +158,7 @@ public interface Handler<T>
 	 * @param i
 	 * @param off
 	 */
-	Handler<T> writeInt(int i);
+	IoBuffer<T> writeInt(int i);
 	
 	/**
 	 * 写入short变量s
@@ -159,7 +166,7 @@ public interface Handler<T>
 	 * @param s
 	 * @param off
 	 */
-	Handler<T> writeShort(short s);
+	IoBuffer<T> writeShort(short s);
 	
 	/**
 	 * 写入long变量l
@@ -167,7 +174,7 @@ public interface Handler<T>
 	 * @param l
 	 * @param off
 	 */
-	Handler<T> writeLong(long l);
+	IoBuffer<T> writeLong(long l);
 	
 	ByteBuffer byteBuffer();
 	
