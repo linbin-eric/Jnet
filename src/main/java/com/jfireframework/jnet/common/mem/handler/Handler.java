@@ -90,20 +90,18 @@ public interface Handler<T>
 	/**
 	 * 将一个handler的数据放入本handler。对入参的handler数据无影响
 	 * 
-	 * @param bucket
+	 * @param handler
 	 * @return
 	 */
-	Handler<T> put(Handler<?> bucket);
+	Handler<T> put(Handler<?> handler);
 	
 	/**
 	 * 将一个handler的部分数据放入本handler。对入参的handler数据无影响
 	 * 
-	 * @param bucket
+	 * @param handler
 	 * @return
 	 */
-	Handler<T> put(Handler<?> bucket, int len);
-	
-	boolean isEnoughWrite(int size);
+	Handler<T> put(Handler<?> handler, int len);
 	
 	void addReadPosi(int add);
 	

@@ -36,41 +36,6 @@ public class DirectHandler extends AbstractHandler<ByteBuffer>
 	}
 	
 	@Override
-	public Handler<ByteBuffer> put(byte b)
-	{
-		changeToWrite();
-		mem.put(b);
-		writePosi += 1;
-		return this;
-	}
-	
-	@Override
-	public Handler<ByteBuffer> put(byte b, int posi)
-	{
-		changeToWrite();
-		mem.put(posi, b);
-		return this;
-	}
-	
-	@Override
-	public Handler<ByteBuffer> put(byte[] content)
-	{
-		changeToWrite();
-		mem.put(content);
-		writePosi += content.length;
-		return this;
-	}
-	
-	@Override
-	public Handler<ByteBuffer> put(byte[] content, int off, int len)
-	{
-		changeToWrite();
-		mem.put(content, off, len);
-		writePosi += len;
-		return this;
-	}
-	
-	@Override
 	public byte get()
 	{
 		changeToRead();
@@ -112,39 +77,6 @@ public class DirectHandler extends AbstractHandler<ByteBuffer>
 		changeToRead();
 		mem.get(content, off, len);
 		readPosi += len;
-		return this;
-	}
-	
-	@Override
-	public Handler<ByteBuffer> put(Handler<?> handler)
-	{
-		return put(handler, handler.remainRead());
-	}
-	
-	@Override
-	public Handler<ByteBuffer> put(Handler<?> handler, int len)
-	{
-		if (handler instanceof HeapHandler)
-		{
-			byte[] src = ((HeapHandler) handler).mem;
-			// 需要使用直接的readPosi数据，通过方法获得都是相对数据
-			changeToWrite();
-			mem.put(src, ((HeapHandler) handler).readPosi, len);
-			writePosi += len;
-		}
-		else if (handler instanceof DirectHandler)
-		{
-			changeToWrite();
-			DirectHandler target = (DirectHandler) handler;
-			target.changeToRead();
-			target.mem.limit(target.mem.position() + len);
-			mem.put(target.mem);
-			writePosi += len;
-		}
-		else
-		{
-			throw new IllegalArgumentException();
-		}
 		return this;
 	}
 	
@@ -199,62 +131,11 @@ public class DirectHandler extends AbstractHandler<ByteBuffer>
 	}
 	
 	@Override
-	public void writeInt(int i, int off)
-	{
-		changeToWrite();
-		mem.putInt(off, i);
-	}
-	
-	@Override
-	public void writeShort(short s, int off)
-	{
-		changeToWrite();
-		mem.putShort(off, s);
-	}
-	
-	@Override
-	public void writeLong(long l, int off)
-	{
-		changeToWrite();
-		mem.putLong(off, l);
-	}
-	
-	@Override
 	public ByteBuffer byteBuffer()
 	{
 		changeToRead();
 		cachedByteBuffer = mem;
 		return mem;
-	}
-	
-	@Override
-	public void writeInt(int i)
-	{
-		changeToWrite();
-		mem.putInt(i);
-		writePosi += 4;
-	}
-	
-	@Override
-	public void writeShort(short s)
-	{
-		changeToWrite();
-		mem.putShort(s);
-		writePosi += 2;
-	}
-	
-	@Override
-	public void writeLong(long l)
-	{
-		changeToWrite();
-		mem.putLong(l);
-		writePosi += 8;
-	}
-	
-	@Override
-	public int capacity()
-	{
-		return capacity;
 	}
 	
 	@Override
@@ -348,6 +229,108 @@ public class DirectHandler extends AbstractHandler<ByteBuffer>
 		writePosi = replaceSrc.writePosi;
 		capacity = replaceSrc.capacity;
 		index = replaceSrc.index;
+	}
+	
+	@Override
+	protected void _put(byte b)
+	{
+		changeToWrite();
+		mem.put(b);
+		writePosi += 1;
+	}
+	
+	@Override
+	protected void _put(byte b, int posi)
+	{
+		changeToWrite();
+		mem.put(posi, b);
+	}
+	
+	@Override
+	protected void _put(byte[] content)
+	{
+		changeToWrite();
+		mem.put(content);
+		writePosi += content.length;
+	}
+	
+	@Override
+	protected void _put(byte[] content, int off, int len)
+	{
+		changeToWrite();
+		mem.put(content, off, len);
+		writePosi += len;
+	}
+	
+	@Override
+	protected void _put(Handler<?> handler, int len)
+	{
+		if (handler instanceof HeapHandler)
+		{
+			byte[] src = ((HeapHandler) handler).mem;
+			// 需要使用直接的readPosi数据，通过方法获得都是相对数据
+			changeToWrite();
+			mem.put(src, ((HeapHandler) handler).readPosi, len);
+			writePosi += len;
+		}
+		else if (handler instanceof DirectHandler)
+		{
+			changeToWrite();
+			DirectHandler target = (DirectHandler) handler;
+			target.changeToRead();
+			target.mem.limit(target.mem.position() + len);
+			mem.put(target.mem);
+			writePosi += len;
+		}
+		else
+		{
+			throw new IllegalArgumentException();
+		}
+	}
+	
+	@Override
+	protected void _writeInt(int i, int off)
+	{
+		changeToWrite();
+		mem.putInt(off, i);
+	}
+	
+	@Override
+	protected void _writeShort(short s, int off)
+	{
+		changeToWrite();
+		mem.putShort(off, s);
+	}
+	
+	@Override
+	protected void _writeLong(long l, int off)
+	{
+		changeToWrite();
+		mem.putLong(off, l);
+	}
+	
+	@Override
+	protected void _writeInt(int i)
+	{
+		changeToWrite();
+		mem.putInt(i);
+		writePosi += 4;
+	}
+	
+	@Override
+	protected void _writeShort(short s)
+	{
+		changeToWrite();
+		mem.putShort(s);
+		writePosi += 2;
+	}
+	
+	@Override
+	protected void _writeLong(long l)
+	{
+		changeToWrite();
+		mem.putLong(l);
+		writePosi += 8;
 	}
 	
 }

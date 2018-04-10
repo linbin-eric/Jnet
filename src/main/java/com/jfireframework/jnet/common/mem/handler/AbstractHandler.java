@@ -75,19 +75,14 @@ public abstract class AbstractHandler<T> implements Handler<T>
 		mem = null;
 		index = -1;
 		chunk = null;
+		archon = null;
 		cachedByteBuffer = null;
-	}
-	
-	@Override
-	public boolean isEnoughWrite(int size)
-	{
-		return remainWrite() >= size;
 	}
 	
 	@Override
 	public String toString()
 	{
-		return "Bucket [index=" + index + "]";
+		return "Handler [mem=" + mem + ", index=" + index + ", chunk=" + chunk + ", cachedByteBuffer=" + cachedByteBuffer + ", capacity=" + capacity + ", readPosi=" + readPosi + ", writePosi=" + writePosi + ", archon=" + archon + "]";
 	}
 	
 	@Override
@@ -105,4 +100,125 @@ public abstract class AbstractHandler<T> implements Handler<T>
 		}
 		return byteBuffer();
 	}
+	
+	@Override
+	public int capacity()
+	{
+		return capacity;
+	}
+	
+	@Override
+	public Handler<T> put(byte b)
+	{
+		ensureEnoughWrite(1);
+		_put(b);
+		return this;
+	}
+	
+	protected abstract void _put(byte b);
+	
+	@Override
+	public Handler<T> put(byte b, int posi)
+	{
+		if (posi < 0)
+		{
+			throw new IllegalArgumentException();
+		}
+		ensureEnoughWrite(posi - getWritePosi());
+		_put(b, posi);
+		return this;
+	}
+	
+	protected abstract void _put(byte b, int posi);
+	
+	@Override
+	public Handler<T> put(byte[] content)
+	{
+		ensureEnoughWrite(content.length);
+		_put(content);
+		return this;
+	}
+	
+	protected abstract void _put(byte[] content);
+	
+	@Override
+	public Handler<T> put(byte[] content, int off, int len)
+	{
+		ensureEnoughWrite(off + len - getWritePosi());
+		_put(content, off, len);
+		return this;
+	}
+	
+	protected abstract void _put(byte[] content, int off, int len);
+	
+	@Override
+	public Handler<T> put(Handler<?> bucket)
+	{
+		return put(bucket, bucket.remainRead());
+	}
+	
+	@Override
+	public Handler<T> put(Handler<?> handler, int len)
+	{
+		ensureEnoughWrite(len);
+		_put(handler, len);
+		return this;
+	}
+	
+	protected abstract void _put(Handler<?> handler, int len);
+	
+	@Override
+	public void writeInt(int i, int off)
+	{
+		ensureEnoughWrite(off + 4 - getWritePosi());
+		_writeInt(i, off);
+	}
+	
+	protected abstract void _writeInt(int i, int off);
+	
+	@Override
+	public void writeShort(short s, int off)
+	{
+		ensureEnoughWrite(off + 2 - getWritePosi());
+		_writeShort(s, off);
+	}
+	
+	protected abstract void _writeShort(short s, int off);
+	
+	@Override
+	public void writeLong(long l, int off)
+	{
+		ensureEnoughWrite(off + 8 - getWritePosi());
+		_writeLong(l, off);
+	}
+	
+	protected abstract void _writeLong(long l, int off);
+	
+	@Override
+	public void writeInt(int i)
+	{
+		ensureEnoughWrite(4);
+		_writeInt(i);
+	}
+	
+	protected abstract void _writeInt(int i);
+	
+	@Override
+	public void writeShort(short s)
+	{
+		ensureEnoughWrite(2);
+		_writeShort(s);
+	}
+	
+	protected abstract void _writeShort(short s);
+	
+	@Override
+	public void writeLong(long l)
+	{
+		ensureEnoughWrite(8);
+		_writeLong(l);
+	}
+	
+	protected abstract void _writeLong(long l);
+	
 }
