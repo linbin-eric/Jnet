@@ -168,55 +168,61 @@ public abstract class AbstractHandler<T> implements Handler<T>
 	protected abstract void _put(Handler<?> handler, int len);
 	
 	@Override
-	public void writeInt(int i, int off)
+	public Handler<T> writeInt(int i, int off)
 	{
 		ensureEnoughWrite(off + 4 - getWritePosi());
 		_writeInt(i, off);
+		return this;
 	}
 	
 	protected abstract void _writeInt(int i, int off);
 	
 	@Override
-	public void writeShort(short s, int off)
+	public Handler<T> writeShort(short s, int off)
 	{
 		ensureEnoughWrite(off + 2 - getWritePosi());
 		_writeShort(s, off);
+		return this;
 	}
 	
 	protected abstract void _writeShort(short s, int off);
 	
 	@Override
-	public void writeLong(long l, int off)
+	public Handler<T> writeLong(long l, int off)
 	{
 		ensureEnoughWrite(off + 8 - getWritePosi());
 		_writeLong(l, off);
+		return this;
 	}
 	
 	protected abstract void _writeLong(long l, int off);
 	
 	@Override
-	public void writeInt(int i)
+	public Handler<T> writeInt(int i)
 	{
 		ensureEnoughWrite(4);
 		_writeInt(i);
+		return this;
 	}
 	
 	protected abstract void _writeInt(int i);
 	
 	@Override
-	public void writeShort(short s)
+	public Handler<T> writeShort(short s)
 	{
 		ensureEnoughWrite(2);
 		_writeShort(s);
+		return this;
 	}
 	
 	protected abstract void _writeShort(short s);
 	
 	@Override
-	public void writeLong(long l)
+	public Handler<T> writeLong(long l)
 	{
 		ensureEnoughWrite(8);
 		_writeLong(l);
+		return this;
 	}
 	
 	protected abstract void _writeLong(long l);

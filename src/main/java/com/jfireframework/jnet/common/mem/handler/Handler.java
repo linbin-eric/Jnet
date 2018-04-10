@@ -127,7 +127,7 @@ public interface Handler<T>
 	 * @param i
 	 * @param off
 	 */
-	void writeInt(int i, int off);
+	Handler<T> writeInt(int i, int off);
 	
 	/**
 	 * 在位置off处写入short变量s。该off为相对位置
@@ -135,7 +135,7 @@ public interface Handler<T>
 	 * @param s
 	 * @param off
 	 */
-	void writeShort(short s, int off);
+	Handler<T> writeShort(short s, int off);
 	
 	/**
 	 * 在位置off处写入long变量l。该off为相对位置
@@ -143,7 +143,7 @@ public interface Handler<T>
 	 * @param l
 	 * @param off
 	 */
-	void writeLong(long l, int off);
+	Handler<T> writeLong(long l, int off);
 	
 	/**
 	 * 写入int变量i
@@ -151,7 +151,7 @@ public interface Handler<T>
 	 * @param i
 	 * @param off
 	 */
-	void writeInt(int i);
+	Handler<T> writeInt(int i);
 	
 	/**
 	 * 写入short变量s
@@ -159,7 +159,7 @@ public interface Handler<T>
 	 * @param s
 	 * @param off
 	 */
-	void writeShort(short s);
+	Handler<T> writeShort(short s);
 	
 	/**
 	 * 写入long变量l
@@ -167,7 +167,7 @@ public interface Handler<T>
 	 * @param l
 	 * @param off
 	 */
-	void writeLong(long l);
+	Handler<T> writeLong(long l);
 	
 	ByteBuffer byteBuffer();
 	
