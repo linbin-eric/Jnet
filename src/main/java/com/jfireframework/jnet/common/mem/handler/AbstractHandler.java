@@ -54,6 +54,15 @@ public abstract class AbstractHandler<T> implements Handler<T>
 	 */
 	public abstract void replace(AbstractHandler<T> src);
 	
+	protected void ensureEnoughWrite(int needToWrite)
+	{
+		if (needToWrite < 0 || remainWrite() >= needToWrite)
+		{
+			return;
+		}
+		archon.expansion(this, capacity + needToWrite);
+	}
+	
 	@Override
 	public Chunk<T> belong()
 	{

@@ -1,5 +1,6 @@
 package com.jfireframework.jnet.common.mem.chunk;
 
+import com.jfireframework.jnet.common.mem.archon.Archon;
 import com.jfireframework.jnet.common.mem.handler.Handler;
 
 public class ChunkList<T>
@@ -29,7 +30,7 @@ public class ChunkList<T>
 		this.prev = prev;
 	}
 	
-	public boolean findChunkAndApply(int need, Handler<T> bucket)
+	public boolean findChunkAndApply(int need, Handler<T> bucket, Archon<T> archon)
 	{
 		if (head == null)
 		{
@@ -39,7 +40,7 @@ public class ChunkList<T>
 		boolean apply = false;
 		while (select != null)
 		{
-			apply = select.apply(need, bucket);
+			apply = select.apply(need, bucket, archon);
 			if (apply == false)
 			{
 				select = select.next;
