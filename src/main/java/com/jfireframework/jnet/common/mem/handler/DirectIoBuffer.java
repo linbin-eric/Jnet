@@ -1,13 +1,14 @@
 package com.jfireframework.jnet.common.mem.handler;
 
 import java.nio.ByteBuffer;
+import com.jfireframework.jnet.common.mem.chunk.Chunk;
 
-public class DirectIoBuffer extends IoBuffer
+class DirectIoBuffer extends IoBuffer
 {
 	protected ByteBuffer mem;
 	
 	@Override
-	public void _initialize(int off, int capacity, Object mem)
+	protected void _initialize(int off, int capacity, Object mem)
 	{
 		if (off != 0 || mem instanceof ByteBuffer == false)
 		{
@@ -195,41 +196,34 @@ public class DirectIoBuffer extends IoBuffer
 	}
 	
 	@Override
-	public void copy(IoBuffer src)
+	public void expansion(IoBuffer transit)
 	{
-		if (src instanceof DirectIoBuffer == false)
+		if (transit instanceof DirectIoBuffer == false)
 		{
 			throw new IllegalArgumentException();
 		}
-		DirectIoBuffer copySrc = (DirectIoBuffer) src;
-		ByteBuffer srcBuffer = copySrc.mem;
-		int srcWritePosi = copySrc.writePosi;
-		int srcReadPosi = copySrc.readPosi;
-		srcBuffer.position(0).limit(srcWritePosi);
-		if (writePosi != 0)
+		DirectIoBuffer expansionTransit = (DirectIoBuffer) transit;
+		if (expansionTransit.writePosi != 0 || expansionTransit.readPosi != 0)
 		{
 			throw new IllegalArgumentException();
 		}
-		mem.position(0).limit(capacity);
-		mem.put(srcBuffer);
-		readPosi = srcReadPosi;
-		writePosi = srcWritePosi;
-	}
-	
-	@Override
-	public void replace(IoBuffer src)
-	{
-		if (src instanceof DirectIoBuffer == false)
-		{
-			throw new IllegalArgumentException();
-		}
-		DirectIoBuffer replaceSrc = (DirectIoBuffer) src;
-		mem = replaceSrc.mem;
-		chunk = replaceSrc.chunk;
-		readPosi = replaceSrc.readPosi;
-		writePosi = replaceSrc.writePosi;
-		capacity = replaceSrc.capacity;
-		index = replaceSrc.index;
+		ByteBuffer transitBuffer = expansionTransit.mem;
+		transitBuffer.position(0).limit(transitBuffer.capacity());
+		mem.position(0).limit(writePosi);
+		transitBuffer.put(mem);
+		//
+		ByteBuffer tmp = mem;
+		mem = transitBuffer;
+		expansionTransit.mem = tmp;
+		Chunk tmpChunk = chunk;
+		chunk = expansionTransit.chunk;
+		expansionTransit.chunk = tmpChunk;
+		int tmpCapacity = capacity;
+		capacity = expansionTransit.capacity;
+		expansionTransit.capacity = tmpCapacity;
+		int tmpIndex =index;
+		index = expansionTransit.index;
+		expansionTransit.index = tmpIndex;
 	}
 	
 	protected void _destoryMem()

@@ -1,9 +1,7 @@
 package com.jfireframework.jnet.common.mem.archon;
 
 import com.jfireframework.jnet.common.mem.chunk.Chunk;
-import com.jfireframework.jnet.common.mem.chunk.HeapChunk;
 import com.jfireframework.jnet.common.mem.handler.IoBuffer;
-import com.jfireframework.jnet.common.mem.handler.HeapIoBuffer;
 
 public class HeapPooledArchon extends PooledArchon<byte[]>
 {
@@ -11,7 +9,7 @@ public class HeapPooledArchon extends PooledArchon<byte[]>
 	public HeapPooledArchon(int maxLevel, int unit)
 	{
 		super(maxLevel, unit);
-		expansionIoBuffer = new HeapIoBufferHandler();
+		expansionIoBuffer = IoBuffer.heapIoBuffer();
 	}
 	
 	@Override
@@ -23,21 +21,6 @@ public class HeapPooledArchon extends PooledArchon<byte[]>
 	@Override
 	protected Chunk newChunk(int maxLevel, int unit)
 	{
-		HeapChunk heapChunk = new HeapChunk(maxLevel, unit);
-		return heapChunk;
-	}
-	
-	class HeapIoBufferHandler extends HeapIoBuffer implements ExpansionIoBuffer
-	{
-		
-		@Override
-		public void clearForNextCall()
-		{
-			chunk = null;
-			mem = null;
-			index = -1;
-			capacity = -1;
-		}
-		
+		return Chunk.newHeapChunk(maxLevel, unit);
 	}
 }

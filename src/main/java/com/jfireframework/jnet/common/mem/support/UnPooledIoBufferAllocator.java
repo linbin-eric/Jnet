@@ -4,7 +4,6 @@ import java.nio.ByteBuffer;
 import com.jfireframework.jnet.common.mem.archon.Archon;
 import com.jfireframework.jnet.common.mem.archon.DirectUnPooledArchon;
 import com.jfireframework.jnet.common.mem.archon.HeapUnPooledArchon;
-import com.jfireframework.jnet.common.mem.handler.IoBuffer;
 import com.jfireframework.jnet.common.mem.handler.DirectIoBuffer;
 import com.jfireframework.jnet.common.mem.handler.HeapIoBuffer;
 import com.jfireframework.jnet.common.mem.handler.IoBuffer;

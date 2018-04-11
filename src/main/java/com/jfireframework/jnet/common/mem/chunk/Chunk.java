@@ -39,6 +39,16 @@ public abstract class Chunk
 		initializeMem(capacity);
 	}
 	
+	public static Chunk newHeapChunk(int maxLevel, int unit)
+	{
+		return new HeapChunk(maxLevel, unit);
+	}
+	
+	public static Chunk newDirectChunk(int maxLevel, int unit)
+	{
+		return new DirectChunk(maxLevel, unit);
+	}
+	
 	static final int tableSizeFor(int cap)
 	{
 		int n = cap - 1;
@@ -144,4 +154,5 @@ public abstract class Chunk
 	{
 		return parent;
 	}
+	
 }

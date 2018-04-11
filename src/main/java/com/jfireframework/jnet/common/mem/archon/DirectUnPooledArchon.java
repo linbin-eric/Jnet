@@ -3,19 +3,24 @@ package com.jfireframework.jnet.common.mem.archon;
 import java.nio.ByteBuffer;
 import com.jfireframework.jnet.common.mem.handler.IoBuffer;
 
-public class DirectUnPooledArchon extends UnPooledArchon<ByteBuffer>
+public class DirectUnPooledArchon extends UnPooledArchon
 {
 	
 	@Override
-	public void apply(int need, IoBuffer handler)
+	public void apply(int need, IoBuffer buffer)
 	{
-		handler.initialize(0, need, ByteBuffer.allocateDirect(need), 0, null, this);
+		buffer.initialize(0, need, ByteBuffer.allocateDirect(need), 0, null, this);
 	}
-
+	
 	@Override
-	public void expansion(IoBuffer handler, int newSize)
+	public void expansion(IoBuffer buffer, int newSize)
 	{
-		handler.initialize(0, newSize, ByteBuffer.allocateDirect(newSize), 0, null, this);
+		IoBuffer expansionIoBuffer = IoBuffer.directBuffer();
+		apply(newSize, expansionIoBuffer);
+		expansionIoBuffer.copyAndReplace(buffer);
+		recycle(buffer);
+		buffer.replace(expansionIoBuffer);
+		expansionIoBuffer.destory();
 	}
 	
 }

@@ -2,7 +2,7 @@ package com.jfireframework.jnet.common.mem.archon;
 
 import com.jfireframework.jnet.common.mem.handler.IoBuffer;
 
-public class HeapUnPooledArchon extends UnPooledArchon<byte[]>
+public class HeapUnPooledArchon extends UnPooledArchon
 {
 	
 	@Override
@@ -10,10 +10,16 @@ public class HeapUnPooledArchon extends UnPooledArchon<byte[]>
 	{
 		handler.initialize(0, need, new byte[need], 0, null, this);
 	}
-
+	
 	@Override
 	public void expansion(IoBuffer handler, int newSize)
 	{
-		handler.initialize(0, newSize, new byte[newSize], 0, null, this);
+		IoBuffer expansionIoBuffer = IoBuffer.heapIoBuffer();
+		apply(newSize, expansionIoBuffer);
+		expansionIoBuffer.copyAndReplace(handler);
+		recycle(handler);
+		handler.replace(expansionIoBuffer);
+		expansionIoBuffer.destory();
+		
 	}
 }

@@ -6,16 +6,16 @@ import com.jfireframework.jnet.common.mem.handler.IoBuffer;
 
 public abstract class PooledArchon<T> implements Archon
 {
-	private ChunkList			cInt;
-	private ChunkList			c000;
-	private ChunkList			c25;
-	private ChunkList			c50;
-	private ChunkList			c75;
-	private ChunkList			c100;
-	private int					maxLevel;
-	private int					unit;
-	private int					maxSize;
-	protected ExpansionIoBuffer	expansionIoBuffer;
+	private ChunkList	cInt;
+	private ChunkList	c000;
+	private ChunkList	c25;
+	private ChunkList	c50;
+	private ChunkList	c75;
+	private ChunkList	c100;
+	private int			maxLevel;
+	private int			unit;
+	private int			maxSize;
+	protected IoBuffer	expansionIoBuffer;
 	
 	public PooledArchon(int maxLevel, int unit)
 	{
@@ -63,10 +63,9 @@ public abstract class PooledArchon<T> implements Archon
 	public synchronized void expansion(IoBuffer handler, int newSize)
 	{
 		apply(newSize, (IoBuffer) expansionIoBuffer);
-		((IoBuffer) expansionIoBuffer).copy((IoBuffer) handler);
-		recycle(handler);
-		((IoBuffer) handler).replace((IoBuffer) expansionIoBuffer);
-		expansionIoBuffer.clearForNextCall();
+		handler.expansion(expansionIoBuffer);
+		recycle(expansionIoBuffer);
+		expansionIoBuffer.destory();
 	}
 	
 	@Override

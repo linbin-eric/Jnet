@@ -4,7 +4,7 @@ import java.nio.ByteBuffer;
 import com.jfireframework.jnet.common.mem.archon.Archon;
 import com.jfireframework.jnet.common.mem.handler.IoBuffer;
 
-public class DirectChunk extends Chunk
+class DirectChunk extends Chunk
 {
 	protected ByteBuffer mem;
 	

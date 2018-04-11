@@ -1,8 +1,9 @@
 package com.jfireframework.jnet.common.mem.handler;
 
 import java.nio.ByteBuffer;
+import com.jfireframework.jnet.common.mem.chunk.Chunk;
 
-public class HeapIoBuffer extends IoBuffer
+class HeapIoBuffer extends IoBuffer
 {
 	private int			offset;
 	protected byte[]	mem;
@@ -14,7 +15,7 @@ public class HeapIoBuffer extends IoBuffer
 	}
 	
 	@Override
-	public void _initialize(int offset, int capacity, Object mem)
+	protected void _initialize(int offset, int capacity, Object mem)
 	{
 		if (mem instanceof byte[] == false)
 		{
@@ -185,34 +186,45 @@ public class HeapIoBuffer extends IoBuffer
 	}
 	
 	@Override
-	public void copy(IoBuffer src)
+	public void expansion(IoBuffer transit)
 	{
-		if (src instanceof HeapIoBuffer == false)
+		if (transit instanceof HeapIoBuffer == false)
 		{
 			throw new IllegalArgumentException();
 		}
-		HeapIoBuffer copySrc = (HeapIoBuffer) src;
-		int length = copySrc.writePosi - copySrc.offset;
-		System.arraycopy(copySrc.mem, copySrc.offset, mem, offset, length);
-		writePosi = offset + length;
-		readPosi = offset + (copySrc.readPosi - copySrc.offset);
-	}
-	
-	@Override
-	public void replace(IoBuffer src)
-	{
-		if (src instanceof HeapIoBuffer == false)
+		HeapIoBuffer expansionTransit = (HeapIoBuffer) transit;
+		if (expansionTransit.getWritePosi() != 0 || expansionTransit.getReadPosi() != 0)
 		{
 			throw new IllegalArgumentException();
 		}
-		HeapIoBuffer repleaceSrc = (HeapIoBuffer) src;
-		mem = repleaceSrc.mem;
-		chunk = repleaceSrc.chunk;
-		readPosi = repleaceSrc.readPosi;
-		writePosi = repleaceSrc.writePosi;
-		offset = repleaceSrc.offset;
-		capacity = repleaceSrc.capacity;
-		index = repleaceSrc.index;
+		int length = writePosi - offset;
+		byte[] expansionMem = expansionTransit.mem;
+		int expansionOffset = expansionTransit.offset;
+		System.arraycopy(mem, offset, expansionMem, expansionOffset, length);
+		expansionTransit.writePosi = length + expansionTransit.offset;
+		expansionTransit.readPosi = expansionTransit.offset + (readPosi - offset);
+		//
+		byte[] tmpMem = mem;
+		mem = expansionTransit.mem;
+		expansionTransit.mem = tmpMem;
+		Chunk tmpChunk = chunk;
+		chunk = expansionTransit.chunk;
+		expansionTransit.chunk = tmpChunk;
+		int tmpCapacity = capacity;
+		capacity = expansionTransit.capacity;
+		expansionTransit.capacity = tmpCapacity;
+		int tmpIndex = index;
+		index = expansionTransit.index;
+		expansionTransit.index = tmpIndex;
+		int tmpOffset = offset;
+		offset = expansionTransit.offset;
+		expansionTransit.offset = tmpOffset;
+		int tmpReadPosi = readPosi;
+		readPosi = expansionTransit.readPosi;
+		expansionTransit.readPosi = tmpReadPosi;
+		int tmpWritePosi = writePosi;
+		writePosi = expansionTransit.writePosi;
+		expansionTransit.writePosi = tmpWritePosi;
 	}
 	
 	protected void _destoryMem()

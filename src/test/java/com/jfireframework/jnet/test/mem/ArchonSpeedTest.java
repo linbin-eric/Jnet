@@ -11,7 +11,7 @@ import com.jfireframework.jnet.common.mem.archon.Archon;
 import com.jfireframework.jnet.common.mem.archon.HeapPooledArchon;
 import com.jfireframework.jnet.common.mem.archon.PooledArchon;
 import com.jfireframework.jnet.common.mem.chunk.ChunkList;
-import com.jfireframework.jnet.common.mem.handler.HeapIoBuffer;
+import com.jfireframework.jnet.common.mem.handler.IoBuffer;
 
 public class ArchonSpeedTest
 {
@@ -32,7 +32,7 @@ public class ArchonSpeedTest
 				@Override
 				public void run()
 				{
-					HeapIoBuffer handler = new HeapIoBuffer();
+					IoBuffer handler = IoBuffer.heapIoBuffer();
 					try
 					{
 						barrier.await();

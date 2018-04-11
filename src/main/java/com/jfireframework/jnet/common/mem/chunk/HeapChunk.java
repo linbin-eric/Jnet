@@ -3,7 +3,7 @@ package com.jfireframework.jnet.common.mem.chunk;
 import com.jfireframework.jnet.common.mem.archon.Archon;
 import com.jfireframework.jnet.common.mem.handler.IoBuffer;
 
-public class HeapChunk extends Chunk
+class HeapChunk extends Chunk
 {
 	private byte[] mem;
 	

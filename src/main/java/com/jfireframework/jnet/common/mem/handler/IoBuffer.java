@@ -14,6 +14,16 @@ public abstract class IoBuffer
 	protected int			writePosi;
 	protected Archon		archon;
 	
+	public static IoBuffer heapIoBuffer()
+	{
+		return new HeapIoBuffer();
+	}
+	
+	public static IoBuffer directBuffer()
+	{
+		return new DirectIoBuffer();
+	}
+	
 	public void initialize(int off, int capacity, Object mem, int index, Chunk chunk, Archon archon)
 	{
 		this.capacity = capacity;
@@ -25,32 +35,18 @@ public abstract class IoBuffer
 		_initialize(off, capacity, mem);
 	}
 	
-	public abstract void _initialize(int off, int capacity, Object mem);
+	protected abstract void _initialize(int off, int capacity, Object mem);
 	
 	/**
-	 * 拷贝src中的数据到自身中。执行该操作时，自身应该处于初始化的状态。该拷贝方法会复制的信息包含:<br/>
-	 * 1. 从off到writePosi的所有数据<br/>
-	 * 2. src的相对readPosi <br/>
-	 * 3. src的相对writePosi <br/>
+	 * 通过一个初始化的Buffer：src进行扩容操作。具体流程如下<br/>
+	 * 将自身数据拷贝到src中。该拷贝方法会复制的信息包含:<br/>
+	 * 从off到writePosi的所有数据,相对readPosi,相对writePosi <br/>
+	 * 将src中的数据和自身的数据进行互换。互换的信息包含：<br/>
+	 * mem,chunk,archon,readPosi,writePosi,off,capacity,index <br/>
 	 * 
 	 * @param src
 	 */
-	public abstract void copy(IoBuffer src);
-	
-	/**
-	 * 将src中的内容替换到自身中。该替换方法会替换的信息包含:<br/>
-	 * 1. mem <br/>
-	 * 2. chunk <br/>
-	 * 3. archon <br/>
-	 * 4. readPosi <br/>
-	 * 5. writePosi <br/>
-	 * 6. off <br/>
-	 * 7. capacity <br/>
-	 * 8. index <br/>
-	 * 
-	 * @param src
-	 */
-	public abstract void replace(IoBuffer src);
+	public abstract void expansion(IoBuffer src);
 	
 	protected void ensureEnoughWrite(int needToWrite)
 	{
