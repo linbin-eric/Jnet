@@ -109,7 +109,7 @@ public abstract class AbstractIoBuffer<T>
         return capacity;
     }
     
-    public IoBuffer<T> put(byte b)
+    public AbstractIoBuffer<T> put(byte b)
     {
         ensureEnoughWrite(1);
         _put(b);
@@ -118,7 +118,7 @@ public abstract class AbstractIoBuffer<T>
     
     protected abstract void _put(byte b);
     
-    public IoBuffer<T> put(byte b, int posi)
+    public AbstractIoBuffer<T> put(byte b, int posi)
     {
         if (posi < 0)
         {
@@ -131,7 +131,7 @@ public abstract class AbstractIoBuffer<T>
     
     protected abstract void _put(byte b, int posi);
     
-    public IoBuffer<T> put(byte[] content)
+    public AbstractIoBuffer<T> put(byte[] content)
     {
         ensureEnoughWrite(content.length);
         _put(content);
@@ -140,7 +140,7 @@ public abstract class AbstractIoBuffer<T>
     
     protected abstract void _put(byte[] content);
     
-    public IoBuffer<T> put(byte[] content, int off, int len)
+    public AbstractIoBuffer<T> put(byte[] content, int off, int len)
     {
         ensureEnoughWrite(off + len - getWritePosi());
         _put(content, off, len);
@@ -149,12 +149,12 @@ public abstract class AbstractIoBuffer<T>
     
     protected abstract void _put(byte[] content, int off, int len);
     
-    public IoBuffer<T> put(IoBuffer<?> bucket)
+    public AbstractIoBuffer<T> put(IoBuffer<?> bucket)
     {
         return put(bucket, bucket.remainRead());
     }
     
-    public IoBuffer<T> put(IoBuffer<?> handler, int len)
+    public AbstractIoBuffer<T> put(IoBuffer<?> handler, int len)
     {
         ensureEnoughWrite(len);
         _put(handler, len);
@@ -163,7 +163,7 @@ public abstract class AbstractIoBuffer<T>
     
     protected abstract void _put(IoBuffer<?> handler, int len);
     
-    public IoBuffer<T> writeInt(int i, int off)
+    public AbstractIoBuffer<T> writeInt(int i, int off)
     {
         ensureEnoughWrite(off + 4 - getWritePosi());
         _writeInt(i, off);
@@ -172,7 +172,7 @@ public abstract class AbstractIoBuffer<T>
     
     protected abstract void _writeInt(int i, int off);
     
-    public IoBuffer<T> writeShort(short s, int off)
+    public AbstractIoBuffer<T> writeShort(short s, int off)
     {
         ensureEnoughWrite(off + 2 - getWritePosi());
         _writeShort(s, off);
