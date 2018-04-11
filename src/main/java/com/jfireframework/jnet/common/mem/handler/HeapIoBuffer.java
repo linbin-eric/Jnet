@@ -1,13 +1,11 @@
 package com.jfireframework.jnet.common.mem.handler;
 
 import java.nio.ByteBuffer;
-import com.jfireframework.jnet.common.mem.archon.Archon;
-import com.jfireframework.jnet.common.mem.chunk.Chunk;
 
-public class HeapIoBuffer extends AbstractIoBuffer<byte[]>
+public class HeapIoBuffer extends IoBuffer
 {
-	
-	private int offset;
+	private int			offset;
+	protected byte[]	mem;
 	
 	@Override
 	public String toString()
@@ -16,8 +14,13 @@ public class HeapIoBuffer extends AbstractIoBuffer<byte[]>
 	}
 	
 	@Override
-	public void _initialize(int offset, int capacity, byte[] mem, int index, Chunk<byte[]> chunk, Archon<byte[]> archon)
+	public void _initialize(int offset, int capacity, Object mem)
 	{
+		if (mem instanceof byte[] == false)
+		{
+			throw new IllegalArgumentException();
+		}
+		this.mem = (byte[]) mem;
 		this.offset = offset;
 		readPosi = writePosi = offset;
 	}
@@ -37,7 +40,7 @@ public class HeapIoBuffer extends AbstractIoBuffer<byte[]>
 	}
 	
 	@Override
-	public IoBuffer<byte[]> compact()
+	public IoBuffer compact()
 	{
 		int length = remainRead();
 		System.arraycopy(mem, readPosi, mem, offset, length);
@@ -47,7 +50,7 @@ public class HeapIoBuffer extends AbstractIoBuffer<byte[]>
 	}
 	
 	@Override
-	public IoBuffer<byte[]> get(byte[] content)
+	public IoBuffer get(byte[] content)
 	{
 		System.arraycopy(mem, readPosi, content, 0, content.length);
 		readPosi += content.length;
@@ -55,7 +58,7 @@ public class HeapIoBuffer extends AbstractIoBuffer<byte[]>
 	}
 	
 	@Override
-	public IoBuffer<byte[]> get(byte[] content, int off, int len)
+	public IoBuffer get(byte[] content, int off, int len)
 	{
 		System.arraycopy(mem, readPosi, content, off, len);
 		readPosi += len;
@@ -163,7 +166,7 @@ public class HeapIoBuffer extends AbstractIoBuffer<byte[]>
 	}
 	
 	@Override
-	public IoBuffer<byte[]> clearData()
+	public IoBuffer clearData()
 	{
 		readPosi = writePosi = offset;
 		return this;
@@ -182,7 +185,7 @@ public class HeapIoBuffer extends AbstractIoBuffer<byte[]>
 	}
 	
 	@Override
-	public void copy(AbstractIoBuffer<byte[]> src)
+	public void copy(IoBuffer src)
 	{
 		if (src instanceof HeapIoBuffer == false)
 		{
@@ -196,7 +199,7 @@ public class HeapIoBuffer extends AbstractIoBuffer<byte[]>
 	}
 	
 	@Override
-	public void replace(AbstractIoBuffer<byte[]> src)
+	public void replace(IoBuffer src)
 	{
 		if (src instanceof HeapIoBuffer == false)
 		{
@@ -210,6 +213,11 @@ public class HeapIoBuffer extends AbstractIoBuffer<byte[]>
 		offset = repleaceSrc.offset;
 		capacity = repleaceSrc.capacity;
 		index = repleaceSrc.index;
+	}
+	
+	protected void _destoryMem()
+	{
+		mem = null;
 	}
 	
 	@Override
@@ -240,17 +248,17 @@ public class HeapIoBuffer extends AbstractIoBuffer<byte[]>
 	}
 	
 	@Override
-	protected void _put(IoBuffer<?> handler, int len)
+	protected void _put(IoBuffer src, int len)
 	{
-		if (handler instanceof HeapIoBuffer)
+		if (src instanceof HeapIoBuffer)
 		{
-			HeapIoBuffer target = (HeapIoBuffer) handler;
+			HeapIoBuffer target = (HeapIoBuffer) src;
 			System.arraycopy(target.mem, target.readPosi, mem, writePosi, len);
 			writePosi += len;
 		}
-		else if (handler instanceof DirectIoBuffer)
+		else if (src instanceof DirectIoBuffer)
 		{
-			DirectIoBuffer source = (DirectIoBuffer) handler;
+			DirectIoBuffer source = (DirectIoBuffer) src;
 			source.changeToRead();
 			source.mem.get(mem, writePosi, len);
 			writePosi += len;

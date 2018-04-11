@@ -3,16 +3,16 @@ package com.jfireframework.jnet.common.mem.chunk;
 import com.jfireframework.jnet.common.mem.archon.Archon;
 import com.jfireframework.jnet.common.mem.handler.IoBuffer;
 
-public class ChunkList<T>
+public class ChunkList
 {
-	private Chunk<T>		head;
-	private ChunkList<T>	prev;
-	private ChunkList<T>	next;
-	private int				maxUsage;
-	private int				minUsage;
-	private String			name;
+	private Chunk		head;
+	private ChunkList	prev;
+	private ChunkList	next;
+	private int			maxUsage;
+	private int			minUsage;
+	private String		name;
 	
-	public ChunkList(ChunkList<T> next, int maxUsage, int minUsage, String name)
+	public ChunkList(ChunkList next, int maxUsage, int minUsage, String name)
 	{
 		this.name = name;
 		this.next = next;
@@ -25,18 +25,18 @@ public class ChunkList<T>
 		return name;
 	}
 	
-	public void setPrev(ChunkList<T> prev)
+	public void setPrev(ChunkList prev)
 	{
 		this.prev = prev;
 	}
 	
-	public boolean findChunkAndApply(int need, IoBuffer<T> bucket, Archon<T> archon)
+	public boolean findChunkAndApply(int need, IoBuffer bucket, Archon archon)
 	{
 		if (head == null)
 		{
 			return false;
 		}
-		Chunk<T> select = head;
+		Chunk select = head;
 		boolean apply = false;
 		while (select != null)
 		{
@@ -57,13 +57,13 @@ public class ChunkList<T>
 		return apply;
 	}
 	
-	private void moveToNext(Chunk<T> chunk)
+	private void moveToNext(Chunk chunk)
 	{
 		removeFromCurrentList(chunk);
 		next.addChunk(chunk);
 	}
 	
-	private void moveToPrev(Chunk<T> chunk)
+	private void moveToPrev(Chunk chunk)
 	{
 		removeFromCurrentList(chunk);
 		if (prev != null)
@@ -72,7 +72,7 @@ public class ChunkList<T>
 		}
 	}
 	
-	private void removeFromCurrentList(Chunk<T> node)
+	private void removeFromCurrentList(Chunk node)
 	{
 		if (node == head)
 		{
@@ -84,8 +84,8 @@ public class ChunkList<T>
 		}
 		else
 		{
-			Chunk<T> pred = node.pred;
-			Chunk<T> next = node.next;
+			Chunk pred = node.pred;
+			Chunk next = node.next;
 			pred.next = next;
 			if (next != null)
 			{
@@ -97,7 +97,7 @@ public class ChunkList<T>
 		node.next = null;
 	}
 	
-	public void addChunk(Chunk<T> chunk)
+	public void addChunk(Chunk chunk)
 	{
 		if (chunk.usage() > maxUsage)
 		{
@@ -117,9 +117,9 @@ public class ChunkList<T>
 		chunk.parent = this;
 	}
 	
-	public void recycle(IoBuffer<T> handler)
+	public void recycle(IoBuffer handler)
 	{
-		Chunk<T> chunk = handler.belong();
+		Chunk chunk = handler.belong();
 		chunk.recycle(handler);
 		if (chunk.usage() <= minUsage)
 		{
@@ -127,7 +127,7 @@ public class ChunkList<T>
 		}
 	}
 	
-	public Chunk<T> head()
+	public Chunk head()
 	{
 		return head;
 	}

@@ -1,18 +1,19 @@
 package com.jfireframework.jnet.common.mem.handler;
 
 import java.nio.ByteBuffer;
-import com.jfireframework.jnet.common.mem.archon.Archon;
-import com.jfireframework.jnet.common.mem.chunk.Chunk;
 
-public class DirectIoBuffer extends AbstractIoBuffer<ByteBuffer>
+public class DirectIoBuffer extends IoBuffer
 {
+	protected ByteBuffer mem;
+	
 	@Override
-	public void _initialize(int off, int capacity, ByteBuffer mem, int index, Chunk<ByteBuffer> chunk, Archon<ByteBuffer> archon)
+	public void _initialize(int off, int capacity, Object mem)
 	{
-		if (off != 0)
+		if (off != 0 || mem instanceof ByteBuffer == false)
 		{
 			throw new IllegalArgumentException();
 		}
+		this.mem = (ByteBuffer) mem;
 		readPosi = writePosi = 0;
 	}
 	
@@ -53,7 +54,7 @@ public class DirectIoBuffer extends AbstractIoBuffer<ByteBuffer>
 	}
 	
 	@Override
-	public IoBuffer<ByteBuffer> compact()
+	public IoBuffer compact()
 	{
 		changeToRead();
 		mem.compact();
@@ -63,7 +64,7 @@ public class DirectIoBuffer extends AbstractIoBuffer<ByteBuffer>
 	}
 	
 	@Override
-	public IoBuffer<ByteBuffer> get(byte[] content)
+	public IoBuffer get(byte[] content)
 	{
 		changeToRead();
 		mem.get(content);
@@ -72,7 +73,7 @@ public class DirectIoBuffer extends AbstractIoBuffer<ByteBuffer>
 	}
 	
 	@Override
-	public IoBuffer<ByteBuffer> get(byte[] content, int off, int len)
+	public IoBuffer get(byte[] content, int off, int len)
 	{
 		changeToRead();
 		mem.get(content, off, len);
@@ -163,7 +164,7 @@ public class DirectIoBuffer extends AbstractIoBuffer<ByteBuffer>
 	}
 	
 	@Override
-	public IoBuffer<ByteBuffer> clearData()
+	public IoBuffer clearData()
 	{
 		writePosi = readPosi = 0;
 		return this;
@@ -194,7 +195,7 @@ public class DirectIoBuffer extends AbstractIoBuffer<ByteBuffer>
 	}
 	
 	@Override
-	public void copy(AbstractIoBuffer<ByteBuffer> src)
+	public void copy(IoBuffer src)
 	{
 		if (src instanceof DirectIoBuffer == false)
 		{
@@ -216,7 +217,7 @@ public class DirectIoBuffer extends AbstractIoBuffer<ByteBuffer>
 	}
 	
 	@Override
-	public void replace(AbstractIoBuffer<ByteBuffer> src)
+	public void replace(IoBuffer src)
 	{
 		if (src instanceof DirectIoBuffer == false)
 		{
@@ -229,6 +230,11 @@ public class DirectIoBuffer extends AbstractIoBuffer<ByteBuffer>
 		writePosi = replaceSrc.writePosi;
 		capacity = replaceSrc.capacity;
 		index = replaceSrc.index;
+	}
+	
+	protected void _destoryMem()
+	{
+		mem = null;
 	}
 	
 	@Override
@@ -263,7 +269,7 @@ public class DirectIoBuffer extends AbstractIoBuffer<ByteBuffer>
 	}
 	
 	@Override
-	protected void _put(IoBuffer<?> handler, int len)
+	protected void _put(IoBuffer handler, int len)
 	{
 		if (handler instanceof HeapIoBuffer)
 		{

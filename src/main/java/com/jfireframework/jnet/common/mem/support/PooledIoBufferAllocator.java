@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.jfireframework.jnet.common.mem.archon.Archon;
 import com.jfireframework.jnet.common.mem.archon.DirectPooledArchon;
 import com.jfireframework.jnet.common.mem.archon.HeapPooledArchon;
-import com.jfireframework.jnet.common.mem.handler.AbstractIoBuffer;
+import com.jfireframework.jnet.common.mem.handler.IoBuffer;
 import com.jfireframework.jnet.common.mem.handler.DirectIoBuffer;
 import com.jfireframework.jnet.common.mem.handler.HeapIoBuffer;
 import com.jfireframework.jnet.common.mem.handler.IoBuffer;
@@ -38,7 +38,7 @@ public class PooledIoBufferAllocator implements IoBufferAllocator
 	public IoBuffer<?> allocate(int initSize)
 	{
 		int index = idx.incrementAndGet() & mask;
-		AbstractIoBuffer<byte[]> buffer = new HeapIoBuffer();
+		IoBuffer<byte[]> buffer = new HeapIoBuffer();
 		heapArchons[index].apply(initSize, buffer);
 		return buffer;
 	}
@@ -47,7 +47,7 @@ public class PooledIoBufferAllocator implements IoBufferAllocator
 	public IoBuffer<?> allocateDirect(int initSize)
 	{
 		int index = idx.incrementAndGet() & mask;
-		AbstractIoBuffer<ByteBuffer> buffer = new DirectIoBuffer();
+		IoBuffer<ByteBuffer> buffer = new DirectIoBuffer();
 		directArchons[index].apply(initSize, buffer);
 		return buffer;
 	}

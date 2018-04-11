@@ -4,179 +4,256 @@ import java.nio.ByteBuffer;
 import com.jfireframework.jnet.common.mem.archon.Archon;
 import com.jfireframework.jnet.common.mem.chunk.Chunk;
 
-/**
- * 承载从Chunk处获取的内存区域。并且保存了本次获取的相关属性
- * 
- * @author linbin
- *
- * @param <T>
- */
-public interface IoBuffer<T>
+public abstract class IoBuffer
 {
+	protected int			index;
+	protected Chunk			chunk;
+	protected ByteBuffer	cachedByteBuffer;
+	protected int			capacity;
+	protected int			readPosi;
+	protected int			writePosi;
+	protected Archon		archon;
+	
+	public void initialize(int off, int capacity, Object mem, int index, Chunk chunk, Archon archon)
+	{
+		this.capacity = capacity;
+		this.index = index;
+		this.chunk = chunk;
+		this.archon = archon;
+		cachedByteBuffer = null;
+		//
+		_initialize(off, capacity, mem);
+	}
+	
+	public abstract void _initialize(int off, int capacity, Object mem);
+	
 	/**
-	 * 将可用内存初始化到handler中。
+	 * 拷贝src中的数据到自身中。执行该操作时，自身应该处于初始化的状态。该拷贝方法会复制的信息包含:<br/>
+	 * 1. 从off到writePosi的所有数据<br/>
+	 * 2. src的相对readPosi <br/>
+	 * 3. src的相对writePosi <br/>
 	 * 
-	 * @param off mem中可用的起始偏移量
-	 * @param len 可用mem的字节长度
-	 * @param mem 内存
-	 * @param index 申请的这段内存在chunk中的index
-	 * @param chunkMem 托管这段内存的chunk
+	 * @param src
 	 */
-	void initialize(int off, int len, T mem, int index, Chunk<T> chunkMem, Archon<T> archon);
-	
-	void release();
+	public abstract void copy(IoBuffer src);
 	
 	/**
-	 * 销毁所有数据
-	 */
-	void destory();
-	
-	Chunk<T> belong();
-	
-	int getIndex();
-	
-	int capacity();
-	
-	/**
-	 * 获取读取位置，该位置是相对位置。默认起始为0
+	 * 将src中的内容替换到自身中。该替换方法会替换的信息包含:<br/>
+	 * 1. mem <br/>
+	 * 2. chunk <br/>
+	 * 3. archon <br/>
+	 * 4. readPosi <br/>
+	 * 5. writePosi <br/>
+	 * 6. off <br/>
+	 * 7. capacity <br/>
+	 * 8. index <br/>
 	 * 
-	 * @return
+	 * @param src
 	 */
-	int getReadPosi();
+	public abstract void replace(IoBuffer src);
 	
-	/**
-	 * 设置读取位置，该位置是相对位置，默认起始为0
-	 * 
-	 * @param readPosi
-	 */
-	void setReadPosi(int readPosi);
+	protected void ensureEnoughWrite(int needToWrite)
+	{
+		if (needToWrite < 0 || remainWrite() >= needToWrite)
+		{
+			return;
+		}
+		archon.expansion(this, capacity + needToWrite);
+	}
 	
-	/**
-	 * 读取写入位置，该位置是相对位置，默认起始为0
-	 * 
-	 * @return
-	 */
-	int getWritePosi();
+	public Chunk belong()
+	{
+		return chunk;
+	}
 	
-	/**
-	 * 设置写入位置，该位置是相对位置，默认起始为0
-	 * 
-	 * @param writePosi
-	 */
-	void setWritePosi(int writePosi);
+	public void release()
+	{
+		if (archon != null)
+		{
+			archon.recycle(this);
+		}
+	}
 	
-	IoBuffer<T> put(byte b);
+	public void destory()
+	{
+		index = -1;
+		chunk = null;
+		archon = null;
+		cachedByteBuffer = null;
+		_destoryMem();
+	}
 	
-	IoBuffer<T> put(byte b, int posi);
+	protected abstract void _destoryMem();
 	
-	IoBuffer<T> put(byte[] content);
+	@Override
+	public String toString()
+	{
+		return "Handler [index=" + index + ", chunk=" + chunk + ", cachedByteBuffer=" + cachedByteBuffer + ", capacity=" + capacity + ", readPosi=" + readPosi + ", writePosi=" + writePosi + ", archon=" + archon + "]";
+	}
 	
-	IoBuffer<T> put(byte[] content, int off, int len);
+	public int getIndex()
+	{
+		return index;
+	}
 	
-	/**
-	 * 清除写入数据，恢复readPosi和writePosi到初始状态
-	 * 
-	 * @return
-	 */
-	IoBuffer<T> clearData();
+	public ByteBuffer cachedByteBuffer()
+	{
+		if (cachedByteBuffer != null)
+		{
+			return cachedByteBuffer;
+		}
+		return byteBuffer();
+	}
 	
-	byte get();
+	public int capacity()
+	{
+		return capacity;
+	}
 	
-	byte get(int posi);
+	public IoBuffer put(byte b)
+	{
+		ensureEnoughWrite(1);
+		_put(b);
+		return this;
+	}
 	
-	int remainRead();
+	protected abstract void _put(byte b);
 	
-	int remainWrite();
+	public IoBuffer put(byte b, int posi)
+	{
+		if (posi < 0)
+		{
+			throw new IllegalArgumentException();
+		}
+		ensureEnoughWrite(posi - getWritePosi());
+		_put(b, posi);
+		return this;
+	}
 	
-	IoBuffer<T> compact();
+	protected abstract void _put(byte b, int posi);
 	
-	IoBuffer<T> get(byte[] content);
+	public IoBuffer put(byte[] content)
+	{
+		ensureEnoughWrite(content.length);
+		_put(content);
+		return this;
+	}
 	
-	IoBuffer<T> get(byte[] content, int off, int len);
+	protected abstract void _put(byte[] content);
 	
-	/**
-	 * 将一个handler的数据放入本handler。对入参的handler数据无影响
-	 * 
-	 * @param handler
-	 * @return
-	 */
-	IoBuffer<T> put(IoBuffer<?> handler);
+	public IoBuffer put(byte[] content, int off, int len)
+	{
+		ensureEnoughWrite(off + len - getWritePosi());
+		_put(content, off, len);
+		return this;
+	}
 	
-	/**
-	 * 将一个handler的部分数据放入本handler。对入参的handler数据无影响
-	 * 
-	 * @param handler
-	 * @return
-	 */
-	IoBuffer<T> put(IoBuffer<?> handler, int len);
+	protected abstract void _put(byte[] content, int off, int len);
 	
-	void addReadPosi(int add);
+	public IoBuffer put(IoBuffer bucket)
+	{
+		return put(bucket, bucket.remainRead());
+	}
 	
-	void addWritePosi(int add);
+	public IoBuffer put(IoBuffer handler, int len)
+	{
+		ensureEnoughWrite(len);
+		_put(handler, len);
+		return this;
+	}
 	
-	/**
-	 * 返回数组在数据中的起始位置。该位置为相对位置。初始为0.如果没有找到，则返回-1
-	 * 
-	 * @param array
-	 * @return
-	 */
-	int indexOf(byte[] array);
+	protected abstract void _put(IoBuffer handler, int len);
 	
-	int readInt();
+	public IoBuffer writeInt(int i, int off)
+	{
+		ensureEnoughWrite(off + 4 - getWritePosi());
+		_writeInt(i, off);
+		return this;
+	}
 	
-	short readShort();
+	protected abstract void _writeInt(int i, int off);
 	
-	long readLong();
+	public IoBuffer writeShort(short s, int off)
+	{
+		ensureEnoughWrite(off + 2 - getWritePosi());
+		_writeShort(s, off);
+		return this;
+	}
 	
-	/**
-	 * 在位置off处写入int变量i。该off为相对位置
-	 * 
-	 * @param i
-	 * @param off
-	 */
-	IoBuffer<T> writeInt(int i, int off);
+	protected abstract void _writeShort(short s, int off);
 	
-	/**
-	 * 在位置off处写入short变量s。该off为相对位置
-	 * 
-	 * @param s
-	 * @param off
-	 */
-	IoBuffer<T> writeShort(short s, int off);
+	public IoBuffer writeLong(long l, int off)
+	{
+		ensureEnoughWrite(off + 8 - getWritePosi());
+		_writeLong(l, off);
+		return this;
+	}
 	
-	/**
-	 * 在位置off处写入long变量l。该off为相对位置
-	 * 
-	 * @param l
-	 * @param off
-	 */
-	IoBuffer<T> writeLong(long l, int off);
+	protected abstract void _writeLong(long l, int off);
 	
-	/**
-	 * 写入int变量i
-	 * 
-	 * @param i
-	 * @param off
-	 */
-	IoBuffer<T> writeInt(int i);
+	public IoBuffer writeInt(int i)
+	{
+		ensureEnoughWrite(4);
+		_writeInt(i);
+		return this;
+	}
 	
-	/**
-	 * 写入short变量s
-	 * 
-	 * @param s
-	 * @param off
-	 */
-	IoBuffer<T> writeShort(short s);
+	protected abstract void _writeInt(int i);
 	
-	/**
-	 * 写入long变量l
-	 * 
-	 * @param l
-	 * @param off
-	 */
-	IoBuffer<T> writeLong(long l);
+	public IoBuffer writeShort(short s)
+	{
+		ensureEnoughWrite(2);
+		_writeShort(s);
+		return this;
+	}
 	
-	ByteBuffer byteBuffer();
+	protected abstract void _writeShort(short s);
 	
-	ByteBuffer cachedByteBuffer();
+	public IoBuffer writeLong(long l)
+	{
+		ensureEnoughWrite(8);
+		_writeLong(l);
+		return this;
+	}
+	
+	protected abstract void _writeLong(long l);
+	
+	public abstract int getReadPosi();
+	
+	public abstract void setReadPosi(int readPosi);
+	
+	public abstract int getWritePosi();
+	
+	public abstract void setWritePosi(int writePosi);
+	
+	public abstract IoBuffer clearData();
+	
+	public abstract byte get();
+	
+	public abstract byte get(int posi);
+	
+	public abstract int remainRead();
+	
+	public abstract int remainWrite();
+	
+	public abstract IoBuffer compact();
+	
+	public abstract IoBuffer get(byte[] content);
+	
+	public abstract IoBuffer get(byte[] content, int off, int len);
+	
+	public abstract void addReadPosi(int add);
+	
+	public abstract void addWritePosi(int add);
+	
+	public abstract int indexOf(byte[] array);
+	
+	public abstract int readInt();
+	
+	public abstract short readShort();
+	
+	public abstract long readLong();
+	
+	public abstract ByteBuffer byteBuffer();
+	
 }

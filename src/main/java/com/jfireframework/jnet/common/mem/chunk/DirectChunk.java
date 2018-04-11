@@ -4,8 +4,9 @@ import java.nio.ByteBuffer;
 import com.jfireframework.jnet.common.mem.archon.Archon;
 import com.jfireframework.jnet.common.mem.handler.IoBuffer;
 
-public class DirectChunk extends Chunk<ByteBuffer>
+public class DirectChunk extends Chunk
 {
+	protected ByteBuffer mem;
 	
 	public DirectChunk(int maxLevel, int unit)
 	{
@@ -13,15 +14,15 @@ public class DirectChunk extends Chunk<ByteBuffer>
 	}
 	
 	@Override
-	protected ByteBuffer initializeMem(int capacity)
+	protected void initializeMem(int capacity)
 	{
 		ByteBuffer buffer = ByteBuffer.allocateDirect(capacity);
 		buffer.limit(capacity).position(0);
-		return buffer;
+		mem = buffer;
 	}
 	
 	@Override
-	protected void initHandler(Archon<ByteBuffer> archon, IoBuffer<ByteBuffer> handler, int index, int off, int len)
+	protected void initHandler(Archon archon, IoBuffer handler, int index, int off, int len)
 	{
 		mem.limit(off + len).position(off);
 		ByteBuffer slice = mem.slice();

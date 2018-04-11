@@ -6,13 +6,13 @@ public class HeapUnPooledArchon extends UnPooledArchon<byte[]>
 {
 	
 	@Override
-	public void apply(int need, IoBuffer<byte[]> handler)
+	public void apply(int need, IoBuffer handler)
 	{
 		handler.initialize(0, need, new byte[need], 0, null, this);
 	}
 
 	@Override
-	public void expansion(IoBuffer<byte[]> handler, int newSize)
+	public void expansion(IoBuffer handler, int newSize)
 	{
 		handler.initialize(0, newSize, new byte[newSize], 0, null, this);
 	}

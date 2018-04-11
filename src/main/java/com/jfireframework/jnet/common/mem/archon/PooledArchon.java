@@ -2,33 +2,32 @@ package com.jfireframework.jnet.common.mem.archon;
 
 import com.jfireframework.jnet.common.mem.chunk.Chunk;
 import com.jfireframework.jnet.common.mem.chunk.ChunkList;
-import com.jfireframework.jnet.common.mem.handler.AbstractIoBuffer;
 import com.jfireframework.jnet.common.mem.handler.IoBuffer;
 
-public abstract class PooledArchon<T> implements Archon<T>
+public abstract class PooledArchon<T> implements Archon
 {
-	private ChunkList<T>			cInt;
-	private ChunkList<T>			c000;
-	private ChunkList<T>			c25;
-	private ChunkList<T>			c50;
-	private ChunkList<T>			c75;
-	private ChunkList<T>			c100;
-	private int						maxLevel;
-	private int						unit;
-	private int						maxSize;
-	protected ExpansionIoBuffer<T>	expansionIoBuffer;
+	private ChunkList			cInt;
+	private ChunkList			c000;
+	private ChunkList			c25;
+	private ChunkList			c50;
+	private ChunkList			c75;
+	private ChunkList			c100;
+	private int					maxLevel;
+	private int					unit;
+	private int					maxSize;
+	protected ExpansionIoBuffer	expansionIoBuffer;
 	
 	public PooledArchon(int maxLevel, int unit)
 	{
 		this.maxLevel = maxLevel;
 		this.unit = unit;
 		// c100不具备next节点，c25不具备prev节点。
-		c100 = new ChunkList<T>(null, Integer.MAX_VALUE, 90, "c100");
-		c75 = new ChunkList<T>(c100, 100, 75, "c075");
-		c50 = new ChunkList<T>(c75, 100, 50, "c050");
-		c25 = new ChunkList<T>(c50, 75, 25, "c025");
-		c000 = new ChunkList<T>(c25, 50, 1, "c000");
-		cInt = new ChunkList<T>(c000, 25, Integer.MIN_VALUE, "cInt");
+		c100 = new ChunkList(null, Integer.MAX_VALUE, 90, "c100");
+		c75 = new ChunkList(c100, 100, 75, "c075");
+		c50 = new ChunkList(c75, 100, 50, "c050");
+		c25 = new ChunkList(c50, 75, 25, "c025");
+		c000 = new ChunkList(c25, 50, 1, "c000");
+		cInt = new ChunkList(c000, 25, Integer.MIN_VALUE, "cInt");
 		c25.setPrev(c000);
 		c50.setPrev(c25);
 		c75.setPrev(c50);
@@ -37,7 +36,7 @@ public abstract class PooledArchon<T> implements Archon<T>
 	}
 	
 	@Override
-	public synchronized void apply(int need, IoBuffer<T> handler)
+	public synchronized void apply(int need, IoBuffer handler)
 	{
 		if (need > maxSize)
 		{
@@ -54,32 +53,31 @@ public abstract class PooledArchon<T> implements Archon<T>
 		{
 			return;
 		}
-		Chunk<T> chunk = newChunk(maxLevel, unit);
+		Chunk chunk = newChunk(maxLevel, unit);
 		// 先申请，后添加
 		chunk.apply(need, handler, this);
 		cInt.addChunk(chunk);
 	}
 	
-	@SuppressWarnings("unchecked")
 	@Override
-	public synchronized void expansion(IoBuffer<T> handler, int newSize)
+	public synchronized void expansion(IoBuffer handler, int newSize)
 	{
-		apply(newSize, expansionIoBuffer);
-		((AbstractIoBuffer<T>) expansionIoBuffer).copy((AbstractIoBuffer<T>) handler);
+		apply(newSize, (IoBuffer) expansionIoBuffer);
+		((IoBuffer) expansionIoBuffer).copy((IoBuffer) handler);
 		recycle(handler);
-		((AbstractIoBuffer<T>) handler).replace((AbstractIoBuffer<T>) expansionIoBuffer);
+		((IoBuffer) handler).replace((IoBuffer) expansionIoBuffer);
 		expansionIoBuffer.clearForNextCall();
 	}
 	
 	@Override
-	public synchronized void recycle(IoBuffer<T> handler)
+	public synchronized void recycle(IoBuffer handler)
 	{
 		if (handler.belong() == null)
 		{
 			return;
 		}
-		Chunk<T> chunk = handler.belong();
-		ChunkList<T> list = chunk.parent();
+		Chunk chunk = handler.belong();
+		ChunkList list = chunk.parent();
 		if (list != null)
 		{
 			list.recycle(handler);
@@ -91,11 +89,11 @@ public abstract class PooledArchon<T> implements Archon<T>
 		}
 	}
 	
-	protected abstract void initHugeBucket(IoBuffer<T> handler, int need);
+	protected abstract void initHugeBucket(IoBuffer handler, int need);
 	
-	protected abstract Chunk<T> newChunk(int maxLevel, int unit);
+	protected abstract Chunk newChunk(int maxLevel, int unit);
 	
-	interface ExpansionIoBuffer<T> extends IoBuffer<T>
+	interface ExpansionIoBuffer
 	{
 		void clearForNextCall();
 	}

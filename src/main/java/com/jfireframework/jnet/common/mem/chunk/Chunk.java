@@ -3,18 +3,17 @@ package com.jfireframework.jnet.common.mem.chunk;
 import com.jfireframework.jnet.common.mem.archon.Archon;
 import com.jfireframework.jnet.common.mem.handler.IoBuffer;
 
-public abstract class Chunk<T>
+public abstract class Chunk
 {
-	protected int[]			pool;
-	protected T				mem;
-	protected int[]			size;
-	protected int			capacity;
-	protected Chunk<T>		pred;
-	protected Chunk<T>		next;
-	protected ChunkList<T>	parent;
-	protected int			pageShift;
-	protected int			maxLevel;
-	protected int			unit;
+	protected int[]		pool;
+	protected int[]		size;
+	protected int		capacity;
+	protected Chunk		pred;
+	protected Chunk		next;
+	protected ChunkList	parent;
+	protected int		pageShift;
+	protected int		maxLevel;
+	protected int		unit;
 	
 	public Chunk(int maxLevel, int unit)
 	{
@@ -37,7 +36,7 @@ public abstract class Chunk<T>
 			size[i] = unit * (1 << (maxLevel - i));
 		}
 		capacity = size[0];
-		mem = initializeMem(capacity);
+		initializeMem(capacity);
 	}
 	
 	static final int tableSizeFor(int cap)
@@ -56,9 +55,9 @@ public abstract class Chunk<T>
 		return 31 - Integer.numberOfLeadingZeros(value);
 	}
 	
-	protected abstract T initializeMem(int capacity);
+	protected abstract void initializeMem(int capacity);
 	
-	public boolean apply(int need, IoBuffer<T> bucket, Archon<T> archon)
+	public boolean apply(int need, IoBuffer buffer, Archon archon)
 	{
 		if (pool[1] < need)
 		{
@@ -86,16 +85,16 @@ public abstract class Chunk<T>
 			{
 				reduce(i, bucketSize);
 				int off = (i - (1 << selectedLevel)) * bucketSize;
-				initHandler(archon, bucket, i, off, bucketSize);
+				initHandler(archon, buffer, i, off, bucketSize);
 				return true;
 			}
 		}
 		return false;
 	}
 	
-	protected abstract void initHandler(Archon<T> archon, IoBuffer<T> bucket, int index, int off, int len);
+	protected abstract void initHandler(Archon archon, IoBuffer bucket, int index, int off, int len);
 	
-	public void recycle(IoBuffer<T> bucket)
+	public void recycle(IoBuffer bucket)
 	{
 		int index = bucket.getIndex();
 		int recycle = bucket.capacity();
@@ -141,7 +140,7 @@ public abstract class Chunk<T>
 		return capacity;
 	}
 	
-	public ChunkList<T> parent()
+	public ChunkList parent()
 	{
 		return parent;
 	}
