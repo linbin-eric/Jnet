@@ -2,8 +2,8 @@ package com.jfireframework.jnet.test.mem;
 
 import static org.junit.Assert.assertEquals;
 import org.junit.Test;
-import com.jfireframework.jnet.common.mem.chunk.Chunk;
-import com.jfireframework.jnet.common.mem.handler.IoBuffer;
+import com.jfireframework.jnet.common.buffer.Chunk;
+import com.jfireframework.jnet.common.buffer.IoBuffer;
 
 public class TakeAndRecycleTest
 {

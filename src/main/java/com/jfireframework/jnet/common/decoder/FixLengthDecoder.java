@@ -3,7 +3,7 @@ package com.jfireframework.jnet.common.decoder;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
 import com.jfireframework.jnet.common.api.ReadProcessor;
-import com.jfireframework.jnet.common.mem.buffer.IoBuffer;
+import com.jfireframework.jnet.common.buffer.IoBuffer;
 import com.jfireframework.jnet.common.util.Allocator;
 
 public class FixLengthDecoder implements ReadProcessor<IoBuffer>
@@ -35,7 +35,7 @@ public class FixLengthDecoder implements ReadProcessor<IoBuffer>
             
             if (ioBuf.remainRead() < frameLength)
             {
-                ioBuf.compact().expansion(frameLength);
+                ioBuf.compact().grow(frameLength);
                 return;
             }
             IoBuffer buf = Allocator.allocateDirect(frameLength);

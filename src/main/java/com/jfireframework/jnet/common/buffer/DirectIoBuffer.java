@@ -1,7 +1,6 @@
-package com.jfireframework.jnet.common.mem.handler;
+package com.jfireframework.jnet.common.buffer;
 
 import java.nio.ByteBuffer;
-import com.jfireframework.jnet.common.mem.chunk.Chunk;
 
 class DirectIoBuffer extends IoBuffer
 {

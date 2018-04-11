@@ -1,8 +1,6 @@
-package com.jfireframework.jnet.common.mem.chunk;
+package com.jfireframework.jnet.common.buffer;
 
 import java.nio.ByteBuffer;
-import com.jfireframework.jnet.common.mem.archon.Archon;
-import com.jfireframework.jnet.common.mem.handler.IoBuffer;
 
 class DirectChunk extends Chunk
 {
