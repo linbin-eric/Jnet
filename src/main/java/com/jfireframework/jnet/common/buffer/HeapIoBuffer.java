@@ -344,5 +344,11 @@ class HeapIoBuffer extends IoBuffer
         mem[writePosi + 7] = (byte) (l);
         writePosi += 8;
     }
+
+	@Override
+	public boolean isDirect()
+	{
+		return false;
+	}
     
 }

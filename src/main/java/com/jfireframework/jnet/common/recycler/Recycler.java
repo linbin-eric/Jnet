@@ -28,9 +28,9 @@ public abstract class Recycler<T>
 	private static final RecycleQueue						NO_OP_RECYCLE_QUEUE		= new RecycleQueue() {
 																						
 																						@Override
-																						public void add(RecycleHandler handler)
+																						public boolean add(RecycleHandler handler)
 																						{
-																							
+																							return false;
 																						}
 																					};
 	
@@ -90,16 +90,16 @@ public abstract class Recycler<T>
 			elements = new RecycleHandler[initElementCapacity];
 		}
 		
-		public void push(RecycleHandler handler)
+		public boolean push(RecycleHandler handler)
 		{
 			Thread currentThread = Thread.currentThread();
 			if (currentThread == ownThread.get())
 			{
-				pushNow(handler);
+				return pushNow(handler);
 			}
 			else
 			{
-				pushLater(handler, currentThread);
+				return pushLater(handler, currentThread);
 			}
 		}
 		
@@ -112,24 +112,25 @@ public abstract class Recycler<T>
 		/**
 		 * 马上推送到elements数组中
 		 */
-		private void pushNow(RecycleHandler handler)
+		private boolean pushNow(RecycleHandler handler)
 		{
 			if (size == elements.length)
 			{
 				if (size == maxCapacityPerThread)
 				{
-					return;
+					return false;
 				}
 				elements = Arrays.copyOf(elements, size << 1);
 			}
 			elements[size++] = handler;
+			return true;
 		}
 		
 		/**
 		 * 推送到Queue中
 		 */
 		@SuppressWarnings("unchecked")
-		private void pushLater(RecycleHandler handler, Thread thread)
+		private boolean pushLater(RecycleHandler handler, Thread thread)
 		{
 			WeakHashMap<Stack, RecycleQueue> weakHashMap = local2.get();
 			RecycleQueue queue = weakHashMap.get(this);
@@ -138,7 +139,7 @@ public abstract class Recycler<T>
 				if (weakHashMap.size() >= maxOtherRecycleThread)
 				{
 					weakHashMap.put(this, NO_OP_RECYCLE_QUEUE);
-					return;
+					return false;
 				}
 				else
 				{
@@ -147,7 +148,7 @@ public abstract class Recycler<T>
 						int available = avaliableSharedCapacity.get();
 						if (available < linkCapacity)
 						{
-							return;
+							return false;
 						}
 						if (avaliableSharedCapacity.compareAndSet(available, available - linkCapacity))
 						{
@@ -161,7 +162,7 @@ public abstract class Recycler<T>
 			}
 			// 如果handler不在本stack内部时，应该设置为null。这样如果stack线程死亡，不存在引用，可以使其回收。
 			((DefaultHandler) handler).stack = null;
-			queue.add(handler);
+			return queue.add(handler);
 		}
 		
 		@SuppressWarnings("unchecked")
@@ -247,7 +248,7 @@ public abstract class Recycler<T>
 	
 	interface RecycleQueue
 	{
-		void add(RecycleHandler handler);
+		boolean add(RecycleHandler handler);
 	}
 	
 	class OtherThreadRecycleQueue implements RecycleQueue
@@ -271,7 +272,7 @@ public abstract class Recycler<T>
 		}
 		
 		@Override
-		public void add(RecycleHandler handler)
+		public boolean add(RecycleHandler handler)
 		{
 			Link tail = this.tail;
 			int writeIndex = tail.get();
@@ -284,10 +285,11 @@ public abstract class Recycler<T>
 				}
 				else
 				{
-					return;
+					return false;
 				}
 			}
 			tail.add(handler, writeIndex);
+			return true;
 		}
 		
 		private boolean allocateSpace()

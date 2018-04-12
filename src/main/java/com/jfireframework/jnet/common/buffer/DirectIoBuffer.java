@@ -220,7 +220,7 @@ class DirectIoBuffer extends IoBuffer
 		int tmpCapacity = capacity;
 		capacity = expansionTransit.capacity;
 		expansionTransit.capacity = tmpCapacity;
-		int tmpIndex =index;
+		int tmpIndex = index;
 		index = expansionTransit.index;
 		expansionTransit.index = tmpIndex;
 	}
@@ -330,6 +330,12 @@ class DirectIoBuffer extends IoBuffer
 		changeToWrite();
 		mem.putLong(l);
 		writePosi += 8;
+	}
+	
+	@Override
+	public boolean isDirect()
+	{
+		return true;
 	}
 	
 }
