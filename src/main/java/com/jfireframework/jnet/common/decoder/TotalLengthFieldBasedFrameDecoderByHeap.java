@@ -3,8 +3,8 @@ package com.jfireframework.jnet.common.decoder;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
 import com.jfireframework.jnet.common.api.ReadProcessor;
+import com.jfireframework.jnet.common.buffer.IoBuffer;
 import com.jfireframework.jnet.common.exception.TooLongException;
-import com.jfireframework.jnet.common.mem.buffer.IoBuffer;
 import com.jfireframework.jnet.common.util.Allocator;
 
 public class TotalLengthFieldBasedFrameDecoderByHeap implements ReadProcessor<IoBuffer>
@@ -46,16 +46,16 @@ public class TotalLengthFieldBasedFrameDecoderByHeap implements ReadProcessor<Io
     {
         do
         {
-            ioBuffer.maskRead();
+            int maskReadPosi = ioBuffer.getReadPosi();
             int left = ioBuffer.remainRead();
             if (left == 0)
             {
-                ioBuffer.compact().expansion(lengthFieldEndOffset);
+                ioBuffer.compact().grow(lengthFieldEndOffset);
                 return;
             }
             if (lengthFieldEndOffset > left)
             {
-                ioBuffer.compact().expansion(lengthFieldEndOffset);
+                ioBuffer.compact().grow(lengthFieldEndOffset);
                 return;
             }
             // iobuffer中可能包含好几个报文，所以这里应该是增加的方式而不是直接设置的方式
@@ -75,14 +75,14 @@ public class TotalLengthFieldBasedFrameDecoderByHeap implements ReadProcessor<Io
                     break;
             }
             // 得到整体长度后，开始从头读取这个长度的内容
-            ioBuffer.resetReadPosi();
+            ioBuffer.setReadPosi(maskReadPosi);
             if (length >= maxLegnth)
             {
                 throw new TooLongException();
             }
             if (length > ioBuffer.remainRead())
             {
-                ioBuffer.compact().expansion(length);
+                ioBuffer.compact().grow(length);
                 return;
             }
             else

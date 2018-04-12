@@ -3,8 +3,8 @@ package com.jfireframework.jnet.common.decoder;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
 import com.jfireframework.jnet.common.api.ReadProcessor;
+import com.jfireframework.jnet.common.buffer.IoBuffer;
 import com.jfireframework.jnet.common.exception.TooLongException;
-import com.jfireframework.jnet.common.mem.buffer.IoBuffer;
 import com.jfireframework.jnet.common.util.Allocator;
 
 public class LineBasedFrameDecoder implements ReadProcessor<IoBuffer>
@@ -43,7 +43,7 @@ public class LineBasedFrameDecoder implements ReadProcessor<IoBuffer>
                 }
                 else
                 {
-                    ioBuffer.compact().expansion(ioBuffer.size() * 2);
+                    ioBuffer.compact().grow(ioBuffer.capacity() * 2);
                     return;
                 }
             }
@@ -52,15 +52,15 @@ public class LineBasedFrameDecoder implements ReadProcessor<IoBuffer>
                 int length;
                 if ('\r' == ioBuffer.get(eol - 1))
                 {
-                    length = eol - ioBuffer.readPosi() - 1;
+                    length = eol - ioBuffer.getReadPosi() - 1;
                 }
                 else
                 {
-                    length = eol - ioBuffer.readPosi();
+                    length = eol - ioBuffer.getReadPosi();
                 }
                 IoBuffer frame = Allocator.allocateDirect(length);
                 frame.put(ioBuffer, length);
-                ioBuffer.readPosi(eol + 1);
+                ioBuffer.setReadPosi(eol + 1);
                 chain.chain(frame);
             }
         } while (true);
@@ -68,8 +68,8 @@ public class LineBasedFrameDecoder implements ReadProcessor<IoBuffer>
     
     private int getEndOfLine(IoBuffer byteBuf)
     {
-        final int readIndex = byteBuf.readPosi();
-        final int writeIndex = byteBuf.writePosi();
+        final int readIndex = byteBuf.getReadPosi();
+        final int writeIndex = byteBuf.getWritePosi();
         for (int i = readIndex; i < writeIndex; i++)
         {
             byte b;

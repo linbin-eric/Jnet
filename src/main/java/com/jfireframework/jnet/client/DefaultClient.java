@@ -11,60 +11,60 @@ import com.jfireframework.baseutil.exception.JustThrowException;
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelConnectListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
-import com.jfireframework.jnet.common.mem.buffer.IoBuffer;
+import com.jfireframework.jnet.common.buffer.IoBuffer;
 import com.jfireframework.jnet.common.support.ReadHandler;
 
 public class DefaultClient implements AioClient
 {
-	private static final int					connectTimeout	= 10;
-	protected final AsynchronousChannelGroup	channelGroup;
-	protected final String						serverIp;
-	protected final int							port;
-	protected final AioListener					aioListener;
-	protected final ChannelConnectListener		clientChannelContextBuilder;
-	protected ChannelContext					channelContext;
-	
-	public DefaultClient(ChannelConnectListener clientChannelContextBuilder, AsynchronousChannelGroup channelGroup, String serverIp, int port, AioListener aioListener)
-	{
-		this.channelGroup = channelGroup;
-		this.serverIp = serverIp;
-		this.port = port;
-		this.aioListener = aioListener;
-		this.clientChannelContextBuilder = clientChannelContextBuilder;
-	}
-	
-	@Override
-	public void connect()
-	{
-		try
-		{
-			AsynchronousSocketChannel socketChannel = AsynchronousSocketChannel.open(channelGroup);
-			socketChannel.connect(new InetSocketAddress(serverIp, port)).get(connectTimeout, TimeUnit.SECONDS);
-			channelContext = clientChannelContextBuilder.onConnect(socketChannel, aioListener);
-			new ReadHandler(aioListener, channelContext).start();
-		}
-		catch (IOException | InterruptedException | ExecutionException | TimeoutException e)
-		{
-			throw new JustThrowException(e);
-		}
-	}
-	
-	@Override
-	public void close()
-	{
-		try
-		{
-			channelContext.socketChannel().close();
-		}
-		catch (IOException e)
-		{
-			e.printStackTrace();
-		}
-	}
-	
-	@Override
-	public void write(IoBuffer packet)
-	{
-		channelContext.write(packet);
-	}
+    private static final int                 connectTimeout = 10;
+    protected final AsynchronousChannelGroup channelGroup;
+    protected final String                   serverIp;
+    protected final int                      port;
+    protected final AioListener              aioListener;
+    protected final ChannelConnectListener   clientChannelContextBuilder;
+    protected ChannelContext                 channelContext;
+    
+    public DefaultClient(ChannelConnectListener clientChannelContextBuilder, AsynchronousChannelGroup channelGroup, String serverIp, int port, AioListener aioListener)
+    {
+        this.channelGroup = channelGroup;
+        this.serverIp = serverIp;
+        this.port = port;
+        this.aioListener = aioListener;
+        this.clientChannelContextBuilder = clientChannelContextBuilder;
+    }
+    
+    @Override
+    public void connect()
+    {
+        try
+        {
+            AsynchronousSocketChannel socketChannel = AsynchronousSocketChannel.open(channelGroup);
+            socketChannel.connect(new InetSocketAddress(serverIp, port)).get(connectTimeout, TimeUnit.SECONDS);
+            channelContext = clientChannelContextBuilder.onConnect(socketChannel, aioListener);
+            new ReadHandler(aioListener, channelContext).start();
+        }
+        catch (IOException | InterruptedException | ExecutionException | TimeoutException e)
+        {
+            throw new JustThrowException(e);
+        }
+    }
+    
+    @Override
+    public void close()
+    {
+        try
+        {
+            channelContext.socketChannel().close();
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+    }
+    
+    @Override
+    public void write(IoBuffer packet)
+    {
+        channelContext.write(packet);
+    }
 }

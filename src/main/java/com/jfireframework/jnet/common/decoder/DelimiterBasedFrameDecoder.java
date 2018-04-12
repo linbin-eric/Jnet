@@ -3,8 +3,8 @@ package com.jfireframework.jnet.common.decoder;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
 import com.jfireframework.jnet.common.api.ReadProcessor;
+import com.jfireframework.jnet.common.buffer.IoBuffer;
 import com.jfireframework.jnet.common.exception.TooLongException;
-import com.jfireframework.jnet.common.mem.buffer.IoBuffer;
 import com.jfireframework.jnet.common.util.Allocator;
 
 /**
@@ -45,19 +45,18 @@ public class DelimiterBasedFrameDecoder implements ReadProcessor<IoBuffer>
             {
                 throw new TooLongException();
             }
-            ioBuf.maskRead();
             int index = ioBuf.indexOf(delimiter);
             if (index == -1)
             {
-                ioBuf.compact().expansion(ioBuf.size() * 2);
+                ioBuf.compact().grow(ioBuf.capacity() * 2);
                 return;
             }
             else
             {
-                int contentLength = index - ioBuf.readPosi();
+                int contentLength = index - ioBuf.getReadPosi();
                 IoBuffer buf = Allocator.allocateDirect(contentLength);
                 buf.put(ioBuf, contentLength);
-                ioBuf.readPosi(index + delimiter.length);
+                ioBuf.setReadPosi(index + delimiter.length);
                 chain.chain(buf);
             }
         } while (true);
