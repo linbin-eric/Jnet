@@ -83,20 +83,16 @@ public abstract class Chunk
 		{
 			selectedLevel = maxLevel;
 		}
-		int start = 1 << selectedLevel;
-		int end = (1 << (selectedLevel + 1)) - 1;
 		int bucketSize = size[selectedLevel];
-		for (int i = start; i <= end; i++)
+		int index = findAvailable(bucketSize, selectedLevel);
+		if (index == -1)
 		{
-			if (pool[i] == bucketSize && isAvailable(i, bucketSize))
-			{
-				reduce(i, bucketSize);
-				int off = (i - (1 << selectedLevel)) * bucketSize;
-				initHandler(archon, buffer, i, off, bucketSize);
-				return true;
-			}
+			return false;
 		}
-		return false;
+		reduce(index, bucketSize);
+		int off = (index - (1 << selectedLevel)) * bucketSize;
+		initHandler(archon, buffer, index, off, bucketSize);
+		return true;
 	}
 	
 	protected abstract void initHandler(Archon archon, IoBuffer bucket, int index, int off, int len);
@@ -112,20 +108,25 @@ public abstract class Chunk
 		}
 	}
 	
-	private boolean isAvailable(int index, int reduce)
+	private int findAvailable(int reduce, int selectedLevel)
 	{
-		while (index > 0)
+		int index = 1;
+		for (int level = 0; level < selectedLevel; level++)
 		{
 			if (pool[index] >= reduce)
 			{
-				index >>= 1;
+				index <<= 1;
+				continue;
 			}
-			else
+			index += 1;
+			if (pool[index] >= reduce)
 			{
-				break;
+				index <<= 1;
+				continue;
 			}
+			return -1;
 		}
-		return index == 0;
+		return pool[index] >= reduce ? index : pool[++index] >= reduce ? index : -1;
 	}
 	
 	private void reduce(int index, int reduce)

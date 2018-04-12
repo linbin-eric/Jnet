@@ -14,76 +14,79 @@ import com.jfireframework.jnet.common.buffer.PooledArchon;
 
 public class ArchonSpeedTest
 {
-    @Test
-    public void test() throws InterruptedException, SecurityException, NoSuchFieldException, IllegalArgumentException, IllegalAccessException
-    {
-        final Archon archon = PooledArchon.heapPooledArchon(4, 1);
-        final int count = 3000000;
-        int threadNum = 30;
-        final CountDownLatch latch = new CountDownLatch(threadNum);
-        final CyclicBarrier barrier = new CyclicBarrier(threadNum);
-        ExecutorService pool = Executors.newFixedThreadPool(threadNum);
-        long t0 = System.currentTimeMillis();
-        for (int k = 0; k < threadNum; k++)
-        {
-            pool.submit(new Runnable() {
-                
-                @Override
-                public void run()
-                {
-                    IoBuffer handler = IoBuffer.heapIoBuffer();
-                    try
-                    {
-                        barrier.await();
-                        for (int i = 0; i < count; i++)
-                        {
-                            archon.apply(1, handler);
-                            archon.recycle(handler);
-                        }
-                        latch.countDown();
-                    }
-                    catch (Exception e)
-                    {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    }
-                }
-            });
-        }
-        latch.await();
-        long t1 = System.currentTimeMillis();
-        System.out.println((t1 - t0));
-        Field field = PooledArchon.class.getDeclaredField("c25");
-        field.setAccessible(true);
-        ChunkList c25 = (ChunkList) field.get(archon);
-        field = PooledArchon.class.getDeclaredField("c50");
-        field.setAccessible(true);
-        ChunkList c50 = (ChunkList) field.get(archon);
-        field = PooledArchon.class.getDeclaredField("c75");
-        field.setAccessible(true);
-        ChunkList c75 = (ChunkList) field.get(archon);
-        field = PooledArchon.class.getDeclaredField("c100");
-        field.setAccessible(true);
-        ChunkList c100 = (ChunkList) field.get(archon);
-        if (c25.head() != null)
-        {
-            System.out.println("c25:" + c25.head().usage());
-            Assert.fail();
-        }
-        if (c50.head() != null)
-        {
-            System.out.println("c50:" + c50.head().usage());
-            Assert.fail();
-        }
-        if (c75.head() != null)
-        {
-            System.out.println("c75:" + c75.head().usage());
-            Assert.fail();
-        }
-        if (c100.head() != null)
-        {
-            System.out.println("c100:" + c100.head().usage());
-            Assert.fail();
-        }
-    }
+	@Test
+	public void test() throws InterruptedException, SecurityException, NoSuchFieldException, IllegalArgumentException, IllegalAccessException
+	{
+		final Archon archon = PooledArchon.heapPooledArchon(4, 1);
+		final int count = 20000000;
+		int threadNum = Runtime.getRuntime().availableProcessors();
+		final CountDownLatch latch = new CountDownLatch(threadNum);
+		final CyclicBarrier barrier = new CyclicBarrier(threadNum);
+		ExecutorService pool = Executors.newFixedThreadPool(threadNum);
+		long t0 = System.currentTimeMillis();
+		for (int k = 0; k < threadNum; k++)
+		{
+			pool.submit(new Runnable() {
+				
+				@Override
+				public void run()
+				{
+					IoBuffer buffer = IoBuffer.heapIoBuffer();
+					IoBuffer buffer2 = IoBuffer.heapIoBuffer();
+					try
+					{
+						barrier.await();
+						for (int i = 0; i < count; i++)
+						{
+							archon.apply(1, buffer);
+							archon.apply(3, buffer2);
+							archon.recycle(buffer2);
+							archon.recycle(buffer);
+						}
+						latch.countDown();
+					}
+					catch (Exception e)
+					{
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+			});
+		}
+		latch.await();
+		long t1 = System.currentTimeMillis();
+		System.out.println((t1 - t0));
+		Field field = PooledArchon.class.getDeclaredField("c25");
+		field.setAccessible(true);
+		ChunkList c25 = (ChunkList) field.get(archon);
+		field = PooledArchon.class.getDeclaredField("c50");
+		field.setAccessible(true);
+		ChunkList c50 = (ChunkList) field.get(archon);
+		field = PooledArchon.class.getDeclaredField("c75");
+		field.setAccessible(true);
+		ChunkList c75 = (ChunkList) field.get(archon);
+		field = PooledArchon.class.getDeclaredField("c100");
+		field.setAccessible(true);
+		ChunkList c100 = (ChunkList) field.get(archon);
+		if (c25.head() != null)
+		{
+			System.out.println("c25:" + c25.head().usage());
+			Assert.fail();
+		}
+		if (c50.head() != null)
+		{
+			System.out.println("c50:" + c50.head().usage());
+			Assert.fail();
+		}
+		if (c75.head() != null)
+		{
+			System.out.println("c75:" + c75.head().usage());
+			Assert.fail();
+		}
+		if (c100.head() != null)
+		{
+			System.out.println("c100:" + c100.head().usage());
+			Assert.fail();
+		}
+	}
 }
