@@ -1,16 +1,19 @@
 package com.jfireframework.jnet.common.buffer;
 
 import java.nio.ByteBuffer;
+import com.jfireframework.jnet.common.recycler.Recycler.RecycleHandler;
 
 public abstract class IoBuffer
 {
-	protected int			index;
-	protected Chunk			chunk;
-	protected ByteBuffer	cachedByteBuffer;
-	protected int			capacity;
-	protected int			readPosi;
-	protected int			writePosi;
-	protected Archon		archon;
+	protected int				index;
+	protected Chunk				chunk;
+	protected ByteBuffer		cachedByteBuffer;
+	protected int				capacity;
+	protected int				readPosi;
+	protected int				writePosi;
+	protected Archon			archon;
+	// 用于池化IoBuffer。如果没有此需求，该属性始终为空
+	protected RecycleHandler	recycleHandler;
 	
 	public static IoBuffer heapIoBuffer()
 	{
