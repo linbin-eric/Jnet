@@ -80,7 +80,7 @@ public class WriteHandler implements CompletionHandler<Integer, IoBuffer>
         for (int i = 0; i < currentSendCount; i++)
         {
             outCachedBuf.put(bufArray[i]);
-            bufArray[i].release();
+            Allocator.release(bufArray[i]);
             bufArray[i] = null;
         }
         socketChannel.write(outCachedBuf.byteBuffer(), outCachedBuf, this);

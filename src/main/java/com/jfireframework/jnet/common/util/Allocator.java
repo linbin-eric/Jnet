@@ -2,7 +2,6 @@ package com.jfireframework.jnet.common.util;
 
 import com.jfireframework.jnet.common.buffer.IoBuffer;
 import com.jfireframework.jnet.common.buffer.IoBufferAllocator;
-import com.jfireframework.jnet.common.buffer.PooledIoBufferAllocator;
 import com.jfireframework.jnet.common.buffer.ThreadPooledIoBufferAllocator;
 
 public class Allocator
@@ -17,5 +16,10 @@ public class Allocator
     public static IoBuffer allocateDirect(int initSize)
     {
         return allocator.allocateDirect(initSize);
+    }
+    
+    public static void release(IoBuffer iobufer)
+    {
+        allocator.release(iobufer);
     }
 }
