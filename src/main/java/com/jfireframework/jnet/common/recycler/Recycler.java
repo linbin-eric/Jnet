@@ -53,7 +53,7 @@ public abstract class Recycler<T>
     
     public static interface RecycleHandler
     {
-        void recycle(Object item);
+        boolean recycle(Object item);
     }
     
     public class DefaultHandler implements RecycleHandler
@@ -62,13 +62,13 @@ public abstract class Recycler<T>
         Stack stack;
         
         @Override
-        public void recycle(Object item)
+        public boolean recycle(Object item)
         {
             if (value != item)
             {
                 throw new IllegalArgumentException("不是handler所属的对象");
             }
-            stack.push(this);
+            return stack.push(this);
         }
     }
     

@@ -76,7 +76,10 @@ public class ThreadPooledIoBufferAllocator implements IoBufferAllocator
     @Override
     public void release(IoBuffer ioBuffer)
     {
-        ioBuffer.recycleHandler.recycle(ioBuffer);
+        if (ioBuffer.recycleHandler.recycle(ioBuffer) == false)
+        {
+            ioBuffer.release();
+        }
     }
     
 }
