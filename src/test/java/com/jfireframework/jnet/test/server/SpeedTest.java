@@ -42,7 +42,7 @@ public class SpeedTest
 {
     private int                 port            = 8546;
     private int                 clientThreadNum = 30;
-    private int                 sendCount       = 10000;
+    private int                 sendCount       = 50000;
     private int                 sum             = clientThreadNum * sendCount;
     private IoMode              serverMode;
     private IoMode              clientMode;
