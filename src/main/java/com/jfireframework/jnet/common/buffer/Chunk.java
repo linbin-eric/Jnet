@@ -110,24 +110,51 @@ public abstract class Chunk
 	
 	private int findAvailable(int reduce, int selectedLevel)
 	{
-		int index = 1;
-		for (int level = 0; level < selectedLevel; level++)
+		int start = 1 << selectedLevel;
+		int end = (1 << (selectedLevel + 1));
+		for (int index = start; index < end;)
 		{
 			if (pool[index] >= reduce)
 			{
-				index <<= 1;
-				continue;
+				int tmp = index;
+				while (tmp > 0)
+				{
+					if (pool[tmp] >= reduce)
+					{
+						tmp >>= 1;
+					}
+					else
+					{
+						break;
+					}
+				}
+				// 上层还可以分配
+				if (tmp == 0)
+				{
+					return index;
+				}
+				else
+				{
+					int shift = log2(tmp);
+					index = (tmp + 1) << (selectedLevel - shift);
+				}
 			}
-			index += 1;
-			if (pool[index] >= reduce)
+			else
 			{
-				index <<= 1;
-				continue;
+				index += 1;
 			}
-			return -1;
 		}
-		return pool[index] >= reduce ? index : pool[++index] >= reduce ? index : -1;
+		return -1;
 	}
+	
+	public static void main(String[] args)
+	{
+		int n = 5;
+		int shift = log2(n);
+		int end = 1 << (shift + 1);
+		System.out.println(n + "," + end);
+	}
+	
 	
 	private void reduce(int index, int reduce)
 	{
