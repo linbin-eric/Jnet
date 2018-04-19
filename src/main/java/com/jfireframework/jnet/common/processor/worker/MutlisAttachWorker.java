@@ -15,7 +15,6 @@ public class MutlisAttachWorker implements Runnable
     private static final int               WORK           = 1;
     private final CpuCachePadingInt        status         = new CpuCachePadingInt(WORK);
     private static final int               SPIN_THRESHOLD = 1 << 7;
-    private int                            spin           = 0;
     private volatile Thread                owner;
     
     @Override
@@ -23,6 +22,7 @@ public class MutlisAttachWorker implements Runnable
     {
         status.set(WORK);
         owner = Thread.currentThread();
+        int spin;
         termination: do
         {
             MutliAttachEntity entity = entities.poll();
