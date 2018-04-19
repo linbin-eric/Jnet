@@ -23,5 +23,9 @@ public enum IoMode
 	 * 每一个通道的处理器是固定的。但是处理器本身要处理n个通道的数据。<br/>
 	 * 当任务处理器没有数据处理时则会让当前线程进行阻塞状态。<br/>
 	 */
-	MUTLI_ATTACH
+	MUTLI_ATTACH,
+	/**
+	 * io线程和业务线程分开。io线程读取到数据后生成runnable，放入业务线程池进行处理
+	 */
+	COMMON_POOL,
 }
