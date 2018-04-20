@@ -175,7 +175,11 @@ public abstract class Recycler<T>
             {
                 if (transferSome())
                 {
-                    return (DefaultHandler) elements[--size];
+                    int index = size - 1;
+                    DefaultHandler value = (Recycler<T>.DefaultHandler) elements[index];
+                    elements[index] = null;
+                    size = index;
+                    return value;
                 }
                 else
                 {
@@ -184,7 +188,11 @@ public abstract class Recycler<T>
             }
             else
             {
-                return (DefaultHandler) elements[--size];
+                int index = size - 1;
+                DefaultHandler value = (Recycler<T>.DefaultHandler) elements[index];
+                elements[index] = null;
+                size = index;
+                return value;
             }
         }
         
