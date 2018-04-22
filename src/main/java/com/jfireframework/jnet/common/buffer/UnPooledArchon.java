@@ -9,6 +9,12 @@ public abstract class UnPooledArchon extends Archon
         
     }
     
+    @Override
+    public void recycle(IoBuffer[] buffers, int off, int len)
+    {
+        
+    }
+    
     public static UnPooledArchon directUnPooledArchon()
     {
         return new DirectUnPooledArchon();

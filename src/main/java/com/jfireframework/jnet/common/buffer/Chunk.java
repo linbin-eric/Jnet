@@ -11,6 +11,7 @@ public abstract class Chunk
     protected int       pageShift;
     protected int       maxLevel;
     protected int       unit;
+    protected final int capacityShift;
     
     public Chunk(int maxLevel, int unit)
     {
@@ -34,6 +35,7 @@ public abstract class Chunk
         }
         capacity = size[0];
         initializeMem(capacity);
+        capacityShift = log2(capacity);
     }
     
     public static Chunk newHeapChunk(int maxLevel, int unit)
@@ -144,9 +146,30 @@ public abstract class Chunk
         }
     }
     
+    /**
+     * 针对0%做一个特殊处理。除非所有耗尽，否则最低显示1%
+     * 
+     * @return
+     */
     public int usage()
     {
-        return (capacity - pool[1]) * 100 / capacity;
+        int left = capacity - pool[1];
+        int result = (left * 100) >> capacityShift;
+        if (result == 0)
+        {
+            if (left != 0)
+            {
+                return 1;
+            }
+            else
+            {
+                return result;
+            }
+        }
+        else
+        {
+            return result;
+        }
     }
     
     public int capacity()

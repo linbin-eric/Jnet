@@ -18,6 +18,8 @@ public abstract class Archon
      */
     public abstract void recycle(IoBuffer buffer);
     
+    public abstract void recycle(IoBuffer[] buffers, int off, int len);
+    
     /**
      * 对handler进行扩容，扩容流程是先申请一个newSize大小的空间，将handler本身的内容复制过去。然后将handler中的部分回收。<br/>
      * 

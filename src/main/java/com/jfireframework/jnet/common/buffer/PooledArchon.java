@@ -22,7 +22,7 @@ public abstract class PooledArchon extends Archon
         c75 = new ChunkList(c100, 100, 75, "c075");
         c50 = new ChunkList(c75, 100, 50, "c050");
         c25 = new ChunkList(c50, 75, 25, "c025");
-        c000 = new ChunkList(c25, 50, 1, "c000");
+        c000 = new ChunkList(c25, 50, 0, "c000");
         cInt = new ChunkList(c000, 25, Integer.MIN_VALUE, "cInt");
         c25.setPrev(c000);
         c50.setPrev(c25);
@@ -81,6 +81,31 @@ public abstract class PooledArchon extends Archon
         {
             // 由于采用百分比计数，存在一种可能：在低于1%时，计算结果为0%。此时chunk节点已经从list删除，但是仍然被外界持有（因为实际占用率不是0）。此时的chunk节点的parent是为空。
             chunk.recycle(handler);
+        }
+    }
+    
+    @Override
+    public synchronized void recycle(IoBuffer[] buffers, int off, int len)
+    {
+        int end = off + len;
+        for (int i = off; i < end; i++)
+        {
+            IoBuffer buffer = buffers[i];
+            if (buffer.belong() == null)
+            {
+                continue;
+            }
+            Chunk chunk = buffer.belong();
+            ChunkList list = chunk.parent();
+            if (list != null)
+            {
+                list.recycle(buffer);
+            }
+            else
+            {
+                // 由于采用百分比计数，存在一种可能：在低于1%时，计算结果为0%。此时chunk节点已经从list删除，但是仍然被外界持有（因为实际占用率不是0）。此时的chunk节点的parent是为空。
+                chunk.recycle(buffer);
+            }
         }
     }
     
