@@ -31,6 +31,18 @@ public abstract class PooledArchon extends Archon
         maxSize = unit * (1 << (maxLevel));
     }
     
+    public String statistics()
+    {
+        StringBuilder builder = new StringBuilder();
+        builder.append("cInt:").append(cInt.getStatistics().toString()).append(",").append("\r\n")//
+                .append("c000:").append(c000.getStatistics().toString()).append(",").append("\r\n")//
+                .append("c25:").append(c25.getStatistics().toString()).append(",").append("\r\n")//
+                .append("c50:").append(c50.getStatistics().toString()).append(",").append("\r\n")//
+                .append("c75:").append(c75.getStatistics().toString()).append(",").append("\r\n")//
+                .append("c100:").append(c100.getStatistics().toString());//
+        return builder.toString();
+    }
+    
     @Override
     public synchronized void apply(int need, IoBuffer handler)
     {

@@ -7,6 +7,7 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +20,7 @@ import com.jfireframework.jnet.common.buffer.PooledArchon;
 
 public class ArchonSpeedTest
 {
-    private final int           count  = 100000;
+    private final long          count  = 20000000;
     private static final Logger logger = LoggerFactory.getLogger(ArchonSpeedTest.class);
     
     /**
@@ -38,7 +39,7 @@ public class ArchonSpeedTest
         IoBuffer buffer2 = IoBuffer.heapIoBuffer();
         Timewatch timewatch = new Timewatch();
         timewatch.start();
-        for (int i = 0; i < count; i++)
+        for (long i = 0; i < count; i++)
         {
             archon.apply(1, buffer);
             archon.apply(3, buffer2);
@@ -48,6 +49,7 @@ public class ArchonSpeedTest
         timewatch.end();
         checkArchonState(archon);
         logger.debug("单线程释放:{}次耗时:{}毫秒", count, timewatch.getTotal());
+        logger.debug("总计调用：\r\n{} ", ((PooledArchon) archon).statistics());
     }
     
     private void checkArchonState(final Archon archon) throws NoSuchFieldException, IllegalAccessException
@@ -128,10 +130,12 @@ public class ArchonSpeedTest
         latch.await();
         long t1 = System.currentTimeMillis();
         logger.debug("{}个线程单独申请单独释放{}次耗时{}毫秒", threadNum, count, (t1 - t0));
+        logger.debug("总计调用：\r\n{} ", ((PooledArchon) archon).statistics());
         checkArchonState(archon);
     }
     
     @Test
+    @Ignore
     public void test3() throws InterruptedException, BrokenBarrierException, NoSuchFieldException, IllegalAccessException
     {
         final Archon archon = PooledArchon.heapPooledArchon(4, 1);
@@ -139,8 +143,7 @@ public class ArchonSpeedTest
         final CountDownLatch latch = new CountDownLatch(threadNum);
         final CyclicBarrier barrier = new CyclicBarrier(threadNum + 1);
         ExecutorService pool = Executors.newFixedThreadPool(threadNum);
-        ExecutorService pool2 = Executors.newFixedThreadPool(1);
-        final BatchRecycler batchRecycler = new BatchRecycler(pool2, archon);
+        final ExecutorService pool2 = Executors.newFixedThreadPool(threadNum);
         for (int k = 0; k < threadNum; k++)
         {
             pool.submit(new Runnable() {
@@ -148,6 +151,7 @@ public class ArchonSpeedTest
                 @Override
                 public void run()
                 {
+                    final BatchRecycler batchRecycler = new BatchRecycler(pool2, archon);
                     IoBuffer buffer = IoBuffer.heapIoBuffer();
                     IoBuffer buffer2 = IoBuffer.heapIoBuffer();
                     try
