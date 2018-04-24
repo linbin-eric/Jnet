@@ -1,269 +1,107 @@
 package com.jfireframework.jnet.common.buffer;
 
 import java.nio.ByteBuffer;
-import com.jfireframework.jnet.common.recycler.Recycler.RecycleHandler;
 
-public abstract class IoBuffer
+public interface IoBuffer
 {
-	protected int				index;
-	protected Chunk				chunk;
-	protected ByteBuffer		cachedByteBuffer;
-	protected int				capacity;
-	protected int				readPosi;
-	protected int				writePosi;
-	protected Archon			archon;
-	// 用于池化IoBuffer。如果没有此需求，该属性始终为空
-	protected RecycleHandler	recycleHandler;
-	
-	public static IoBuffer heapIoBuffer()
-	{
-		return new HeapIoBuffer();
-	}
-	
-	public static IoBuffer directBuffer()
-	{
-		return new DirectIoBuffer();
-	}
-	
-	protected void initialize(int off, int capacity, Object mem, int index, Chunk chunk, Archon archon)
-	{
-		this.capacity = capacity;
-		this.index = index;
-		this.chunk = chunk;
-		this.archon = archon;
-		cachedByteBuffer = null;
-		//
-		_initialize(off, capacity, mem);
-	}
-	
-	protected abstract void _initialize(int off, int capacity, Object mem);
-	
-	/**
-	 * 通过一个初始化的Buffer：src进行扩容操作。具体流程如下<br/>
-	 * 将自身数据拷贝到src中。该拷贝方法会复制的信息包含:<br/>
-	 * 从off到writePosi的所有数据,相对readPosi,相对writePosi <br/>
-	 * 将src中的数据和自身的数据进行互换。互换的信息包含：<br/>
-	 * mem,chunk,archon,readPosi,writePosi,off,capacity,index <br/>
-	 * 
-	 * @param src
-	 */
-	protected abstract void expansion(IoBuffer src);
+	void initialize(int offset, int capacity, Object memory, int index, Chunk chunk);
 	
 	/**
 	 * 增大buffer的容量到newSize
 	 * 
 	 * @param newSize
 	 */
-	public IoBuffer grow(int newSize)
-	{
-		ensureEnoughWrite(newSize - capacity);
-		return this;
-	}
+	IoBuffer grow(int newSize);
 	
-	protected void ensureEnoughWrite(int needToWrite)
-	{
-		if (needToWrite < 0 || remainWrite() >= needToWrite)
-		{
-			return;
-		}
-		archon.expansion(this, capacity + needToWrite);
-	}
+	Chunk belong();
 	
-	public Chunk belong()
-	{
-		return chunk;
-	}
+	void release();
 	
-	public void release()
-	{
-		if (archon != null)
-		{
-			archon.recycle(this);
-		}
-	}
+	void destory();
 	
-	public void destory()
-	{
-		index = -1;
-		chunk = null;
-		archon = null;
-		cachedByteBuffer = null;
-		_destoryMem();
-	}
+	String toString();
 	
-	protected abstract void _destoryMem();
+	int getIndex();
 	
-	@Override
-	public String toString()
-	{
-		return "Handler [index=" + index + ", chunk=" + chunk + ", cachedByteBuffer=" + cachedByteBuffer + ", capacity=" + capacity + ", readPosi=" + readPosi + ", writePosi=" + writePosi + ", archon=" + archon + "]";
-	}
+	int capacity();
 	
-	public int getIndex()
-	{
-		return index;
-	}
+	IoBuffer put(byte b);
 	
-	public ByteBuffer cachedByteBuffer()
-	{
-		if (cachedByteBuffer != null)
-		{
-			return cachedByteBuffer;
-		}
-		return byteBuffer();
-	}
+	IoBuffer put(byte b, int posi);
 	
-	public int capacity()
-	{
-		return capacity;
-	}
+	IoBuffer put(byte[] content);
 	
-	public IoBuffer put(byte b)
-	{
-		ensureEnoughWrite(1);
-		_put(b);
-		return this;
-	}
+	IoBuffer put(byte[] content, int off, int len);
 	
-	protected abstract void _put(byte b);
+	IoBuffer put(IoBuffer bucket);
 	
-	public IoBuffer put(byte b, int posi)
-	{
-		if (posi < 0)
-		{
-			throw new IllegalArgumentException();
-		}
-		ensureEnoughWrite(posi - getWritePosi());
-		_put(b, posi);
-		return this;
-	}
+	IoBuffer put(IoBuffer handler, int len);
 	
-	protected abstract void _put(byte b, int posi);
+	IoBuffer writeInt(int i, int off);
 	
-	public IoBuffer put(byte[] content)
-	{
-		ensureEnoughWrite(content.length);
-		_put(content);
-		return this;
-	}
+	IoBuffer writeShort(short s, int off);
 	
-	protected abstract void _put(byte[] content);
+	IoBuffer writeLong(long l, int off);
 	
-	public IoBuffer put(byte[] content, int off, int len)
-	{
-		ensureEnoughWrite(off + len - getWritePosi());
-		_put(content, off, len);
-		return this;
-	}
+	IoBuffer writeInt(int i);
 	
-	protected abstract void _put(byte[] content, int off, int len);
+	IoBuffer writeShort(short s);
 	
-	public IoBuffer put(IoBuffer bucket)
-	{
-		return put(bucket, bucket.remainRead());
-	}
+	IoBuffer writeLong(long l);
 	
-	public IoBuffer put(IoBuffer handler, int len)
-	{
-		ensureEnoughWrite(len);
-		_put(handler, len);
-		return this;
-	}
+	/**
+	 * 返回读取位置，该读取位置的初始值为0
+	 * 
+	 * @return
+	 */
+	int getReadPosi();
 	
-	protected abstract void _put(IoBuffer handler, int len);
+	void setReadPosi(int readPosi);
 	
-	public IoBuffer writeInt(int i, int off)
-	{
-		ensureEnoughWrite(off + 4 - getWritePosi());
-		_writeInt(i, off);
-		return this;
-	}
+	/**
+	 * 返回写入位置，该写入位置的初始值为0
+	 * 
+	 * @return
+	 */
+	int getWritePosi();
 	
-	protected abstract void _writeInt(int i, int off);
+	void setWritePosi(int writePosi);
 	
-	public IoBuffer writeShort(short s, int off)
-	{
-		ensureEnoughWrite(off + 2 - getWritePosi());
-		_writeShort(s, off);
-		return this;
-	}
+	IoBuffer clearData();
 	
-	protected abstract void _writeShort(short s, int off);
+	byte get();
 	
-	public IoBuffer writeLong(long l, int off)
-	{
-		ensureEnoughWrite(off + 8 - getWritePosi());
-		_writeLong(l, off);
-		return this;
-	}
+	byte get(int posi);
 	
-	protected abstract void _writeLong(long l, int off);
+	int remainRead();
 	
-	public IoBuffer writeInt(int i)
-	{
-		ensureEnoughWrite(4);
-		_writeInt(i);
-		return this;
-	}
+	int remainWrite();
 	
-	protected abstract void _writeInt(int i);
+	IoBuffer compact();
 	
-	public IoBuffer writeShort(short s)
-	{
-		ensureEnoughWrite(2);
-		_writeShort(s);
-		return this;
-	}
+	IoBuffer get(byte[] content);
 	
-	protected abstract void _writeShort(short s);
+	IoBuffer get(byte[] content, int off, int len);
 	
-	public IoBuffer writeLong(long l)
-	{
-		ensureEnoughWrite(8);
-		_writeLong(l);
-		return this;
-	}
+	void addReadPosi(int add);
 	
-	protected abstract void _writeLong(long l);
+	void addWritePosi(int add);
 	
-	public abstract int getReadPosi();
+	int indexOf(byte[] array);
 	
-	public abstract void setReadPosi(int readPosi);
+	int readInt();
 	
-	public abstract int getWritePosi();
+	short readShort();
 	
-	public abstract void setWritePosi(int writePosi);
+	long readLong();
 	
-	public abstract IoBuffer clearData();
+	/**
+	 * 返回一个处于读状态的ByteBuffer。其内容为当前IoBuffer的内容
+	 * 
+	 * @return
+	 */
+	ByteBuffer byteBuffer();
 	
-	public abstract byte get();
-	
-	public abstract byte get(int posi);
-	
-	public abstract int remainRead();
-	
-	public abstract int remainWrite();
-	
-	public abstract IoBuffer compact();
-	
-	public abstract IoBuffer get(byte[] content);
-	
-	public abstract IoBuffer get(byte[] content, int off, int len);
-	
-	public abstract void addReadPosi(int add);
-	
-	public abstract void addWritePosi(int add);
-	
-	public abstract int indexOf(byte[] array);
-	
-	public abstract int readInt();
-	
-	public abstract short readShort();
-	
-	public abstract long readLong();
-	
-	public abstract ByteBuffer byteBuffer();
-	
-	public abstract boolean isDirect();
+	boolean isDirect();
 	
 }

@@ -8,7 +8,7 @@ import org.junit.Test;
 import com.jfireframework.jnet.common.buffer.Archon;
 import com.jfireframework.jnet.common.buffer.Chunk;
 import com.jfireframework.jnet.common.buffer.ChunkList;
-import com.jfireframework.jnet.common.buffer.IoBuffer;
+import com.jfireframework.jnet.common.buffer.AbstractIoBuffer;
 import com.jfireframework.jnet.common.buffer.PooledArchon;
 
 public class ArchonTest
@@ -35,7 +35,7 @@ public class ArchonTest
         field = PooledArchon.class.getDeclaredField("c000");
         field.setAccessible(true);
         ChunkList c000 = (ChunkList) field.get(archon);
-        IoBuffer handler = IoBuffer.heapIoBuffer();
+        AbstractIoBuffer handler = AbstractIoBuffer.heapIoBuffer();
         Field headField = ChunkList.class.getDeclaredField("head");
         headField.setAccessible(true);
         archon.apply(1, handler);
@@ -77,12 +77,12 @@ public class ArchonTest
     public void test2() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException
     {
         Archon archon = PooledArchon.heapPooledArchon(4, 1);
-        IoBuffer handler = IoBuffer.heapIoBuffer();
+        AbstractIoBuffer handler = AbstractIoBuffer.heapIoBuffer();
         archon.apply(2, handler);
         handler.put((byte) 0x01);
         handler.put((byte) 0x02);
         handler.get();
-        Field field = IoBuffer.class.getDeclaredField("chunk");
+        Field field = AbstractIoBuffer.class.getDeclaredField("chunk");
         field.setAccessible(true);
         Chunk originChunk = (Chunk) field.get(handler);
         int originCapacity = handler.capacity();
@@ -116,12 +116,12 @@ public class ArchonTest
     public void test3() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException
     {
         Archon archon = PooledArchon.directPooledArchon(4, 1);
-        IoBuffer handler = IoBuffer.directBuffer();
+        AbstractIoBuffer handler = AbstractIoBuffer.directBuffer();
         archon.apply(2, handler);
         handler.put((byte) 0x01);
         handler.put((byte) 0x02);
         handler.get();
-        Field field = IoBuffer.class.getDeclaredField("chunk");
+        Field field = AbstractIoBuffer.class.getDeclaredField("chunk");
         field.setAccessible(true);
         Chunk originChunk = (Chunk) field.get(handler);
         int originCapacity = handler.capacity();

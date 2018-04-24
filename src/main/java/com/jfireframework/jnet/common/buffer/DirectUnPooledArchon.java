@@ -6,15 +6,15 @@ class DirectUnPooledArchon extends UnPooledArchon
 {
     
     @Override
-    public void apply(int need, IoBuffer buffer)
+    public void apply(int need, AbstractIoBuffer buffer)
     {
         buffer.initialize(0, need, ByteBuffer.allocateDirect(need), 0, null, this);
     }
     
     @Override
-    public void expansion(IoBuffer buffer, int newSize)
+    public void expansion(AbstractIoBuffer buffer, int newSize)
     {
-        IoBuffer expansionIoBuffer = IoBuffer.directBuffer();
+        AbstractIoBuffer expansionIoBuffer = AbstractIoBuffer.directBuffer();
         apply(newSize, expansionIoBuffer);
         buffer.expansion(expansionIoBuffer);
         recycle(expansionIoBuffer);

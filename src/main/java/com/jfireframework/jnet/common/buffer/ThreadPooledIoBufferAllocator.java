@@ -5,24 +5,24 @@ import com.jfireframework.jnet.common.recycler.Recycler;
 
 public class ThreadPooledIoBufferAllocator implements IoBufferAllocator
 {
-    private Recycler<IoBuffer> localHeap   = new Recycler<IoBuffer>() {
+    private Recycler<AbstractIoBuffer> localHeap   = new Recycler<AbstractIoBuffer>() {
                                                
                                                @Override
                                                protected IoBuffer newObject(RecycleHandler handler)
                                                {
-                                                   IoBuffer heapIoBuffer = IoBuffer.heapIoBuffer();
+                                                   AbstractIoBuffer heapIoBuffer = AbstractIoBuffer.heapIoBuffer();
                                                    heapIoBuffer.recycleHandler = handler;
                                                    return heapIoBuffer;
                                                }
                                                
                                            };
     
-    private Recycler<IoBuffer> localDirect = new Recycler<IoBuffer>() {
+    private Recycler<AbstractIoBuffer> localDirect = new Recycler<AbstractIoBuffer>() {
                                                
                                                @Override
                                                protected IoBuffer newObject(RecycleHandler handler)
                                                {
-                                                   IoBuffer directBuffer = IoBuffer.directBuffer();
+                                                   AbstractIoBuffer directBuffer = AbstractIoBuffer.directBuffer();
                                                    directBuffer.recycleHandler = handler;
                                                    return directBuffer;
                                                }
@@ -50,10 +50,10 @@ public class ThreadPooledIoBufferAllocator implements IoBufferAllocator
     }
     
     @Override
-    public IoBuffer allocate(int initSize)
+    public AbstractIoBuffer allocate(int initSize)
     {
         int index = idx.incrementAndGet() & mask;
-        IoBuffer buffer = localHeap.get();
+        AbstractIoBuffer buffer = localHeap.get();
         if (buffer.archon == null)
         {
             heapArchons[index].apply(initSize, buffer);
@@ -62,10 +62,10 @@ public class ThreadPooledIoBufferAllocator implements IoBufferAllocator
     }
     
     @Override
-    public IoBuffer allocateDirect(int initSize)
+    public AbstractIoBuffer allocateDirect(int initSize)
     {
         int index = idx.incrementAndGet() & mask;
-        IoBuffer buffer = localDirect.get();
+        AbstractIoBuffer buffer = localDirect.get();
         if (buffer.archon == null)
         {
             directArchons[index].apply(initSize, buffer);
@@ -74,7 +74,7 @@ public class ThreadPooledIoBufferAllocator implements IoBufferAllocator
     }
     
     @Override
-    public void release(IoBuffer ioBuffer)
+    public void release(AbstractIoBuffer ioBuffer)
     {
         ioBuffer.clearData();
         if (ioBuffer.recycleHandler.recycle(ioBuffer) == false)

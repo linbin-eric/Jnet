@@ -11,7 +11,7 @@ public class BatchRecycler implements Runnable
     private static final int        WORK           = 1;
     private static final int        SPIN_THRESHOLD = 1 << 7;
     private final ExecutorService   executorService;
-    private final Queue<IoBuffer>   entities       = new MPSCQueue<>();
+    private final Queue<AbstractIoBuffer>   entities       = new MPSCQueue<>();
     private final CpuCachePadingInt status         = new CpuCachePadingInt(IDLE);
     private final int               BATCH_NUM      = 8;
     private final IoBuffer[]        BATCH_ARRAY    = new IoBuffer[BATCH_NUM];
@@ -70,7 +70,7 @@ public class BatchRecycler implements Runnable
         } while (true);
     }
     
-    public void commit(IoBuffer buffer)
+    public void commit(AbstractIoBuffer buffer)
     {
         entities.add(buffer);
         tryExecute();

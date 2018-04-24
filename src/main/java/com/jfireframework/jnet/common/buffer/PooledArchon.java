@@ -11,7 +11,7 @@ public abstract class PooledArchon extends Archon
     private int        maxLevel;
     private int        unit;
     private int        maxSize;
-    protected IoBuffer expansionIoBuffer;
+    protected AbstractIoBuffer expansionIoBuffer;
     
     protected PooledArchon(int maxLevel, int unit)
     {
@@ -44,7 +44,7 @@ public abstract class PooledArchon extends Archon
     }
     
     @Override
-    public synchronized void apply(int need, IoBuffer handler)
+    public synchronized void apply(int need, AbstractIoBuffer handler)
     {
         if (need > maxSize)
         {
@@ -68,10 +68,10 @@ public abstract class PooledArchon extends Archon
     }
     
     @Override
-    public synchronized void expansion(IoBuffer handler, int newSize)
+    public synchronized void expansion(AbstractIoBuffer buffer, int newSize)
     {
         apply(newSize, expansionIoBuffer);
-        handler.expansion(expansionIoBuffer);
+        buffer.expansion(expansionIoBuffer);
         recycle(expansionIoBuffer);
         expansionIoBuffer.destory();
     }
@@ -121,7 +121,7 @@ public abstract class PooledArchon extends Archon
         }
     }
     
-    protected abstract void initHugeBucket(IoBuffer handler, int need);
+    protected abstract void initHugeBucket(AbstractIoBuffer handler, int need);
     
     protected abstract Chunk newChunk(int maxLevel, int unit);
     

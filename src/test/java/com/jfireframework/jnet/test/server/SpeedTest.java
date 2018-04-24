@@ -24,7 +24,7 @@ import com.jfireframework.jnet.common.api.ChannelConnectListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
 import com.jfireframework.jnet.common.api.ReadProcessor;
-import com.jfireframework.jnet.common.buffer.IoBuffer;
+import com.jfireframework.jnet.common.buffer.AbstractIoBuffer;
 import com.jfireframework.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
 import com.jfireframework.jnet.common.processor.ChannelAttachProcessor;
 import com.jfireframework.jnet.common.processor.CommonPoolProcessor;
@@ -90,10 +90,10 @@ public class SpeedTest
 	ChannelConnectListener build(IoMode iomode, AioListener aioListener)
 	{
 		ChannelConnectListener channelContextBuilder = null;
-		final ReadProcessor<IoBuffer> processor = new ReadProcessorAdapter<IoBuffer>() {
+		final ReadProcessor<AbstractIoBuffer> processor = new ReadProcessorAdapter<AbstractIoBuffer>() {
 			
 			@Override
-			public void process(IoBuffer buf, ProcessorChain chain, ChannelContext channelContext)
+			public void process(AbstractIoBuffer buf, ProcessorChain chain, ChannelContext channelContext)
 			{
 				logger.debug("收到客户端消息,{}", buf.toString());
 				buf.setReadPosi(0);
@@ -213,10 +213,10 @@ public class SpeedTest
 		AioListener aioListener = new DefaultAioListener();
 		clientBuilder.setAioListener(aioListener);
 		ChannelConnectListener channelContextBuilder = null;
-		final ReadProcessor<IoBuffer> processor = new ReadProcessorAdapter<IoBuffer>() {
+		final ReadProcessor<AbstractIoBuffer> processor = new ReadProcessorAdapter<AbstractIoBuffer>() {
 			
 			@Override
-			public void process(IoBuffer buf, ProcessorChain chain, ChannelContext channelContext)
+			public void process(AbstractIoBuffer buf, ProcessorChain chain, ChannelContext channelContext)
 			{
 				buf.release();
 				int now = total.incrementAndGet();
@@ -362,7 +362,7 @@ public class SpeedTest
 					{
 						try
 						{
-							IoBuffer buf = Allocator.allocate(128);
+							AbstractIoBuffer buf = Allocator.allocate(128);
 							buf.writeInt(content.length + 4);
 							buf.put(content);
 							client.write(buf);

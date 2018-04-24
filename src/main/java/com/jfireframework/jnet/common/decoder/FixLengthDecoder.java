@@ -3,10 +3,11 @@ package com.jfireframework.jnet.common.decoder;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
 import com.jfireframework.jnet.common.api.ReadProcessor;
+import com.jfireframework.jnet.common.buffer.AbstractIoBuffer;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
 import com.jfireframework.jnet.common.util.Allocator;
 
-public class FixLengthDecoder implements ReadProcessor<IoBuffer>
+public class FixLengthDecoder implements ReadProcessor<AbstractIoBuffer>
 {
     private final int frameLength;
     
@@ -28,7 +29,7 @@ public class FixLengthDecoder implements ReadProcessor<IoBuffer>
     }
     
     @Override
-    public void process(IoBuffer ioBuf, ProcessorChain chain, ChannelContext channelContext) throws Throwable
+    public void process(AbstractIoBuffer ioBuf, ProcessorChain chain, ChannelContext channelContext) throws Throwable
     {
         do
         {

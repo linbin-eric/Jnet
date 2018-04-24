@@ -20,7 +20,7 @@ class DirectChunk extends Chunk
 	}
 	
 	@Override
-	protected void initHandler(Archon archon, IoBuffer handler, int index, int off, int len)
+	protected void initHandler(Archon archon, AbstractIoBuffer handler, int index, int off, int len)
 	{
 		mem.limit(off + len).position(off);
 		ByteBuffer slice = mem.slice();

@@ -4,15 +4,15 @@ class HeapUnPooledArchon extends UnPooledArchon
 {
     
     @Override
-    public void apply(int need, IoBuffer handler)
+    public void apply(int need, AbstractIoBuffer handler)
     {
         handler.initialize(0, need, new byte[need], 0, null, this);
     }
     
     @Override
-    public void expansion(IoBuffer handler, int newSize)
+    public void expansion(AbstractIoBuffer handler, int newSize)
     {
-        IoBuffer expansionIoBuffer = IoBuffer.heapIoBuffer();
+        AbstractIoBuffer expansionIoBuffer = AbstractIoBuffer.heapIoBuffer();
         apply(newSize, expansionIoBuffer);
         handler.expansion(expansionIoBuffer);
         recycle(expansionIoBuffer);

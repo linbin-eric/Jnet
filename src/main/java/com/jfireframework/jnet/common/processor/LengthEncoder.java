@@ -3,7 +3,7 @@ package com.jfireframework.jnet.common.processor;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
 import com.jfireframework.jnet.common.api.ReadProcessor;
-import com.jfireframework.jnet.common.buffer.IoBuffer;
+import com.jfireframework.jnet.common.buffer.AbstractIoBuffer;
 
 public class LengthEncoder implements ReadProcessor<Object>
 {
@@ -26,9 +26,9 @@ public class LengthEncoder implements ReadProcessor<Object>
     @Override
     public void process(Object data, ProcessorChain chain, ChannelContext channelContext) throws Throwable
     {
-        if (data instanceof IoBuffer)
+        if (data instanceof AbstractIoBuffer)
         {
-            IoBuffer buf = (IoBuffer) data;
+            AbstractIoBuffer buf = (AbstractIoBuffer) data;
             int length = buf.remainRead();
             switch (lengthFieldLength)
             {

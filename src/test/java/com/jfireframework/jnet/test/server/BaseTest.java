@@ -25,7 +25,7 @@ import com.jfireframework.jnet.common.api.ChannelConnectListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
 import com.jfireframework.jnet.common.api.ReadProcessor;
-import com.jfireframework.jnet.common.buffer.IoBuffer;
+import com.jfireframework.jnet.common.buffer.AbstractIoBuffer;
 import com.jfireframework.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
 import com.jfireframework.jnet.common.decoder.TotalLengthFieldBasedFrameDecoderByHeap;
 import com.jfireframework.jnet.common.processor.ChannelAttachProcessor;
@@ -114,11 +114,11 @@ public class BaseTest
 	ChannelConnectListener build(IoMode iomode, AioListener aioListener)
 	{
 		ChannelConnectListener channelContextBuilder = null;
-		final ReadProcessor<IoBuffer> businessProcessor = new ReadProcessorAdapter<IoBuffer>() {
+		final ReadProcessor<AbstractIoBuffer> businessProcessor = new ReadProcessorAdapter<AbstractIoBuffer>() {
 			final String traceId = TRACEID.newTraceId();
 			
 			@Override
-			public void process(IoBuffer buf, ProcessorChain chain, ChannelContext channelContext)
+			public void process(AbstractIoBuffer buf, ProcessorChain chain, ChannelContext channelContext)
 			{
 				logger.debug("traceId:{} 服务端收到消息,{}", traceId, buf);
 				buf.setReadPosi(0);
@@ -238,11 +238,11 @@ public class BaseTest
 		clientBuilder.setPort(port);
 		clientBuilder.setAioListener(aioListener);
 		ChannelConnectListener channelContextBuilder = null;
-		final ReadProcessor<IoBuffer> businessProcessor = new ReadProcessorAdapter<IoBuffer>() {
+		final ReadProcessor<AbstractIoBuffer> businessProcessor = new ReadProcessorAdapter<AbstractIoBuffer>() {
 			final String traceId = TRACEID.newTraceId();
 			
 			@Override
-			public void process(IoBuffer buf, ProcessorChain chain, ChannelContext channelContext)
+			public void process(AbstractIoBuffer buf, ProcessorChain chain, ChannelContext channelContext)
 			{
 				try
 				{
@@ -391,7 +391,7 @@ public class BaseTest
 						{
 							try
 							{
-								IoBuffer buf = Allocator.allocate(100);
+								AbstractIoBuffer buf = Allocator.allocate(100);
 								// 报文长度是8
 								buf.writeInt(8);
 								buf.writeInt(value);

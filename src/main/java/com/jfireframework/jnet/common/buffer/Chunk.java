@@ -1,5 +1,7 @@
 package com.jfireframework.jnet.common.buffer;
 
+import com.jfireframework.baseutil.time.Timewatch;
+
 public abstract class Chunk
 {
 	protected int[]		pool;
@@ -25,7 +27,7 @@ public abstract class Chunk
 			int end = (1 << (i + 1)) - 1;
 			for (int j = start; j <= end; j++)
 			{
-				pool[j] = unit * (1 << (maxLevel - i));
+				pool[j] = (1 << (maxLevel - i + pageShift));
 			}
 		}
 		capacity = pool[1];
@@ -62,7 +64,7 @@ public abstract class Chunk
 	
 	protected abstract void initializeMem(int capacity);
 	
-	public boolean apply(int need, IoBuffer buffer, Archon archon)
+	public boolean apply(int need, AbstractIoBuffer buffer, Archon archon)
 	{
 		need = tableSizeFor(need);
 		if (pool[1] < need)
@@ -86,12 +88,12 @@ public abstract class Chunk
 		return true;
 	}
 	
-	protected abstract void initHandler(Archon archon, IoBuffer bucket, int index, int off, int len);
+	protected abstract void initHandler(Archon archon, AbstractIoBuffer bucket, int index, int off, int len);
 	
 	public void recycle(IoBuffer bucket)
 	{
 		int index = bucket.getIndex();
-		int recycle = bucket.capacity();
+		int recycle = 1 << (maxLevel - log2(index) + pageShift);
 		freeCapaticy += recycle;
 		pool[index] = recycle;
 		while (index > 1)
@@ -99,7 +101,7 @@ public abstract class Chunk
 			int parentIndex = index >> 1;
 			int value = pool[index];
 			int value2 = pool[index ^ 1];
-			int maxCapacity = unit * (1 << (maxLevel - log2(index)));
+			int maxCapacity = 1 << (maxLevel - log2(index) + pageShift);
 			if (value == maxCapacity && value2 == maxCapacity)
 			{
 				pool[parentIndex] = maxCapacity << 1;
@@ -110,11 +112,6 @@ public abstract class Chunk
 			}
 			index = parentIndex;
 		}
-	}
-	
-	public static void main(String[] args)
-	{
-		System.out.println(log2(7));
 	}
 	
 	private int findAvailable(int reduce, int selectedLevel)

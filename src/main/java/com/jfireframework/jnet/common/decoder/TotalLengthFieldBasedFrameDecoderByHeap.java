@@ -3,11 +3,12 @@ package com.jfireframework.jnet.common.decoder;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
 import com.jfireframework.jnet.common.api.ReadProcessor;
+import com.jfireframework.jnet.common.buffer.AbstractIoBuffer;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
 import com.jfireframework.jnet.common.exception.TooLongException;
 import com.jfireframework.jnet.common.util.Allocator;
 
-public class TotalLengthFieldBasedFrameDecoderByHeap implements ReadProcessor<IoBuffer>
+public class TotalLengthFieldBasedFrameDecoderByHeap implements ReadProcessor<AbstractIoBuffer>
 {
     // 代表长度字段开始读取的位置
     private final int lengthFieldOffset;
@@ -42,7 +43,7 @@ public class TotalLengthFieldBasedFrameDecoderByHeap implements ReadProcessor<Io
     }
     
     @Override
-    public void process(IoBuffer ioBuffer, ProcessorChain chain, ChannelContext channelContext) throws Throwable
+    public void process(AbstractIoBuffer ioBuffer, ProcessorChain chain, ChannelContext channelContext) throws Throwable
     {
         do
         {

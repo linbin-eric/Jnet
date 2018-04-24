@@ -5,7 +5,7 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 import com.jfireframework.jnet.common.buffer.Archon;
 import com.jfireframework.jnet.common.buffer.Chunk;
-import com.jfireframework.jnet.common.buffer.IoBuffer;
+import com.jfireframework.jnet.common.buffer.AbstractIoBuffer;
 import com.jfireframework.jnet.common.buffer.PooledArchon;
 
 public class BufferTest
@@ -18,7 +18,7 @@ public class BufferTest
 	public void test()
 	{
 		Archon archon = PooledArchon.heapPooledArchon(4, 1);
-		IoBuffer handler = IoBuffer.heapIoBuffer();
+		AbstractIoBuffer handler = AbstractIoBuffer.heapIoBuffer();
 		archon.apply(2, handler);
 		handler.put((byte) 0x01);
 		assertEquals(1, handler.remainWrite());
@@ -45,7 +45,7 @@ public class BufferTest
 	public void test2()
 	{
 		Archon archon = PooledArchon.directPooledArchon(4, 1);
-		IoBuffer handler = IoBuffer.directBuffer();
+		AbstractIoBuffer handler = AbstractIoBuffer.directBuffer();
 		archon.apply(2, handler);
 		handler.put((byte) 0x01);
 		assertEquals(1, handler.remainWrite());
@@ -72,27 +72,27 @@ public class BufferTest
 	public void test3()
 	{
 		Chunk chunk = Chunk.newHeapChunk(4, 1);
-		IoBuffer buffer1 = IoBuffer.heapIoBuffer();
+		AbstractIoBuffer buffer1 = AbstractIoBuffer.heapIoBuffer();
 		chunk.apply(1, buffer1, null);
-		IoBuffer buffer2 = IoBuffer.heapIoBuffer();
+		AbstractIoBuffer buffer2 = AbstractIoBuffer.heapIoBuffer();
 		chunk.apply(1, buffer2, null);
-		IoBuffer buffer3 = IoBuffer.heapIoBuffer();
+		AbstractIoBuffer buffer3 = AbstractIoBuffer.heapIoBuffer();
 		chunk.apply(1, buffer3, null);
-		IoBuffer buffer4 = IoBuffer.heapIoBuffer();
+		AbstractIoBuffer buffer4 = AbstractIoBuffer.heapIoBuffer();
 		chunk.apply(1, buffer4, null);
-		IoBuffer buffer5 = IoBuffer.heapIoBuffer();
+		AbstractIoBuffer buffer5 = AbstractIoBuffer.heapIoBuffer();
 		chunk.apply(1, buffer5, null);
-		IoBuffer buffer6 = IoBuffer.heapIoBuffer();
+		AbstractIoBuffer buffer6 = AbstractIoBuffer.heapIoBuffer();
 		chunk.apply(1, buffer6, null);
-		IoBuffer buffer7 = IoBuffer.heapIoBuffer();
+		AbstractIoBuffer buffer7 = AbstractIoBuffer.heapIoBuffer();
 		chunk.apply(1, buffer7, null);
-		IoBuffer buffer8 = IoBuffer.heapIoBuffer();
+		AbstractIoBuffer buffer8 = AbstractIoBuffer.heapIoBuffer();
 		chunk.apply(1, buffer8, null);
 		chunk.recycle(buffer2);
 		chunk.recycle(buffer4);
 		chunk.recycle(buffer6);
 		chunk.recycle(buffer8);
-		IoBuffer buffer = IoBuffer.heapIoBuffer();
+		AbstractIoBuffer buffer = AbstractIoBuffer.heapIoBuffer();
 		boolean apply = chunk.apply(2, buffer, null);
 		assertTrue(apply);
 	}

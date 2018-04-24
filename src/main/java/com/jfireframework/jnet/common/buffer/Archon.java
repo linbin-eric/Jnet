@@ -9,7 +9,7 @@ public abstract class Archon
      * @param bucket
      * @return
      */
-    public abstract void apply(int need, IoBuffer buffer);
+    public abstract void apply(int need, AbstractIoBuffer buffer);
     
     /**
      * 将Bucket中的内存回收。<br/>
@@ -26,5 +26,5 @@ public abstract class Archon
      * @param buffer
      * @param newSize
      */
-    public abstract void expansion(IoBuffer buffer, int newSize);
+    public abstract void expansion(AbstractIoBuffer buffer, int newSize);
 }

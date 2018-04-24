@@ -16,7 +16,7 @@ import com.jfireframework.baseutil.time.Timewatch;
 import com.jfireframework.jnet.common.buffer.Archon;
 import com.jfireframework.jnet.common.buffer.BatchRecycler;
 import com.jfireframework.jnet.common.buffer.ChunkList;
-import com.jfireframework.jnet.common.buffer.IoBuffer;
+import com.jfireframework.jnet.common.buffer.AbstractIoBuffer;
 import com.jfireframework.jnet.common.buffer.PooledArchon;
 
 public class ArchonSpeedTest
@@ -37,7 +37,7 @@ public class ArchonSpeedTest
 	public void singleThreadBaseline() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException
 	{
 		final Archon archon = PooledArchon.heapPooledArchon(4, 1);
-		IoBuffer buffer = IoBuffer.heapIoBuffer();
+		AbstractIoBuffer buffer = AbstractIoBuffer.heapIoBuffer();
 		Timewatch timewatch = new Timewatch();
 		timewatch.start();
 		for (long i = 0; i < count; i++)
@@ -103,8 +103,8 @@ public class ArchonSpeedTest
 				@Override
 				public void run()
 				{
-					IoBuffer buffer = IoBuffer.heapIoBuffer();
-					IoBuffer buffer2 = IoBuffer.heapIoBuffer();
+					AbstractIoBuffer buffer = AbstractIoBuffer.heapIoBuffer();
+					AbstractIoBuffer buffer2 = AbstractIoBuffer.heapIoBuffer();
 					try
 					{
 						barrier.await();
@@ -157,8 +157,8 @@ public class ArchonSpeedTest
 						barrier.await();
 						for (int i = 0; i < count; i++)
 						{
-							IoBuffer buffer = IoBuffer.heapIoBuffer();
-							IoBuffer buffer2 = IoBuffer.heapIoBuffer();
+							AbstractIoBuffer buffer = AbstractIoBuffer.heapIoBuffer();
+							AbstractIoBuffer buffer2 = AbstractIoBuffer.heapIoBuffer();
 							archon.apply(1, buffer);
 							archon.apply(3, buffer2);
 							batchRecycler.commit(buffer);
@@ -203,7 +203,7 @@ public class ArchonSpeedTest
 		Timewatch timewatch = new Timewatch();
 		for (int i = 0; i < count; i++)
 		{
-			final IoBuffer buffer = IoBuffer.heapIoBuffer();
+			final AbstractIoBuffer buffer = AbstractIoBuffer.heapIoBuffer();
 			archon.apply(3, buffer);
 			pool.execute(new Runnable() {
 				

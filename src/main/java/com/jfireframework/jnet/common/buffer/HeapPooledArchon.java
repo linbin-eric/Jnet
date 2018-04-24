@@ -6,11 +6,11 @@ class HeapPooledArchon extends PooledArchon
     HeapPooledArchon(int maxLevel, int unit)
     {
         super(maxLevel, unit);
-        expansionIoBuffer = IoBuffer.heapIoBuffer();
+        expansionIoBuffer = AbstractIoBuffer.heapIoBuffer();
     }
     
     @Override
-    protected void initHugeBucket(IoBuffer handler, int need)
+    protected void initHugeBucket(AbstractIoBuffer handler, int need)
     {
         handler.initialize(0, need, new byte[need], 0, null, null);
     }
