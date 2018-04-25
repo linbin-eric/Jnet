@@ -115,93 +115,87 @@ class DirectIoBuffer extends AbstractIoBuffer<ByteBuffer>
 		{
 			throw new IllegalArgumentException();
 		}
-		//复制从offset到writePosi的所有内容到transitBuffer
+		// 复制从offset到writePosi的所有内容到transitBuffer
 		ByteBuffer transitBuffer = expansionTransit.internalByteBuffer();
 		transitBuffer.position(expansionTransit.offset).limit(expansionTransit.offset + expansionTransit.capacity);
 		ByteBuffer src = internalByteBuffer();
-		src.limit(offset+writePosi).position(offset);
+		src.limit(writePosi).position(readPosi);
 		transitBuffer.put(src);
-		/**Chunk***/
+		/** Memory ***/
+		ByteBuffer tmpMemory = memory;
+		memory = expansionTransit.memory;
+		expansionTransit.memory = tmpMemory;
+		// 清空，确保下次使用的时候生成正确的。
+		internalByteBuffer = null;
+		/** Chunk ***/
 		Chunk tmpChunk = chunk;
 		chunk = expansionTransit.chunk;
 		expansionTransit.chunk = tmpChunk;
-		/**Index***/
+		/** Index ***/
 		int tmpIndex = index;
 		index = expansionTransit.index;
 		expansionTransit.index = tmpIndex;
-		/**capacity***/
+		/** capacity ***/
 		capacity = expansionTransit.capacity;
-		//读写坐标的更新需要先于本地offset的更新。因为更新依赖相对数据，所以不能在这之前更新offset。
-		/**readPosi***/
-		readPosi = expansionTransit.offset +getReadPosi();
-		/**writePosi***/
-		writePosi =expansionTransit.offset+getWritePosi();
-		/**offset***/
+		// 读写坐标的更新需要先于本地offset的更新。因为更新依赖相对数据，所以不能在这之前更新offset。
+		/** readPosi ***/
+		readPosi = expansionTransit.offset + getReadPosi();
+		/** writePosi ***/
+		writePosi = expansionTransit.offset + getWritePosi();
+		/** offset ***/
 		offset = expansionTransit.offset;
 	}
 	
 	@Override
 	protected void _put(byte b)
 	{
-		changeToWrite();
-		mem.put(b);
+		memory.put(writePosi, b);
 		writePosi += 1;
 	}
 	
 	@Override
 	protected void _put(byte b, int posi)
 	{
-		changeToWrite();
-		mem.put(posi, b);
+		memory.put(posi + offset, b);
 	}
 	
 	@Override
 	protected void _put(byte[] content)
 	{
-		changeToWrite();
-		mem.put(content);
-		writePosi += content.length;
+		_put(content, 0, content.length);
 	}
 	
 	@Override
 	protected void _put(byte[] content, int off, int len)
 	{
-		changeToWrite();
-		mem.put(content, off, len);
+		ByteBuffer buffer = internalByteBuffer();
+		buffer.limit(buffer.capacity()).position(writePosi);
+		buffer.put(content, off, len);
 		writePosi += len;
 	}
 	
 	@Override
-	protected void _put(IoBuffer handler, int len)
+	protected void _put(IoBuffer src, int len)
 	{
-		if (handler instanceof HeapIoBuffer)
+		if (src.isDirect() == false)
 		{
-			byte[] src = ((HeapIoBuffer) handler).mem;
-			// 需要使用直接的readPosi数据，通过方法获得都是相对数据
-			changeToWrite();
-			mem.put(src, ((HeapIoBuffer) handler).readPosi, len);
-			writePosi += len;
-		}
-		else if (handler instanceof DirectIoBuffer)
-		{
-			changeToWrite();
-			DirectIoBuffer target = (DirectIoBuffer) handler;
-			target.changeToRead();
-			target.mem.limit(target.mem.position() + len);
-			mem.put(target.mem);
-			writePosi += len;
+			byte[] srcMemory = ((HeapIoBuffer) src).memory;
+			_put(srcMemory, ((AbstractIoBuffer<?>) src).readPosi, src.remainRead());
 		}
 		else
 		{
-			throw new IllegalArgumentException();
+			ByteBuffer srcBuffer = src.byteBuffer();
+			ByteBuffer destBuffer = internalByteBuffer();
+			destBuffer.limit(destBuffer.capacity()).position(writePosi);
+			destBuffer.put(srcBuffer);
+			writePosi += len;
 		}
 	}
 	
 	@Override
 	protected void _writeInt(int i, int off)
 	{
-		changeToWrite();
-		mem.putInt(off, i);
+		memory.putInt(off + this.offset, i);
 	}
 	
 	@Override
