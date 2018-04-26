@@ -103,13 +103,6 @@ class HeapIoBuffer extends AbstractIoBuffer<byte[]>
 	}
 	
 	@Override
-	public ByteBuffer byteBuffer()
-	{
-		internalByteBuffer = ByteBuffer.wrap(memory, readPosi, remainRead());
-		return internalByteBuffer;
-	}
-	
-	@Override
 	public int remainRead()
 	{
 		return writePosi - readPosi;
@@ -323,6 +316,37 @@ class HeapIoBuffer extends AbstractIoBuffer<byte[]>
 	public boolean isDirect()
 	{
 		return false;
+	}
+	
+	@Override
+	protected void ensureEnoughWrite(int needToWrite)
+	{
+		if (needToWrite < 0 || remainWrite() >= needToWrite)
+		{
+			return;
+		}
+		// 如果是从chunk分配的，则寻找archon进行扩容
+		if (chunk != null)
+		{
+			chunk.archon.expansion(this, needToWrite + capacity);
+		}
+		else
+		{
+			DirectIoBuffer buffer = new DirectIoBuffer();
+			buffer.initialize(0, needToWrite + capacity, ByteBuffer.allocateDirect(needToWrite + capacity), 0, null);
+			expansion(buffer);
+			buffer = null;
+		}
+	}
+	
+	@Override
+	protected ByteBuffer internalByteBuffer()
+	{
+		if (internalByteBuffer == null)
+		{
+			internalByteBuffer = ByteBuffer.wrap(memory, offset, capacity);
+		}
+		return internalByteBuffer;
 	}
 	
 }

@@ -17,11 +17,11 @@ public abstract class UnPooledArchon extends Archon
     
     public static UnPooledArchon directUnPooledArchon()
     {
-        return new DirectUnPooledArchon();
+        return new UnPooledDirectArchon();
     }
     
     public static UnPooledArchon heapUnPooledArchon()
     {
-        return new HeapUnPooledArchon();
+        return new UnPooledHeapArchon();
     }
 }

@@ -9,9 +9,12 @@ public abstract class AbstractIoBuffer<T> implements IoBuffer
 	protected int				index;
 	protected Chunk				chunk;
 	protected ByteBuffer		internalByteBuffer;
+	// 该buffer在memory中的偏移量
 	protected int				offset;
 	protected int				capacity;
+	// 绝对的读取坐标
 	protected int				readPosi;
+	// 绝对的写入坐标
 	protected int				writePosi;
 	// 用于池化IoBuffer。如果没有此需求，该属性始终为空
 	protected RecycleHandler	recycleHandler;
@@ -55,14 +58,7 @@ public abstract class AbstractIoBuffer<T> implements IoBuffer
 		return this;
 	}
 	
-	protected void ensureEnoughWrite(int needToWrite)
-	{
-		if (needToWrite < 0 || remainWrite() >= needToWrite)
-		{
-			return;
-		}
-		archon.expansion(this, capacity + needToWrite);
-	}
+	protected abstract void ensureEnoughWrite(int needToWrite);
 	
 	@Override
 	public Chunk belong()
@@ -73,9 +69,9 @@ public abstract class AbstractIoBuffer<T> implements IoBuffer
 	@Override
 	public void release()
 	{
-		if (archon != null)
+		if (chunk != null)
 		{
-			archon.recycle(this);
+			chunk.archon.recycle(this);
 		}
 	}
 	
@@ -84,7 +80,6 @@ public abstract class AbstractIoBuffer<T> implements IoBuffer
 	{
 		index = -1;
 		chunk = null;
-		archon = null;
 		internalByteBuffer = null;
 		memory = null;
 		offset = capacity = writePosi = readPosi = 0;
@@ -93,7 +88,7 @@ public abstract class AbstractIoBuffer<T> implements IoBuffer
 	@Override
 	public String toString()
 	{
-		return "Handler [index=" + index + ", chunk=" + chunk + ", cachedByteBuffer=" + internalByteBuffer + ", capacity=" + capacity + ", readPosi=" + readPosi + ", writePosi=" + writePosi + ", archon=" + archon + "]";
+		return "Handler [index=" + index + ", chunk=" + chunk + ", cachedByteBuffer=" + internalByteBuffer + ", capacity=" + capacity + ", readPosi=" + readPosi + ", writePosi=" + writePosi + "]";
 	}
 	
 	@Override
@@ -300,4 +295,11 @@ public abstract class AbstractIoBuffer<T> implements IoBuffer
 		writePosi += add;
 	}
 	
+	@Override
+	public ByteBuffer byteBuffer()
+	{
+		ByteBuffer buffer = internalByteBuffer();
+		buffer.limit(writePosi).position(readPosi);
+		return buffer;
+	}
 }

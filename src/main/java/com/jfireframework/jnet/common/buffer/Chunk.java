@@ -9,6 +9,7 @@ public abstract class Chunk
 	protected Chunk		pred;
 	protected Chunk		next;
 	protected ChunkList	parent;
+	protected Archon	archon;
 	protected int		pageShift;
 	protected int		maxLevel;
 	protected int		unit;

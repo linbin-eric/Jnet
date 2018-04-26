@@ -1,6 +1,6 @@
 package com.jfireframework.jnet.common.buffer;
 
-class HeapUnPooledArchon extends UnPooledArchon
+class UnPooledHeapArchon extends UnPooledArchon
 {
     
     @Override

@@ -23,7 +23,7 @@ class DirectIoBuffer extends AbstractIoBuffer<ByteBuffer>
 	@Override
 	public IoBuffer compact()
 	{
-		ByteBuffer duplicate = memory.duplicate();
+		ByteBuffer duplicate = internalByteBuffer();
 		duplicate.limit(offset + capacity).position(offset);
 		ByteBuffer slice = duplicate.slice();
 		slice.limit(writePosi - offset).position(readPosi - offset);
@@ -95,20 +95,13 @@ class DirectIoBuffer extends AbstractIoBuffer<ByteBuffer>
 		return l;
 	}
 	
-	@Override
-	public ByteBuffer byteBuffer()
-	{
-		ByteBuffer buffer = internalByteBuffer();
-		buffer.limit(writePosi).position(readPosi);
-		return buffer;
-	}
 	
 	@Override
 	public void expansion(IoBuffer transit)
 	{
-		if (transit instanceof DirectIoBuffer == false)
+		if (transit.isDirect() == false)
 		{
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException("DirectioBuffer只能由DirectIoBuffer进行扩容");
 		}
 		DirectIoBuffer expansionTransit = (DirectIoBuffer) transit;
 		if (expansionTransit.writePosi != expansionTransit.offset || expansionTransit.readPosi != expansionTransit.offset)
@@ -201,38 +194,33 @@ class DirectIoBuffer extends AbstractIoBuffer<ByteBuffer>
 	@Override
 	protected void _writeShort(short s, int off)
 	{
-		changeToWrite();
-		mem.putShort(off, s);
+		memory.putShort(this.offset + off, s);
 	}
 	
 	@Override
 	protected void _writeLong(long l, int off)
 	{
-		changeToWrite();
-		mem.putLong(off, l);
+		memory.putLong(this.offset + off, l);
 	}
 	
 	@Override
 	protected void _writeInt(int i)
 	{
-		changeToWrite();
-		mem.putInt(i);
+		memory.putInt(writePosi, i);
 		writePosi += 4;
 	}
 	
 	@Override
 	protected void _writeShort(short s)
 	{
-		changeToWrite();
-		mem.putShort(s);
+		memory.putShort(writePosi, s);
 		writePosi += 2;
 	}
 	
 	@Override
 	protected void _writeLong(long l)
 	{
-		changeToWrite();
-		mem.putLong(l);
+		memory.putLong(writePosi, l);
 		writePosi += 8;
 	}
 	
@@ -250,6 +238,26 @@ class DirectIoBuffer extends AbstractIoBuffer<ByteBuffer>
 			internalByteBuffer = memory.duplicate();
 		}
 		return internalByteBuffer;
+	}
+	
+	protected void ensureEnoughWrite(int needToWrite)
+	{
+		if (needToWrite < 0 || remainWrite() >= needToWrite)
+		{
+			return;
+		}
+		// 如果是从chunk分配的，则寻找archon进行扩容
+		if (chunk != null)
+		{
+			chunk.archon.expansion(this, needToWrite + capacity);
+		}
+		else
+		{
+			DirectIoBuffer buffer = new DirectIoBuffer();
+			buffer.initialize(0, needToWrite + capacity, ByteBuffer.allocateDirect(needToWrite + capacity), 0, null);
+			expansion(buffer);
+			buffer = null;
+		}
 	}
 	
 }

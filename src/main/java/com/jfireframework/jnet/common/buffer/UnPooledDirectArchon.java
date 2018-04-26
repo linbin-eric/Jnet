@@ -2,7 +2,7 @@ package com.jfireframework.jnet.common.buffer;
 
 import java.nio.ByteBuffer;
 
-class DirectUnPooledArchon extends UnPooledArchon
+class UnPooledDirectArchon extends UnPooledArchon
 {
     
     @Override
