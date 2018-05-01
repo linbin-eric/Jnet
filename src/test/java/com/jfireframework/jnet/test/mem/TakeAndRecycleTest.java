@@ -3,7 +3,7 @@ package com.jfireframework.jnet.test.mem;
 import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 import com.jfireframework.jnet.common.buffer.Chunk;
-import com.jfireframework.jnet.common.buffer.AbstractIoBuffer;
+import com.jfireframework.jnet.common.buffer.PooledIoBuffer;
 
 public class TakeAndRecycleTest
 {
@@ -15,25 +15,25 @@ public class TakeAndRecycleTest
 	public void test2()
 	{
 		Chunk pooledMem = Chunk.newHeapChunk(4, 128);
-		AbstractIoBuffer handler = AbstractIoBuffer.heapIoBuffer();
+		PooledIoBuffer handler = PooledIoBuffer.heapIoBuffer();
 		pooledMem.apply(400, handler, null);
 		assertEquals(4, handler.getIndex());
-		AbstractIoBuffer handler2 = AbstractIoBuffer.heapIoBuffer();
+		PooledIoBuffer handler2 = PooledIoBuffer.heapIoBuffer();
 		pooledMem.apply(100, handler2, null);
 		assertEquals(20, handler2.getIndex());
-		AbstractIoBuffer handler3 = AbstractIoBuffer.heapIoBuffer();
+		PooledIoBuffer handler3 = PooledIoBuffer.heapIoBuffer();
 		pooledMem.apply(200, handler3, null);
 		assertEquals(11, handler3.getIndex());
-		AbstractIoBuffer handler4 = AbstractIoBuffer.heapIoBuffer();
+		PooledIoBuffer handler4 = PooledIoBuffer.heapIoBuffer();
 		pooledMem.apply(100, handler4, null);
 		assertEquals(21, handler4.getIndex());
-		AbstractIoBuffer handler5 = AbstractIoBuffer.heapIoBuffer();
+		PooledIoBuffer handler5 = PooledIoBuffer.heapIoBuffer();
 		pooledMem.apply(500, handler5, null);
 		assertEquals(6, handler5.getIndex());
 		pooledMem.recycle(handler3);
 		pooledMem.recycle(handler4);
 		pooledMem.recycle(handler2);
-		AbstractIoBuffer handler6 = AbstractIoBuffer.heapIoBuffer();
+		PooledIoBuffer handler6 = PooledIoBuffer.heapIoBuffer();
 		pooledMem.apply(400, handler6, null);
 		assertEquals(5, handler6.getIndex());
 	}

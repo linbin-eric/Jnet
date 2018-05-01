@@ -2,7 +2,7 @@ package com.jfireframework.jnet.common.buffer;
 
 import java.nio.ByteBuffer;
 
-class HeapIoBuffer extends AbstractIoBuffer<byte[]>
+class HeapIoBuffer extends PooledIoBuffer<byte[]>
 {
 	
 	@Override

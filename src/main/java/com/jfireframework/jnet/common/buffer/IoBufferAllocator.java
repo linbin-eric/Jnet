@@ -2,9 +2,9 @@ package com.jfireframework.jnet.common.buffer;
 
 public interface IoBufferAllocator
 {
-    AbstractIoBuffer allocate(int initSize);
+    PooledIoBuffer allocate(int initSize);
     
-    AbstractIoBuffer allocateDirect(int initSize);
+    PooledIoBuffer allocateDirect(int initSize);
     
-    void release(AbstractIoBuffer ioBuffer);
+    void release(PooledIoBuffer ioBuffer);
 }

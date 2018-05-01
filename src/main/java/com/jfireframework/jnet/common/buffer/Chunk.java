@@ -65,7 +65,7 @@ public abstract class Chunk
 	
 	protected abstract void initializeMem(int capacity);
 	
-	public boolean apply(int need, AbstractIoBuffer buffer, Archon archon)
+	public boolean apply(int need, PooledIoBuffer buffer, Archon archon)
 	{
 		need = tableSizeFor(need);
 		if (pool[1] < need)
@@ -89,7 +89,7 @@ public abstract class Chunk
 		return true;
 	}
 	
-	protected abstract void initHandler(Archon archon, AbstractIoBuffer bucket, int index, int off, int len);
+	protected abstract void initHandler(Archon archon, PooledIoBuffer bucket, int index, int off, int len);
 	
 	public void recycle(IoBuffer bucket)
 	{

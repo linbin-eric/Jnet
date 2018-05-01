@@ -2,7 +2,7 @@ package com.jfireframework.jnet.common.buffer;
 
 import java.nio.ByteBuffer;
 
-class DirectIoBuffer extends AbstractIoBuffer<ByteBuffer>
+class DirectIoBuffer extends PooledIoBuffer<ByteBuffer>
 {
 	
 	@Override
@@ -173,7 +173,7 @@ class DirectIoBuffer extends AbstractIoBuffer<ByteBuffer>
 		if (src.isDirect() == false)
 		{
 			byte[] srcMemory = ((HeapIoBuffer) src).memory;
-			_put(srcMemory, ((AbstractIoBuffer<?>) src).readPosi, src.remainRead());
+			_put(srcMemory, ((PooledIoBuffer<?>) src).readPosi, src.remainRead());
 		}
 		else
 		{

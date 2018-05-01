@@ -1,6 +1,6 @@
 package com.jfireframework.jnet.client;
 
-import com.jfireframework.jnet.common.buffer.AbstractIoBuffer;
+import com.jfireframework.jnet.common.buffer.PooledIoBuffer;
 
 public interface AioClient
 {
@@ -9,6 +9,6 @@ public interface AioClient
     
     public void close();
     
-    public void write(AbstractIoBuffer packet);
+    public void write(PooledIoBuffer packet);
     
 }

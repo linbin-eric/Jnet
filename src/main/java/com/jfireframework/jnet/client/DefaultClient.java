@@ -11,7 +11,7 @@ import com.jfireframework.baseutil.exception.JustThrowException;
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelConnectListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
-import com.jfireframework.jnet.common.buffer.AbstractIoBuffer;
+import com.jfireframework.jnet.common.buffer.PooledIoBuffer;
 import com.jfireframework.jnet.common.support.ReadHandler;
 
 public class DefaultClient implements AioClient
@@ -63,7 +63,7 @@ public class DefaultClient implements AioClient
     }
     
     @Override
-    public void write(AbstractIoBuffer packet)
+    public void write(PooledIoBuffer packet)
     {
         channelContext.write(packet);
     }

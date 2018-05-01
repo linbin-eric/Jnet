@@ -1,7 +1,7 @@
 package com.jfireframework.jnet.common.api;
 
 import java.nio.channels.AsynchronousSocketChannel;
-import com.jfireframework.jnet.common.buffer.AbstractIoBuffer;
+import com.jfireframework.jnet.common.buffer.PooledIoBuffer;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
 
 public interface ChannelContext
@@ -34,7 +34,7 @@ public interface ChannelContext
      * @param buf
      * @throws Throwable
      */
-    void write(AbstractIoBuffer buf);
+    void write(PooledIoBuffer buf);
     
     AsynchronousSocketChannel socketChannel();
     

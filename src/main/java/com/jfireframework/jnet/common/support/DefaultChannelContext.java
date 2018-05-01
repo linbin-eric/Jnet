@@ -5,7 +5,7 @@ import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
 import com.jfireframework.jnet.common.api.ReadProcessor;
-import com.jfireframework.jnet.common.buffer.AbstractIoBuffer;
+import com.jfireframework.jnet.common.buffer.PooledIoBuffer;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
 import com.jfireframework.jnet.common.util.ChainUtil;
 
@@ -46,7 +46,7 @@ public class DefaultChannelContext implements ChannelContext
     }
     
     @Override
-    public void write(AbstractIoBuffer buf)
+    public void write(PooledIoBuffer buf)
     {
         writeHandler.write(buf);
     }

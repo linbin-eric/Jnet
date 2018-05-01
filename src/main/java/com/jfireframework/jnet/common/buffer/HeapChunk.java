@@ -16,7 +16,7 @@ class HeapChunk extends Chunk
 	}
 	
 	@Override
-	protected void initHandler(Archon archon, AbstractIoBuffer handler, int index, int off, int len)
+	protected void initHandler(Archon archon, PooledIoBuffer handler, int index, int off, int len)
 	{
 		handler.initialize(off, len, mem, index, this, archon);
 	}

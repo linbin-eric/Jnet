@@ -8,11 +8,11 @@ class DirectPooledArchon extends PooledArchon
     DirectPooledArchon(int maxLevel, int unit)
     {
         super(maxLevel, unit);
-        expansionIoBuffer = AbstractIoBuffer.directBuffer();
+        expansionIoBuffer = PooledIoBuffer.directBuffer();
     }
     
     @Override
-    protected void initHugeBucket(AbstractIoBuffer handler, int need)
+    protected void initHugeBucket(PooledIoBuffer handler, int need)
     {
         ByteBuffer byteBuffer = ByteBuffer.allocateDirect(need);
         handler.initialize(0, need, byteBuffer, 0, null, null);

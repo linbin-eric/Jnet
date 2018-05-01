@@ -27,25 +27,25 @@ public class PooledIoBufferAllocator implements IoBufferAllocator
     }
     
     @Override
-    public AbstractIoBuffer allocate(int initSize)
+    public PooledIoBuffer allocate(int initSize)
     {
         int index = idx.incrementAndGet() & mask;
-        AbstractIoBuffer buffer = AbstractIoBuffer.heapIoBuffer();
+        PooledIoBuffer buffer = PooledIoBuffer.heapIoBuffer();
         heapArchons[index].apply(initSize, buffer);
         return buffer;
     }
     
     @Override
-    public AbstractIoBuffer allocateDirect(int initSize)
+    public PooledIoBuffer allocateDirect(int initSize)
     {
         int index = idx.incrementAndGet() & mask;
-        AbstractIoBuffer buffer = AbstractIoBuffer.directBuffer();
+        PooledIoBuffer buffer = PooledIoBuffer.directBuffer();
         directArchons[index].apply(initSize, buffer);
         return buffer;
     }
     
     @Override
-    public void release(AbstractIoBuffer ioBuffer)
+    public void release(PooledIoBuffer ioBuffer)
     {
         ioBuffer.release();
     }

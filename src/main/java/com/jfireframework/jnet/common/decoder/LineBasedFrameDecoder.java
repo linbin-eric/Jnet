@@ -3,12 +3,12 @@ package com.jfireframework.jnet.common.decoder;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
 import com.jfireframework.jnet.common.api.ReadProcessor;
-import com.jfireframework.jnet.common.buffer.AbstractIoBuffer;
+import com.jfireframework.jnet.common.buffer.PooledIoBuffer;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
 import com.jfireframework.jnet.common.exception.TooLongException;
 import com.jfireframework.jnet.common.util.Allocator;
 
-public class LineBasedFrameDecoder implements ReadProcessor<AbstractIoBuffer>
+public class LineBasedFrameDecoder implements ReadProcessor<PooledIoBuffer>
 {
     private int maxLineLength;
     
@@ -30,7 +30,7 @@ public class LineBasedFrameDecoder implements ReadProcessor<AbstractIoBuffer>
     }
     
     @Override
-    public void process(AbstractIoBuffer ioBuffer, ProcessorChain chain, ChannelContext channelContext) throws Throwable
+    public void process(PooledIoBuffer ioBuffer, ProcessorChain chain, ChannelContext channelContext) throws Throwable
     {
         do
         {

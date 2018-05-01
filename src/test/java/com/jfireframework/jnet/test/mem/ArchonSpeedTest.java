@@ -16,7 +16,7 @@ import com.jfireframework.baseutil.time.Timewatch;
 import com.jfireframework.jnet.common.buffer.Archon;
 import com.jfireframework.jnet.common.buffer.BatchRecycler;
 import com.jfireframework.jnet.common.buffer.ChunkList;
-import com.jfireframework.jnet.common.buffer.AbstractIoBuffer;
+import com.jfireframework.jnet.common.buffer.PooledIoBuffer;
 import com.jfireframework.jnet.common.buffer.PooledArchon;
 
 public class ArchonSpeedTest
@@ -37,7 +37,7 @@ public class ArchonSpeedTest
 	public void singleThreadBaseline() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException
 	{
 		final Archon archon = PooledArchon.heapPooledArchon(4, 1);
-		AbstractIoBuffer buffer = AbstractIoBuffer.heapIoBuffer();
+		PooledIoBuffer buffer = PooledIoBuffer.heapIoBuffer();
 		Timewatch timewatch = new Timewatch();
 		timewatch.start();
 		for (long i = 0; i < count; i++)
@@ -103,8 +103,8 @@ public class ArchonSpeedTest
 				@Override
 				public void run()
 				{
-					AbstractIoBuffer buffer = AbstractIoBuffer.heapIoBuffer();
-					AbstractIoBuffer buffer2 = AbstractIoBuffer.heapIoBuffer();
+					PooledIoBuffer buffer = PooledIoBuffer.heapIoBuffer();
+					PooledIoBuffer buffer2 = PooledIoBuffer.heapIoBuffer();
 					try
 					{
 						barrier.await();
@@ -157,8 +157,8 @@ public class ArchonSpeedTest
 						barrier.await();
 						for (int i = 0; i < count; i++)
 						{
-							AbstractIoBuffer buffer = AbstractIoBuffer.heapIoBuffer();
-							AbstractIoBuffer buffer2 = AbstractIoBuffer.heapIoBuffer();
+							PooledIoBuffer buffer = PooledIoBuffer.heapIoBuffer();
+							PooledIoBuffer buffer2 = PooledIoBuffer.heapIoBuffer();
 							archon.apply(1, buffer);
 							archon.apply(3, buffer2);
 							batchRecycler.commit(buffer);
@@ -203,7 +203,7 @@ public class ArchonSpeedTest
 		Timewatch timewatch = new Timewatch();
 		for (int i = 0; i < count; i++)
 		{
-			final AbstractIoBuffer buffer = AbstractIoBuffer.heapIoBuffer();
+			final PooledIoBuffer buffer = PooledIoBuffer.heapIoBuffer();
 			archon.apply(3, buffer);
 			pool.execute(new Runnable() {
 				

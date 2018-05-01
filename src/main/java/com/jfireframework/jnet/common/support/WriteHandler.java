@@ -7,23 +7,23 @@ import com.jfireframework.baseutil.concurrent.CpuCachePadingInt;
 import com.jfireframework.baseutil.concurrent.MPSCQueue;
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
-import com.jfireframework.jnet.common.buffer.AbstractIoBuffer;
+import com.jfireframework.jnet.common.buffer.PooledIoBuffer;
 import com.jfireframework.jnet.common.util.Allocator;
 
-public class WriteHandler implements CompletionHandler<Integer, AbstractIoBuffer>
+public class WriteHandler implements CompletionHandler<Integer, PooledIoBuffer>
 {
     private static final int                SPIN_THRESHOLD   = 1 << 7;
     private final static int                WORK             = 1;
     private final static int                IDLE             = 2;
     // 终止状态。进入该状态后，不再继续使用
     private final static int                TERMINATION      = 3;
-    private final AbstractIoBuffer                  outCachedBuf     = Allocator.allocateDirect(1024);
-    private final AbstractIoBuffer[]                bufArray;
+    private final PooledIoBuffer                  outCachedBuf     = Allocator.allocateDirect(1024);
+    private final PooledIoBuffer[]                bufArray;
     private final CpuCachePadingInt         status           = new CpuCachePadingInt(IDLE);
     private final AsynchronousSocketChannel socketChannel;
     private final AioListener               aioListener;
     // private final SendBufStorage bufStorage = new MpscBufStorage();
-    private MPSCQueue<AbstractIoBuffer>             storage          = new MPSCQueue<>();
+    private MPSCQueue<PooledIoBuffer>             storage          = new MPSCQueue<>();
     private final ChannelContext            channelContext;
     private int                             currentSendCount = 0;
     
@@ -32,11 +32,11 @@ public class WriteHandler implements CompletionHandler<Integer, AbstractIoBuffer
         this.aioListener = aioListener;
         this.channelContext = channelContext;
         this.socketChannel = channelContext.socketChannel();
-        bufArray = new AbstractIoBuffer[maxMerge];
+        bufArray = new PooledIoBuffer[maxMerge];
     }
     
     @Override
-    public void completed(Integer result, AbstractIoBuffer buf)
+    public void completed(Integer result, PooledIoBuffer buf)
     {
         ByteBuffer buffer = buf.cachedByteBuffer();
         if (buffer.hasRemaining())
@@ -87,7 +87,7 @@ public class WriteHandler implements CompletionHandler<Integer, AbstractIoBuffer
     }
     
     @Override
-    public void failed(Throwable exc, AbstractIoBuffer buf)
+    public void failed(Throwable exc, PooledIoBuffer buf)
     {
         status.set(TERMINATION);
         buf.release();
@@ -117,7 +117,7 @@ public class WriteHandler implements CompletionHandler<Integer, AbstractIoBuffer
         }
     }
     
-    public void write(AbstractIoBuffer buf)
+    public void write(PooledIoBuffer buf)
     {
         if (buf != null)
         {

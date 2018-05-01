@@ -6,23 +6,23 @@ public class UnPooledIoBufferAllocator implements IoBufferAllocator
     private Archon directArchon = UnPooledArchon.directUnPooledArchon();
     
     @Override
-    public AbstractIoBuffer allocate(int initSize)
+    public PooledIoBuffer allocate(int initSize)
     {
-        AbstractIoBuffer buffer = AbstractIoBuffer.heapIoBuffer();
+        PooledIoBuffer buffer = PooledIoBuffer.heapIoBuffer();
         heapArchon.apply(initSize, buffer);
         return buffer;
     }
     
     @Override
-    public AbstractIoBuffer allocateDirect(int initSize)
+    public PooledIoBuffer allocateDirect(int initSize)
     {
-        AbstractIoBuffer buffer = AbstractIoBuffer.directBuffer();
+        PooledIoBuffer buffer = PooledIoBuffer.directBuffer();
         directArchon.apply(initSize, buffer);
         return buffer;
     }
     
     @Override
-    public void release(AbstractIoBuffer ioBuffer)
+    public void release(PooledIoBuffer ioBuffer)
     {
         ;
     }
