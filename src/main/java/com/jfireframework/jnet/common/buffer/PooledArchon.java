@@ -43,7 +43,7 @@ public abstract class PooledArchon implements Archon
     }
     
     @Override
-    public synchronized void apply(int need, PooledIoBuffer buffer)
+    public synchronized void apply(PooledIoBuffer buffer, int need)
     {
         if (need > maxSize)
         {
