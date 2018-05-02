@@ -6,7 +6,7 @@ import java.nio.ByteBuffer;
 
 class DirectChunk extends Chunk
 {
-	private static final Field addressField;
+	public static final Field addressField;
 	static
 	{
 		try
@@ -19,6 +19,19 @@ class DirectChunk extends Chunk
 			throw new RuntimeException(e);
 		}
 	}
+	
+	public static final long getAddress(ByteBuffer buffer)
+	{
+		try
+		{
+			return addressField.getLong(buffer);
+		}
+		catch (IllegalArgumentException | IllegalAccessException e)
+		{
+			throw new RuntimeException(e);
+		}
+	}
+	
 	private ByteBuffer buffer;
 	
 	public DirectChunk(int maxLevel, int unit)
@@ -30,14 +43,7 @@ class DirectChunk extends Chunk
 	protected void initializeMem(int capacity)
 	{
 		buffer = ByteBuffer.allocateDirect(capacity);
-		try
-		{
-			address = addressField.getLong(buffer);
-		}
-		catch (IllegalArgumentException | IllegalAccessException e)
-		{
-			throw new RuntimeException(e);
-		}
+		address = getAddress(buffer);
 	}
 	
 	@Override
@@ -49,7 +55,7 @@ class DirectChunk extends Chunk
 	@Override
 	protected void initBuffer(PooledIoBuffer buffer, int index, int off, int capacity)
 	{
-		buffer.setDirectIoBufferArgs(this, index, address, off, capacity);
+		buffer.setDirectIoBufferArgs(archon, this, index, address, off, capacity);
 	}
 	
 }

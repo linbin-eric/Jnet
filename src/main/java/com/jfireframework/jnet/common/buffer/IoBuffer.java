@@ -4,261 +4,256 @@ import java.nio.ByteBuffer;
 
 public interface IoBuffer
 {
-    
-    /**
-     * 释放当前Buffer绑定的资源
-     */
-    void release();
-    
-    /**
-     * 返回当前Buffer的大小，该数值并不是固定值。因为Buffer是会随着写入自动扩容
-     * 
-     * @return
-     */
-    int capacity();
-    
-    /**
-     * 在当前位置写入一个byte
-     * 
-     * @param b
-     * @return
-     */
-    IoBuffer put(byte b);
-    
-    /**
-     * 在指定位置写入一个byte
-     * 
-     * @param b
-     * @param posi
-     * @return
-     */
-    IoBuffer put(byte b, int posi);
-    
-    /**
-     * 写入一个字节数组
-     * 
-     * @param content
-     * @return
-     */
-    IoBuffer put(byte[] content);
-    
-    /**
-     * 写入一个字节数组，指定起始位置和写入长度
-     * 
-     * @param content
-     * @param off
-     * @param len
-     * @return
-     */
-    IoBuffer put(byte[] content, int off, int len);
-    
-    /**
-     * 将一个buffer的内容写入该buffer。该写入不影响参数buffer的所有参数
-     * 
-     * @param buffer
-     * @return
-     */
-    IoBuffer put(IoBuffer buffer);
-    
-    /**
-     * 将一个buffer的内容写入该buffer，并且指定写入长度。该写入不影响参数buffer的所有参数。
-     * 
-     * @param buffer
-     * @param len
-     * @return
-     */
-    IoBuffer put(IoBuffer buffer, int len);
-    
-    /**
-     * 在当前位置写入一个int
-     * 
-     * @param i
-     * @return
-     */
-    IoBuffer writeInt(int i);
-    
-    /**
-     * 在指定位置posi写入一个int
-     * 
-     * @param i
-     * @param posi
-     * @return
-     */
-    IoBuffer writeInt(int i, int posi);
-    
-    /**
-     * 在指定位置posi写入一个short
-     * 
-     * @param s
-     * @param posi
-     * @return
-     */
-    IoBuffer writeShort(short s, int posi);
-    
-    /**
-     * 在指定位置posi写入一个long
-     * 
-     * @param l
-     * @param posi
-     * @return
-     */
-    IoBuffer writeLong(long l, int posi);
-    
-    /**
-     * 在当前位置写入一个short
-     * 
-     * @param s
-     * @return
-     */
-    IoBuffer writeShort(short s);
-    
-    /**
-     * 在当前位置写入一个long
-     * 
-     * @param l
-     * @return
-     */
-    IoBuffer writeLong(long l);
-    
-    /**
-     * 返回读取位置，该读取位置的初始值为0
-     * 
-     * @return
-     */
-    int getReadPosi();
-    
-    /**
-     * 设置读取位置
-     * 
-     * @param readPosi
-     */
-    void setReadPosi(int readPosi);
-    
-    /**
-     * 返回写入位置，该写入位置的初始值为0
-     * 
-     * @return
-     */
-    int getWritePosi();
-    
-    /**
-     * 设置写入位置
-     * 
-     * @param writePosi
-     */
-    void setWritePosi(int writePosi);
-    
-    /**
-     * 清空所有数据，并且将写入位置和读取位置归零
-     * 
-     * @return
-     */
-    IoBuffer clearData();
-    
-    /**
-     * 在当前读取位置读取一个byte并返回。读取位置自增。
-     * 
-     * @return
-     */
-    byte get();
-    
-    /**
-     * 在指定位置读取一个byte并且返回。
-     * 
-     * @param posi
-     * @return
-     */
-    byte get(int posi);
-    
-    /**
-     * 返回剩余可以读取的字节数。
-     * 
-     * @return
-     */
-    int remainRead();
-    
-    /**
-     * 返回没有自动扩容前剩余的可写入字节数
-     * 
-     * @return
-     */
-    int remainWrite();
-    
-    /**
-     * 当前Buffer进行压缩。将剩余的读取数据拷贝至buffer的最前端。调整新读取位置为0。新写入位置为调整为旧写入位置减去移动的长度。
-     * 
-     * @return
-     */
-    IoBuffer compact();
-    
-    /**
-     * 从当前位置读取数据填充参数数组。读取位置增加数组长度
-     * 
-     * @param content
-     * @return
-     */
-    IoBuffer get(byte[] content);
-    
-    /**
-     * 从当前位置读取数据填充参数数组，从参数数组的off位置开始，填充长度为len。读取位置增加len。
-     * 
-     * @param content
-     * @param off
-     * @param len
-     * @return
-     */
-    IoBuffer get(byte[] content, int off, int len);
-    
-    /**
-     * 读取位置增加add
-     * 
-     * @param add
-     */
-    void addReadPosi(int add);
-    
-    /**
-     * 写入位置增加add
-     * 
-     * @param add
-     */
-    void addWritePosi(int add);
-    
-    /**
-     * 在数据内容中检索特定的字节数组存在。如果存在，则返回对应的读取位置。否则返回-1
-     * 
-     * @param array
-     * @return
-     */
-    int indexOf(byte[] array);
-    
-    /**
-     * 在读取位置读取int。读取位置增加4
-     * 
-     * @return
-     */
-    int readInt();
-    
-    /**
-     * 在读取位置读取short。读取位置增加2
-     * 
-     * @return
-     */
-    short readShort();
-    
-    /**
-     * 在读取位置读取long。读取位置增加8
-     * 
-     * @return
-     */
-    long readLong();
-    
-    /**
-     * 返回一个处于读状态的ByteBuffer。其内容为当前IoBuffer的内容
-     * 
-     * @return
-     */
-    ByteBuffer byteBuffer();
-    
-    boolean isDirect();
-    
+	
+	/**
+	 * 返回当前Buffer的大小，该数值并不是固定值。因为Buffer是会随着写入自动扩容
+	 * 
+	 * @return
+	 */
+	int capacity();
+	
+	/**
+	 * 在当前位置写入一个byte
+	 * 
+	 * @param b
+	 * @return
+	 */
+	IoBuffer put(byte b);
+	
+	/**
+	 * 在指定位置写入一个byte
+	 * 
+	 * @param b
+	 * @param posi
+	 * @return
+	 */
+	IoBuffer put(byte b, int posi);
+	
+	/**
+	 * 写入一个字节数组
+	 * 
+	 * @param content
+	 * @return
+	 */
+	IoBuffer put(byte[] content);
+	
+	/**
+	 * 写入一个字节数组，指定起始位置和写入长度
+	 * 
+	 * @param content
+	 * @param off
+	 * @param len
+	 * @return
+	 */
+	IoBuffer put(byte[] content, int off, int len);
+	
+	/**
+	 * 将一个buffer的内容写入该buffer。该写入不影响参数buffer的所有参数
+	 * 
+	 * @param buffer
+	 * @return
+	 */
+	IoBuffer put(IoBuffer buffer);
+	
+	/**
+	 * 将一个buffer的内容写入该buffer，并且指定写入长度。该写入不影响参数buffer的所有参数。
+	 * 
+	 * @param buffer
+	 * @param len
+	 * @return
+	 */
+	IoBuffer put(IoBuffer buffer, int len);
+	
+	/**
+	 * 在当前位置写入一个int
+	 * 
+	 * @param i
+	 * @return
+	 */
+	IoBuffer writeInt(int i);
+	
+	/**
+	 * 在指定位置posi写入一个int
+	 * 
+	 * @param i
+	 * @param posi
+	 * @return
+	 */
+	IoBuffer writeInt(int i, int posi);
+	
+	/**
+	 * 在指定位置posi写入一个short
+	 * 
+	 * @param s
+	 * @param posi
+	 * @return
+	 */
+	IoBuffer writeShort(short s, int posi);
+	
+	/**
+	 * 在指定位置posi写入一个long
+	 * 
+	 * @param l
+	 * @param posi
+	 * @return
+	 */
+	IoBuffer writeLong(long l, int posi);
+	
+	/**
+	 * 在当前位置写入一个short
+	 * 
+	 * @param s
+	 * @return
+	 */
+	IoBuffer writeShort(short s);
+	
+	/**
+	 * 在当前位置写入一个long
+	 * 
+	 * @param l
+	 * @return
+	 */
+	IoBuffer writeLong(long l);
+	
+	/**
+	 * 返回读取位置，该读取位置的初始值为0
+	 * 
+	 * @return
+	 */
+	int getReadPosi();
+	
+	/**
+	 * 设置读取位置
+	 * 
+	 * @param readPosi
+	 */
+	void setReadPosi(int readPosi);
+	
+	/**
+	 * 返回写入位置，该写入位置的初始值为0
+	 * 
+	 * @return
+	 */
+	int getWritePosi();
+	
+	/**
+	 * 设置写入位置
+	 * 
+	 * @param writePosi
+	 */
+	void setWritePosi(int writePosi);
+	
+	/**
+	 * 清空所有数据，并且将写入位置和读取位置归零
+	 * 
+	 * @return
+	 */
+	IoBuffer clearData();
+	
+	/**
+	 * 在当前读取位置读取一个byte并返回。读取位置自增。
+	 * 
+	 * @return
+	 */
+	byte get();
+	
+	/**
+	 * 在指定位置读取一个byte并且返回。
+	 * 
+	 * @param posi
+	 * @return
+	 */
+	byte get(int posi);
+	
+	/**
+	 * 返回剩余可以读取的字节数。
+	 * 
+	 * @return
+	 */
+	int remainRead();
+	
+	/**
+	 * 返回没有自动扩容前剩余的可写入字节数
+	 * 
+	 * @return
+	 */
+	int remainWrite();
+	
+	/**
+	 * 当前Buffer进行压缩。将剩余的读取数据拷贝至buffer的最前端。调整新读取位置为0。新写入位置为调整为旧写入位置减去移动的长度。
+	 * 
+	 * @return
+	 */
+	IoBuffer compact();
+	
+	/**
+	 * 从当前位置读取数据填充参数数组。读取位置增加数组长度
+	 * 
+	 * @param content
+	 * @return
+	 */
+	IoBuffer get(byte[] content);
+	
+	/**
+	 * 从当前位置读取数据填充参数数组，从参数数组的off位置开始，填充长度为len。读取位置增加len。
+	 * 
+	 * @param content
+	 * @param off
+	 * @param len
+	 * @return
+	 */
+	IoBuffer get(byte[] content, int off, int len);
+	
+	/**
+	 * 读取位置增加add
+	 * 
+	 * @param add
+	 */
+	void addReadPosi(int add);
+	
+	/**
+	 * 写入位置增加add
+	 * 
+	 * @param add
+	 */
+	void addWritePosi(int add);
+	
+	/**
+	 * 在数据内容中检索特定的字节数组存在。如果存在，则返回对应的读取位置。否则返回-1
+	 * 
+	 * @param array
+	 * @return
+	 */
+	int indexOf(byte[] array);
+	
+	/**
+	 * 在读取位置读取int。读取位置增加4
+	 * 
+	 * @return
+	 */
+	int readInt();
+	
+	/**
+	 * 在读取位置读取short。读取位置增加2
+	 * 
+	 * @return
+	 */
+	short readShort();
+	
+	/**
+	 * 在读取位置读取long。读取位置增加8
+	 * 
+	 * @return
+	 */
+	long readLong();
+	
+	/**
+	 * 返回一个处于读状态的ByteBuffer。其内容为当前IoBuffer的内容
+	 * 
+	 * @return
+	 */
+	ByteBuffer byteBuffer();
+	
+	boolean isDirect();
+	
 }

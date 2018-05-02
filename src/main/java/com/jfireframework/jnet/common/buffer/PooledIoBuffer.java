@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 
 public abstract class PooledIoBuffer implements IoBuffer
 {
+	protected Archon	archon;
 	protected int		index;
 	protected Chunk		chunk;
 	// 当类为HeapIoBuffer时不为空
@@ -28,12 +29,13 @@ public abstract class PooledIoBuffer implements IoBuffer
 	 * @param arrayOffset 该数据区域可以使用的起始偏移量
 	 * @param capacity 该数据区域可以使用的大小
 	 */
-	protected void setHeapIoBufferArgs(Chunk chunk, int index, byte[] array, int arrayOffset, int capacity)
+	protected void setHeapIoBufferArgs(Archon archon, Chunk chunk, int index, byte[] array, int arrayOffset, int capacity)
 	{
 		if (isDirect())
 		{
 			throw new IllegalArgumentException();
 		}
+		this.archon = archon;
 		this.chunk = chunk;
 		this.index = index;
 		this.array = array;
@@ -51,12 +53,13 @@ public abstract class PooledIoBuffer implements IoBuffer
 	 * @param addressOffset 当前数据区域可以使用的起始偏移量
 	 * @param capacity 该数据区域可以使用的大小
 	 */
-	protected void setDirectIoBufferArgs(Chunk chunk, int index, long address, int addressOffset, int capacity)
+	protected void setDirectIoBufferArgs(Archon archon, Chunk chunk, int index, long address, int addressOffset, int capacity)
 	{
 		if (isDirect() == false)
 		{
 			throw new IllegalArgumentException();
 		}
+		this.archon = archon;
 		this.chunk = chunk;
 		this.index = index;
 		this.address = address + addressOffset;
@@ -64,9 +67,12 @@ public abstract class PooledIoBuffer implements IoBuffer
 		readPosi = writePosi = 0;
 	}
 	
-	@Override
+	/**
+	 * 释放所有绑定的资源。将对应的对象设置为null以及将下标等设置为-1这种无意义值
+	 */
 	public void release()
 	{
+		archon = null;
 		chunk = null;
 		index = -1;
 		address = -1;
@@ -94,9 +100,18 @@ public abstract class PooledIoBuffer implements IoBuffer
 	@Override
 	public IoBuffer put(byte b)
 	{
-		// TODO Auto-generated method stub
-		return null;
+		int newWritePosi = writePosi + 1;
+		if (newWritePosi > capacity)
+		{
+			// 扩容
+			archon.expansion(this, newWritePosi);
+		}
+		_put(writePosi, b);
+		writePosi = newWritePosi;
+		return this;
 	}
+	
+	protected abstract void _put(int index, byte b);
 	
 	@Override
 	public IoBuffer put(byte b, int posi)

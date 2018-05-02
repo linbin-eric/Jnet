@@ -121,10 +121,10 @@ public class ChunkList
 		chunk.parent = this;
 	}
 	
-	public void recycle(PooledIoBuffer handler)
+	public void recycle(PooledIoBuffer buffer)
 	{
-		Chunk chunk = handler.chunk();
-		chunk.recycle(handler.indexOfChunk());
+		Chunk chunk = buffer.chunk();
+		chunk.recycle(buffer.indexOfChunk());
 		if (chunk.usage() <= minUsage)
 		{
 			moveToPrev(chunk);

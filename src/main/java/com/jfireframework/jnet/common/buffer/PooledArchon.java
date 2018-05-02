@@ -1,6 +1,6 @@
 package com.jfireframework.jnet.common.buffer;
 
-public abstract class PooledArchon extends Archon
+public abstract class PooledArchon implements Archon
 {
 	private ChunkList			cInt;
 	private ChunkList			c000;
@@ -49,7 +49,7 @@ public abstract class PooledArchon extends Archon
 		if (need > maxSize)
 		{
 			System.out.println("申请太大");
-			initHugeBucket(handler, need);
+			initHugeBuffer(handler, need);
 			return;
 		}
 		if (c50.findChunkAndApply(need, handler, this)//
@@ -64,51 +64,47 @@ public abstract class PooledArchon extends Archon
 		Chunk chunk = newChunk(maxLevel, unit);
 		chunk.archon = this;
 		// 先申请，后添加
-		chunk.apply(need, handler, this);
+		chunk.apply(need, handler);
 		cInt.addChunk(chunk);
 	}
 	
 	@Override
 	public synchronized void expansion(PooledIoBuffer buffer, int newSize)
 	{
-		apply(newSize, expansionIoBuffer);
-		buffer.expansion(expansionIoBuffer);
-		recycle(expansionIoBuffer);
-		expansionIoBuffer.destory();
 	}
 	
 	@Override
-	public synchronized void recycle(IoBuffer handler)
+	public synchronized void recycle(PooledIoBuffer buffer)
 	{
-		if (handler.belong() == null)
+		if (buffer.chunk() == null)
 		{
 			return;
 		}
-		Chunk chunk = handler.belong();
+		Chunk chunk = buffer.chunk();
 		ChunkList list = chunk.parent();
 		if (list != null)
 		{
-			list.recycle(handler);
+			list.recycle(buffer);
 		}
 		else
 		{
 			// 由于采用百分比计数，存在一种可能：在低于1%时，计算结果为0%。此时chunk节点已经从list删除，但是仍然被外界持有（因为实际占用率不是0）。此时的chunk节点的parent是为空。
-			chunk.recycle(handler);
+			chunk.recycle(buffer.indexOfChunk());
 		}
 	}
 	
 	@Override
-	public synchronized void recycle(IoBuffer[] buffers, int off, int len)
+	public synchronized void recycle(PooledIoBuffer[] buffers, int off, int len)
 	{
 		int end = off + len;
 		for (int i = off; i < end; i++)
 		{
-			IoBuffer buffer = buffers[i];
-			if (buffer.belong() == null)
+			PooledIoBuffer buffer = buffers[i];
+			if (buffer.chunk() == null)
 			{
 				continue;
 			}
-			Chunk chunk = buffer.belong();
+			Chunk chunk = buffer.chunk();
 			ChunkList list = chunk.parent();
 			if (list != null)
 			{
@@ -117,12 +113,18 @@ public abstract class PooledArchon extends Archon
 			else
 			{
 				// 由于采用百分比计数，存在一种可能：在低于1%时，计算结果为0%。此时chunk节点已经从list删除，但是仍然被外界持有（因为实际占用率不是0）。此时的chunk节点的parent是为空。
-				chunk.recycle(buffer);
+				chunk.recycle(buffer.indexOfChunk());
 			}
 		}
 	}
 	
-	protected abstract void initHugeBucket(PooledIoBuffer handler, int need);
+	/**
+	 * 设置巨大内存区域的Buffer数据。该Buffer是没有关联chunk的
+	 * 
+	 * @param buffer
+	 * @param need
+	 */
+	protected abstract void initHugeBuffer(PooledIoBuffer buffer, int need);
 	
 	protected abstract Chunk newChunk(int maxLevel, int unit);
 	
@@ -133,11 +135,11 @@ public abstract class PooledArchon extends Archon
 	
 	public static PooledArchon directPooledArchon(int maxLevel, int unit)
 	{
-		return new DirectPooledArchon(maxLevel, unit);
+		return new PooledDirectArchon(maxLevel, unit);
 	}
 	
 	public static PooledArchon heapPooledArchon(int maxLevel, int unit)
 	{
-		return new HeapPooledArchon(maxLevel, unit);
+		return new PooledHeapArchon(maxLevel, unit);
 	}
 }
