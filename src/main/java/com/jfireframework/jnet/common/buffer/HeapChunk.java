@@ -2,7 +2,6 @@ package com.jfireframework.jnet.common.buffer;
 
 class HeapChunk extends Chunk
 {
-	private byte[] mem;
 	
 	public HeapChunk(int maxLevel, int unit)
 	{
@@ -12,13 +11,19 @@ class HeapChunk extends Chunk
 	@Override
 	protected void initializeMem(int capacity)
 	{
-		mem = new byte[capacity];
+		array = new byte[capacity];
 	}
 	
 	@Override
-	protected void initHandler(Archon archon, PooledIoBuffer handler, int index, int off, int len)
+	public boolean isDirect()
 	{
-		handler.initialize(off, len, mem, index, this, archon);
+		return false;
+	}
+	
+	@Override
+	protected void initBuffer(PooledIoBuffer buffer, int index, int off, int capacity)
+	{
+		buffer.setHeapIoBufferArgs(this, index, array, off, capacity);
 	}
 	
 }

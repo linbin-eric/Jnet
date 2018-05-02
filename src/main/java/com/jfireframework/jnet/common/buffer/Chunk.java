@@ -1,11 +1,15 @@
 package com.jfireframework.jnet.common.buffer;
 
-import com.jfireframework.baseutil.time.Timewatch;
-
 public abstract class Chunk
 {
-	protected int[]		pool;
-	protected int		capacity;
+	/**
+	 * 如果是Heap类型的Chunk则不为空
+	 */
+	protected byte[]	array;
+	/**
+	 * 如果是Direct类型的Chunk则不为-1
+	 */
+	protected long		address;
 	protected Chunk		pred;
 	protected Chunk		next;
 	protected ChunkList	parent;
@@ -13,9 +17,17 @@ public abstract class Chunk
 	protected int		pageShift;
 	protected int		maxLevel;
 	protected int		unit;
-	protected final int	capacityShift;
+	protected int[]		pool;
+	protected int		capacity;
 	protected int		freeCapaticy;
+	protected final int	capacityShift;
 	
+	/**
+	 * 初始化一个chunk。
+	 * 
+	 * @param maxLevel 最大层次。起始层次为0。
+	 * @param unit 单位字节长度。也就是一个最小的分配区域的字节数
+	 */
 	public Chunk(int maxLevel, int unit)
 	{
 		this.unit = unit;
@@ -33,67 +45,56 @@ public abstract class Chunk
 		}
 		capacity = pool[1];
 		freeCapaticy = capacity;
-		initializeMem(capacity);
 		capacityShift = log2(capacity);
-	}
-	
-	public static Chunk newHeapChunk(int maxLevel, int unit)
-	{
-		return new HeapChunk(maxLevel, unit);
-	}
-	
-	public static Chunk newDirectChunk(int maxLevel, int unit)
-	{
-		return new DirectChunk(maxLevel, unit);
-	}
-	
-	static final int tableSizeFor(int cap)
-	{
-		int n = cap - 1;
-		n |= n >>> 1;
-		n |= n >>> 2;
-		n |= n >>> 4;
-		n |= n >>> 8;
-		n |= n >>> 16;
-		return n + 1;
-	}
-	
-	static int log2(int value)
-	{
-		return 31 - Integer.numberOfLeadingZeros(value);
+		initializeMem(capacity);
 	}
 	
 	protected abstract void initializeMem(int capacity);
 	
-	public boolean apply(int need, PooledIoBuffer buffer, Archon archon)
+	/**
+	 * 该chunk是否使用堆外内存
+	 * 
+	 * @return
+	 */
+	public abstract boolean isDirect();
+	
+	public boolean apply(int need, PooledIoBuffer buffer)
 	{
-		need = tableSizeFor(need);
-		if (pool[1] < need)
+		int capacity = tableSizeFor(need);
+		int capacityShift = log2(capacity);
+		if (pool[1] < capacity)
 		{
 			return false;
 		}
-		freeCapaticy -= need;
-		int selectedLevel = maxLevel - (log2(need) - pageShift);
-		// if (need > unit)
-		// {
-		// selectedLevel = maxLevel - (log2(need) - pageShift);
-		// }
-		// else
-		// {
-		// selectedLevel = maxLevel;
-		// }
-		int index = findAvailable(need, selectedLevel);
-		reduce(index, need);
-		int off = (index - (1 << selectedLevel)) * need;
-		initHandler(archon, buffer, index, off, need);
+		freeCapaticy -= capacity;
+		int selectedLevel = maxLevel - (capacityShift - pageShift);
+		int index = findAvailable(capacity, selectedLevel);
+		reduce(index, capacity);
+		int off = (index - (1 << selectedLevel)) << capacityShift;
+		initBuffer(buffer, index, off, capacity);
 		return true;
 	}
 	
-	protected abstract void initHandler(Archon archon, PooledIoBuffer bucket, int index, int off, int len);
+	protected abstract void initBuffer(PooledIoBuffer buffer, int index, int off, int capacity);
 	
-	public void recycle(IoBuffer bucket)
+	public final int sizeOfIndex(int index)
 	{
-		int index = bucket.getIndex();
+		return 1 << (maxLevel - log2(index) + pageShift);
+	}
+	
+	public final int offsetOfIndex(int index)
+	{
+		int level = log2(index);
+		return (index - (1 << level)) << (maxLevel - level + pageShift);
+	}
+	
+	/**
+	 * 坐标index位置的内存区域可以重新使用
+	 * 
+	 * @param index
+	 */
+	public void recycle(int index)
+	{
 		int recycle = 1 << (maxLevel - log2(index) + pageShift);
 		freeCapaticy += recycle;
 		pool[index] = recycle;
@@ -129,14 +130,6 @@ public abstract class Chunk
 			level += 1;
 		}
 		return index;
-		// if (pool[index] == reduce)
-		// {
-		// return index;
-		// }
-		// else
-		// {
-		// return index ^ 1;
-		// }
 	}
 	
 	private void reduce(int index, int reduce)
@@ -188,6 +181,32 @@ public abstract class Chunk
 	public ChunkList parent()
 	{
 		return parent;
+	}
+	
+	public static Chunk newHeapChunk(int maxLevel, int unit)
+	{
+		return new HeapChunk(maxLevel, unit);
+	}
+	
+	public static Chunk newDirectChunk(int maxLevel, int unit)
+	{
+		return new DirectChunk(maxLevel, unit);
+	}
+	
+	static final int tableSizeFor(int cap)
+	{
+		int n = cap - 1;
+		n |= n >>> 1;
+		n |= n >>> 2;
+		n |= n >>> 4;
+		n |= n >>> 8;
+		n |= n >>> 16;
+		return n + 1;
+	}
+	
+	static int log2(int value)
+	{
+		return 31 - Integer.numberOfLeadingZeros(value);
 	}
 	
 }

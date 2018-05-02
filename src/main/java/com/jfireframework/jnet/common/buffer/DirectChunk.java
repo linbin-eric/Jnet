@@ -1,10 +1,25 @@
 package com.jfireframework.jnet.common.buffer;
 
+import java.lang.reflect.Field;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 
 class DirectChunk extends Chunk
 {
-	protected ByteBuffer mem;
+	private static final Field addressField;
+	static
+	{
+		try
+		{
+			addressField = Buffer.class.getDeclaredField("adddress");
+			addressField.setAccessible(true);
+		}
+		catch (NoSuchFieldException | SecurityException e)
+		{
+			throw new RuntimeException(e);
+		}
+	}
+	private ByteBuffer buffer;
 	
 	public DirectChunk(int maxLevel, int unit)
 	{
@@ -14,19 +29,27 @@ class DirectChunk extends Chunk
 	@Override
 	protected void initializeMem(int capacity)
 	{
-		ByteBuffer buffer = ByteBuffer.allocateDirect(capacity);
-		buffer.limit(capacity).position(0);
-		mem = buffer;
+		buffer = ByteBuffer.allocateDirect(capacity);
+		try
+		{
+			address = addressField.getLong(buffer);
+		}
+		catch (IllegalArgumentException | IllegalAccessException e)
+		{
+			throw new RuntimeException(e);
+		}
 	}
 	
 	@Override
-	protected void initHandler(Archon archon, PooledIoBuffer handler, int index, int off, int len)
+	public boolean isDirect()
 	{
-		mem.limit(off + len).position(off);
-		ByteBuffer slice = mem.slice();
-		// 恢复到初始状态
-		mem.limit(capacity).position(0);
-		handler.initialize(0, slice.capacity(), slice, index, this, archon);
+		return true;
+	}
+	
+	@Override
+	protected void initBuffer(PooledIoBuffer buffer, int index, int off, int capacity)
+	{
+		buffer.setDirectIoBufferArgs(this, index, address, off, capacity);
 	}
 	
 }
