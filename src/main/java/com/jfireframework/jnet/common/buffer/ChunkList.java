@@ -31,7 +31,7 @@ public class ChunkList
 		this.prev = prev;
 	}
 	
-	public boolean findChunkAndApply(int need, PooledIoBuffer bucket, Archon archon)
+	public boolean findChunkAndApply(int need, PooledIoBuffer bucket, boolean expansion)
 	{
 		if (head == null)
 		{
@@ -42,7 +42,7 @@ public class ChunkList
 		boolean apply = false;
 		while (select != null)
 		{
-			apply = select.apply(need, bucket);
+			apply = select.apply(need, bucket, expansion);
 			if (apply == false)
 			{
 				select = select.next;
@@ -121,14 +121,19 @@ public class ChunkList
 		chunk.parent = this;
 	}
 	
-	public void recycle(PooledIoBuffer buffer)
+	public void recycle(Chunk chunk, int index)
 	{
-		Chunk chunk = buffer.chunk();
-		chunk.recycle(buffer.indexOfChunk());
+		chunk.recycle(index);
 		if (chunk.usage() <= minUsage)
 		{
 			moveToPrev(chunk);
 		}
+	}
+	
+	public void recycle(PooledIoBuffer buffer)
+	{
+		Chunk chunk = buffer.chunk();
+		recycle(chunk, buffer.indexOfChunk());
 	}
 	
 	public Chunk head()

@@ -12,13 +12,12 @@ public interface Archon
 	void apply(int need, PooledIoBuffer buffer);
 	
 	/**
-	 * 将Bucket中的内存回收。<br/>
+	 * chunk中的下标为index处的内存区域可以回收
 	 * 
-	 * @param bucket
+	 * @param chunk
+	 * @param indexOfChunk
 	 */
-	void recycle(PooledIoBuffer buffer);
-	
-	void recycle(PooledIoBuffer[] buffers, int off, int len);
+	void recycle(Chunk chunk, int index);
 	
 	/**
 	 * 将buffer扩容到newSize大小。

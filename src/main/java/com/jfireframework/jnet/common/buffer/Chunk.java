@@ -58,7 +58,15 @@ public abstract class Chunk
 	 */
 	public abstract boolean isDirect();
 	
-	public boolean apply(int need, PooledIoBuffer buffer)
+	/**
+	 * 申请一块不小于need的内存区域。用于初始化或者扩容buffer
+	 * 
+	 * @param need
+	 * @param buffer
+	 * @param expansion 是否扩容操作
+	 * @return
+	 */
+	public boolean apply(int need, PooledIoBuffer buffer, boolean expansion)
 	{
 		int capacity = tableSizeFor(need);
 		int capacityShift = log2(capacity);
@@ -71,11 +79,36 @@ public abstract class Chunk
 		int index = findAvailable(capacity, selectedLevel);
 		reduce(index, capacity);
 		int off = (index - (1 << selectedLevel)) << capacityShift;
-		initBuffer(buffer, index, off, capacity);
+		if (expansion)
+		{
+			expansionBuffer(buffer, index, off, capacityShift);
+		}
+		else
+		{
+			initBuffer(buffer, index, off, capacity);
+		}
 		return true;
 	}
 	
+	/**
+	 * 使用内存区域执行初始化buffer操作
+	 * 
+	 * @param buffer
+	 * @param index
+	 * @param off
+	 * @param capacity
+	 */
 	protected abstract void initBuffer(PooledIoBuffer buffer, int index, int off, int capacity);
+	
+	/**
+	 * 使用内存区域执行扩容Buffer操作
+	 * 
+	 * @param buffer
+	 * @param index
+	 * @param off
+	 * @param capacity
+	 */
+	protected abstract void expansionBuffer(PooledIoBuffer buffer, int index, int off, int capacity);
 	
 	public final int sizeOfIndex(int index)
 	{

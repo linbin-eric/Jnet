@@ -4,21 +4,25 @@ import java.nio.ByteBuffer;
 
 public abstract class PooledIoBuffer implements IoBuffer
 {
-	protected Archon	archon;
-	protected int		index;
-	protected Chunk		chunk;
+	protected Archon		archon;
+	protected int			index;
+	protected Chunk			chunk;
 	// 当类为HeapIoBuffer时不为空
-	protected byte[]	array;
+	protected byte[]		array;
 	// 当类为HeapIoBuffer时为array中可用区域的起始偏移量
-	protected int		arrayOffset;
+	protected int			arrayOffset;
 	// 当类为DirectIoBuffer时不为-1.值是当前buffer可用的直接内存的起始位置
-	protected long		address;
+	protected long			address;
+	// 当类为DirectIoBuffer时不为空。值是address关联的Buffer。
+	protected ByteBuffer	addressBuffer;
+	// 当类为DirectIoBuffer时不为-1.值是当前Address可用区域的偏移量
+	protected int			addressOffset;
 	// 当前buffer的容量字节数
-	protected int		capacity;
+	protected int			capacity;
 	// 相对的读取坐标
-	protected int		readPosi;
+	protected int			readPosi;
 	// 相对的写入坐标
-	protected int		writePosi;
+	protected int			writePosi;
 	
 	/**
 	 * 如果类是HeapIoBuffer时调用该方法.
@@ -53,7 +57,7 @@ public abstract class PooledIoBuffer implements IoBuffer
 	 * @param addressOffset 当前数据区域可以使用的起始偏移量
 	 * @param capacity 该数据区域可以使用的大小
 	 */
-	protected void setDirectIoBufferArgs(Archon archon, Chunk chunk, int index, long address, int addressOffset, int capacity)
+	protected void setDirectIoBufferArgs(Archon archon, Chunk chunk, int index, long address, int addressOffset, ByteBuffer addressBuffer, int capacity)
 	{
 		if (isDirect() == false)
 		{
@@ -62,7 +66,9 @@ public abstract class PooledIoBuffer implements IoBuffer
 		this.archon = archon;
 		this.chunk = chunk;
 		this.index = index;
-		this.address = address + addressOffset;
+		this.address = address;
+		this.addressOffset = addressOffset;
+		this.addressBuffer = addressBuffer;
 		this.capacity = capacity;
 		readPosi = writePosi = 0;
 	}
@@ -76,6 +82,8 @@ public abstract class PooledIoBuffer implements IoBuffer
 		chunk = null;
 		index = -1;
 		address = -1;
+		addressOffset = -1;
+		addressBuffer = null;
 		array = null;
 		arrayOffset = -1;
 		capacity = -1;

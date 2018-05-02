@@ -2,16 +2,15 @@ package com.jfireframework.jnet.common.buffer;
 
 public abstract class PooledArchon implements Archon
 {
-	private ChunkList			cInt;
-	private ChunkList			c000;
-	private ChunkList			c25;
-	private ChunkList			c50;
-	private ChunkList			c75;
-	private ChunkList			c100;
-	private int					maxLevel;
-	private int					unit;
-	private int					maxSize;
-	protected PooledIoBuffer	expansionIoBuffer;
+	private ChunkList	cInt;
+	private ChunkList	c000;
+	private ChunkList	c25;
+	private ChunkList	c50;
+	private ChunkList	c75;
+	private ChunkList	c100;
+	private int			maxLevel;
+	private int			unit;
+	protected int		maxSize;
 	
 	protected PooledArchon(int maxLevel, int unit)
 	{
@@ -44,19 +43,23 @@ public abstract class PooledArchon implements Archon
 	}
 	
 	@Override
-	public synchronized void apply(int need, PooledIoBuffer handler)
+	public synchronized void apply(int need, PooledIoBuffer buffer)
 	{
 		if (need > maxSize)
 		{
-			System.out.println("申请太大");
-			initHugeBuffer(handler, need);
+			initHugeBuffer(buffer, need);
 			return;
 		}
-		if (c50.findChunkAndApply(need, handler, this)//
-		        || c25.findChunkAndApply(need, handler, this) //
-		        || c000.findChunkAndApply(need, handler, this) //
-		        || cInt.findChunkAndApply(need, handler, this) //
-		        || c75.findChunkAndApply(need, handler, this) //
+		applyFromChunk(need, buffer, false);
+	}
+	
+	protected final void applyFromChunk(int need, PooledIoBuffer buffer, boolean expansion)
+	{
+		if (c50.findChunkAndApply(need, buffer, expansion)//
+		        || c25.findChunkAndApply(need, buffer, expansion) //
+		        || c000.findChunkAndApply(need, buffer, expansion) //
+		        || cInt.findChunkAndApply(need, buffer, expansion) //
+		        || c75.findChunkAndApply(need, buffer, expansion) //
 		)
 		{
 			return;
@@ -64,57 +67,20 @@ public abstract class PooledArchon implements Archon
 		Chunk chunk = newChunk(maxLevel, unit);
 		chunk.archon = this;
 		// 先申请，后添加
-		chunk.apply(need, handler);
+		chunk.apply(need, buffer, expansion);
 		cInt.addChunk(chunk);
 	}
 	
-	@Override
-	public synchronized void expansion(PooledIoBuffer buffer, int newSize)
+	public synchronized void recycle(Chunk chunk, int index)
 	{
-	}
-	
-	@Override
-	public synchronized void recycle(PooledIoBuffer buffer)
-	{
-		if (buffer.chunk() == null)
-		{
-			return;
-		}
-		Chunk chunk = buffer.chunk();
 		ChunkList list = chunk.parent();
 		if (list != null)
 		{
-			list.recycle(buffer);
+			list.recycle(chunk, index);
 		}
 		else
 		{
-			// 由于采用百分比计数，存在一种可能：在低于1%时，计算结果为0%。此时chunk节点已经从list删除，但是仍然被外界持有（因为实际占用率不是0）。此时的chunk节点的parent是为空。
-			chunk.recycle(buffer.indexOfChunk());
-		}
-	}
-	
-	@Override
-	public synchronized void recycle(PooledIoBuffer[] buffers, int off, int len)
-	{
-		int end = off + len;
-		for (int i = off; i < end; i++)
-		{
-			PooledIoBuffer buffer = buffers[i];
-			if (buffer.chunk() == null)
-			{
-				continue;
-			}
-			Chunk chunk = buffer.chunk();
-			ChunkList list = chunk.parent();
-			if (list != null)
-			{
-				list.recycle(buffer);
-			}
-			else
-			{
-				// 由于采用百分比计数，存在一种可能：在低于1%时，计算结果为0%。此时chunk节点已经从list删除，但是仍然被外界持有（因为实际占用率不是0）。此时的chunk节点的parent是为空。
-				chunk.recycle(buffer.indexOfChunk());
-			}
+			throw new IllegalStateException("不应该出现chunk已经没有归属的list时还能出现回收的情况。因为一个chunk不属于一个list只可能是因为其使用率为0被移除");
 		}
 	}
 	
@@ -128,10 +94,26 @@ public abstract class PooledArchon implements Archon
 	
 	protected abstract Chunk newChunk(int maxLevel, int unit);
 	
-	interface ExpansionIoBuffer
+	@Override
+	public synchronized void expansion(PooledIoBuffer buffer, int newSize)
 	{
-		void clearForNextCall();
+		if (newSize <= maxSize)
+		{
+			Chunk predChunk = buffer.chunk();
+			int predIndex = buffer.index;
+			applyFromChunk(newSize, buffer, false);
+			if (predChunk != null)
+			{
+				recycle(predChunk, predIndex);
+			}
+		}
+		else
+		{
+			expansionForHugeCapacity(buffer, newSize);
+		}
 	}
+	
+	protected abstract void expansionForHugeCapacity(PooledIoBuffer buffer, int newSize);
 	
 	public static PooledArchon directPooledArchon(int maxLevel, int unit)
 	{

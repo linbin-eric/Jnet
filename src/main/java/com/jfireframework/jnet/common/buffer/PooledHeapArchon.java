@@ -19,4 +19,23 @@ class PooledHeapArchon extends PooledArchon
 	{
 		return Chunk.newHeapChunk(maxLevel, unit);
 	}
+	
+	@Override
+	protected void expansionForHugeCapacity(PooledIoBuffer buffer, int newSize)
+	{
+		Chunk predChunk = buffer.chunk;
+		int predIndex = buffer.index;
+		byte[] newArray = new byte[newSize];
+		System.arraycopy(buffer.array, buffer.arrayOffset, newArray, 0, buffer.writePosi);
+		buffer.array = newArray;
+		buffer.arrayOffset = 0;
+		buffer.capacity = newSize;
+		if (buffer.chunk() != null)
+		{
+			recycle(predChunk, predIndex);
+		}
+		buffer.chunk = null;
+		buffer.index = -1;
+	}
+	
 }

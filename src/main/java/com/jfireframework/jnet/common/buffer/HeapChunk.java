@@ -23,7 +23,14 @@ class HeapChunk extends Chunk
 	@Override
 	protected void initBuffer(PooledIoBuffer buffer, int index, int off, int capacity)
 	{
-		buffer.setHeapIoBufferArgs(this, index, array, off, capacity);
+		buffer.setHeapIoBufferArgs(archon, this, index, array, off, capacity);
+	}
+	
+	@Override
+	protected void expansionBuffer(PooledIoBuffer buffer, int index, int off, int capacity)
+	{
+		// TODO Auto-generated method stub
+		
 	}
 	
 }
