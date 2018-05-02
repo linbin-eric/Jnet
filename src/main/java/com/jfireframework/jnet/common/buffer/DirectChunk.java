@@ -1,7 +1,6 @@
 package com.jfireframework.jnet.common.buffer;
 
 import java.nio.ByteBuffer;
-import com.jfireframework.jnet.common.util.Bits;
 
 class DirectChunk extends Chunk
 {

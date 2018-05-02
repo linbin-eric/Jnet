@@ -2,337 +2,310 @@ package com.jfireframework.jnet.common.buffer;
 
 import java.nio.ByteBuffer;
 
-public abstract class PooledIoBuffer implements IoBuffer
+public abstract class PooledIoBuffer extends AbstractIoBuffer
 {
-	protected Archon		archon;
-	protected int			index;
-	protected Chunk			chunk;
-	// 当类为HeapIoBuffer时不为空
-	protected byte[]		array;
-	// 当类为HeapIoBuffer时为array中可用区域的起始偏移量
-	protected int			arrayOffset;
-	// 当类为DirectIoBuffer时不为-1.值是当前buffer可用的直接内存的起始位置
-	protected long			address;
-	// 当类为DirectIoBuffer时不为空。值是address关联的Buffer。
-	protected ByteBuffer	addressBuffer;
-	// 当类为DirectIoBuffer时不为-1.值是当前Address可用区域的偏移量
-	protected int			addressOffset;
-	// 当前buffer的容量字节数
-	protected int			capacity;
-	// 相对的读取坐标
-	protected int			readPosi;
-	// 相对的写入坐标
-	protected int			writePosi;
-	protected ByteBuffer	internalByteBuffer;
-	
-	/**
-	 * 如果类是HeapIoBuffer时调用该方法.
-	 * 
-	 * @param chunk 当前数据区域所属chunk
-	 * @param index 当前数据区域在chunk中的坐标
-	 * @param array 数据区域
-	 * @param arrayOffset 该数据区域可以使用的起始偏移量
-	 * @param capacity 该数据区域可以使用的大小
-	 */
-	protected void setHeapIoBufferArgs(Archon archon, Chunk chunk, int index, byte[] array, int arrayOffset, int capacity)
-	{
-		if (isDirect())
-		{
-			throw new IllegalArgumentException();
-		}
-		this.archon = archon;
-		this.chunk = chunk;
-		this.index = index;
-		this.array = array;
-		this.arrayOffset = arrayOffset;
-		this.capacity = capacity;
-		readPosi = writePosi = 0;
-	}
-	
-	/**
-	 * 如果类是DirectIoBUffer时调用该方法
-	 * 
-	 * @param chunk 当前数据区域所属chunk
-	 * @param index 当前数据区域在chunk中的坐标
-	 * @param address 当前数据区域在内存中的位置
-	 * @param addressOffset 当前数据区域可以使用的起始偏移量
-	 * @param capacity 该数据区域可以使用的大小
-	 */
-	protected void setDirectIoBufferArgs(Archon archon, Chunk chunk, int index, long address, int addressOffset, ByteBuffer addressBuffer, int capacity)
-	{
-		if (isDirect() == false)
-		{
-			throw new IllegalArgumentException();
-		}
-		this.archon = archon;
-		this.chunk = chunk;
-		this.index = index;
-		this.address = address;
-		this.addressOffset = addressOffset;
-		this.addressBuffer = addressBuffer;
-		this.capacity = capacity;
-		readPosi = writePosi = 0;
-	}
-	
-	/**
-	 * 释放所有绑定的资源。将对应的对象设置为null以及将下标等设置为-1这种无意义值
-	 */
-	public void release()
-	{
-		archon = null;
-		chunk = null;
-		index = -1;
-		address = -1;
-		addressOffset = -1;
-		addressBuffer = null;
-		array = null;
-		arrayOffset = -1;
-		capacity = -1;
-		internalByteBuffer = null;
-	}
-	
-	public Chunk chunk()
-	{
-		return chunk;
-	}
-	
-	public int indexOfChunk()
-	{
-		return index;
-	}
-	
-	@Override
-	public int capacity()
-	{
-		return capacity;
-	}
-	
-	@Override
-	public IoBuffer put(byte b)
-	{
-		int newWritePosi = writePosi + 1;
-		if (newWritePosi > capacity)
-		{
-			// 扩容
-			archon.expansion(this, newWritePosi);
-		}
-		_put(writePosi, b);
-		writePosi = newWritePosi;
-		return this;
-	}
-	
-	protected abstract void _put(int index, byte b);
-	
-	@Override
-	public IoBuffer put(byte b, int posi)
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public IoBuffer put(byte[] content)
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public IoBuffer put(byte[] content, int off, int len)
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public IoBuffer put(IoBuffer buffer)
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public IoBuffer put(IoBuffer buffer, int len)
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public IoBuffer writeInt(int i)
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public IoBuffer writeInt(int i, int posi)
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public IoBuffer writeShort(short s, int posi)
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public IoBuffer writeLong(long l, int posi)
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public IoBuffer writeShort(short s)
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public IoBuffer writeLong(long l)
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public int getReadPosi()
-	{
-		return readPosi;
-	}
-	
-	@Override
-	public void setReadPosi(int readPosi)
-	{
-		this.readPosi = readPosi;
-	}
-	
-	@Override
-	public int getWritePosi()
-	{
-		return writePosi;
-	}
-	
-	@Override
-	public void setWritePosi(int writePosi)
-	{
-		this.writePosi = writePosi;
-	}
-	
-	@Override
-	public IoBuffer clearData()
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public byte get()
-	{
-		// TODO Auto-generated method stub
-		return 0;
-	}
-	
-	@Override
-	public byte get(int posi)
-	{
-		// TODO Auto-generated method stub
-		return 0;
-	}
-	
-	@Override
-	public int remainRead()
-	{
-		// TODO Auto-generated method stub
-		return 0;
-	}
-	
-	@Override
-	public int remainWrite()
-	{
-		// TODO Auto-generated method stub
-		return 0;
-	}
-	
-	@Override
-	public IoBuffer compact()
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public IoBuffer get(byte[] content)
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public IoBuffer get(byte[] content, int off, int len)
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public void addReadPosi(int add)
-	{
-		// TODO Auto-generated method stub
-		
-	}
-	
-	@Override
-	public void addWritePosi(int add)
-	{
-		// TODO Auto-generated method stub
-		
-	}
-	
-	@Override
-	public int indexOf(byte[] array)
-	{
-		// TODO Auto-generated method stub
-		return 0;
-	}
-	
-	@Override
-	public int readInt()
-	{
-		// TODO Auto-generated method stub
-		return 0;
-	}
-	
-	@Override
-	public short readShort()
-	{
-		// TODO Auto-generated method stub
-		return 0;
-	}
-	
-	@Override
-	public long readLong()
-	{
-		// TODO Auto-generated method stub
-		return 0;
-	}
-	
-	@Override
-	public ByteBuffer byteBuffer()
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public boolean isDirect()
-	{
-		// TODO Auto-generated method stub
-		return false;
-	}
+    protected Archon archon;
+    protected int    index;
+    protected Chunk  chunk;
+    
+    /**
+     * 如果类是HeapIoBuffer时调用该方法.
+     * 
+     * @param chunk 当前数据区域所属chunk
+     * @param index 当前数据区域在chunk中的坐标
+     * @param array 数据区域
+     * @param arrayOffset 该数据区域可以使用的起始偏移量
+     * @param capacity 该数据区域可以使用的大小
+     */
+    protected void setHeapIoBufferArgs(Archon archon, Chunk chunk, int index, byte[] array, int arrayOffset, int capacity)
+    {
+        if (isDirect())
+        {
+            throw new IllegalArgumentException();
+        }
+        this.archon = archon;
+        this.chunk = chunk;
+        this.index = index;
+        this.array = array;
+        this.arrayOffset = arrayOffset;
+        this.capacity = capacity;
+        readPosi = writePosi = 0;
+        internalByteBuffer = null;
+    }
+    
+    /**
+     * 如果类是DirectIoBUffer时调用该方法
+     * 
+     * @param chunk 当前数据区域所属chunk
+     * @param index 当前数据区域在chunk中的坐标
+     * @param address 当前数据区域在内存中的位置
+     * @param addressOffset 当前数据区域可以使用的起始偏移量
+     * @param capacity 该数据区域可以使用的大小
+     */
+    protected void setDirectIoBufferArgs(Archon archon, Chunk chunk, int index, long address, int addressOffset, ByteBuffer addressBuffer, int capacity)
+    {
+        if (isDirect() == false)
+        {
+            throw new IllegalArgumentException();
+        }
+        this.archon = archon;
+        this.chunk = chunk;
+        this.index = index;
+        this.address = address;
+        this.addressOffset = addressOffset;
+        this.addressBuffer = addressBuffer;
+        this.capacity = capacity;
+        readPosi = writePosi = 0;
+        internalByteBuffer = null;
+    }
+    
+    /**
+     * 释放所有绑定的资源。将对应的对象设置为null以及将下标等设置为-1这种无意义值
+     */
+    public void release()
+    {
+        archon = null;
+        chunk = null;
+        index = -1;
+        address = -1;
+        addressOffset = -1;
+        addressBuffer = null;
+        array = null;
+        arrayOffset = -1;
+        capacity = -1;
+        internalByteBuffer = null;
+    }
+    
+    public Chunk chunk()
+    {
+        return chunk;
+    }
+    
+    public int indexOfChunk()
+    {
+        return index;
+    }
+    
+    @Override
+    public IoBuffer put(byte b)
+    {
+        int w = nextWritePosi(1);
+        _put(w, b);
+        return this;
+    }
+    
+    /**
+     * 为writePosi增加长度。并且执行扩容检查。返回未增加之前的writePosi
+     * 
+     * @param len
+     * @return
+     */
+    protected final int nextWritePosi(int len)
+    {
+        int w = writePosi;
+        int newWritePosi = w + len;
+        if (newWritePosi > capacity)
+        {
+            archon.expansion(this, newWritePosi);
+        }
+        writePosi = newWritePosi;
+        return w;
+    }
+    
+    protected final void ensureNewWritePosi(int newWritePosi)
+    {
+        if (newWritePosi > capacity)
+        {
+            // 扩容
+            archon.expansion(this, newWritePosi);
+        }
+    }
+    
+    @Override
+    public IoBuffer put(byte b, int posi)
+    {
+        writePosiCheck(posi, 1);
+        _put(posi, b);
+        return this;
+    }
+    
+    protected final void writePosiCheck(int posi, int len)
+    {
+        if (posi < 0)
+        {
+            throw new IllegalArgumentException();
+        }
+        ensureNewWritePosi(posi + len);
+    }
+    
+    @Override
+    public IoBuffer put(byte[] content)
+    {
+        return put(content, 0, content.length);
+    }
+    
+    @Override
+    public IoBuffer put(byte[] content, int off, int len)
+    {
+        checkBounds(content, off, len);
+        int end = off + len;
+        for (int i = off; i < end; i++)
+        {
+            this.put(content[i]);
+        }
+        return this;
+    }
+    
+    @Override
+    public IoBuffer put(IoBuffer buffer)
+    {
+        return put(buffer, buffer.remainRead());
+    }
+    
+    @Override
+    public IoBuffer put(IoBuffer buffer, int len)
+    {
+        if (buffer.remainRead() < len)
+        {
+            throw new IllegalArgumentException();
+        }
+        int posi = nextWritePosi(len);
+        _put(posi, buffer, len);
+        return this;
+    }
+    
+    @Override
+    public IoBuffer writeInt(int i)
+    {
+        int posi = nextWritePosi(4);
+        _putInt(posi, i);
+        return this;
+    }
+    
+    @Override
+    public IoBuffer writeInt(int i, int posi)
+    {
+        writePosiCheck(posi, 4);
+        _putInt(posi, i);
+        return this;
+    }
+    
+    @Override
+    public IoBuffer writeShort(short s)
+    {
+        int posi = nextWritePosi(2);
+        _putShort(posi, s);
+        return this;
+    }
+    
+    @Override
+    public IoBuffer writeShort(short s, int posi)
+    {
+        writePosiCheck(posi, 2);
+        _putShort(posi, s);
+        return this;
+    }
+    
+    @Override
+    public IoBuffer writeLong(long l)
+    {
+        int posi = nextWritePosi(8);
+        _putLong(posi, l);
+        return null;
+    }
+    
+    @Override
+    public IoBuffer writeLong(long l, int posi)
+    {
+        writePosiCheck(posi, 8);
+        _putLong(posi, l);
+        return this;
+    }
+    
+    @Override
+    public IoBuffer clearData()
+    {
+        writePosi = readPosi = 0;
+        return this;
+    }
+    
+    @Override
+    public byte get()
+    {
+        byte b = _get(nextReadPosi(1));
+        return b;
+    }
+    
+    @Override
+    public byte get(int posi)
+    {
+        readPosiCheck(posi, 1);
+        return _get(posi);
+    }
+    
+    protected final void readPosiCheck(int posi, int len)
+    {
+        if (posi < 0 || posi + len > writePosi)
+        {
+            throw new IllegalArgumentException();
+        }
+    }
+    
+    @Override
+    public IoBuffer get(byte[] content)
+    {
+        return get(content, 0, content.length);
+    }
+    
+    @Override
+    public IoBuffer get(byte[] content, int off, int len)
+    {
+        checkBounds(content, off, len);
+        if (remainRead() < len)
+        {
+            throw new IllegalArgumentException();
+        }
+        int end = off + len;
+        for (int i = off; i < end; i++)
+        {
+            content[i] = get();
+        }
+        return this;
+    }
+    
+    @Override
+    public int indexOf(byte[] array)
+    {
+        // TODO Auto-generated method stub
+        return 0;
+    }
+    
+    @Override
+    public int readInt()
+    {
+        // TODO Auto-generated method stub
+        return 0;
+    }
+    
+    @Override
+    public short readShort()
+    {
+        // TODO Auto-generated method stub
+        return 0;
+    }
+    
+    @Override
+    public long readLong()
+    {
+        // TODO Auto-generated method stub
+        return 0;
+    }
+    
+    @Override
+    public ByteBuffer byteBuffer()
+    {
+        // TODO Auto-generated method stub
+        return null;
+    }
+    
 }
