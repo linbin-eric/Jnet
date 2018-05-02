@@ -36,6 +36,7 @@ class PooledHeapArchon extends PooledArchon
 		}
 		buffer.chunk = null;
 		buffer.index = -1;
+		buffer.internalByteBuffer = null;
 	}
 	
 }

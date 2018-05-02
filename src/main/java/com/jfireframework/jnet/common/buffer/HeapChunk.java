@@ -29,8 +29,14 @@ class HeapChunk extends Chunk
 	@Override
 	protected void expansionBuffer(PooledIoBuffer buffer, int index, int off, int capacity)
 	{
-		// TODO Auto-generated method stub
-		
+		assert buffer.writePosi <= capacity;
+		System.arraycopy(buffer.array, buffer.arrayOffset, array, off, buffer.writePosi);
+		buffer.chunk = this;
+		buffer.index = index;
+		buffer.array = array;
+		buffer.arrayOffset = off;
+		buffer.capacity = capacity;
+		buffer.internalByteBuffer = null;
 	}
 	
 }

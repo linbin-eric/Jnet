@@ -43,6 +43,7 @@ public class PooledDirectArchon extends PooledArchon
 		}
 		buffer.chunk = null;
 		buffer.index = -1;
+		buffer.internalByteBuffer = null;
 	}
 	
 }

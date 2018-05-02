@@ -23,6 +23,7 @@ public abstract class PooledIoBuffer implements IoBuffer
 	protected int			readPosi;
 	// 相对的写入坐标
 	protected int			writePosi;
+	protected ByteBuffer	internalByteBuffer;
 	
 	/**
 	 * 如果类是HeapIoBuffer时调用该方法.
@@ -87,6 +88,7 @@ public abstract class PooledIoBuffer implements IoBuffer
 		array = null;
 		arrayOffset = -1;
 		capacity = -1;
+		internalByteBuffer = null;
 	}
 	
 	public Chunk chunk()
