@@ -1,6 +1,6 @@
 package com.jfireframework.jnet.common.buffer;
 
-class PooledHeapArchon extends PooledArchon
+class PooledHeapArchon extends Archon
 {
 	
 	PooledHeapArchon(int maxLevel, int unit)

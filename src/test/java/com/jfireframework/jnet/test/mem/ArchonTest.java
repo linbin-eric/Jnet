@@ -8,31 +8,30 @@ import org.junit.Test;
 import com.jfireframework.jnet.common.buffer.Archon;
 import com.jfireframework.jnet.common.buffer.Chunk;
 import com.jfireframework.jnet.common.buffer.ChunkList;
+import com.jfireframework.jnet.common.buffer.Archon;
 import com.jfireframework.jnet.common.buffer.PooledIoBuffer;
-import com.jfireframework.jnet.common.buffer.PooledArchon;
 
 public class ArchonTest
 {
 	@Test
 	public void test() throws SecurityException, NoSuchFieldException, IllegalArgumentException, IllegalAccessException
 	{
-		Archon archon = PooledArchon.heapPooledArchon(4, 1);
-		Field field = PooledArchon.class.getDeclaredField("cInt");
+		Archon archon = Archon.heapPooledArchon(4, 1);
+		Field field = Archon.class.getDeclaredField("cInt");
 		field.setAccessible(true);
 		ChunkList cint = (ChunkList) field.get(archon);
-		field = PooledArchon.class.getDeclaredField("c25");
+		field = Archon.class.getDeclaredField("c25");
 		field.setAccessible(true);
 		ChunkList c25 = (ChunkList) field.get(archon);
-		field = PooledArchon.class.getDeclaredField("c50");
+		field = Archon.class.getDeclaredField("c50");
 		field.setAccessible(true);
 		ChunkList c50 = (ChunkList) field.get(archon);
-		field = PooledArchon.class.getDeclaredField("c75");
+		field = Archon.class.getDeclaredField("c75");
 		field.setAccessible(true);
 		ChunkList c75 = (ChunkList) field.get(archon);
-		field = PooledArchon.class.getDeclaredField("c100");
+		field = Archon.class.getDeclaredField("c100");
 		field.setAccessible(true);
-		ChunkList c100 = (ChunkList) field.get(archon);
-		field = PooledArchon.class.getDeclaredField("c000");
+		field = Archon.class.getDeclaredField("c000");
 		field.setAccessible(true);
 		ChunkList c000 = (ChunkList) field.get(archon);
 		PooledIoBuffer handler = PooledIoBuffer.heapBuffer();
@@ -76,7 +75,7 @@ public class ArchonTest
 	@Test
 	public void test2() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException
 	{
-		Archon archon = PooledArchon.heapPooledArchon(4, 1);
+		Archon archon = Archon.heapPooledArchon(4, 1);
 		PooledIoBuffer handler = PooledIoBuffer.heapBuffer();
 		archon.apply(handler, 2);
 		handler.put((byte) 0x01);
@@ -88,13 +87,13 @@ public class ArchonTest
 		int originCapacity = handler.capacity();
 		int originReadPosi = handler.getReadPosi();
 		int originWritePosi = handler.getWritePosi();
-		int originIndex = handler.indexOfChunk();
+		int originIndex = handler.index();
 		assertEquals(2, originCapacity);
 		assertEquals(8, originIndex);
 		assertEquals(1, originReadPosi);
 		assertEquals(2, originWritePosi);
 		archon.expansion(handler, 4);
-		assertEquals(5, handler.indexOfChunk());
+		assertEquals(5, handler.index());
 		assertEquals(4, handler.capacity());
 		assertEquals(1, handler.getReadPosi());
 		assertEquals(2, handler.getWritePosi());
@@ -115,7 +114,7 @@ public class ArchonTest
 	@Test
 	public void test3() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException
 	{
-		Archon archon = PooledArchon.directPooledArchon(4, 1);
+		Archon archon = Archon.directPooledArchon(4, 1);
 		PooledIoBuffer handler = PooledIoBuffer.directBuffer();
 		archon.apply(handler, 2);
 		handler.put((byte) 0x01);
@@ -127,13 +126,13 @@ public class ArchonTest
 		int originCapacity = handler.capacity();
 		int originReadPosi = handler.getReadPosi();
 		int originWritePosi = handler.getWritePosi();
-		int originIndex = handler.indexOfChunk();
+		int originIndex = handler.index();
 		assertEquals(2, originCapacity);
 		assertEquals(8, originIndex);
 		assertEquals(1, originReadPosi);
 		assertEquals(2, originWritePosi);
 		archon.expansion(handler, 4);
-		assertEquals(5, handler.indexOfChunk());
+		assertEquals(5, handler.index());
 		assertEquals(4, handler.capacity());
 		assertEquals(1, handler.getReadPosi());
 		assertEquals(2, handler.getWritePosi());

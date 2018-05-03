@@ -1,16 +1,13 @@
 package com.jfireframework.jnet.common.buffer;
 
-import com.jfireframework.jnet.common.util.Statistics;
-
 public class ChunkList
 {
-	private Chunk		head;
-	private ChunkList	prev;
-	private ChunkList	next;
-	private int			maxUsage;
-	private int			minUsage;
-	private String		name;
-	private Statistics	statistics	= new Statistics(2, 4, 6, 8, Integer.MAX_VALUE);
+	protected Chunk		head;
+	protected ChunkList	prev;
+	protected ChunkList	next;
+	protected int		maxUsage;
+	protected int		minUsage;
+	protected String	name;
 	
 	public ChunkList(ChunkList next, int maxUsage, int minUsage, String name)
 	{
@@ -37,7 +34,6 @@ public class ChunkList
 		{
 			return false;
 		}
-		int count = 1;
 		Chunk select = head;
 		boolean apply = false;
 		while (select != null)
@@ -51,10 +47,8 @@ public class ChunkList
 			{
 				break;
 			}
-			count += 1;
 		}
-		statistics.count(count);
-		if (apply && select.usage() >= maxUsage)
+		if (apply && select.usage() > maxUsage)
 		{
 			moveToNext(select);
 		}
@@ -76,7 +70,7 @@ public class ChunkList
 		}
 	}
 	
-	private void removeFromCurrentList(Chunk node)
+	protected void removeFromCurrentList(Chunk node)
 	{
 		if (node == head)
 		{
@@ -133,7 +127,7 @@ public class ChunkList
 	public void recycle(PooledIoBuffer buffer)
 	{
 		Chunk chunk = buffer.chunk();
-		recycle(chunk, buffer.indexOfChunk());
+		recycle(chunk, buffer.index());
 	}
 	
 	public Chunk head()
@@ -141,8 +135,4 @@ public class ChunkList
 		return head;
 	}
 	
-	public Statistics getStatistics()
-	{
-		return statistics;
-	}
 }

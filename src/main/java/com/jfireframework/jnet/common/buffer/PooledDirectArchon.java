@@ -2,7 +2,7 @@ package com.jfireframework.jnet.common.buffer;
 
 import java.nio.ByteBuffer;
 
-public class PooledDirectArchon extends PooledArchon
+public class PooledDirectArchon extends Archon
 {
 	
 	PooledDirectArchon(int maxLevel, int unit)

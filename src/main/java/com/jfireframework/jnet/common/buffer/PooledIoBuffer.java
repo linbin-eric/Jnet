@@ -5,8 +5,8 @@ import java.nio.ByteBuffer;
 public abstract class PooledIoBuffer extends AbstractIoBuffer
 {
 	protected Archon	archon;
-	protected int		index;
-	protected Chunk		chunk;
+	protected int			index;
+	protected Chunk			chunk;
 	
 	/**
 	 * 如果类是HeapIoBuffer时调用该方法.
@@ -81,7 +81,7 @@ public abstract class PooledIoBuffer extends AbstractIoBuffer
 		return chunk;
 	}
 	
-	public int indexOfChunk()
+	public int index()
 	{
 		return index;
 	}

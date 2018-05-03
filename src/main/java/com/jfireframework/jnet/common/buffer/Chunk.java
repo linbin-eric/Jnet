@@ -5,22 +5,22 @@ public abstract class Chunk
 	/**
 	 * 如果是Heap类型的Chunk则不为空
 	 */
-	protected byte[]	array;
+	protected byte[]		array;
 	/**
 	 * 如果是Direct类型的Chunk则不为-1
 	 */
-	protected long		address;
-	protected Chunk		pred;
-	protected Chunk		next;
-	protected ChunkList	parent;
+	protected long			address;
+	protected Chunk			pred;
+	protected Chunk			next;
+	protected ChunkList		parent;
 	protected Archon	archon;
-	protected int		pageShift;
-	protected int		maxLevel;
-	protected int		unit;
-	protected int[]		pool;
-	protected int		capacity;
-	protected int		freeCapaticy;
-	protected final int	capacityShift;
+	protected int			pageShift;
+	protected int			maxLevel;
+	protected int			unit;
+	protected int[]			pool;
+	protected int			capacity;
+	protected int			freeCapaticy;
+	protected final int		capacityShift;
 	
 	/**
 	 * 初始化一个chunk。
@@ -109,17 +109,6 @@ public abstract class Chunk
 	 * @param capacity
 	 */
 	protected abstract void expansionBuffer(PooledIoBuffer buffer, int index, int off, int capacity);
-	
-	public final int sizeOfIndex(int index)
-	{
-		return 1 << (maxLevel - log2(index) + pageShift);
-	}
-	
-	public final int offsetOfIndex(int index)
-	{
-		int level = log2(index);
-		return (index - (1 << level)) << (maxLevel - level + pageShift);
-	}
 	
 	/**
 	 * 坐标index位置的内存区域可以重新使用

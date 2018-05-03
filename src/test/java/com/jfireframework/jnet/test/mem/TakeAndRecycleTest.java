@@ -15,26 +15,26 @@ public class TakeAndRecycleTest
 	public void test2()
 	{
 		Chunk pooledMem = Chunk.newHeapChunk(4, 128);
-		PooledIoBuffer handler = PooledIoBuffer.heapIoBuffer();
-		pooledMem.apply(400, handler, null);
-		assertEquals(4, handler.getIndex());
-		PooledIoBuffer handler2 = PooledIoBuffer.heapIoBuffer();
-		pooledMem.apply(100, handler2, null);
-		assertEquals(20, handler2.getIndex());
-		PooledIoBuffer handler3 = PooledIoBuffer.heapIoBuffer();
-		pooledMem.apply(200, handler3, null);
-		assertEquals(11, handler3.getIndex());
-		PooledIoBuffer handler4 = PooledIoBuffer.heapIoBuffer();
-		pooledMem.apply(100, handler4, null);
-		assertEquals(21, handler4.getIndex());
-		PooledIoBuffer handler5 = PooledIoBuffer.heapIoBuffer();
-		pooledMem.apply(500, handler5, null);
-		assertEquals(6, handler5.getIndex());
-		pooledMem.recycle(handler3);
-		pooledMem.recycle(handler4);
-		pooledMem.recycle(handler2);
-		PooledIoBuffer handler6 = PooledIoBuffer.heapIoBuffer();
-		pooledMem.apply(400, handler6, null);
-		assertEquals(5, handler6.getIndex());
+		PooledIoBuffer buffer = PooledIoBuffer.heapBuffer();
+		pooledMem.apply(400, buffer, false);
+		assertEquals(4, buffer.index());
+		PooledIoBuffer buffer2 = PooledIoBuffer.heapBuffer();
+		pooledMem.apply(100, buffer2, false);
+		assertEquals(20, buffer2.index());
+		PooledIoBuffer buffer3 = PooledIoBuffer.heapBuffer();
+		pooledMem.apply(200, buffer3, false);
+		assertEquals(11, buffer3.index());
+		PooledIoBuffer buffer4 = PooledIoBuffer.heapBuffer();
+		pooledMem.apply(100, buffer4, false);
+		assertEquals(21, buffer4.index());
+		PooledIoBuffer buffer5 = PooledIoBuffer.heapBuffer();
+		pooledMem.apply(500, buffer5, false);
+		assertEquals(6, buffer5.index());
+		pooledMem.recycle(buffer3.index());
+		pooledMem.recycle(buffer4.index());
+		pooledMem.recycle(buffer2.index());
+		PooledIoBuffer buffer6 = PooledIoBuffer.heapBuffer();
+		pooledMem.apply(400, buffer6, false);
+		assertEquals(5, buffer6.index());
 	}
 }

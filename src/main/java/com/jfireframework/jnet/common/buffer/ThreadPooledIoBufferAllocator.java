@@ -8,9 +8,9 @@ public class ThreadPooledIoBufferAllocator implements IoBufferAllocator
     private Recycler<PooledIoBuffer> localHeap   = new Recycler<PooledIoBuffer>() {
                                                
                                                @Override
-                                               protected IoBuffer newObject(RecycleHandler handler)
+                                               protected PooledIoBuffer newObject(RecycleHandler handler)
                                                {
-                                                   PooledIoBuffer heapIoBuffer = PooledIoBuffer.heapIoBuffer();
+                                                   PooledIoBuffer heapIoBuffer = PooledIoBuffer.heapBuffer();
                                                    heapIoBuffer.recycleHandler = handler;
                                                    return heapIoBuffer;
                                                }
@@ -40,12 +40,12 @@ public class ThreadPooledIoBufferAllocator implements IoBufferAllocator
         heapArchons = new Archon[mask + 1];
         for (int i = 0; i < heapArchons.length; i++)
         {
-            heapArchons[i] = PooledArchon.heapPooledArchon(8, 128);
+            heapArchons[i] = Archon.heapPooledArchon(8, 128);
         }
         directArchons = new Archon[mask + 1];
         for (int i = 0; i < directArchons.length; i++)
         {
-            directArchons[i] = PooledArchon.directPooledArchon(8, 128);
+            directArchons[i] = Archon.directPooledArchon(8, 128);
         }
     }
     
