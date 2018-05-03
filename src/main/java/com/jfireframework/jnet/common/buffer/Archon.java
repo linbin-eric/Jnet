@@ -26,7 +26,7 @@ public abstract class Archon
 		c000 = new ChunkList(c25, 50, 0, "c000");
 		cInt = new ChunkList(c000, 25, Integer.MIN_VALUE, "cInt");
 		// 在列表的存在只是为了存储使用率为0的chunk。所以上限阀值应该尽可能低，使得chunk再次被激活时立刻进入其他的列表
-		cDestory = new ChunkDestoryList(c000, 1, Integer.MIN_VALUE, "");
+		cDestory = new ChunkStoreList(c000, 1, Integer.MIN_VALUE, "");
 		c000.setPrev(cDestory);
 		c25.setPrev(c000);
 		c50.setPrev(c25);
