@@ -81,7 +81,7 @@ public abstract class Chunk
 		int off = (index - (1 << selectedLevel)) << capacityShift;
 		if (expansion)
 		{
-			expansionBuffer(buffer, index, off, capacityShift);
+			expansionBuffer(buffer, index, off, capacity);
 		}
 		else
 		{

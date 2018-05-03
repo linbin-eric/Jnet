@@ -324,4 +324,14 @@ public abstract class PooledIoBuffer extends AbstractIoBuffer
 		return _getLong(posi);
 	}
 	
+	public static PooledIoBuffer heapBuffer()
+	{
+		return new PooledHeapBuffer();
+	}
+	
+	public static PooledIoBuffer directBuffer()
+	{
+		return new PooledDirectBuffer();
+	}
+	
 }

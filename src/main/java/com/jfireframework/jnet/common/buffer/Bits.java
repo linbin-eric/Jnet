@@ -19,7 +19,7 @@ public class Bits
 	{
 		try
 		{
-			addressField = Buffer.class.getDeclaredField("adddress");
+			addressField = Buffer.class.getDeclaredField("address");
 			addressField.setAccessible(true);
 		}
 		catch (NoSuchFieldException | SecurityException e)
