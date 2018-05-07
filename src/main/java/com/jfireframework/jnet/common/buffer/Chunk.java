@@ -5,34 +5,36 @@ public abstract class Chunk
 	/**
 	 * 如果是Heap类型的Chunk则不为空
 	 */
-	protected byte[]		array;
+	protected byte[]	array;
 	/**
 	 * 如果是Direct类型的Chunk则不为-1
 	 */
-	protected long			address;
-	protected Chunk			pred;
-	protected Chunk			next;
-	protected ChunkList		parent;
+	protected long		address;
+	protected Chunk		pred;
+	protected Chunk		next;
+	protected ChunkList	parent;
 	protected Archon	archon;
-	protected int			pageShift;
-	protected int			maxLevel;
-	protected int			unit;
-	protected int[]			pool;
-	protected int			capacity;
-	protected int			freeCapaticy;
-	protected final int		capacityShift;
+	protected final int	pageShift;
+	protected final int	maxLevel;
+	protected final int	pageSize;
+	protected int[]		pool;
+	// 当前chunk的最大容量
+	protected final int	capacity;
+	// 剩余可分配字节
+	protected int		freeCapaticy;
+	protected final int	capacityShift;
 	
 	/**
 	 * 初始化一个chunk。
 	 * 
 	 * @param maxLevel 最大层次。起始层次为0。
-	 * @param unit 单位字节长度。也就是一个最小的分配区域的字节数
+	 * @param pageSize 单页字节大小。也就是一个最小的分配区域的字节数。
 	 */
-	public Chunk(int maxLevel, int unit)
+	public Chunk(int maxLevel, int pageSize)
 	{
-		this.unit = unit;
+		this.pageSize = pageSize;
 		this.maxLevel = maxLevel;
-		pageShift = log2(unit);
+		pageShift = log2(pageSize);
 		pool = new int[1 << (maxLevel + 1)];
 		for (int i = 0; i <= maxLevel; i++)
 		{
@@ -68,7 +70,7 @@ public abstract class Chunk
 	 */
 	public boolean apply(int need, PooledIoBuffer buffer, boolean expansion)
 	{
-		int capacity = tableSizeFor(need);
+		int capacity = need < pageSize ? pageSize : tableSizeFor(need);
 		int capacityShift = log2(capacity);
 		if (pool[1] < capacity)
 		{

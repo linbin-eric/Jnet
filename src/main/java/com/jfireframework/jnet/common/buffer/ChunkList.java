@@ -48,7 +48,7 @@ public class ChunkList
 				break;
 			}
 		}
-		if (apply && select.usage() > maxUsage)
+		if (apply && select.usage() >= maxUsage)
 		{
 			moveToNext(select);
 		}
