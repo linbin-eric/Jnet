@@ -97,7 +97,7 @@ public class ChunkList
 	
 	public void addChunk(Chunk chunk)
 	{
-		if (chunk.usage() > maxUsage)
+		if (chunk.usage() >= maxUsage)
 		{
 			next.addChunk(chunk);
 			return;
