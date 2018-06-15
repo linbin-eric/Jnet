@@ -44,32 +44,21 @@ public class PooledHeapBuffer extends PooledIoBuffer
 	protected void _putInt(int posi, int value)
 	{
 		posi = actualArrayOffset(posi);
-		array[posi] = int3(value);
-		array[posi + 1] = int2(value);
-		array[posi + 2] = int1(value);
-		array[posi + 3] = int0(value);
+		Bits.putInt(array, posi, value);
 	}
 	
 	@Override
 	protected void _putShort(int posi, short value)
 	{
 		posi = actualArrayOffset(posi);
-		array[posi] = short1(value);
-		array[posi + 1] = short0(value);
+		Bits.putShort(array, posi, value);
 	}
 	
 	@Override
 	protected void _putLong(int posi, long value)
 	{
 		posi = actualArrayOffset(posi);
-		array[posi] = long7(value);
-		array[posi + 1] = long6(value);
-		array[posi + 2] = long5(value);
-		array[posi + 3] = long4(value);
-		array[posi + 4] = long3(value);
-		array[posi + 5] = long2(value);
-		array[posi + 6] = long1(value);
-		array[posi + 7] = long0(value);
+		Bits.putLong(array, posi, value);
 	}
 	
 	@Override
@@ -109,21 +98,21 @@ public class PooledHeapBuffer extends PooledIoBuffer
 	protected final int _getInt(int posi)
 	{
 		posi = actualArrayOffset(posi);
-		return makeInt(array[posi], array[posi + 1], array[posi + 2], array[posi + 3]);
+		return Bits.getInt(array, posi);
 	}
 	
 	@Override
 	protected short _getShort(int posi)
 	{
 		posi = actualArrayOffset(posi);
-		return makeShort(array[posi], array[posi + 1]);
+		return Bits.getShort(array, posi);
 	}
 	
 	@Override
 	protected long _getLong(int posi)
 	{
 		posi = actualArrayOffset(posi);
-		return makeLong(array[posi], array[posi + 1], array[posi + 2], array[posi + 3], array[posi + 4], array[posi + 5], array[posi + 6], array[posi + 7]);
+		return Bits.getLong(array, posi);
 	}
 	
 	@Override

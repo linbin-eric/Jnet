@@ -363,7 +363,7 @@ public class SpeedTest
 						try
 						{
 							PooledIoBuffer buf = Allocator.allocate(128);
-							buf.writeInt(content.length + 4);
+							buf.putInt(content.length + 4);
 							buf.put(content);
 							client.write(buf);
 						}

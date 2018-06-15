@@ -13,7 +13,7 @@ public class PooledDirectBuffer extends PooledIoBuffer
 	@Override
 	protected void _put(int posi, byte b)
 	{
-		Bits.putBytes(actualAddress(posi), b);
+		Bits.put(actualAddress(posi), b);
 	}
 	
 	@Override
@@ -52,39 +52,28 @@ public class PooledDirectBuffer extends PooledIoBuffer
 	protected void _putInt(int posi, int value)
 	{
 		long a = actualAddress(posi);
-		Bits.putBytes(a, int3(value));
-		Bits.putBytes(a + 1, int2(value));
-		Bits.putBytes(a + 2, int1(value));
-		Bits.putBytes(a + 3, int0(value));
+		Bits.putInt(a, value);
 	}
 	
 	@Override
 	protected void _putShort(int posi, short value)
 	{
 		long a = actualAddress(posi);
-		Bits.putBytes(a, short1(value));
-		Bits.putBytes(a + 1, short0(value));
+		Bits.putShort(a, value);
 	}
 	
 	@Override
 	protected void _putLong(int posi, long value)
 	{
 		long a = actualAddress(posi);
-		Bits.putBytes(a, long7(value));
-		Bits.putBytes(a + 1, long6(value));
-		Bits.putBytes(a + 2, long5(value));
-		Bits.putBytes(a + 3, long4(value));
-		Bits.putBytes(a + 4, long3(value));
-		Bits.putBytes(a + 5, long2(value));
-		Bits.putBytes(a + 6, long1(value));
-		Bits.putBytes(a + 7, long0(value));
+		Bits.putLong(a, value);
 	}
 	
 	@Override
 	protected byte _get(int posi)
 	{
 		long a = actualAddress(posi);
-		return Bits.getBytes(a);
+		return Bits.get(a);
 	}
 	
 	@Override
@@ -106,7 +95,6 @@ public class PooledDirectBuffer extends PooledIoBuffer
 	{
 		if (len > Bits.JNI_COPY_TO_ARRAY_THRESHOLD)
 		{
-			
 			checkBounds(content, off, len);
 			if (remainRead() < len)
 			{
@@ -126,21 +114,21 @@ public class PooledDirectBuffer extends PooledIoBuffer
 	protected int _getInt(int posi)
 	{
 		long a = actualAddress(posi);
-		return makeInt(Bits.getBytes(a), Bits.getBytes(a + 1), Bits.getBytes(a + 2), Bits.getBytes(a + 3));
+		return Bits.getInt(a);
 	}
 	
 	@Override
 	protected short _getShort(int posi)
 	{
 		long a = actualAddress(posi);
-		return makeShort(Bits.getBytes(a), Bits.getBytes(a + 1));
+		return Bits.getShort(a);
 	}
 	
 	@Override
 	protected long _getLong(int posi)
 	{
 		long a = actualAddress(posi);
-		return makeLong(Bits.getBytes(a), Bits.getBytes(a + 1), Bits.getBytes(a + 2), Bits.getBytes(a + 3), Bits.getBytes(a + 4), Bits.getBytes(a + 5), Bits.getBytes(a + 6), Bits.getBytes(a + 7));
+		return Bits.getLong(a);
 	}
 	
 	@Override

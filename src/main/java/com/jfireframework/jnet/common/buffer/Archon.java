@@ -11,7 +11,7 @@ public abstract class Archon
 	private ChunkList		c100;
 	private int				maxLevel;
 	private int				unit;
-	protected int			maxSize;
+	protected final int		maxSize;
 	protected ArchonMetric	metric	= new ArchonMetric();
 	
 	protected Archon(int maxLevel, int unit)

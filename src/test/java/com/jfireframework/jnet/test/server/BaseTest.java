@@ -247,7 +247,7 @@ public class BaseTest
 				try
 				{
 					logger.debug("traceId:{} 单位端收到消息:{}", traceId, buf);
-					Integer value = buf.readInt();
+					Integer value = buf.getInt();
 					sendContent[value] += 1;
 					buf.release();
 					latch.countDown();
@@ -393,8 +393,8 @@ public class BaseTest
 							{
 								PooledIoBuffer buf = Allocator.allocate(100);
 								// 报文长度是8
-								buf.writeInt(8);
-								buf.writeInt(value);
+								buf.putInt(8);
+								buf.putInt(value);
 								client.write(buf);
 							}
 							catch (Throwable e)

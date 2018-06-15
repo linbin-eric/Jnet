@@ -70,7 +70,7 @@ public interface IoBuffer
 	 * @param i
 	 * @return
 	 */
-	IoBuffer writeInt(int i);
+	IoBuffer putInt(int i);
 	
 	/**
 	 * 在指定位置posi写入一个int
@@ -105,7 +105,7 @@ public interface IoBuffer
 	 * @param s
 	 * @return
 	 */
-	IoBuffer writeShort(short s);
+	IoBuffer putShort(short s);
 	
 	/**
 	 * 在当前位置写入一个long
@@ -113,7 +113,7 @@ public interface IoBuffer
 	 * @param l
 	 * @return
 	 */
-	IoBuffer writeLong(long l);
+	IoBuffer putLong(long l);
 	
 	/**
 	 * 返回读取位置，该读取位置的初始值为0
@@ -231,21 +231,21 @@ public interface IoBuffer
 	 * 
 	 * @return
 	 */
-	int readInt();
+	int getInt();
 	
 	/**
 	 * 在读取位置读取short。读取位置增加2
 	 * 
 	 * @return
 	 */
-	short readShort();
+	short getShort();
 	
 	/**
 	 * 在读取位置读取long。读取位置增加8
 	 * 
 	 * @return
 	 */
-	long readLong();
+	long getLong();
 	
 	/**
 	 * 返回一个处于读状态的ByteBuffer。其内容为当前IoBuffer的内容

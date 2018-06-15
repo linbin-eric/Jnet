@@ -75,10 +75,10 @@ public class TotalLengthFieldBasedFrameDecoder implements ReadProcessor<PooledIo
                     length = ioBuffer.get() & 0xff;
                     break;
                 case 2:
-                    length = ioBuffer.readShort() & 0xff;
+                    length = ioBuffer.getShort() & 0xff;
                     break;
                 case 4:
-                    length = ioBuffer.readInt();
+                    length = ioBuffer.getInt();
                     break;
             }
             // 得到整体长度后，开始从头读取这个长度的内容
