@@ -80,7 +80,7 @@ public abstract class Chunk
 		int selectedLevel = maxLevel - (capacityShift - pageShift);
 		int index = findAvailable(capacity, selectedLevel);
 		reduce(index, capacity);
-		int off = (index - (1 << selectedLevel)) << capacityShift;
+		int off = (index ^ (1 << selectedLevel)) << capacityShift;
 		if (expansion)
 		{
 			expansionBuffer(buffer, index, off, capacity);
