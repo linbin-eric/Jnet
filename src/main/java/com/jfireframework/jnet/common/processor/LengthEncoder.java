@@ -36,10 +36,10 @@ public class LengthEncoder implements ReadProcessor<Object>
                     buf.put((byte) length, lengthFieldOffset);
                     break;
                 case 2:
-                    buf.writeShort((short) length, lengthFieldOffset);
+                    buf.putShort((short) length, lengthFieldOffset);
                     break;
                 case 4:
-                    buf.writeInt(length, lengthFieldOffset);
+                    buf.putInt(length, lengthFieldOffset);
                     break;
                 default:
                     break;

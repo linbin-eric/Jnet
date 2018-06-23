@@ -75,29 +75,29 @@ public interface IoBuffer
 	/**
 	 * 在指定位置posi写入一个int
 	 * 
-	 * @param i
+	 * @param value
 	 * @param posi
 	 * @return
 	 */
-	IoBuffer writeInt(int i, int posi);
+	IoBuffer putInt(int value, int posi);
 	
 	/**
 	 * 在指定位置posi写入一个short
 	 * 
-	 * @param s
+	 * @param value
 	 * @param posi
 	 * @return
 	 */
-	IoBuffer writeShort(short s, int posi);
+	IoBuffer putShort(short value, int posi);
 	
 	/**
 	 * 在指定位置posi写入一个long
 	 * 
-	 * @param l
+	 * @param value
 	 * @param posi
 	 * @return
 	 */
-	IoBuffer writeLong(long l, int posi);
+	IoBuffer putLong(long value, int posi);
 	
 	/**
 	 * 在当前位置写入一个short

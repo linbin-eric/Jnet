@@ -183,10 +183,10 @@ public abstract class PooledIoBuffer extends AbstractIoBuffer
 	}
 	
 	@Override
-	public IoBuffer writeInt(int i, int posi)
+	public IoBuffer putInt(int value, int posi)
 	{
 		writePosiCheck(posi, 4);
-		_putInt(posi, i);
+		_putInt(posi, value);
 		return this;
 	}
 	
@@ -199,10 +199,10 @@ public abstract class PooledIoBuffer extends AbstractIoBuffer
 	}
 	
 	@Override
-	public IoBuffer writeShort(short s, int posi)
+	public IoBuffer putShort(short value, int posi)
 	{
 		writePosiCheck(posi, 2);
-		_putShort(posi, s);
+		_putShort(posi, value);
 		return this;
 	}
 	
@@ -215,10 +215,10 @@ public abstract class PooledIoBuffer extends AbstractIoBuffer
 	}
 	
 	@Override
-	public IoBuffer writeLong(long l, int posi)
+	public IoBuffer putLong(long value, int posi)
 	{
 		writePosiCheck(posi, 8);
-		_putLong(posi, l);
+		_putLong(posi, value);
 		return this;
 	}
 	
