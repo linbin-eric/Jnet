@@ -4,6 +4,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
 import org.junit.Before;
@@ -40,8 +41,8 @@ public class UnPooledBufferRWTest
     @Before
     public void before()
     {
-        buffer.clear();
-        paramBuffer.clear();
+        buffer.clearAndErasureData();
+        paramBuffer.clearAndErasureData();
     }
     
     @Test
@@ -194,5 +195,43 @@ public class UnPooledBufferRWTest
         {
             assertTrue(e instanceof IllegalArgumentException);
         }
+    }
+    
+    /**
+     * 测试压缩功能
+     */
+    @Test
+    public void test4()
+    {
+        buffer.addWritePosi(10);
+        buffer.putInt(3);
+        for (int i = 0; i < 10; i++)
+        {
+            assertEquals((byte) 0, buffer.get());
+        }
+        assertEquals(14, buffer.getWritePosi());
+        buffer.compact();
+        assertEquals(0, buffer.getReadPosi());
+        assertEquals(4, buffer.getWritePosi());
+        assertEquals(3, buffer.getInt());
+    }
+    
+    /**
+     * 测试ByteBuffer接口
+     */
+    @Test
+    public void test5()
+    {
+        buffer.putInt(4);
+        buffer.putShort((short) 2);
+        buffer.putLong(23l);
+        ByteBuffer nioBuffer = buffer.byteBuffer();
+        assertEquals(4, nioBuffer.getInt());
+        assertEquals(2, nioBuffer.getShort());
+        assertEquals(23l, nioBuffer.getLong());
+        nioBuffer = buffer.byteBuffer();
+        assertEquals(4, nioBuffer.getInt());
+        assertEquals(2, nioBuffer.getShort());
+        assertEquals(23l, nioBuffer.getLong());
     }
 }

@@ -8,7 +8,6 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -58,8 +57,8 @@ public class PooledBufferRWTest
     @Before
     public void before()
     {
-        buffer.clear();
-        paramBuffer.clear();
+        buffer.clearAndErasureData();
+        paramBuffer.clearAndErasureData();
     }
     
     @Test
@@ -162,21 +161,11 @@ public class PooledBufferRWTest
     }
     
     /**
-     * 检查异常情况是否捕获
+     * 检查异常情况覆盖
      */
     @Test
-    @Ignore
     public void test3()
     {
-        buffer.addWritePosi(125);
-        try
-        {
-            buffer.putInt(4);
-        }
-        catch (Exception e)
-        {
-            assertTrue(e instanceof IllegalArgumentException);
-        }
         buffer.addReadPosi(125);
         try
         {
@@ -189,29 +178,49 @@ public class PooledBufferRWTest
         buffer.clear();
         try
         {
-            buffer.putInt(10, 125);
-        }
-        catch (Exception e)
-        {
-            assertTrue(e instanceof IllegalArgumentException);
-        }
-        try
-        {
             buffer.clear().getInt(123);
         }
         catch (Exception e)
         {
             assertTrue(e instanceof IllegalArgumentException);
         }
-        buffer.clear();
-        paramBuffer.clear().setWritePosi(10).setReadPosi(4);
-        try
+    }
+    
+    /**
+     * 测试压缩功能
+     */
+    @Test
+    public void test4()
+    {
+        buffer.addWritePosi(10);
+        buffer.putInt(3);
+        for (int i = 0; i < 10; i++)
         {
-            buffer.put(paramBuffer, 20);
+            assertEquals((byte) 0, buffer.get());
         }
-        catch (Exception e)
-        {
-            assertTrue(e instanceof IllegalArgumentException);
-        }
+        assertEquals(14, buffer.getWritePosi());
+        buffer.compact();
+        assertEquals(0, buffer.getReadPosi());
+        assertEquals(4, buffer.getWritePosi());
+        assertEquals(3, buffer.getInt());
+    }
+    
+    /**
+     * 测试ByteBuffer接口
+     */
+    @Test
+    public void test5()
+    {
+        buffer.putInt(4);
+        buffer.putShort((short) 2);
+        buffer.putLong(23l);
+        ByteBuffer nioBuffer = buffer.byteBuffer();
+        assertEquals(4, nioBuffer.getInt());
+        assertEquals(2, nioBuffer.getShort());
+        assertEquals(23l, nioBuffer.getLong());
+        nioBuffer = buffer.byteBuffer();
+        assertEquals(4, nioBuffer.getInt());
+        assertEquals(2, nioBuffer.getShort());
+        assertEquals(23l, nioBuffer.getLong());
     }
 }

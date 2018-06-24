@@ -209,6 +209,17 @@ public abstract class PooledBuffer<T> implements IoBuffer
         return this;
     }
     
+    @Override
+    public IoBuffer clearAndErasureData()
+    {
+        for (int i = 0; i < capacity; i++)
+        {
+            put0(i, (byte) 0);
+        }
+        readPosi = writePosi = 0;
+        return this;
+    }
+    
     int nextReadPosi(int len)
     {
         int oldPosi = readPosi;

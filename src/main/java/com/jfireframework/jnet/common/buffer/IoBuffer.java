@@ -144,11 +144,18 @@ public interface IoBuffer
     IoBuffer setWritePosi(int writePosi);
     
     /**
-     * 清空所有数据，并且将写入位置和读取位置归零
+     * 将写入位置和读取位置归零
      * 
      * @return
      */
     IoBuffer clear();
+    
+    /**
+     * 将读取位置和写入位置归零。并且将整个区域清空为0
+     * 
+     * @return
+     */
+    IoBuffer clearAndErasureData();
     
     /**
      * 在当前读取位置读取一个byte并返回。读取位置自增。

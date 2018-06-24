@@ -211,6 +211,17 @@ public abstract class UnPooledBuffer<T> implements IoBuffer
     }
     
     @Override
+    public IoBuffer clearAndErasureData()
+    {
+        for (int i = 0; i < capacity; i++)
+        {
+            put0(i, (byte) 0);
+        }
+        readPosi = writePosi = 0;
+        return this;
+    }
+    
+    @Override
     public int remainRead()
     {
         return writePosi - readPosi;
