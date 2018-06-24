@@ -10,33 +10,6 @@ public class UnPooledHeapBuffer extends UnPooledBuffer<byte[]>
     private ByteBuffer cachedNioBuffer;
     
     @Override
-    public IoBuffer put(IoBuffer buffer, int len)
-    {
-        if (buffer.remainRead() < len)
-        {
-            throw new IllegalArgumentException("剩余读取长度不足");
-        }
-        if (buffer instanceof UnPooledHeapBuffer)
-        {
-            int posi = nextWritePosi(len);
-            System.arraycopy(((UnPooledHeapBuffer) buffer).memory, buffer.getReadPosi(), memory, posi, len);
-        }
-        else if (buffer instanceof UnPooledDirectBuffer)
-        {
-            int posi = nextWritePosi(len);
-            ByteBuffer byteBuffer = ((UnPooledDirectBuffer) buffer).memory;
-            byteBuffer.position(buffer.getReadPosi());
-            byteBuffer.get(memory, posi, len);
-            byteBuffer.position(0);
-        }
-        else
-        {
-            super.put(buffer, len);
-        }
-        return this;
-    }
-    
-    @Override
     public IoBuffer compact()
     {
         System.arraycopy(memory, readPosi, memory, 0, remainRead());

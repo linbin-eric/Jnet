@@ -183,9 +183,10 @@ public abstract class PooledBuffer<T> implements IoBuffer
     }
     
     @Override
-    public void setReadPosi(int readPosi)
+    public IoBuffer setReadPosi(int readPosi)
     {
         this.readPosi = readPosi;
+        return this;
     }
     
     @Override
@@ -195,13 +196,14 @@ public abstract class PooledBuffer<T> implements IoBuffer
     }
     
     @Override
-    public void setWritePosi(int writePosi)
+    public IoBuffer setWritePosi(int writePosi)
     {
         this.writePosi = writePosi;
+        return this;
     }
     
     @Override
-    public IoBuffer clearData()
+    public IoBuffer clear()
     {
         readPosi = writePosi = 0;
         return this;
@@ -259,10 +261,7 @@ public abstract class PooledBuffer<T> implements IoBuffer
     @Override
     public IoBuffer get(byte[] content)
     {
-        int length = content.length;
-        int posi = nextReadPosi(length);
-        get0(content, 0, length, posi);
-        return this;
+        return get(content, 0, content.length);
     }
     
     abstract void get0(byte[] content, int off, int len, int posi);
@@ -276,15 +275,17 @@ public abstract class PooledBuffer<T> implements IoBuffer
     }
     
     @Override
-    public void addReadPosi(int add)
+    public IoBuffer addReadPosi(int add)
     {
         readPosi += add;
+        return this;
     }
     
     @Override
-    public void addWritePosi(int add)
+    public IoBuffer addWritePosi(int add)
     {
         writePosi += add;
+        return this;
     }
     
     @Override
@@ -339,6 +340,27 @@ public abstract class PooledBuffer<T> implements IoBuffer
     public long getLong()
     {
         int posi = nextReadPosi(8);
+        return getLong0(posi);
+    }
+    
+    @Override
+    public int getInt(int posi)
+    {
+        checkReadPosi(posi, 4);
+        return getInt0(posi);
+    }
+    
+    @Override
+    public short getShort(int posi)
+    {
+        checkReadPosi(posi, 2);
+        return getShort0(posi);
+    }
+    
+    @Override
+    public long getLong(int posi)
+    {
+        checkReadPosi(posi, 4);
         return getLong0(posi);
     }
     

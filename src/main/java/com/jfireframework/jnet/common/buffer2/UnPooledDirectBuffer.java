@@ -33,7 +33,7 @@ public class UnPooledDirectBuffer extends UnPooledBuffer<ByteBuffer>
     @Override
     void get0(byte[] content, int off, int length, int posi)
     {
-        memory.position(readPosi);
+        memory.position(posi);
         memory.get(content, off, length);
         memory.position(0);
     }

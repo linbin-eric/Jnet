@@ -1,6 +1,5 @@
 package com.jfireframework.jnet.common.buffer2;
 
-import java.nio.ByteBuffer;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
 
 public abstract class UnPooledBuffer<T> implements IoBuffer
@@ -15,20 +14,6 @@ public abstract class UnPooledBuffer<T> implements IoBuffer
         this.memory = memory;
         this.capacity = capacity;
         readPosi = writePosi = 0;
-    }
-    
-    public static UnPooledBuffer<byte[]> newHeapUnPooledBuffer(int size)
-    {
-        UnPooledBuffer<byte[]> buffer = new UnPooledHeapBuffer();
-        buffer.init(new byte[size], size);
-        return buffer;
-    }
-    
-    public static UnPooledBuffer<ByteBuffer> newDirectUnPooledBuffer(int size)
-    {
-        UnPooledBuffer<ByteBuffer> buffer = new UnPooledDirectBuffer();
-        buffer.init(ByteBuffer.allocateDirect(size), size);
-        return buffer;
     }
     
     int nextWritePosi(int length)
@@ -127,10 +112,7 @@ public abstract class UnPooledBuffer<T> implements IoBuffer
     @Override
     public IoBuffer put(byte[] content)
     {
-        int length = content.length;
-        int writePosi = nextWritePosi(length);
-        put0(content, 0, length, writePosi);
-        return this;
+        return put(content, 0, content.length);
     }
     
     @Override
@@ -202,9 +184,10 @@ public abstract class UnPooledBuffer<T> implements IoBuffer
     }
     
     @Override
-    public void setReadPosi(int readPosi)
+    public IoBuffer setReadPosi(int readPosi)
     {
         this.readPosi = readPosi;
+        return this;
     }
     
     @Override
@@ -214,13 +197,14 @@ public abstract class UnPooledBuffer<T> implements IoBuffer
     }
     
     @Override
-    public void setWritePosi(int writePosi)
+    public IoBuffer setWritePosi(int writePosi)
     {
         this.writePosi = writePosi;
+        return this;
     }
     
     @Override
-    public IoBuffer clearData()
+    public IoBuffer clear()
     {
         readPosi = writePosi = 0;
         return this;
@@ -233,15 +217,17 @@ public abstract class UnPooledBuffer<T> implements IoBuffer
     }
     
     @Override
-    public void addReadPosi(int add)
+    public IoBuffer addReadPosi(int add)
     {
         readPosi += add;
+        return this;
     }
     
     @Override
-    public void addWritePosi(int add)
+    public IoBuffer addWritePosi(int add)
     {
         writePosi += add;
+        return this;
     }
     
     @Override
@@ -254,17 +240,14 @@ public abstract class UnPooledBuffer<T> implements IoBuffer
     @Override
     public byte get(int posi)
     {
-        checkRead(posi, posi);
+        checkRead(posi, 1);
         return get0(posi);
     }
     
     @Override
     public IoBuffer get(byte[] content)
     {
-        int length = content.length;
-        int posi = nextReadPosi(length);
-        get0(content, 0, length, posi);
-        return this;
+        return get(content, 0, content.length);
     }
     
     abstract void get0(byte[] content, int off, int length, int posi);
@@ -295,6 +278,27 @@ public abstract class UnPooledBuffer<T> implements IoBuffer
     public long getLong()
     {
         int posi = nextReadPosi(8);
+        return getLong0(posi);
+    }
+    
+    @Override
+    public int getInt(int posi)
+    {
+        checkRead(posi, 4);
+        return getInt0(posi);
+    }
+    
+    @Override
+    public short getShort(int posi)
+    {
+        checkRead(posi, 2);
+        return getShort0(posi);
+    }
+    
+    @Override
+    public long getLong(int posi)
+    {
+        checkRead(posi, 4);
         return getLong0(posi);
     }
     

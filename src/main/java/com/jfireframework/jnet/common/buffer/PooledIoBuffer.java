@@ -223,7 +223,7 @@ public abstract class PooledIoBuffer extends AbstractIoBuffer
 	}
 	
 	@Override
-	public IoBuffer clearData()
+	public IoBuffer clear()
 	{
 		writePosi = readPosi = 0;
 		return this;

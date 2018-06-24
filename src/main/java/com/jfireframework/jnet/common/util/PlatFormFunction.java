@@ -1,5 +1,6 @@
 package com.jfireframework.jnet.common.util;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import com.jfireframework.baseutil.reflect.ReflectUtil;
 import com.jfireframework.baseutil.reflect.UnsafeFieldAccess;
@@ -9,7 +10,7 @@ import sun.misc.Unsafe;
 public class PlatFormFunction
 {
     private static final Unsafe UNSAFE;
-    private static final long   BYTEBUFFER_OFFSET_ADDRESS = UnsafeFieldAccess.getFieldOffset("offset", ByteBuffer.class);
+    private static final long   BYTEBUFFER_OFFSET_ADDRESS = UnsafeFieldAccess.getFieldOffset("address", Buffer.class);
     static
     {
         Object unsafe;
