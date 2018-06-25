@@ -16,7 +16,7 @@ public class FastThreadLocalMap
 	{
 		if (idx >= array.length)
 		{
-			newArray(idx);
+			return;
 		}
 		array[idx] = null;
 	}

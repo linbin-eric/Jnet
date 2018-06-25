@@ -29,6 +29,11 @@ public class FastThreadLocal<T>
 		}
 	}
 	
+	/**
+	 * 如果当前线程变量中没有这个值则调用该方法进行初始化
+	 * 
+	 * @return
+	 */
 	protected T initializeValue()
 	{
 		return null;
