@@ -8,8 +8,12 @@ import java.lang.reflect.Field;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Test;
 import com.jfireframework.jnet.common.recycler.Recycler;
@@ -164,7 +168,6 @@ public class RecycleTest
 	 * @throws IllegalAccessException
 	 * @throws IllegalArgumentException
 	 */
-	@SuppressWarnings("unchecked")
 	@Test
 	public void test5() throws InterruptedException, IllegalArgumentException, IllegalAccessException
 	{
@@ -201,9 +204,7 @@ public class RecycleTest
 				}
 			}
 		}).start();
-		FastThreadLocal<Stack> object = (FastThreadLocal<Stack>) currentStackField.get(recycler);
-		Stack stack = object.get();
-		AtomicInteger shareCapacity = (AtomicInteger) sharedCapacityField.get(stack);
+		AtomicInteger shareCapacity = getShareCapacity();
 		// 尚未执行其他线程暂存时共享大小还是最大值
 		assertEquals(Recycler.MAX_SHARED_CAPACITY, shareCapacity.get());
 		latch2.countDown();
@@ -216,9 +217,75 @@ public class RecycleTest
 				fail();
 			}
 		}
-		System.gc();
-		Thread.sleep(1000);
-		System.gc();
 		assertTrue(another != recycler.get());
+	}
+	
+	@SuppressWarnings("unchecked")
+	private AtomicInteger getShareCapacity() throws IllegalAccessException
+	{
+		FastThreadLocal<Stack> object = (FastThreadLocal<Stack>) currentStackField.get(recycler);
+		Stack stack = object.get();
+		AtomicInteger shareCapacity = (AtomicInteger) sharedCapacityField.get(stack);
+		return shareCapacity;
+	}
+	
+	/**
+	 * 多个线程同时回收.
+	 * 
+	 * @throws InterruptedException
+	 * @throws IllegalAccessException
+	 */
+	@Test
+	public void test6() throws InterruptedException, IllegalAccessException
+	{
+		int num = Recycler.MAX_SHARED_CAPACITY;
+		final Queue<Entry> queue = new ConcurrentLinkedQueue<>();
+		Set<Entry> set = new HashSet<>();
+		for (int i = 0; i < num; i++)
+		{
+			Entry entry = recycler.get();
+			set.add(entry);
+			queue.add(entry);
+		}
+		// 由于最大尝试次数是3，因此线程数不能大于3。为了平分正确，因此设定为2
+		int threadNum = 2;
+		final int numPerThrad = num / threadNum;
+		final CyclicBarrier barrier = new CyclicBarrier(threadNum);
+		final CountDownLatch latch = new CountDownLatch(threadNum);
+		for (int i = 0; i < threadNum; i++)
+		{
+			new FastThreadLocalThread(new Runnable() {
+				
+				@Override
+				public void run()
+				{
+					try
+					{
+						barrier.await();
+					}
+					catch (InterruptedException | BrokenBarrierException e)
+					{
+						e.printStackTrace();
+					}
+					Entry entry;
+					int size = 0;
+					while (size < numPerThrad && (entry = queue.poll()) != null)
+					{
+						entry.handler.recycle(entry);
+						size++;
+					}
+					latch.countDown();
+				}
+			}).start();
+		}
+		latch.await();
+		assertTrue(queue.isEmpty());
+		AtomicInteger shareCapacity = getShareCapacity();
+		assertEquals(0, shareCapacity.get());
+		for (int i = 0; i < num; i++)
+		{
+			set.remove(recycler.get());
+		}
+		assertEquals(0, set.size());
 	}
 }
