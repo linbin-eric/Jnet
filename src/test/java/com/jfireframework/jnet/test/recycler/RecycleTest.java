@@ -197,7 +197,6 @@ public class RecycleTest
 				}
 				finally
 				{
-					System.out.println("输出");
 					latch.countDown();
 				}
 			}
@@ -205,6 +204,7 @@ public class RecycleTest
 		FastThreadLocal<Stack> object = (FastThreadLocal<Stack>) currentStackField.get(recycler);
 		Stack stack = object.get();
 		AtomicInteger shareCapacity = (AtomicInteger) sharedCapacityField.get(stack);
+		// 尚未执行其他线程暂存时共享大小还是最大值
 		assertEquals(Recycler.MAX_SHARED_CAPACITY, shareCapacity.get());
 		latch2.countDown();
 		latch.await();
@@ -216,7 +216,9 @@ public class RecycleTest
 				fail();
 			}
 		}
+		System.gc();
+		Thread.sleep(1000);
+		System.gc();
 		assertTrue(another != recycler.get());
-		System.out.println("ss");
 	}
 }

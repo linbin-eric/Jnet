@@ -235,7 +235,8 @@ public abstract class Recycler<T>
 					cursor = cursor.next;
 				}
 			}
-			do
+			int tryTime = 3;
+			for (int i = 0; i < tryTime; i++)
 			{
 				if (cursor == null)
 				{
@@ -271,7 +272,7 @@ public abstract class Recycler<T>
 						cursor = cursor.next;
 					}
 				}
-			} while (true);
+			}
 			this.pred = pred;
 			this.cursor = cursor;
 		}
@@ -380,15 +381,6 @@ public abstract class Recycler<T>
 			stack.push(this);
 		}
 		
-		void setRecycleId(int recyclerId)
-		{
-			this.recyclerId = recyclerId;
-		}
-		
-		void setLastRecyclerId(int lastRecycleId)
-		{
-			this.lastRecycleId = lastRecycleId;
-		}
 	}
 	
 	static class WeakOrderQueue
@@ -427,6 +419,10 @@ public abstract class Recycler<T>
 		void returnAllSpace()
 		{
 			Link cursor = this.cursor;
+			if (cursor == null)
+			{
+				return;
+			}
 			if (cursor.readIndex != LINK_SIZE)
 			{
 				reclaimSpace(LINK_SIZE, sharedCapacity);
