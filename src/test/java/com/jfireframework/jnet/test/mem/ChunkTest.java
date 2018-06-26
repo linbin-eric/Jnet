@@ -36,33 +36,33 @@ public class ChunkTest
 	@Test
 	public void test()
 	{
-		assertEquals(16, chunk.allocate(MathUtil.tableSizeFor(1), 1));
-		assertEquals(9, chunk.allocate(MathUtil.tableSizeFor(2), 2));
-		assertEquals(10, chunk.allocate(MathUtil.tableSizeFor(2), 2));
-		assertEquals(6, chunk.allocate(MathUtil.tableSizeFor(4), 4));
-		assertEquals(-1, chunk.allocate(MathUtil.tableSizeFor(8), 8));
-		assertEquals(11, chunk.allocate(MathUtil.tableSizeFor(2), 2));
-		assertEquals(14, chunk.allocate(MathUtil.tableSizeFor(2), 2));
-		assertEquals(17, chunk.allocate(MathUtil.tableSizeFor(1), 1));
+		assertEquals(16, chunk.allocate(MathUtil.tableSizeFor(1)));
+		assertEquals(9, chunk.allocate(MathUtil.tableSizeFor(2)));
+		assertEquals(10, chunk.allocate(MathUtil.tableSizeFor(2)));
+		assertEquals(6, chunk.allocate(MathUtil.tableSizeFor(4)));
+		assertEquals(-1, chunk.allocate(MathUtil.tableSizeFor(8)));
+		assertEquals(11, chunk.allocate(MathUtil.tableSizeFor(2)));
+		assertEquals(14, chunk.allocate(MathUtil.tableSizeFor(2)));
+		assertEquals(17, chunk.allocate(MathUtil.tableSizeFor(1)));
 	}
 	
 	@Test
 	public void test2()
 	{
-		long index1 = chunk2.allocate(MathUtil.tableSizeFor(400), 400);
+		long index1 = chunk2.allocate(MathUtil.tableSizeFor(400));
 		assertEquals(4, index1);
-		long handle2 = chunk2.allocate(MathUtil.tableSizeFor(100), 100);
+		long handle2 = chunk2.allocate(MathUtil.tableSizeFor(100));
 		assertEquals(20, handle2);
-		long handle3 = chunk2.allocate(MathUtil.tableSizeFor(200), 200);
+		long handle3 = chunk2.allocate(MathUtil.tableSizeFor(200));
 		assertEquals(11, handle3);
-		long handle4 = chunk2.allocate(MathUtil.tableSizeFor(100), 100);
+		long handle4 = chunk2.allocate(MathUtil.tableSizeFor(100));
 		assertEquals(21, handle4);
-		long handle5 = chunk2.allocate(MathUtil.tableSizeFor(500), 500);
+		long handle5 = chunk2.allocate(MathUtil.tableSizeFor(500));
 		assertEquals(6, handle5);
 		chunk2.free(handle2);
 		chunk2.free(handle3);
 		chunk2.free(handle4);
-		long handle6 = chunk2.allocate(MathUtil.tableSizeFor(400), 400);
+		long handle6 = chunk2.allocate(MathUtil.tableSizeFor(400));
 		assertEquals(5, handle6);
 	}
 }

@@ -4,18 +4,18 @@ import com.jfireframework.jnet.common.util.MathUtil;
 
 public abstract class Chunk<T>
 {
-	protected final int			pageSizeShift;
-	protected final int			smallSizeMask;
-	protected final int			maxLevel;
-	protected final int[]		allocationCapacity;
-	protected final int			chunkSize;
-	protected int				freeBytes;
-	protected T					memory;
+	protected final int		pageSizeShift;
+	protected final int		smallSizeMask;
+	protected final int		maxLevel;
+	protected final int[]	allocationCapacity;
+	protected final int		chunkSize;
+	protected int			freeBytes;
+	protected T				memory;
+	protected boolean		unpooled	= false;
 	/* 供ChunkList使用 */
 	protected ChunkList<T>	parent;
-	protected Chunk<T>			next;
-	protected Chunk<T>			pred;
-	
+	protected Chunk<T>		next;
+	protected Chunk<T>		pred;
 	/* 供ChunkList使用 */
 	
 	/**
@@ -42,7 +42,21 @@ public abstract class Chunk<T>
 		}
 		freeBytes = allocationCapacity[1];
 		chunkSize = freeBytes;
-		memory = initializeMemory();
+		memory = initializeMemory(chunkSize);
+	}
+	
+	/**
+	 * 非池化的特殊Chunk
+	 */
+	public Chunk(int size)
+	{
+		unpooled = true;
+		chunkSize = size;
+		memory = initializeMemory(size);
+		maxLevel = 0;
+		pageSizeShift = 0;
+		allocationCapacity = null;
+		smallSizeMask = 0;
 	}
 	
 	int calculateSize(int level)
@@ -50,7 +64,7 @@ public abstract class Chunk<T>
 		return 1 << (maxLevel - level + pageSizeShift);
 	}
 	
-	abstract T initializeMemory();
+	abstract T initializeMemory(int size);
 	
 	/**
 	 * 该chunk是否使用堆外内存
@@ -59,7 +73,7 @@ public abstract class Chunk<T>
 	 */
 	public abstract boolean isDirect();
 	
-	public long allocate(int normalizeSize, int reqCapacity)
+	public long allocate(int normalizeSize)
 	{
 		if (allocationCapacity[1] < normalizeSize)
 		{

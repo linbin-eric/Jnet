@@ -84,14 +84,14 @@ public class PoolChunkListTest
 		Chunk<T> head = (Chunk<T>) headField.get(poolChunkList);
 		assertTrue(parentField.get(head) == poolChunkList);
 		int req = 12;
-		boolean allocate = ((ChunkList<T>) poolChunkList).allocate(req, req, (PooledBuffer<T>) pooledBuffer);
+		boolean allocate = ((ChunkList<T>) poolChunkList).allocate(req, (PooledBuffer<T>) pooledBuffer);
 		assertFalse(allocate);
 		for (int i = 0; i < 8; i++)
 		{
-			allocate = ((ChunkList<T>) poolChunkList).allocate(1, 1, (PooledBuffer<T>) pooledBuffer);
+			allocate = ((ChunkList<T>) poolChunkList).allocate(1, (PooledBuffer<T>) pooledBuffer);
 			assertTrue(allocate);
 		}
-		allocate = ((ChunkList<T>) poolChunkList).allocate(1, 1, (PooledBuffer<T>) pooledBuffer);
+		allocate = ((ChunkList<T>) poolChunkList).allocate(1, (PooledBuffer<T>) pooledBuffer);
 		assertTrue(allocate);
 		// 分配成功后head为空。因为节点被移动
 		assertNull(headField.get(poolChunkList));

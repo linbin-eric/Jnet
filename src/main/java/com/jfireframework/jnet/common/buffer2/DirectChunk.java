@@ -11,9 +11,9 @@ public class DirectChunk extends Chunk<ByteBuffer>
 	}
 	
 	@Override
-	ByteBuffer initializeMemory()
+	ByteBuffer initializeMemory(int size)
 	{
-		return ByteBuffer.allocateDirect(chunkSize);
+		return ByteBuffer.allocateDirect(size);
 	}
 	
 	@Override

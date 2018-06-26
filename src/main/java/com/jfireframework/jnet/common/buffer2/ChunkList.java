@@ -4,7 +4,7 @@ public class ChunkList<T>
 {
 	final int		maxUsage;
 	final int		minUsage;
-	final int		maxCapacity;
+	final int		maxReqCapacity;
 	ChunkList<T>	prevList;
 	ChunkList<T>	nextList;
 	Chunk<T>		head;
@@ -21,7 +21,7 @@ public class ChunkList<T>
 	{
 		this.maxUsage = maxUsage;
 		this.minUsage = minUsage;
-		maxCapacity = calcuteMaxCapacity(minUsage, chunkSize);
+		maxReqCapacity = calcuteMaxCapacity(minUsage, chunkSize);
 		this.nextList = next;
 	}
 	
@@ -47,14 +47,14 @@ public class ChunkList<T>
 		}
 	}
 	
-	public boolean allocate(int normalizeSize, int reqCapacity, PooledBuffer<T> buffer)
+	public boolean allocate(int normalizeSize, PooledBuffer<T> buffer)
 	{
-		if (head == null || normalizeSize >= maxCapacity)
+		if (head == null || normalizeSize >= maxReqCapacity)
 		{
 			return false;
 		}
 		Chunk<T> cursor = head;
-		long handle = cursor.allocate(normalizeSize, reqCapacity);
+		long handle = cursor.allocate(normalizeSize);
 		if (handle != -1)
 		{
 			cursor.initBuf(handle, buffer);
@@ -69,7 +69,7 @@ public class ChunkList<T>
 		while (cursor.next != null)
 		{
 			cursor = cursor.next;
-			handle = cursor.allocate(normalizeSize, reqCapacity);
+			handle = cursor.allocate(normalizeSize);
 			if (handle != -1)
 			{
 				cursor.initBuf(handle, buffer);
@@ -115,6 +115,10 @@ public class ChunkList<T>
 	
 	public void addFromNext(Chunk<T> chunk, int usage)
 	{
+		if (prevList == null)
+		{
+			return;
+		}
 		if (usage <= minUsage)
 		{
 			prevList.addFromNext(chunk, usage);

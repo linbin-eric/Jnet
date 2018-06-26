@@ -9,9 +9,9 @@ public class HeapChunk extends Chunk<byte[]>
 	}
 	
 	@Override
-	byte[] initializeMemory()
+	byte[] initializeMemory(int size)
 	{
-		return new byte[chunkSize];
+		return new byte[size];
 	}
 	
 	@Override
