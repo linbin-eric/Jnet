@@ -12,7 +12,7 @@ public abstract class Chunk<T>
 	protected int				freeBytes;
 	protected T					memory;
 	/* 供ChunkList使用 */
-	protected PoolChunkList<T>	parent;
+	protected ChunkList<T>	parent;
 	protected Chunk<T>			next;
 	protected Chunk<T>			pred;
 	

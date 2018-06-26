@@ -1,20 +1,33 @@
 package com.jfireframework.jnet.common.buffer2;
 
-public class PoolChunkList<T>
+public class ChunkList<T>
 {
-	final int			maxUsage;
-	final int			minUsage;
-	final int			maxCapacity;
-	PoolChunkList<T>	prev;
-	PoolChunkList<T>	next;
-	Chunk<T>			head;
+	final int		maxUsage;
+	final int		minUsage;
+	final int		maxCapacity;
+	ChunkList<T>	prevList;
+	ChunkList<T>	nextList;
+	Chunk<T>		head;
 	
-	public PoolChunkList(int maxUsage, int minUsage, PoolChunkList<T> next, int chunkSize)
+	/**
+	 * 两个边界都是闭区间。也就是大于等于最小使用率，小于等于最大使用率都在这个List中
+	 * 
+	 * @param minUsage
+	 * @param maxUsage
+	 * @param next
+	 * @param chunkSize
+	 */
+	public ChunkList(int minUsage, int maxUsage, ChunkList<T> next, int chunkSize)
 	{
 		this.maxUsage = maxUsage;
 		this.minUsage = minUsage;
 		maxCapacity = calcuteMaxCapacity(minUsage, chunkSize);
-		this.next = next;
+		this.nextList = next;
+	}
+	
+	public void setPrevList(ChunkList<T> prevList)
+	{
+		this.prevList = prevList;
 	}
 	
 	int calcuteMaxCapacity(int minUsage, int chunkSize)
@@ -29,14 +42,14 @@ public class PoolChunkList<T>
 		}
 		else
 		{
-			return (100 - minUsage) * chunkSize;
+			return (100 - minUsage) * chunkSize / 100;
 			
 		}
 	}
 	
 	public boolean allocate(int normalizeSize, int reqCapacity, PooledBuffer<T> buffer)
 	{
-		if (head == null || normalizeSize > maxCapacity)
+		if (head == null || normalizeSize >= maxCapacity)
 		{
 			return false;
 		}
@@ -46,10 +59,10 @@ public class PoolChunkList<T>
 		{
 			cursor.initBuf(handle, buffer);
 			int usage = cursor.usage();
-			if (usage >= maxUsage)
+			if (usage > maxUsage)
 			{
 				remove(cursor);
-				next.addFromPrev(cursor, usage);
+				nextList.addFromPrev(cursor, usage);
 			}
 			return true;
 		}
@@ -70,9 +83,10 @@ public class PoolChunkList<T>
 	{
 		chunk.free(handle);
 		int usage = chunk.usage();
-		if (usage <= minUsage)
+		if (usage < minUsage)
 		{
-			
+			remove(chunk);
+			addFromNext(chunk, usage);
 		}
 	}
 	
@@ -99,11 +113,11 @@ public class PoolChunkList<T>
 		}
 	}
 	
-	void addFromNext(Chunk<T> chunk, int usage)
+	public void addFromNext(Chunk<T> chunk, int usage)
 	{
 		if (usage <= minUsage)
 		{
-			prev.addFromNext(chunk, usage);
+			prevList.addFromNext(chunk, usage);
 			return;
 		}
 		add(chunk);
@@ -127,11 +141,11 @@ public class PoolChunkList<T>
 		}
 	}
 	
-	void addFromPrev(Chunk<T> chunk, int usage)
+	public void addFromPrev(Chunk<T> chunk, int usage)
 	{
 		if (usage >= maxUsage)
 		{
-			next.addFromPrev(chunk, usage);
+			nextList.addFromPrev(chunk, usage);
 			return;
 		}
 		add(chunk);
