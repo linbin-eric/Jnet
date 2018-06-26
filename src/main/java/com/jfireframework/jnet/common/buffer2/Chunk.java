@@ -4,16 +4,17 @@ import com.jfireframework.jnet.common.util.MathUtil;
 
 public abstract class Chunk<T>
 {
-	protected final int		pageSizeShift;
-	protected final int		smallSizeMask;
-	protected final int		maxLevel;
-	protected final int[]	allocationCapacity;
-	protected final int		chunkSize;
-	protected int			freeBytes;
-	protected T				memory;
+	protected final int			pageSizeShift;
+	protected final int			smallSizeMask;
+	protected final int			maxLevel;
+	protected final int[]		allocationCapacity;
+	protected final int			chunkSize;
+	protected int				freeBytes;
+	protected T					memory;
 	/* 供ChunkList使用 */
-	protected Chunk<T>		next;
-	protected Chunk<T>		pred;
+	protected PoolChunkList<T>	parent;
+	protected Chunk<T>			next;
+	protected Chunk<T>			pred;
 	
 	/* 供ChunkList使用 */
 	
@@ -58,9 +59,8 @@ public abstract class Chunk<T>
 	 */
 	public abstract boolean isDirect();
 	
-	public long allocate(int reqCapacity)
+	public long allocate(int normalizeSize, int reqCapacity)
 	{
-		int normalizeSize = MathUtil.tableSizeFor(reqCapacity);
 		if (allocationCapacity[1] < normalizeSize)
 		{
 			return -1;
@@ -178,4 +178,16 @@ public abstract class Chunk<T>
 		}
 	}
 	
+	public int usage()
+	{
+		int result = 100 - (freeBytes * 100 / chunkSize);
+		if (result == 0)
+		{
+			return freeBytes == chunkSize ? 0 : 1;
+		}
+		else
+		{
+			return result;
+		}
+	}
 }
