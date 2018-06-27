@@ -16,21 +16,26 @@ public abstract class Arena<T>
 		PAGESIZE = Math.max(pageSize, 4 * 1024);
 		CHUNKSIZE = (1 << MAXLEVEL) * PAGESIZE;
 	}
-	ChunkList<T>		c000;
-	ChunkList<T>		c025;
-	ChunkList<T>		c050;
-	ChunkList<T>		c075;
-	ChunkList<T>		c100;
-	ChunkList<T>		cInt;
-	private final int	pageSize;
-	private final int	maxLevel;
-	private final int	subpageOverflowMask;
-	private final int	chunkSize;
+	ChunkList<T>			c000;
+	ChunkList<T>			c025;
+	ChunkList<T>			c050;
+	ChunkList<T>			c075;
+	ChunkList<T>			c100;
+	ChunkList<T>			cInt;
+	private SubPage<T>[]	tinySubPages;
+	private SubPage<T>[]	smallSubPages;
+	private final int		pageSize;
+	private final int		pageShift;
+	private final int		maxLevel;
+	private final int		subpageOverflowMask;
+	private final int		chunkSize;
 	
+	@SuppressWarnings("unchecked")
 	public Arena(int maxLevel, int pageSize)
 	{
 		this.maxLevel = maxLevel;
 		this.pageSize = pageSize;
+		pageShift = MathUtil.log2(pageSize);
 		subpageOverflowMask = ~(pageSize - 1);
 		chunkSize = (1 << maxLevel) * pageSize;
 		c100 = new ChunkList<>(100, 100, null, chunkSize);
@@ -43,6 +48,18 @@ public abstract class Arena<T>
 		c075.setPrevList(c050);
 		c050.setPrevList(c025);
 		c025.setPrevList(c000);
+		// 在tiny区间，以16为大小，每一个16的倍数都占据一个槽位。为了方便定位，实际上数组的0下标是不使用的
+		tinySubPages = new SubPage[512 >>> 4];
+		for (int i = 0; i < tinySubPages.length; i++)
+		{
+			tinySubPages[i] = new SubPage<T>(pageSize);
+		}
+		// 在small，从1<<9开始，每一次右移都占据一个槽位，直到pagesize大小。为了方便定位，实际上数组的0下标是不使用的
+		smallSubPages = new SubPage[pageShift - 9];
+		for (int i = 0; i < smallSubPages.length; i++)
+		{
+			smallSubPages[i] = new SubPage<T>(pageSize);
+		}
 	}
 	
 	public void allocate(int reqCapacity, int maxCapacity, PooledBuffer<T> buffer)
@@ -50,7 +67,14 @@ public abstract class Arena<T>
 		int normalizeCapacity = normalizeCapacity(reqCapacity);
 		if (isTinyOrSmall(normalizeCapacity))
 		{
-			
+			if (isTiny(normalizeCapacity))
+			{
+				
+			}
+			else
+			{
+				
+			}
 		}
 		else if (normalizeCapacity <= chunkSize)
 		{
@@ -75,6 +99,11 @@ public abstract class Arena<T>
 		{
 			allocateHuge(reqCapacity, buffer);
 		}
+	}
+	
+	int tinyIdx(int normalizeCapacity)
+	{
+		
 	}
 	
 	abstract Chunk<T> newChunk(int maxLevel, int pageSize, int chunkSize);
