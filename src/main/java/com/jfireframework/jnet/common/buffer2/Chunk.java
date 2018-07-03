@@ -5,13 +5,15 @@ import com.jfireframework.jnet.common.util.MathUtil;
 public abstract class Chunk<T>
 {
 	protected final int		pageSizeShift;
-	protected final int		smallSizeMask;
+	protected final int		subpageOverflowMask;
 	protected final int		maxLevel;
 	protected final int[]	allocationCapacity;
 	protected final int		chunkSize;
 	protected int			freeBytes;
 	protected T				memory;
 	protected boolean		unpooled	= false;
+	protected SubPage<T>[]	subPages;
+	protected int			subPageIdxMask;
 	/* 供ChunkList使用 */
 	protected ChunkList<T>	parent;
 	protected Chunk<T>		next;
@@ -24,12 +26,14 @@ public abstract class Chunk<T>
 	 * @param maxLevel 最大层次。起始层次为0。
 	 * @param pageSize 单页字节大小。也就是一个最小的分配区域的字节数。
 	 */
-	public Chunk(int maxLevel, int pageSize)
+	@SuppressWarnings("unchecked")
+	public Chunk(int maxLevel, int pageSize, int pageSizeShift, int subpageOverflowMask)
 	{
 		this.maxLevel = maxLevel;
-		pageSizeShift = MathUtil.log2(pageSize);
-		smallSizeMask = ~(pageSize - 1);
+		this.pageSizeShift = pageSizeShift;
+		this.subpageOverflowMask = subpageOverflowMask;
 		allocationCapacity = new int[1 << (maxLevel + 1)];
+		subPageIdxMask = 1 << maxLevel;
 		for (int i = 0; i <= maxLevel; i++)
 		{
 			int initializeSize = calculateSize(i);
@@ -40,6 +44,7 @@ public abstract class Chunk<T>
 				allocationCapacity[j] = initializeSize;
 			}
 		}
+		subPages = new SubPage[1 << maxLevel];
 		freeBytes = allocationCapacity[1];
 		chunkSize = freeBytes;
 		memory = initializeMemory(chunkSize);
@@ -56,12 +61,17 @@ public abstract class Chunk<T>
 		maxLevel = 0;
 		pageSizeShift = 0;
 		allocationCapacity = null;
-		smallSizeMask = 0;
+		subpageOverflowMask = 0;
 	}
 	
 	int calculateSize(int level)
 	{
 		return 1 << (maxLevel - level + pageSizeShift);
+	}
+	
+	int calculateSizeShift(int level)
+	{
+		return (maxLevel - level + pageSizeShift);
 	}
 	
 	abstract T initializeMemory(int size);
@@ -79,10 +89,35 @@ public abstract class Chunk<T>
 		{
 			return -1;
 		}
+		if (isTinyOrSmall(normalizeSize))
+		{
+			int allocationsCapacityIdx = allocateNode(normalizeSize);
+			if (allocationsCapacityIdx == -1)
+			{
+				return -1;
+			}
+			SubPage<T> subPage = subPages[subPageIdx(allocationsCapacityIdx)];
+			if (subPage != null)
+			{
+				subPage.init(normalizeSize);
+			}
+			else
+			{
+				subPage = new SubPage<>(this, pageSizeShift, allocationsCapacityIdx, normalizeSize, allocationsCapacityIdx);
+			}
+		}
+		else
+		{
+			return allocateNode(normalizeSize);
+		}
+	}
+	
+	private int allocateNode(int normalizeSize)
+	{
 		freeBytes -= normalizeSize;
 		int shift = MathUtil.log2(normalizeSize);
 		int hitLevel = maxLevel - (shift - pageSizeShift);
-		int index = allocateNode(normalizeSize, hitLevel);
+		int index = findNode(normalizeSize, hitLevel);
 		allocationCapacity[index] = 0;
 		updateAllocatedParent(index);
 		return index;
@@ -101,17 +136,32 @@ public abstract class Chunk<T>
 		}
 	}
 	
+	int subPageIdx(int allocationsCapacityIdx)
+	{
+		return allocationsCapacityIdx ^ subPageIdxMask;
+	}
+	
+	int bitmapIdx(long handle)
+	{
+		return (int) (handle >>> 32);
+	}
+	
+	int allocationsCapacityIdx(long handle)
+	{
+		return (int) handle;
+	}
+	
 	private void initNormalizeSIzeBuffer(long handle, PooledBuffer<T> buffer)
 	{
 		int index = (int) handle;
 		int level = MathUtil.log2((int) index);
-		int capacity = calculateSize(level);
+		int capacityShift = calculateSizeShift(level);
 		/**
 		 * 1<<hitLevel得到是该层节点数量，同时也是该层第一个节点的下标，为2的次方幂。<br/>
 		 * 与index进行异或操作就可以去掉最高位的1，也就是得到了index与该值的差。
 		 */
-		int off = (index ^ (1 << level)) * capacity;
-		buffer.init(memory, capacity, off, handle);
+		int off = (index ^ (1 << level)) << capacityShift;
+		buffer.init(memory, 1 << capacityShift, off, handle);
 	}
 	
 	/**
@@ -162,7 +212,7 @@ public abstract class Chunk<T>
 		}
 	}
 	
-	private int allocateNode(int normalizeSize, int hitLevel)
+	private int findNode(int normalizeSize, int hitLevel)
 	{
 		int childIndex = 1;
 		int level = 0;
@@ -203,5 +253,10 @@ public abstract class Chunk<T>
 		{
 			return result;
 		}
+	}
+	
+	boolean isTinyOrSmall(int normCapacity)
+	{
+		return (normCapacity & subpageOverflowMask) == 0;
 	}
 }

@@ -41,4 +41,9 @@ public class SubPage<T>
 	{
 		
 	}
+	
+	public void allocate(PooledBuffer<T> buffer)
+	{
+		
+	}
 }

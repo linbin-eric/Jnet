@@ -79,15 +79,23 @@ public class ChunkList<T>
 		return false;
 	}
 	
-	public void free(Chunk<T> chunk, long handle)
+	/**
+	 * 返回true意味着该Chunk不在管理之中，可以摧毁。
+	 * 
+	 * @param chunk
+	 * @param handle
+	 * @return
+	 */
+	public boolean free(Chunk<T> chunk, long handle)
 	{
 		chunk.free(handle);
 		int usage = chunk.usage();
 		if (usage < minUsage)
 		{
 			remove(chunk);
-			addFromNext(chunk, usage);
+			return addFromNext(chunk, usage) == false;
 		}
+		return false;
 	}
 	
 	void remove(Chunk<T> node)
@@ -113,18 +121,25 @@ public class ChunkList<T>
 		}
 	}
 	
-	public void addFromNext(Chunk<T> chunk, int usage)
+	/**
+	 * 返回true意味着有前向列表可以添加，否则返回false
+	 * 
+	 * @param chunk
+	 * @param usage
+	 * @return
+	 */
+	public boolean addFromNext(Chunk<T> chunk, int usage)
 	{
 		if (prevList == null)
 		{
-			return;
+			return false;
 		}
 		if (usage <= minUsage)
 		{
-			prevList.addFromNext(chunk, usage);
-			return;
+			return prevList.addFromNext(chunk, usage);
 		}
 		add(chunk);
+		return true;
 	}
 	
 	void add(Chunk<T> chunk)
