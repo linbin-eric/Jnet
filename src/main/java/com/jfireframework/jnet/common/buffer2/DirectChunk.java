@@ -4,10 +4,14 @@ import java.nio.ByteBuffer;
 
 public class DirectChunk extends Chunk<ByteBuffer>
 {
-	
-	public DirectChunk(int maxLevel, int pageSize)
+	public DirectChunk(int chunkSize)
 	{
-		super(maxLevel, pageSize);
+		super(chunkSize);
+	}
+	
+	public DirectChunk(int maxLevel, int pageSize, int pageSizeShift, int subpageOverflowMask)
+	{
+		super(maxLevel, pageSize, pageSizeShift, subpageOverflowMask);
 	}
 	
 	@Override

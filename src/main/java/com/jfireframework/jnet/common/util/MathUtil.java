@@ -8,7 +8,7 @@ public class MathUtil
 	 * @param cap
 	 * @return
 	 */
-	public static final int tableSizeFor(int cap)
+	public static final int normalizeSize(int cap)
 	{
 		int n = cap - 1;
 		n |= n >>> 1;

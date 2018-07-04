@@ -70,7 +70,7 @@ public abstract class Chunk
      */
     public boolean apply(int need, PooledIoBuffer buffer, boolean expansion)
     {
-        int capacity = need < pageSize ? pageSize : tableSizeFor(need);
+        int capacity = need < pageSize ? pageSize : normalizeSize(need);
         int capacityShift = log2(capacity);
         if (pool[1] < capacity)
         {

@@ -28,7 +28,7 @@ public abstract class Recycler<T>
 	static
 	{
 		int maxCacheInstanceCapacity = SystemPropertyUtil.getInt("io.jnet.recycler.maxCacheInstanceCapacity", 0);
-		MAX_CACHE_INSTANCE_CAPACITY = Math.max(MathUtil.tableSizeFor(maxCacheInstanceCapacity), 32 * 1024);
+		MAX_CACHE_INSTANCE_CAPACITY = Math.max(MathUtil.normalizeSize(maxCacheInstanceCapacity), 32 * 1024);
 		int maxDelayQueueNum = SystemPropertyUtil.getInt("io.jnet.recycler.maxDelayQueueNum", 0);
 		MAX_DELAY_QUEUE_NUM = Math.max(maxDelayQueueNum, 32);
 		int maxSharedCapacity = SystemPropertyUtil.getInt("io.jnet.recycler.maxSharedCapacity", 0);
