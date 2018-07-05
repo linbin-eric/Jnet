@@ -120,7 +120,8 @@ public class SubPage<T>
 	
 	long toHandle(int memoryIdx)
 	{
-		return ((long) memoryIdx << 32) | allocationsCapacityIdx;
+		// 由于bitMapIdx的初始值是0，为了表达这个0是具备含义的，因此在低3位使用一个1来使得整体高32位不会为0
+		return 0x4000000000000000L | ((long) memoryIdx << 32) | allocationsCapacityIdx;
 	}
 	
 	/**
@@ -130,6 +131,7 @@ public class SubPage<T>
 	 */
 	public boolean free(long handle, int allocationsCapacityIdx, int bitmapIdx, SubPage<T> head, Arena<T> arena)
 	{
+		bitmapIdx &= 0x3FFFFFFF;
 		int r = bitmapIdx >>> 6;
 		int i = bitmapIdx & 63;
 		bitMap[r] &= ~(1 << i);

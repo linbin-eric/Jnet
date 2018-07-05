@@ -94,7 +94,7 @@ public abstract class Chunk<T>
 		}
 		if (isTinyOrSmall(normalizeSize))
 		{
-			int allocationsCapacityIdx = allocateNode(normalizeSize);
+			int allocationsCapacityIdx = allocateNode(pageSize);
 			if (allocationsCapacityIdx == -1)
 			{
 				return -1;
@@ -218,7 +218,7 @@ public abstract class Chunk<T>
 			SubPage<T> head = arena.findSubPageHead(subPage.elementSize);
 			synchronized (head)
 			{
-				if (subPage.free(handle, allocationsCapacityIdx, allocationsCapacityIdx, head, arena))
+				if (subPage.free(handle, allocationsCapacityIdx, bitMapIdx, head, arena))
 				{
 					return;
 				}

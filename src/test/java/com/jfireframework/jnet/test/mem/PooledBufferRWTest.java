@@ -14,8 +14,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
 import com.jfireframework.jnet.common.buffer.PooledBuffer;
-import com.jfireframework.jnet.common.buffer.PooledDirectBuffer;
-import com.jfireframework.jnet.common.buffer.PooledHeapBuffer;
+import com.jfireframework.jnet.common.buffer.PooledBufferAllocator;
 
 @RunWith(Parameterized.class)
 public class PooledBufferRWTest
@@ -36,16 +35,12 @@ public class PooledBufferRWTest
 	
 	static PooledBuffer<?> allocate(int size)
 	{
-		PooledBuffer<byte[]> buffer = new PooledHeapBuffer();
-		buffer.init(new byte[size], size, 0, 0);
-		return buffer;
+		return (PooledBuffer<?>) PooledBufferAllocator.DEFAULT.heapBuffer(size);
 	}
 	
 	static PooledBuffer<?> allocateDirect(int size)
 	{
-		PooledBuffer<ByteBuffer> buffer = new PooledDirectBuffer();
-		buffer.init(ByteBuffer.allocateDirect(size), size, 0, 0);
-		return buffer;
+		return (PooledBuffer<?>) PooledBufferAllocator.DEFAULT.directBuffer(size);
 	}
 	
 	public PooledBufferRWTest(IoBuffer buffer, IoBuffer paramBuffer)
