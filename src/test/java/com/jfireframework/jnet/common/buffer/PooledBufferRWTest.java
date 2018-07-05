@@ -1,4 +1,4 @@
-package com.jfireframework.jnet.test.mem;
+package com.jfireframework.jnet.common.buffer;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -12,9 +12,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
-import com.jfireframework.jnet.common.buffer.IoBuffer;
-import com.jfireframework.jnet.common.buffer.PooledBuffer;
-import com.jfireframework.jnet.common.buffer.PooledBufferAllocator;
 
 @RunWith(Parameterized.class)
 public class PooledBufferRWTest

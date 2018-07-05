@@ -1,4 +1,4 @@
-package com.jfireframework.jnet.test.mem;
+package com.jfireframework.jnet.common.buffer;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
