@@ -38,10 +38,15 @@ public abstract class Recycler<T>
 		int transferMaxTry = SystemPropertyUtil.getInt("io.jnet.recycler.transferMaxTry", 0);
 		TRANSFER_MAX_TRY = Math.max(transferMaxTry, 3);
 	}
+	private int															maxCachedInstanceCapacity;
+	private int															maxDelayQueueNum;
+	private int															linkSize;
+	private int															maxSharedCapacity;
+	private int															transferMaxTry;
 	private final FastThreadLocal<Stack>								currentStack	= new FastThreadLocal<Stack>() {
 																							protected Stack initializeValue()
 																							{
-																								return new Stack();
+																								return new Stack(maxSharedCapacity, maxCachedInstanceCapacity, transferMaxTry, maxDelayQueueNum, linkSize);
 																							};
 																						};
 	private final static FastThreadLocal<Map<Stack, WeakOrderQueue>>	delayQueues		= new FastThreadLocal<Map<Stack, WeakOrderQueue>>() {
@@ -53,7 +58,7 @@ public abstract class Recycler<T>
 	
 	protected abstract T newObject(RecycleHandler handler);
 	
-	private static final WeakOrderQueue	DUMMY	= new WeakOrderQueue(null, null);
+	private static final WeakOrderQueue	DUMMY	= new WeakOrderQueue();
 	private static final RecycleHandler	NO_OP	= new RecycleHandler() {
 													
 													@Override
@@ -64,10 +69,28 @@ public abstract class Recycler<T>
 													
 												};
 	
+	public Recycler()
+	{
+		maxCachedInstanceCapacity = MAX_CACHE_INSTANCE_CAPACITY;
+		maxDelayQueueNum = MAX_DELAY_QUEUE_NUM;
+		linkSize = LINK_SIZE;
+		maxSharedCapacity = MAX_SHARED_CAPACITY;
+		transferMaxTry = TRANSFER_MAX_TRY;
+	}
+	
+	public Recycler(int maxCachedInstanceCapcity, int maxDelayQueueNum, int linkSize, int maxShadCapacity, int transferMaxTry)
+	{
+		this.maxCachedInstanceCapacity = maxCachedInstanceCapcity;
+		this.maxDelayQueueNum = maxDelayQueueNum;
+		this.linkSize = linkSize;
+		this.maxSharedCapacity = maxShadCapacity;
+		this.transferMaxTry = transferMaxTry;
+	}
+	
 	@SuppressWarnings("unchecked")
 	public T get()
 	{
-		if (MAX_CACHE_INSTANCE_CAPACITY == 0)
+		if (maxCachedInstanceCapacity == 0)
 		{
 			return newObject(NO_OP);
 		}
@@ -131,12 +154,21 @@ public abstract class Recycler<T>
 		volatile WeakOrderQueue	head;
 		WeakOrderQueue			cursor;
 		WeakOrderQueue			pred;
-		int						size			= 0;
+		int						size	= 0;
 		int						capacity;
-		AtomicInteger			sharedCapacity	= new AtomicInteger(MAX_SHARED_CAPACITY);
+		AtomicInteger			sharedCapacity;
+		final int				maxCachedInstanceCapacity;
+		final int				transferMaxTry;
+		final int				maxDelayQueueNum;
+		final int				linkSize;
 		
-		public Stack()
+		public Stack(int maxSharedCapacity, int maxCachedInstanceCapacity, int transferMaxTry, int maxDelayQueueNum, int linkSize)
 		{
+			sharedCapacity = new AtomicInteger(maxSharedCapacity);
+			this.transferMaxTry = transferMaxTry;
+			this.maxCachedInstanceCapacity = maxCachedInstanceCapacity;
+			this.linkSize = linkSize;
+			this.maxDelayQueueNum = maxDelayQueueNum;
 			capacity = 512;
 			cacheInstances = new RecycleHandler[capacity];
 			ownerThread = new WeakReference<Thread>(Thread.currentThread());
@@ -188,7 +220,7 @@ public abstract class Recycler<T>
 		 */
 		boolean extendCapacity()
 		{
-			if (capacity >= MAX_CACHE_INSTANCE_CAPACITY)
+			if (capacity >= maxCachedInstanceCapacity)
 			{
 				return false;
 			}
@@ -238,7 +270,7 @@ public abstract class Recycler<T>
 					cursor = cursor.next;
 				}
 			}
-			int tryTime = TRANSFER_MAX_TRY;
+			int tryTime = transferMaxTry;
 			for (int i = 0; i < tryTime; i++)
 			{
 				if (cursor == null)
@@ -317,16 +349,16 @@ public abstract class Recycler<T>
 			WeakOrderQueue delayedQueue = map.get(this);
 			if (delayedQueue == null)
 			{
-				if (map.size() >= MAX_DELAY_QUEUE_NUM)
+				if (map.size() >= maxDelayQueueNum)
 				{
 					map.put(this, DUMMY);
 					return;
 				}
-				if (reserveSpace(LINK_SIZE, sharedCapacity) == false)
+				if (reserveSpace(linkSize, sharedCapacity) == false)
 				{
 					return;
 				}
-				delayedQueue = new WeakOrderQueue(sharedCapacity, thread);
+				delayedQueue = new WeakOrderQueue(sharedCapacity, thread, linkSize, maxCachedInstanceCapacity);
 				setHead(delayedQueue);
 				delayedQueue.add(handler);
 				map.put(this, delayedQueue);
@@ -346,7 +378,7 @@ public abstract class Recycler<T>
 			int index = this.size;
 			if (index == capacity)
 			{
-				if (capacity == MAX_CACHE_INSTANCE_CAPACITY)
+				if (capacity == maxCachedInstanceCapacity)
 				{
 					return -1;
 				}
@@ -397,11 +429,21 @@ public abstract class Recycler<T>
 		AtomicInteger			sharedCapacity;
 		WeakReference<Thread>	ownerThread;
 		int						id	= IDGENERATOR.getAndIncrement();
+		final int				linkSize;
+		final int				maxCachedInstanceCapacity;
 		
-		public WeakOrderQueue(AtomicInteger sharedCapacity, Thread thread)
+		public WeakOrderQueue()
+		{
+			linkSize = 0;
+			maxCachedInstanceCapacity = 0;
+		}
+		
+		public WeakOrderQueue(AtomicInteger sharedCapacity, Thread thread, int linkSize, int maxCachedInstanceCapacity)
 		{
 			this.sharedCapacity = sharedCapacity;
-			cursor = tail = new Link();
+			this.maxCachedInstanceCapacity = maxCachedInstanceCapacity;
+			this.linkSize = linkSize;
+			cursor = tail = new Link(linkSize);
 			ownerThread = new WeakReference<Thread>(thread);
 		}
 		
@@ -409,9 +451,9 @@ public abstract class Recycler<T>
 		{
 			if (tail.isFull())
 			{
-				if (reserveSpace(LINK_SIZE, sharedCapacity))
+				if (reserveSpace(linkSize, sharedCapacity))
 				{
-					tail = tail.next = new Link();
+					tail = tail.next = new Link(linkSize);
 				}
 				else
 				{
@@ -429,13 +471,13 @@ public abstract class Recycler<T>
 			{
 				return;
 			}
-			if (cursor.readIndex != LINK_SIZE)
+			if (cursor.readIndex != linkSize)
 			{
-				reclaimSpace(LINK_SIZE, sharedCapacity);
+				reclaimSpace(linkSize, sharedCapacity);
 			}
 			while ((cursor = cursor.next) != null)
 			{
-				reclaimSpace(LINK_SIZE, sharedCapacity);
+				reclaimSpace(linkSize, sharedCapacity);
 			}
 		}
 		
@@ -471,7 +513,7 @@ public abstract class Recycler<T>
 				}
 				if (destSpace == 0)
 				{
-					if (stack.capacity == MAX_CACHE_INSTANCE_CAPACITY)
+					if (stack.capacity == maxCachedInstanceCapacity)
 					{
 						return success;
 					}
@@ -499,9 +541,9 @@ public abstract class Recycler<T>
 				cursor.readIndex = srcIndex + length;
 				int newIndex = size + length;
 				stack.size = newIndex;
-				if (cursor.readIndex == LINK_SIZE)
+				if (cursor.readIndex == linkSize)
 				{
-					reclaimSpace(LINK_SIZE, sharedCapacity);
+					reclaimSpace(linkSize, sharedCapacity);
 					if (cursor.next == null)
 					{
 						return success;
@@ -521,10 +563,12 @@ public abstract class Recycler<T>
 		volatile int		writeIndex;
 		static final long	WRITE_INDEX_ADDRESS	= UnsafeFieldAccess.getFieldOffset("writeIndex", Link.class);
 		static final Unsafe	unsafe				= ReflectUtil.getUnsafe();
+		final int			linkSize;
 		
-		public Link()
+		public Link(int linkSize)
 		{
-			store = new RecycleHandler[LINK_SIZE];
+			this.linkSize = linkSize;
+			store = new RecycleHandler[linkSize];
 		}
 		
 		public void putOrderedWriteIndex(int writeIndex)
@@ -539,7 +583,7 @@ public abstract class Recycler<T>
 		
 		public boolean isFull()
 		{
-			return writeIndex == LINK_SIZE;
+			return writeIndex == linkSize;
 		}
 		
 		public void put(RecycleHandler handler)

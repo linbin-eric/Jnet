@@ -11,15 +11,15 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
-import com.jfireframework.jnet.common.buffer2.Chunk;
-import com.jfireframework.jnet.common.buffer2.ChunkList;
-import com.jfireframework.jnet.common.buffer2.DirectChunk;
-import com.jfireframework.jnet.common.buffer2.DirectChunkList;
-import com.jfireframework.jnet.common.buffer2.HeapChunk;
-import com.jfireframework.jnet.common.buffer2.HeapChunkList;
-import com.jfireframework.jnet.common.buffer2.PooledBuffer;
-import com.jfireframework.jnet.common.buffer2.PooledDirectBuffer;
-import com.jfireframework.jnet.common.buffer2.PooledHeapBuffer;
+import com.jfireframework.jnet.common.buffer.Chunk;
+import com.jfireframework.jnet.common.buffer.ChunkList;
+import com.jfireframework.jnet.common.buffer.DirectChunk;
+import com.jfireframework.jnet.common.buffer.DirectChunkList;
+import com.jfireframework.jnet.common.buffer.HeapChunk;
+import com.jfireframework.jnet.common.buffer.HeapChunkList;
+import com.jfireframework.jnet.common.buffer.PooledBuffer;
+import com.jfireframework.jnet.common.buffer.PooledDirectBuffer;
+import com.jfireframework.jnet.common.buffer.PooledHeapBuffer;
 
 @RunWith(Parameterized.class)
 public class PoolChunkListTest

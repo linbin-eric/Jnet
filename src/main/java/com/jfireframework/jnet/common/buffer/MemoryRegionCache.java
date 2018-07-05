@@ -1,4 +1,4 @@
-package com.jfireframework.jnet.common.buffer2;
+package com.jfireframework.jnet.common.buffer;
 
 import java.util.Arrays;
 import com.jfireframework.baseutil.reflect.ReflectUtil;
@@ -299,13 +299,13 @@ abstract class AccessInfo<T> extends Pad5<T>
 	}
 	
 	@SuppressWarnings("unchecked")
-	void initBuffer(long index, PooledBuffer<T> buffer)
+	void initBuffer(long index, PooledBuffer<T> buffer, ThreadCache cache)
 	{
 		long address = ((index & mask) << bufferScaleShift) + bufferOffset;
 		Entry<T> entry = (Entry<T>) unsafe.getObject(entries, address);
 		Chunk<T> chunk = entry.chunk;
 		long handle = entry.handle;
-		chunk.initBuf(handle, buffer);
+		chunk.initBuf(handle, buffer, cache);
 		entry.chunk = null;
 	}
 	
@@ -335,36 +335,6 @@ public class MemoryRegionCache<T> extends AccessInfo<T>
 		super(capacity);
 	}
 	
-	private int size()
-	{
-		long consumerIndex = this.consumerIndex;
-		long producerIndex = this.producerIndex;
-		return (int) (producerIndex - consumerIndex);
-	}
-	
-	private boolean isEmpty()
-	{
-		long consumerIndex = this.consumerIndex;
-		long producerIndex = this.producerIndex;
-		return consumerIndex == producerIndex;
-	}
-	
-	private void clear()
-	{
-		long pIndex = producerIndex;
-		long cIndex = this.consumerIndex;
-		if (pIndex == cIndex)
-		{
-			return;
-		}
-		for (long index = cIndex; index < pIndex; index++)
-		{
-			waitUnitlAvailable(index);
-			set(cIndex, null, index);
-		}
-		this.consumerIndex = pIndex;
-	}
-	
 	boolean offer(Chunk<T> chunk, long handle)
 	{
 		long index = nextProducerIndex();
@@ -383,7 +353,7 @@ public class MemoryRegionCache<T> extends AccessInfo<T>
 	 * @param buffer
 	 * @return
 	 */
-	boolean tryFindAndInitBuffer(PooledBuffer<T> buffer)
+	boolean tryFindAndInitBuffer(PooledBuffer<T> buffer, ThreadCache cache)
 	{
 		long pIndex = producerIndex;
 		long cIndex = this.consumerIndex;
@@ -400,7 +370,7 @@ public class MemoryRegionCache<T> extends AccessInfo<T>
 				Thread.yield();
 			}
 		}
-		initBuffer(cIndex, buffer);
+		initBuffer(cIndex, buffer, cache);
 		setConsumerIndexOrdered(cIndex + 1);
 		return true;
 	}

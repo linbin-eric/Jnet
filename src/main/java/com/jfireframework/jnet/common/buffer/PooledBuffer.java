@@ -1,24 +1,40 @@
-package com.jfireframework.jnet.common.buffer2;
+package com.jfireframework.jnet.common.buffer;
 
-import com.jfireframework.jnet.common.buffer.IoBuffer;
+import com.jfireframework.jnet.common.recycler.Recycler.RecycleHandler;
 
 public abstract class PooledBuffer<T> implements IoBuffer
 {
-	T		memory;
-	int		capacity;
-	int		readPosi;
-	int		writePosi;
+	T				memory;
+	int				capacity;
+	int				readPosi;
+	int				writePosi;
 	// 可用位置相对于memory的偏移量
-	int		offset;
-	long	handle;
+	int				offset;
+	long			handle;
+	ThreadCache		cache;
+	Chunk<T>		chunk;
+	RecycleHandler	recycleHandler;
 	
-	public void init(T memory, int capacity, int offset, long handle)
+	public void init(Chunk<T> chunk, int capacity, int offset, long handle, ThreadCache cache)
 	{
-		this.memory = memory;
+		this.chunk = chunk;
+		memory = chunk.memory;
 		this.offset = offset;
 		this.capacity = capacity;
 		this.handle = handle;
+		this.cache = cache;
 		readPosi = writePosi = 0;
+	}
+	
+	public void initUnPooled(Chunk<T> chunk, ThreadCache cache)
+	{
+		this.chunk = chunk;
+		this.cache = cache;
+		memory = chunk.memory;
+		offset = 0;
+		readPosi = writePosi = 0;
+		capacity = chunk.chunkSize;
+		handle = -1;
 	}
 	
 	@Override
@@ -39,7 +55,10 @@ public abstract class PooledBuffer<T> implements IoBuffer
 		return oldPosi;
 	}
 	
-	abstract void reAllocate(int reqCapacity);
+	void reAllocate(int reqCapacity)
+	{
+		chunk.arena.reAllocate(this, reqCapacity);
+	}
 	
 	@Override
 	public IoBuffer put(byte b)
@@ -378,5 +397,16 @@ public abstract class PooledBuffer<T> implements IoBuffer
 	}
 	
 	abstract long getLong0(int posi);
+	
+	public void free()
+	{
+		chunk.arena.free(chunk, handle, capacity, cache);
+		if (recycleHandler != null)
+		{
+			RecycleHandler tmp = recycleHandler;
+			recycleHandler = null;
+			tmp.recycle(this);
+		}
+	}
 	
 }

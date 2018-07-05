@@ -1,8 +1,6 @@
-package com.jfireframework.jnet.common.buffer2;
+package com.jfireframework.jnet.common.buffer;
 
 import java.nio.ByteBuffer;
-import com.jfireframework.jnet.common.buffer.Bits;
-import com.jfireframework.jnet.common.buffer.IoBuffer;
 
 public class UnPooledHeapBuffer extends UnPooledBuffer<byte[]>
 {

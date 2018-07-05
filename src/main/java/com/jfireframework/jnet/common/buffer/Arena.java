@@ -1,30 +1,37 @@
-package com.jfireframework.jnet.common.buffer2;
+package com.jfireframework.jnet.common.buffer;
 
+import java.util.concurrent.atomic.AtomicInteger;
+import com.jfireframework.baseutil.reflect.ReflectUtil;
 import com.jfireframework.jnet.common.util.MathUtil;
 
 public abstract class Arena<T>
 {
-	ChunkList<T>		c000;
-	ChunkList<T>		c025;
-	ChunkList<T>		c050;
-	ChunkList<T>		c075;
-	ChunkList<T>		c100;
-	ChunkList<T>		cInt;
-	SubPage<T>[]		tinySubPages;
-	SubPage<T>[]		smallSubPages;
-	private final int	pageSize;
-	private final int	pageShift;
-	private final int	maxLevel;
-	private final int	subpageOverflowMask;
-	private final int	chunkSize;
+	ChunkList<T>			c000;
+	ChunkList<T>			c025;
+	ChunkList<T>			c050;
+	ChunkList<T>			c075;
+	ChunkList<T>			c100;
+	ChunkList<T>			cInt;
+	SubPage<T>[]			tinySubPages;
+	SubPage<T>[]			smallSubPages;
+	private final int		pageSize;
+	private final int		pageSizeShift;
+	private final int		maxLevel;
+	private final int		subpageOverflowMask;
+	private final int		chunkSize;
+	// 有多少ThreadCache持有了该Arena
+	AtomicInteger			numThreadCaches	= new AtomicInteger(0);
+	PooledBufferAllocator	parent;
 	
 	@SuppressWarnings("unchecked")
-	public Arena(int maxLevel, int pageSize)
+	public Arena(PooledBufferAllocator parent, int maxLevel, int pageSize, int pageSizeShift, int subpageOverflowMask)
 	{
+		this.parent = parent;
 		this.maxLevel = maxLevel;
 		this.pageSize = pageSize;
-		pageShift = MathUtil.log2(pageSize);
-		subpageOverflowMask = ~(pageSize - 1);
+		this.pageSizeShift = pageSizeShift;
+		this.subpageOverflowMask = subpageOverflowMask;
+		// subpageOverflowMask = ~(pageSize - 1);
 		chunkSize = (1 << maxLevel) * pageSize;
 		c100 = new ChunkList<>(100, 100, null, chunkSize);
 		c075 = new ChunkList<>(75, 99, c000, chunkSize);
@@ -43,16 +50,22 @@ public abstract class Arena<T>
 			tinySubPages[i] = new SubPage<T>(pageSize);
 		}
 		// 在small，从1<<9开始，每一次右移都占据一个槽位，直到pagesize大小.
-		smallSubPages = new SubPage[pageShift - 9];
+		smallSubPages = new SubPage[pageSizeShift - 9];
 		for (int i = 0; i < smallSubPages.length; i++)
 		{
 			smallSubPages[i] = new SubPage<T>(pageSize);
 		}
 	}
 	
-	abstract Chunk<T> newChunk(int maxLevel, int pageSize, int chunkSize);
+	abstract Chunk<T> newChunk(int maxLevel, int pageSize, int pageSizeShift, int chunkSize);
 	
-	abstract void allocateHuge(int reqCapacity, PooledBuffer<T> buffer);
+	abstract Chunk<T> newChunk(int reqCapacity);
+	
+	void allocateHuge(int reqCapacity, PooledBuffer<T> buffer, ThreadCache cache)
+	{
+		Chunk<T> hugeChunk = newChunk(reqCapacity);
+		hugeChunk.unPoooledChunkInitBuf(buffer, cache);
+	}
 	
 	abstract void destoryChunk(Chunk<T> chunk);
 	
@@ -84,42 +97,72 @@ public abstract class Arena<T>
 				if (succeed != head)
 				{
 					long handle = succeed.allocate();
-					succeed.chunk.initBuf(handle, buffer);
+					succeed.chunk.initBuf(handle, buffer, cache);
 					return;
 				}
 			}
-			allocateNormal(buffer, normalizeCapacity);
+			allocateNormal(buffer, normalizeCapacity, cache);
 		}
 		else if (normalizeCapacity <= chunkSize)
 		{
-			allocateNormal(buffer, normalizeCapacity);
+			allocateNormal(buffer, normalizeCapacity, cache);
 		}
 		else
 		{
-			allocateHuge(reqCapacity, buffer);
+			allocateHuge(reqCapacity, buffer, cache);
 		}
 	}
 	
-	private synchronized void allocateNormal(PooledBuffer<T> buffer, int normalizeCapacity)
+	private synchronized void allocateNormal(PooledBuffer<T> buffer, int normalizeCapacity, ThreadCache cache)
 	{
 		if (//
-		c050.allocate(normalizeCapacity, buffer)//
-		        || c025.allocate(normalizeCapacity, buffer)//
-		        || c000.allocate(normalizeCapacity, buffer)//
-		        || cInt.allocate(normalizeCapacity, buffer)//
-		        || c075.allocate(normalizeCapacity, buffer)
+		c050.allocate(normalizeCapacity, buffer, cache)//
+		        || c025.allocate(normalizeCapacity, buffer, cache)//
+		        || c000.allocate(normalizeCapacity, buffer, cache)//
+		        || cInt.allocate(normalizeCapacity, buffer, cache)//
+		        || c075.allocate(normalizeCapacity, buffer, cache)
 		
 		)
 		{
 			return;
 		}
-		Chunk<T> chunk = newChunk(maxLevel, pageSize, chunkSize);
+		Chunk<T> chunk = newChunk(maxLevel, pageSize, pageSizeShift, chunkSize);
 		chunk.arena = this;
 		long handle = chunk.allocate(normalizeCapacity);
 		assert handle > 0;
-		chunk.initBuf(handle, buffer);
+		chunk.initBuf(handle, buffer, cache);
 		cInt.add(chunk);
 	}
+	
+	public void reAllocate(PooledBuffer<T> buffer, int newReqCapacity)
+	{
+		Chunk<T> oldChunk = buffer.chunk;
+		long oldHandle = buffer.handle;
+		int oldReadPosi = buffer.readPosi;
+		int oldWritePosi = buffer.writePosi;
+		int oldCapacity = buffer.capacity;
+		int oldOffset = buffer.offset;
+		T oldMemory = buffer.memory;
+		ThreadCache oldCache = buffer.cache;
+		allocate(newReqCapacity, Integer.MAX_VALUE, buffer, parent.threadCache());
+		if (newReqCapacity > oldCapacity)
+		{
+			buffer.setReadPosi(oldCapacity).setWritePosi(oldWritePosi);
+			if (oldReadPosi != oldWritePosi)
+			{
+				int len = oldWritePosi - oldReadPosi;
+				memoryCopy(oldMemory, oldOffset, buffer.memory, buffer.offset, oldReadPosi, len);
+			}
+		}
+		// 这种情况是缩小，目前还不支持
+		else
+		{
+			ReflectUtil.throwException(new UnsupportedOperationException());
+		}
+		free(oldChunk, oldHandle, oldCapacity, oldCache);
+	}
+	
+	abstract void memoryCopy(T src, int srcOffset, T desc, int destOffset, int posi, int len);
 	
 	static int tinyIdx(int normalizeCapacity)
 	{

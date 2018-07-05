@@ -13,9 +13,9 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
-import com.jfireframework.jnet.common.buffer2.PooledBuffer;
-import com.jfireframework.jnet.common.buffer2.PooledDirectBuffer;
-import com.jfireframework.jnet.common.buffer2.PooledHeapBuffer;
+import com.jfireframework.jnet.common.buffer.PooledBuffer;
+import com.jfireframework.jnet.common.buffer.PooledDirectBuffer;
+import com.jfireframework.jnet.common.buffer.PooledHeapBuffer;
 
 @RunWith(Parameterized.class)
 public class PooledBufferRWTest

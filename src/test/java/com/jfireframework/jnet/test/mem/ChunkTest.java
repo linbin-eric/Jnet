@@ -7,9 +7,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
-import com.jfireframework.jnet.common.buffer2.Chunk;
-import com.jfireframework.jnet.common.buffer2.DirectChunk;
-import com.jfireframework.jnet.common.buffer2.HeapChunk;
+import com.jfireframework.jnet.common.buffer.Chunk;
+import com.jfireframework.jnet.common.buffer.DirectChunk;
+import com.jfireframework.jnet.common.buffer.HeapChunk;
 import com.jfireframework.jnet.common.util.MathUtil;
 
 @RunWith(Parameterized.class)

@@ -1,4 +1,4 @@
-package com.jfireframework.jnet.common.buffer2;
+package com.jfireframework.jnet.common.buffer;
 
 import com.jfireframework.jnet.common.util.SystemPropertyUtil;
 

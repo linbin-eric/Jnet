@@ -1,4 +1,4 @@
-package com.jfireframework.jnet.common.buffer2;
+package com.jfireframework.jnet.common.buffer;
 
 import java.nio.ByteBuffer;
 import com.jfireframework.baseutil.reflect.ReflectUtil;
@@ -6,18 +6,18 @@ import com.jfireframework.jnet.common.util.MathUtil;
 
 public class ThreadCache
 {
-	final Arena<byte[]>						heapArena;
+	final HeapArena							heapArena;
 	final MemoryRegionCache<byte[]>[]		tinySubPagesHeapCaches;
 	final MemoryRegionCache<byte[]>[]		smallSubPageHeapCaches;
 	final MemoryRegionCache<byte[]>[]		normalHeapCaches;
-	final Arena<ByteBuffer>					directArena;
+	final DirectArena						directArena;
 	final MemoryRegionCache<ByteBuffer>[]	tinySubPagesDirectCaches;
 	final MemoryRegionCache<ByteBuffer>[]	smallSubPagesDirectCaches;
 	final MemoryRegionCache<ByteBuffer>[]	normalDirectCaches;
 	final int								pageSizeShift;
 	
 	@SuppressWarnings("unchecked")
-	public ThreadCache(Arena<byte[]> heapArena, Arena<ByteBuffer> directArena, int tinyCacheSize, int smallCacheSize, int normalCacheSize, int maxBufferedCapacity, int pageSizeShift)
+	public ThreadCache(HeapArena heapArena, DirectArena directArena, int tinyCacheSize, int smallCacheSize, int normalCacheSize, int maxCachedBufferCapacity, int pageSizeShift)
 	{
 		this.pageSizeShift = pageSizeShift;
 		this.heapArena = heapArena;
@@ -31,7 +31,7 @@ public class ThreadCache
 		{
 			smallSubPageHeapCaches[i] = new MemoryRegionCache<>(smallCacheSize);
 		}
-		int normalizeSize = MathUtil.normalizeSize(maxBufferedCapacity);
+		int normalizeSize = MathUtil.normalizeSize(maxCachedBufferCapacity);
 		int shift = MathUtil.log2(normalizeSize);
 		normalHeapCaches = new MemoryRegionCache[shift - pageSizeShift];
 		for (int i = 0; i < normalHeapCaches.length; i++)
@@ -64,7 +64,7 @@ public class ThreadCache
 		{
 			return false;
 		}
-		return ((MemoryRegionCache) cache).tryFindAndInitBuffer(buffer);
+		return ((MemoryRegionCache) cache).tryFindAndInitBuffer(buffer, this);
 		
 	}
 	
@@ -93,7 +93,7 @@ public class ThreadCache
 		int tinyIdx = Arena.tinyIdx(normalizeCapacity);
 		if (arena.isDirect())
 		{
-			if (tinySubPagesDirectCaches == null || tinySubPagesDirectCaches.length < tinyIdx)
+			if (tinySubPagesDirectCaches == null || tinySubPagesDirectCaches.length <= tinyIdx)
 			{
 				return null;
 			}
@@ -101,7 +101,7 @@ public class ThreadCache
 		}
 		else
 		{
-			if (tinySubPagesHeapCaches == null || tinySubPagesHeapCaches.length < tinyIdx)
+			if (tinySubPagesHeapCaches == null || tinySubPagesHeapCaches.length <= tinyIdx)
 			{
 				return null;
 			}
@@ -114,7 +114,7 @@ public class ThreadCache
 		int smallIdx = Arena.smallIdx(normalizeCapacity);
 		if (arena.isDirect())
 		{
-			if (smallSubPagesDirectCaches == null || smallSubPageHeapCaches.length < smallIdx)
+			if (smallSubPagesDirectCaches == null || smallSubPageHeapCaches.length <= smallIdx)
 			{
 				return null;
 			}
@@ -122,7 +122,7 @@ public class ThreadCache
 		}
 		else
 		{
-			if (smallSubPageHeapCaches == null || smallSubPageHeapCaches.length < smallIdx)
+			if (smallSubPageHeapCaches == null || smallSubPageHeapCaches.length <= smallIdx)
 			{
 				return null;
 			}
@@ -136,7 +136,7 @@ public class ThreadCache
 		int idx = shift - pageSizeShift;
 		if (arena.isDirect())
 		{
-			if (normalDirectCaches == null || normalDirectCaches.length < idx)
+			if (normalDirectCaches == null || normalDirectCaches.length <= idx)
 			{
 				return null;
 			}
@@ -144,7 +144,7 @@ public class ThreadCache
 		}
 		else
 		{
-			if (normalHeapCaches == null || normalHeapCaches.length < idx)
+			if (normalHeapCaches == null || normalHeapCaches.length <= idx)
 			{
 				return null;
 			}

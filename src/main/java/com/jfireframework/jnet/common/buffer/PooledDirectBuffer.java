@@ -1,9 +1,38 @@
 package com.jfireframework.jnet.common.buffer;
 
 import java.nio.ByteBuffer;
+import com.jfireframework.jnet.common.util.PlatFormFunction;
 
-public class PooledDirectBuffer extends PooledIoBuffer
+public class PooledDirectBuffer extends PooledBuffer<ByteBuffer>
 {
+	long	address;
+	long	addressPlusOffsetCache;
+	
+	@Override
+	public void init(Chunk<ByteBuffer> chunk, int capacity, int offset, long handle, ThreadCache cache)
+	{
+		super.init(chunk, capacity, offset, handle, cache);
+		address = PlatFormFunction.bytebufferOffsetAddress(memory);
+		addressPlusOffsetCache = address + offset;
+	}
+	
+	@Override
+	public IoBuffer compact()
+	{
+		Bits.copyDirectMemory(addressPlusOffsetCache + readPosi, addressPlusOffsetCache, remainRead());
+		writePosi -= readPosi;
+		readPosi = 0;
+		return this;
+	}
+	
+	@Override
+	public ByteBuffer byteBuffer()
+	{
+		ByteBuffer duplicate = memory.duplicate();
+		duplicate.limit(offset + writePosi).position(offset + readPosi);
+		return duplicate;
+	}
+	
 	@Override
 	public boolean isDirect()
 	{
@@ -11,134 +40,89 @@ public class PooledDirectBuffer extends PooledIoBuffer
 	}
 	
 	@Override
-	protected void _put(int posi, byte b)
+	void reAllocate(int reqCapacity)
 	{
-		Bits.put(actualAddress(posi), b);
-	}
-	
-	@Override
-	public IoBuffer put(byte[] content, int off, int len)
-	{
-		if (len > Bits.JNI_COPY_FROM_ARRAY_THRESHOLD)
-		{
-			checkBounds(content, off, len);
-			int posi = nextWritePosi(len);
-			Bits.copyFromByteArray(content, off, actualAddress(posi), len);
-			return this;
-		}
-		else
-		{
-			return super.put(content, off, len);
-		}
+		// TODO Auto-generated method stub
 		
 	}
 	
-	@Override
-	protected void _put(int posi, IoBuffer buffer, int len)
+	long realAddress(int posi)
 	{
-		if (buffer.isDirect())
-		{
-			AbstractIoBuffer src = (AbstractIoBuffer) buffer;
-			Bits.copyDirectMemory(src.actualAddress(src.readPosi), actualAddress(posi), len);
-		}
-		else
-		{
-			AbstractIoBuffer src = (AbstractIoBuffer) buffer;
-			Bits.copyFromByteArray(src.array, src.actualArrayOffset(src.readPosi), actualAddress(posi), len);
-		}
+		return addressPlusOffsetCache + posi;
 	}
 	
 	@Override
-	protected void _putInt(int posi, int value)
+	void put0(int posi, byte value)
 	{
-		long a = actualAddress(posi);
-		Bits.putInt(a, value);
+		Bits.put(realAddress(posi), value);
 	}
 	
 	@Override
-	protected void _putShort(int posi, short value)
+	void put0(byte[] content, int off, int len, int posi)
 	{
-		long a = actualAddress(posi);
-		Bits.putShort(a, value);
+		Bits.copyFromByteArray(content, off, realAddress(posi), len);
 	}
 	
 	@Override
-	protected void _putLong(int posi, long value)
+	void putInt0(int posi, int value)
 	{
-		long a = actualAddress(posi);
-		Bits.putLong(a, value);
+		Bits.putInt(realAddress(posi), value);
 	}
 	
 	@Override
-	protected byte _get(int posi)
+	void putShort0(int posi, short value)
 	{
-		long a = actualAddress(posi);
-		return Bits.get(a);
+		Bits.putShort(realAddress(posi), value);
 	}
 	
 	@Override
-	public IoBuffer compact()
+	void putLong0(int posi, long value)
 	{
-		if (readPosi == 0)
-		{
-			return this;
-		}
-		int length = writePosi - readPosi;
-		Bits.copyDirectMemory(actualAddress(readPosi), actualAddress(0), length);
-		writePosi = length;
-		readPosi = 0;
-		return this;
+		Bits.putLong(realAddress(posi), value);
 	}
 	
 	@Override
-	public IoBuffer get(byte[] content, int off, int len)
+	byte get0(int posi)
 	{
-		if (len > Bits.JNI_COPY_TO_ARRAY_THRESHOLD)
-		{
-			checkBounds(content, off, len);
-			if (remainRead() < len)
-			{
-				throw new IllegalArgumentException();
-			}
-			int posi = nextReadPosi(len);
-			Bits.copyToArray(actualAddress(posi), content, off, len);
-			return this;
-		}
-		else
-		{
-			return super.get(content, off, len);
-		}
+		return Bits.get(realAddress(posi));
 	}
 	
 	@Override
-	protected int _getInt(int posi)
+	void get0(byte[] content, int off, int len, int posi)
 	{
-		long a = actualAddress(posi);
-		return Bits.getInt(a);
+		Bits.copyToArray(realAddress(posi), content, off, len);
 	}
 	
 	@Override
-	protected short _getShort(int posi)
+	int getInt0(int posi)
 	{
-		long a = actualAddress(posi);
-		return Bits.getShort(a);
+		return Bits.getInt(realAddress(posi));
 	}
 	
 	@Override
-	protected long _getLong(int posi)
+	short getShort0(int posi)
 	{
-		long a = actualAddress(posi);
-		return Bits.getLong(a);
+		return Bits.getShort(realAddress(posi));
 	}
 	
 	@Override
-	public ByteBuffer byteBuffer()
+	long getLong0(int posi)
 	{
-		if (internalByteBuffer == null)
-		{
-			internalByteBuffer = addressBuffer.duplicate();
-		}
-		internalByteBuffer.limit(writePosi + addressOffset).position(readPosi + addressOffset);
-		return internalByteBuffer;
+		return Bits.getLong(realAddress(posi));
 	}
+	
+	@Override
+	void put1(PooledHeapBuffer buffer, int len)
+	{
+		int posi = nextWritePosi(len);
+		Bits.copyFromByteArray(buffer.memory, buffer.offset + buffer.readPosi, realAddress(posi), len);
+	}
+	
+	@Override
+	void put2(PooledDirectBuffer buffer, int len)
+	{
+		int posi = nextWritePosi(len);
+		Bits.copyDirectMemory(buffer.addressPlusOffsetCache + readPosi, realAddress(posi), len);
+	}
+	
 }

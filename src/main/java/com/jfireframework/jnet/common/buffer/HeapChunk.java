@@ -1,42 +1,28 @@
 package com.jfireframework.jnet.common.buffer;
 
-class HeapChunk extends Chunk
+public class HeapChunk extends Chunk<byte[]>
 {
 	
-	public HeapChunk(int maxLevel, int unit)
+	public HeapChunk(int maxLevel, int pageSize, int pageSizeShift, int subpageOverflowMask)
 	{
-		super(maxLevel, unit);
+		super(maxLevel, pageSize, pageSizeShift, subpageOverflowMask);
+	}
+	
+	public HeapChunk(int chunkSize)
+	{
+		super(chunkSize);
 	}
 	
 	@Override
-	protected void initializeMem(int capacity)
+	byte[] initializeMemory(int size)
 	{
-		array = new byte[capacity];
+		return new byte[size];
 	}
 	
 	@Override
 	public boolean isDirect()
 	{
 		return false;
-	}
-	
-	@Override
-	protected void initBuffer(PooledIoBuffer buffer, int index, int off, int capacity)
-	{
-		buffer.setHeapIoBufferArgs(archon, this, index, array, off, capacity);
-	}
-	
-	@Override
-	protected void expansionBuffer(PooledIoBuffer buffer, int index, int off, int capacity)
-	{
-		assert buffer.writePosi <= capacity;
-		System.arraycopy(buffer.array, buffer.arrayOffset, array, off, buffer.writePosi);
-		buffer.chunk = this;
-		buffer.index = index;
-		buffer.array = array;
-		buffer.arrayOffset = off;
-		buffer.capacity = capacity;
-		buffer.internalByteBuffer = null;
 	}
 	
 }
