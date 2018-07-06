@@ -18,7 +18,9 @@ public class PooledBufferAllocator implements BufferAllocator
 	public static final int						MAXLEVEL;
 	public static final int						NUM_HEAP_ARENA;
 	public static final int						NUM_DIRECT_ARENA;
+	public static final boolean					PREFER_DIRECT;
 	public static final PooledBufferAllocator	DEFAULT;
+	
 	static
 	{
 		USE_CACHE_FOR_ALL_THREAD = SystemPropertyUtil.getBoolean("io.jnet.PooledBufferAllocator.useCacheForAllThread", true);
@@ -31,9 +33,11 @@ public class PooledBufferAllocator implements BufferAllocator
 		NUM_HEAP_ARENA = SystemPropertyUtil.getInt("io.jnet.PooledBufferAllocator.numHeapArena", 16);
 		NUM_DIRECT_ARENA = SystemPropertyUtil.getInt("io.jnet.PooledBufferAllocator.numDirectArena", 16);
 		MAX_CACHEED_BUFFER_CAPACITY = SystemPropertyUtil.getInt("io.jnet.PooledBufferAllocator.maxCachedBufferCapacity", 32 * 1024);
-		DEFAULT = new PooledBufferAllocator(PAGESIZE, MAXLEVEL, NUM_HEAP_ARENA, NUM_DIRECT_ARENA, MAX_CACHEED_BUFFER_CAPACITY, TINY_CACHE_SIZE, SMALL_CACHE_SIZE, NORMAL_CACHE_SIZE, USE_CACHE_FOR_ALL_THREAD);
+		PREFER_DIRECT = SystemPropertyUtil.getBoolean("io.jnet.PooledBufferAllocator.preferDirect", true);
+		DEFAULT = new PooledBufferAllocator(PAGESIZE, MAXLEVEL, NUM_HEAP_ARENA, NUM_DIRECT_ARENA, MAX_CACHEED_BUFFER_CAPACITY, TINY_CACHE_SIZE, SMALL_CACHE_SIZE, NORMAL_CACHE_SIZE, USE_CACHE_FOR_ALL_THREAD, PREFER_DIRECT);
 	}
 	boolean												useCacheForAllThread	= true;
+	boolean												preferDirect;
 	int													maxCachedBufferCapacity;
 	int													tinyCacheSize;
 	int													smallCacheSize;
@@ -43,6 +47,7 @@ public class PooledBufferAllocator implements BufferAllocator
 	int													maxLevel;
 	HeapArena[]											heapArenas;
 	DirectArena[]										directArenas;
+	
 	final FastThreadLocal<ThreadCache>					localCache				= new FastThreadLocal<ThreadCache>() {
 																					@Override
 																					protected ThreadCache initializeValue()
@@ -91,7 +96,13 @@ public class PooledBufferAllocator implements BufferAllocator
 	        int maxCachedBufferCapacity, int tinyCacheSize, int smallCacheSize, int normalCacheSize, //
 	        boolean useCacheForAllThread)
 	{
-		long t0 = System.currentTimeMillis();
+		this(pagesize, maxLevel, numHeapArenas, numDirectArenas, maxCachedBufferCapacity, tinyCacheSize, smallCacheSize, normalCacheSize, useCacheForAllThread, true);
+	}
+	
+	public PooledBufferAllocator(int pagesize, int maxLevel, int numHeapArenas, int numDirectArenas, //
+	        int maxCachedBufferCapacity, int tinyCacheSize, int smallCacheSize, int normalCacheSize, //
+	        boolean useCacheForAllThread, boolean preferDirect)
+	{
 		this.maxCachedBufferCapacity = maxCachedBufferCapacity;
 		this.tinyCacheSize = tinyCacheSize;
 		this.smallCacheSize = smallCacheSize;
@@ -99,6 +110,7 @@ public class PooledBufferAllocator implements BufferAllocator
 		this.useCacheForAllThread = useCacheForAllThread;
 		this.pagesize = pagesize;
 		this.maxLevel = maxLevel;
+		this.preferDirect = preferDirect;
 		pagesizeShift = MathUtil.log2(pagesize);
 		int subpageOverflowMask = ~(pagesize - 1);
 		heapArenas = new HeapArena[numHeapArenas];
@@ -149,5 +161,31 @@ public class PooledBufferAllocator implements BufferAllocator
 		PooledDirectBuffer buffer = directBuffers.get();
 		directArena.allocate(initializeCapacity, Integer.MAX_VALUE, buffer, threadCache);
 		return buffer;
+	}
+	
+	@Override
+	public IoBuffer ioBuffer(int initializeCapacity)
+	{
+		if (preferDirect)
+		{
+			return directBuffer(initializeCapacity);
+		}
+		else
+		{
+			return heapBuffer(initializeCapacity);
+		}
+	}
+	
+	@Override
+	public IoBuffer ioBuffer(int initializeCapacity, boolean direct)
+	{
+		if (direct)
+		{
+			return directBuffer(initializeCapacity);
+		}
+		else
+		{
+			return heapBuffer(initializeCapacity);
+		}
 	}
 }

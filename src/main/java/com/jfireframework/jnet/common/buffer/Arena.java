@@ -22,6 +22,9 @@ public abstract class Arena<T>
 	// 有多少ThreadCache持有了该Arena
 	AtomicInteger			numThreadCaches	= new AtomicInteger(0);
 	PooledBufferAllocator	parent;
+	/** 统计相关 **/
+	int						newChunkCount	= 0;
+	int						hugeChunkCount	= 0;
 	
 	@SuppressWarnings("unchecked")
 	public Arena(PooledBufferAllocator parent, int maxLevel, int pageSize, int pageSizeShift, int subpageOverflowMask)
@@ -66,6 +69,7 @@ public abstract class Arena<T>
 		Chunk<T> hugeChunk = newChunk(reqCapacity);
 		hugeChunk.arena = this;
 		hugeChunk.unPoooledChunkInitBuf(buffer, cache);
+		hugeChunkCount++;
 	}
 	
 	abstract void destoryChunk(Chunk<T> chunk);
@@ -133,6 +137,7 @@ public abstract class Arena<T>
 		assert handle > 0;
 		chunk.initBuf(handle, buffer, cache);
 		cInt.add(chunk);
+		newChunkCount++;
 	}
 	
 	public void reAllocate(PooledBuffer<T> buffer, int newReqCapacity)

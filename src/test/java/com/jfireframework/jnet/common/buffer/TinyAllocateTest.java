@@ -12,7 +12,7 @@ import org.junit.runners.Parameterized.Parameters;
 import com.jfireframework.baseutil.StringUtil;
 
 @RunWith(Parameterized.class)
-public class TinyTest
+public class TinyAllocateTest
 {
 	PooledBufferAllocator	allocator	= new PooledBufferAllocator(PooledBufferAllocator.PAGESIZE, PooledBufferAllocator.MAXLEVEL, PooledBufferAllocator.NUM_HEAP_ARENA, PooledBufferAllocator.NUM_DIRECT_ARENA, 0, 0, 0, 0, true);
 	int						reqCapacity;
@@ -30,7 +30,7 @@ public class TinyTest
 		return list;
 	}
 	
-	public TinyTest(int reqCapacity)
+	public TinyAllocateTest(int reqCapacity)
 	{
 		this.reqCapacity = reqCapacity;
 	}
