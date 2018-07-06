@@ -35,9 +35,9 @@ public class FastThreadLocalMap
 		int length = array.length;
 		while (idx >= length)
 		{
-			idx += 8;
+			length += 8;
 		}
-		array = Arrays.copyOf(array, idx);
+		array = Arrays.copyOf(array, length);
 	}
 	
 	public static FastThreadLocalMap getIfSet()

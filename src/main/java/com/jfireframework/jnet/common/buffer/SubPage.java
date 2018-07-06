@@ -73,7 +73,7 @@ public class SubPage<T>
 		}
 		int r = bitmapIdx >>> 6;
 		int i = bitmapIdx & 63;
-		bitMap[r] |= 1 << i;
+		bitMap[r] |= 1l << i;
 		numAvail--;
 		if (numAvail == 0)
 		{
@@ -103,13 +103,13 @@ public class SubPage<T>
 			if (~bits != 0)
 			{
 				int memoryIdx = i << 6;
-				while (memoryIdx < maxNumAvail)
+				for (int j = 0; j < 64 && memoryIdx < maxNumAvail; j++)
 				{
 					if ((bits & 1) == 0)
 					{
 						return memoryIdx;
 					}
-					bits >>= 1;
+					bits >>>= 1;
 					memoryIdx += 1;
 				}
 				return -1;
@@ -131,7 +131,6 @@ public class SubPage<T>
 	 */
 	public boolean free(long handle, int allocationsCapacityIdx, int bitmapIdx, SubPage<T> head, Arena<T> arena)
 	{
-		bitmapIdx &= 0x3FFFFFFF;
 		int r = bitmapIdx >>> 6;
 		int i = bitmapIdx & 63;
 		bitMap[r] &= ~(1 << i);
