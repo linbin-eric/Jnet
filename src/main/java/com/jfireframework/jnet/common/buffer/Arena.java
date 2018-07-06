@@ -6,250 +6,251 @@ import com.jfireframework.jnet.common.util.MathUtil;
 
 public abstract class Arena<T>
 {
-    ChunkList<T>          c000;
-    ChunkList<T>          c025;
-    ChunkList<T>          c050;
-    ChunkList<T>          c075;
-    ChunkList<T>          c100;
-    ChunkList<T>          cInt;
-    SubPage<T>[]          tinySubPages;
-    SubPage<T>[]          smallSubPages;
-    private final int     pageSize;
-    private final int     pageSizeShift;
-    private final int     maxLevel;
-    private final int     subpageOverflowMask;
-    private final int     chunkSize;
-    // 有多少ThreadCache持有了该Arena
-    AtomicInteger         numThreadCaches = new AtomicInteger(0);
-    PooledBufferAllocator parent;
-    
-    @SuppressWarnings("unchecked")
-    public Arena(PooledBufferAllocator parent, int maxLevel, int pageSize, int pageSizeShift, int subpageOverflowMask)
-    {
-        this.parent = parent;
-        this.maxLevel = maxLevel;
-        this.pageSize = pageSize;
-        this.pageSizeShift = pageSizeShift;
-        this.subpageOverflowMask = subpageOverflowMask;
-        // subpageOverflowMask = ~(pageSize - 1);
-        chunkSize = (1 << maxLevel) * pageSize;
-        c100 = new ChunkList<>(100, 100, null, chunkSize);
-        c075 = new ChunkList<>(75, 99, c100, chunkSize);
-        c050 = new ChunkList<>(50, 99, c075, chunkSize);
-        c025 = new ChunkList<>(25, 75, c050, chunkSize);
-        c000 = new ChunkList<>(1, 50, c025, chunkSize);
-        cInt = new ChunkList<>(0, 25, c000, chunkSize);
-        c100.setPrevList(c075);
-        c075.setPrevList(c050);
-        c050.setPrevList(c025);
-        c025.setPrevList(c000);
-        // 在tiny区间，以16为大小，每一个16的倍数都占据一个槽位。为了方便定位，实际上数组的0下标是不使用的
-        tinySubPages = new SubPage[512 >>> 4];
-        for (int i = 0; i < tinySubPages.length; i++)
-        {
-            tinySubPages[i] = new SubPage<T>(pageSize);
-        }
-        // 在small，从1<<9开始，每一次右移都占据一个槽位，直到pagesize大小.
-        smallSubPages = new SubPage[pageSizeShift - 9];
-        for (int i = 0; i < smallSubPages.length; i++)
-        {
-            smallSubPages[i] = new SubPage<T>(pageSize);
-        }
-    }
-    
-    abstract Chunk<T> newChunk(int maxLevel, int pageSize, int pageSizeShift, int subpageOverflowMask);
-    
-    abstract Chunk<T> newChunk(int reqCapacity);
-    
-    void allocateHuge(int reqCapacity, PooledBuffer<T> buffer, ThreadCache cache)
-    {
-        Chunk<T> hugeChunk = newChunk(reqCapacity);
-        hugeChunk.unPoooledChunkInitBuf(buffer, cache);
-    }
-    
-    abstract void destoryChunk(Chunk<T> chunk);
-    
-    public void allocate(int reqCapacity, int maxCapacity, PooledBuffer<T> buffer, ThreadCache cache)
-    {
-        int normalizeCapacity = normalizeCapacity(reqCapacity);
-        if (isTinyOrSmall(normalizeCapacity))
-        {
-            SubPage<T> head;
-            if (isTiny(normalizeCapacity))
-            {
-                if (cache.allocate(buffer, normalizeCapacity, SizeType.TINY, this))
-                {
-                    return;
-                }
-                head = tinySubPages[tinyIdx(normalizeCapacity)];
-            }
-            else
-            {
-                if (cache.allocate(buffer, normalizeCapacity, SizeType.SMALL, this))
-                {
-                    return;
-                }
-                head = smallSubPages[smallIdx(normalizeCapacity)];
-            }
-            synchronized (head)
-            {
-                SubPage<T> succeed = head.next;
-                if (succeed != head)
-                {
-                    long handle = succeed.allocate();
-                    succeed.chunk.initBuf(handle, buffer, cache);
-                    return;
-                }
-            }
-            allocateNormal(buffer, normalizeCapacity, cache);
-        }
-        else if (normalizeCapacity <= chunkSize)
-        {
-            allocateNormal(buffer, normalizeCapacity, cache);
-        }
-        else
-        {
-            allocateHuge(reqCapacity, buffer, cache);
-        }
-    }
-    
-    private synchronized void allocateNormal(PooledBuffer<T> buffer, int normalizeCapacity, ThreadCache cache)
-    {
-        if (//
-        c050.allocate(normalizeCapacity, buffer, cache)//
-                || c025.allocate(normalizeCapacity, buffer, cache)//
-                || c000.allocate(normalizeCapacity, buffer, cache)//
-                || cInt.allocate(normalizeCapacity, buffer, cache)//
-                || c075.allocate(normalizeCapacity, buffer, cache)
-        
-        )
-        {
-            return;
-        }
-        Chunk<T> chunk = newChunk(maxLevel, pageSize, pageSizeShift, subpageOverflowMask);
-        chunk.arena = this;
-        long handle = chunk.allocate(normalizeCapacity);
-        assert handle > 0;
-        chunk.initBuf(handle, buffer, cache);
-        cInt.add(chunk);
-    }
-    
-    public void reAllocate(PooledBuffer<T> buffer, int newReqCapacity)
-    {
-        Chunk<T> oldChunk = buffer.chunk;
-        long oldHandle = buffer.handle;
-        int oldReadPosi = buffer.readPosi;
-        int oldWritePosi = buffer.writePosi;
-        int oldCapacity = buffer.capacity;
-        int oldOffset = buffer.offset;
-        T oldMemory = buffer.memory;
-        ThreadCache oldCache = buffer.cache;
-        allocate(newReqCapacity, Integer.MAX_VALUE, buffer, parent.threadCache());
-        if (newReqCapacity > oldCapacity)
-        {
-            buffer.setReadPosi(oldCapacity).setWritePosi(oldWritePosi);
-            if (oldReadPosi != oldWritePosi)
-            {
-                int len = oldWritePosi - oldReadPosi;
-                memoryCopy(oldMemory, oldOffset, buffer.memory, buffer.offset, oldReadPosi, len);
-            }
-        }
-        // 这种情况是缩小，目前还不支持
-        else
-        {
-            ReflectUtil.throwException(new UnsupportedOperationException());
-        }
-        free(oldChunk, oldHandle, oldCapacity, oldCache);
-    }
-    
-    abstract void memoryCopy(T src, int srcOffset, T desc, int destOffset, int posi, int len);
-    
-    static int tinyIdx(int normalizeCapacity)
-    {
-        return normalizeCapacity >>> 4;
-    }
-    
-    static int smallIdx(int normalizeCapacity)
-    {
-        return MathUtil.log2(normalizeCapacity) - 9;
-    }
-    
-    int normalizeCapacity(int reqCapacity)
-    {
-        if (reqCapacity >= chunkSize)
-        {
-            return reqCapacity;
-        }
-        if (isTiny(reqCapacity))
-        {
-            return (reqCapacity & 15) == 0 ? reqCapacity : (reqCapacity & ~15) + 16;
-        }
-        return MathUtil.normalizeSize(reqCapacity);
-    }
-    
-    static boolean isTiny(int normCapacity)
-    {
-        return (normCapacity & 0xFFFFFE00) == 0;
-    }
-    
-    boolean isTinyOrSmall(int normCapacity)
-    {
-        return (normCapacity & subpageOverflowMask) == 0;
-    }
-    
-    public void free(Chunk<T> chunk, long handle, int normalizeCapacity, ThreadCache cache)
-    {
-        if (chunk.unpooled == true)
-        {
-            destoryChunk(chunk);
-        }
-        else
-        {
-            if (cache.add(normalizeCapacity, sizeType(normalizeCapacity), this, chunk, handle))
-            {
-                return;
-            }
-            final boolean destoryChunk;
-            synchronized (this)
-            {
-                destoryChunk = chunk.parent.free(chunk, handle);
-            }
-            if (destoryChunk)
-            {
-                destoryChunk(chunk);
-            }
-        }
-    }
-    
-    SizeType sizeType(int normalizeCapacity)
-    {
-        if (isTinyOrSmall(normalizeCapacity))
-        {
-            if (isTinyOrSmall(normalizeCapacity))
-            {
-                return SizeType.TINY;
-            }
-            else
-            {
-                return SizeType.SMALL;
-            }
-        }
-        return SizeType.NORMAL;
-    }
-    
-    SubPage<T> findSubPageHead(int elementSize)
-    {
-        if (isTiny(elementSize))
-        {
-            int tinyIdx = tinyIdx(elementSize);
-            return tinySubPages[tinyIdx];
-        }
-        else
-        {
-            int smallIdx = smallIdx(elementSize);
-            return smallSubPages[smallIdx];
-        }
-    }
-    
-    public abstract boolean isDirect();
+	ChunkList<T>			c000;
+	ChunkList<T>			c025;
+	ChunkList<T>			c050;
+	ChunkList<T>			c075;
+	ChunkList<T>			c100;
+	ChunkList<T>			cInt;
+	SubPage<T>[]			tinySubPages;
+	SubPage<T>[]			smallSubPages;
+	final int				pageSize;
+	final int				pageSizeShift;
+	final int				maxLevel;
+	final int				subpageOverflowMask;
+	final int				chunkSize;
+	// 有多少ThreadCache持有了该Arena
+	AtomicInteger			numThreadCaches	= new AtomicInteger(0);
+	PooledBufferAllocator	parent;
+	
+	@SuppressWarnings("unchecked")
+	public Arena(PooledBufferAllocator parent, int maxLevel, int pageSize, int pageSizeShift, int subpageOverflowMask)
+	{
+		this.parent = parent;
+		this.maxLevel = maxLevel;
+		this.pageSize = pageSize;
+		this.pageSizeShift = pageSizeShift;
+		this.subpageOverflowMask = subpageOverflowMask;
+		// subpageOverflowMask = ~(pageSize - 1);
+		chunkSize = (1 << maxLevel) * pageSize;
+		c100 = new ChunkList<>(100, 100, null, chunkSize);
+		c075 = new ChunkList<>(75, 99, c100, chunkSize);
+		c050 = new ChunkList<>(50, 99, c075, chunkSize);
+		c025 = new ChunkList<>(25, 75, c050, chunkSize);
+		c000 = new ChunkList<>(1, 50, c025, chunkSize);
+		cInt = new ChunkList<>(0, 25, c000, chunkSize);
+		c100.setPrevList(c075);
+		c075.setPrevList(c050);
+		c050.setPrevList(c025);
+		c025.setPrevList(c000);
+		// 在tiny区间，以16为大小，每一个16的倍数都占据一个槽位。为了方便定位，实际上数组的0下标是不使用的
+		tinySubPages = new SubPage[512 >>> 4];
+		for (int i = 0; i < tinySubPages.length; i++)
+		{
+			tinySubPages[i] = new SubPage<T>(pageSize);
+		}
+		// 在small，从1<<9开始，每一次右移都占据一个槽位，直到pagesize大小.
+		smallSubPages = new SubPage[pageSizeShift - 9];
+		for (int i = 0; i < smallSubPages.length; i++)
+		{
+			smallSubPages[i] = new SubPage<T>(pageSize);
+		}
+	}
+	
+	abstract Chunk<T> newChunk(int maxLevel, int pageSize, int pageSizeShift, int subpageOverflowMask);
+	
+	abstract Chunk<T> newChunk(int reqCapacity);
+	
+	void allocateHuge(int reqCapacity, PooledBuffer<T> buffer, ThreadCache cache)
+	{
+		Chunk<T> hugeChunk = newChunk(reqCapacity);
+		hugeChunk.arena = this;
+		hugeChunk.unPoooledChunkInitBuf(buffer, cache);
+	}
+	
+	abstract void destoryChunk(Chunk<T> chunk);
+	
+	public void allocate(int reqCapacity, int maxCapacity, PooledBuffer<T> buffer, ThreadCache cache)
+	{
+		int normalizeCapacity = normalizeCapacity(reqCapacity);
+		if (isTinyOrSmall(normalizeCapacity))
+		{
+			SubPage<T> head;
+			if (isTiny(normalizeCapacity))
+			{
+				if (cache.allocate(buffer, normalizeCapacity, SizeType.TINY, this))
+				{
+					return;
+				}
+				head = tinySubPages[tinyIdx(normalizeCapacity)];
+			}
+			else
+			{
+				if (cache.allocate(buffer, normalizeCapacity, SizeType.SMALL, this))
+				{
+					return;
+				}
+				head = smallSubPages[smallIdx(normalizeCapacity)];
+			}
+			synchronized (head)
+			{
+				SubPage<T> succeed = head.next;
+				if (succeed != head)
+				{
+					long handle = succeed.allocate();
+					succeed.chunk.initBuf(handle, buffer, cache);
+					return;
+				}
+			}
+			allocateNormal(buffer, normalizeCapacity, cache);
+		}
+		else if (normalizeCapacity <= chunkSize)
+		{
+			allocateNormal(buffer, normalizeCapacity, cache);
+		}
+		else
+		{
+			allocateHuge(reqCapacity, buffer, cache);
+		}
+	}
+	
+	private synchronized void allocateNormal(PooledBuffer<T> buffer, int normalizeCapacity, ThreadCache cache)
+	{
+		if (//
+		c050.allocate(normalizeCapacity, buffer, cache)//
+		        || c025.allocate(normalizeCapacity, buffer, cache)//
+		        || c000.allocate(normalizeCapacity, buffer, cache)//
+		        || cInt.allocate(normalizeCapacity, buffer, cache)//
+		        || c075.allocate(normalizeCapacity, buffer, cache)
+		
+		)
+		{
+			return;
+		}
+		Chunk<T> chunk = newChunk(maxLevel, pageSize, pageSizeShift, subpageOverflowMask);
+		chunk.arena = this;
+		long handle = chunk.allocate(normalizeCapacity);
+		assert handle > 0;
+		chunk.initBuf(handle, buffer, cache);
+		cInt.add(chunk);
+	}
+	
+	public void reAllocate(PooledBuffer<T> buffer, int newReqCapacity)
+	{
+		Chunk<T> oldChunk = buffer.chunk;
+		long oldHandle = buffer.handle;
+		int oldReadPosi = buffer.readPosi;
+		int oldWritePosi = buffer.writePosi;
+		int oldCapacity = buffer.capacity;
+		int oldOffset = buffer.offset;
+		T oldMemory = buffer.memory;
+		ThreadCache oldCache = buffer.cache;
+		allocate(newReqCapacity, Integer.MAX_VALUE, buffer, parent.threadCache());
+		if (newReqCapacity > oldCapacity)
+		{
+			buffer.setReadPosi(oldCapacity).setWritePosi(oldWritePosi);
+			if (oldReadPosi != oldWritePosi)
+			{
+				int len = oldWritePosi - oldReadPosi;
+				memoryCopy(oldMemory, oldOffset, buffer.memory, buffer.offset, oldReadPosi, len);
+			}
+		}
+		// 这种情况是缩小，目前还不支持
+		else
+		{
+			ReflectUtil.throwException(new UnsupportedOperationException());
+		}
+		free(oldChunk, oldHandle, oldCapacity, oldCache);
+	}
+	
+	abstract void memoryCopy(T src, int srcOffset, T desc, int destOffset, int posi, int len);
+	
+	static int tinyIdx(int normalizeCapacity)
+	{
+		return normalizeCapacity >>> 4;
+	}
+	
+	static int smallIdx(int normalizeCapacity)
+	{
+		return MathUtil.log2(normalizeCapacity) - 9;
+	}
+	
+	int normalizeCapacity(int reqCapacity)
+	{
+		if (reqCapacity >= chunkSize)
+		{
+			return reqCapacity;
+		}
+		if (isTiny(reqCapacity))
+		{
+			return (reqCapacity & 15) == 0 ? reqCapacity : (reqCapacity & ~15) + 16;
+		}
+		return MathUtil.normalizeSize(reqCapacity);
+	}
+	
+	static boolean isTiny(int normCapacity)
+	{
+		return (normCapacity & 0xFFFFFE00) == 0;
+	}
+	
+	boolean isTinyOrSmall(int normCapacity)
+	{
+		return (normCapacity & subpageOverflowMask) == 0;
+	}
+	
+	public void free(Chunk<T> chunk, long handle, int normalizeCapacity, ThreadCache cache)
+	{
+		if (chunk.unpooled == true)
+		{
+			destoryChunk(chunk);
+		}
+		else
+		{
+			if (cache.add(normalizeCapacity, sizeType(normalizeCapacity), this, chunk, handle))
+			{
+				return;
+			}
+			final boolean destoryChunk;
+			synchronized (this)
+			{
+				destoryChunk = chunk.parent.free(chunk, handle);
+			}
+			if (destoryChunk)
+			{
+				destoryChunk(chunk);
+			}
+		}
+	}
+	
+	SizeType sizeType(int normalizeCapacity)
+	{
+		if (isTinyOrSmall(normalizeCapacity))
+		{
+			if (isTinyOrSmall(normalizeCapacity))
+			{
+				return SizeType.TINY;
+			}
+			else
+			{
+				return SizeType.SMALL;
+			}
+		}
+		return SizeType.NORMAL;
+	}
+	
+	SubPage<T> findSubPageHead(int elementSize)
+	{
+		if (isTiny(elementSize))
+		{
+			int tinyIdx = tinyIdx(elementSize);
+			return tinySubPages[tinyIdx];
+		}
+		else
+		{
+			int smallIdx = smallIdx(elementSize);
+			return smallSubPages[smallIdx];
+		}
+	}
+	
+	public abstract boolean isDirect();
 }
