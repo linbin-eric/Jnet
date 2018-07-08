@@ -61,7 +61,6 @@ public class ThreadCache
                 array[i] = new MemoryRegionCache<>(cacheSize);
             }
             return array;
-            
         }
         else
         {
@@ -119,6 +118,18 @@ public class ThreadCache
                 return null;
             }
             return tinySubPagesHeapCaches[tinyIdx];
+        }
+    }
+    
+    Arena<?> arena(boolean direct)
+    {
+        if (direct)
+        {
+            return directArena;
+        }
+        else
+        {
+            return heapArena;
         }
     }
     
