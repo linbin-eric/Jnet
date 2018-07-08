@@ -7,7 +7,7 @@ import org.junit.Test;
 
 public class NormalAllocateTest
 {
-    PooledBufferAllocator allocator = new PooledBufferAllocator(PooledBufferAllocator.PAGESIZE, PooledBufferAllocator.MAXLEVEL, 1, 1, 0, 0, 0, 0, false, true);
+    PooledBufferAllocator allocator = PooledUnThreadCacheBufferAllocator.DEFAULT;
     
     @Test
     public void test()
