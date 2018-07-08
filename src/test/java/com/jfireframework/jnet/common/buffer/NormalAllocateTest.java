@@ -9,8 +9,12 @@ public class NormalAllocateTest
 {
     PooledBufferAllocator allocator = PooledUnThreadCacheBufferAllocator.DEFAULT;
     
+    /**
+     * 遍历对每层的每一个节点进行分配测试
+     * 
+     */
     @Test
-    public void test()
+    public void test0()
     {
         test0(true);
         test0(false);
@@ -35,6 +39,35 @@ public class NormalAllocateTest
                 each.free();
             }
             buffers.clear();
+        }
+    }
+    
+    /**
+     * 每一层都尝试获取该层的节点大小
+     */
+    @Test
+    public void test1()
+    {
+        test1(true);
+        test1(false);
+    }
+    
+    private void test1(boolean preferDirect)
+    {
+        int pagesize = allocator.pagesize;
+        int maxLevel = allocator.maxLevel;
+        for (int i = maxLevel; i > 0; i--)
+        {
+            int size = pagesize << (maxLevel - i);
+            PooledBuffer<?> buffer = (PooledBuffer<?>) allocator.ioBuffer(size, preferDirect);
+            if (i == maxLevel)
+            {
+                assertEquals(1 << i, buffer.handle);
+            }
+            else
+            {
+                assertEquals((1 << i) + 1, buffer.handle);
+            }
         }
     }
 }
