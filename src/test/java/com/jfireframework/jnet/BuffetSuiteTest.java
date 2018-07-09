@@ -8,6 +8,7 @@ import com.jfireframework.jnet.common.buffer.HugeAllocateTest;
 import com.jfireframework.jnet.common.buffer.NormalAllocateTest;
 import com.jfireframework.jnet.common.buffer.PooledBufferRWTest;
 import com.jfireframework.jnet.common.buffer.SmallAllocateTest;
+import com.jfireframework.jnet.common.buffer.TakeAndRecycleTest;
 import com.jfireframework.jnet.common.buffer.TinyAllocateTest;
 import com.jfireframework.jnet.common.buffer.UnPooledBufferRWTest;
 
@@ -17,11 +18,12 @@ import com.jfireframework.jnet.common.buffer.UnPooledBufferRWTest;
         NormalAllocateTest.class, //
         PooledBufferRWTest.class, //
         SmallAllocateTest.class, //
+        TakeAndRecycleTest.class, //
         TinyAllocateTest.class, //
         UnPooledBufferRWTest.class, //
 })
 @RunWith(Suite.class)
 public class BuffetSuiteTest
 {
-    
+	
 }

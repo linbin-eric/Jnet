@@ -29,12 +29,15 @@ public abstract class Arena<T>
 	@SuppressWarnings("unchecked")
 	public Arena(PooledBufferAllocator parent, int maxLevel, int pageSize, int pageSizeShift, int subpageOverflowMask)
 	{
+		if (pageSize < 4096)
+		{
+			ReflectUtil.throwException(new IllegalArgumentException("pagesize不能小于4096"));
+		}
 		this.parent = parent;
 		this.maxLevel = maxLevel;
 		this.pageSize = pageSize;
 		this.pageSizeShift = pageSizeShift;
 		this.subpageOverflowMask = subpageOverflowMask;
-		// subpageOverflowMask = ~(pageSize - 1);
 		chunkSize = (1 << maxLevel) * pageSize;
 		c100 = new ChunkList<>(100, 100, null, chunkSize);
 		c075 = new ChunkList<>(75, 99, c100, chunkSize);
