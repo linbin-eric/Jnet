@@ -1,6 +1,7 @@
 package com.jfireframework.jnet.common.buffer;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import java.util.LinkedList;
 import java.util.Queue;
@@ -52,5 +53,9 @@ public class ChunkListTest
 		assertEquals(75, chunk2.usage());
 		allocator.ioBuffer(size << 1, preferDirect);
 		assertEquals(75, chunk1.usage());
+		allocator.ioBuffer(size << 1, preferDirect);
+		Chunk<?> chunk3 = arena.c000.head;
+		assertNotNull(chunk3);
+		assertEquals(50, chunk3.usage());
 	}
 }
