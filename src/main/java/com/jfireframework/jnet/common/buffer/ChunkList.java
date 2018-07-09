@@ -43,7 +43,6 @@ public class ChunkList<T>
 		else
 		{
 			return (100 - minUsage) * chunkSize / 100;
-			
 		}
 	}
 	
@@ -127,7 +126,7 @@ public class ChunkList<T>
 	 * @param usage
 	 * @return
 	 */
-	public boolean addFromNext(Chunk<T> chunk, int usage)
+	boolean addFromNext(Chunk<T> chunk, int usage)
 	{
 		if (usage < minUsage)
 		{
@@ -162,7 +161,7 @@ public class ChunkList<T>
 		}
 	}
 	
-	public void addFromPrev(Chunk<T> chunk, int usage)
+	void addFromPrev(Chunk<T> chunk, int usage)
 	{
 		if (usage > maxUsage)
 		{

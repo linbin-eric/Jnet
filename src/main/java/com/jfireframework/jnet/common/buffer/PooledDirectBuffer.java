@@ -39,13 +39,6 @@ public class PooledDirectBuffer extends PooledBuffer<ByteBuffer>
 		return true;
 	}
 	
-	@Override
-	void reAllocate(int reqCapacity)
-	{
-		// TODO Auto-generated method stub
-		
-	}
-	
 	long realAddress(int posi)
 	{
 		return addressPlusOffsetCache + posi;

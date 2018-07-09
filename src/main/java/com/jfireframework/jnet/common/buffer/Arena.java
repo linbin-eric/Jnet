@@ -139,7 +139,7 @@ public abstract class Arena<T>
 		long handle = chunk.allocate(normalizeCapacity);
 		assert handle > 0;
 		chunk.initBuf(handle, buffer, cache);
-		cInt.add(chunk);
+		cInt.addFromPrev(chunk, chunk.usage());
 		newChunkCount++;
 	}
 	
@@ -156,7 +156,7 @@ public abstract class Arena<T>
 		allocate(newReqCapacity, Integer.MAX_VALUE, buffer, parent.threadCache());
 		if (newReqCapacity > oldCapacity)
 		{
-			buffer.setReadPosi(oldCapacity).setWritePosi(oldWritePosi);
+			buffer.setReadPosi(oldReadPosi).setWritePosi(oldWritePosi);
 			if (oldReadPosi != oldWritePosi)
 			{
 				int len = oldWritePosi - oldReadPosi;
