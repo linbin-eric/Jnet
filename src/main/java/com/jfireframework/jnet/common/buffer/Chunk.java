@@ -28,7 +28,6 @@ public abstract class Chunk<T>
 	 * @param maxLevel 最大层次。起始层次为0。
 	 * @param pageSize 单页字节大小。也就是一个最小的分配区域的字节数。
 	 */
-	@SuppressWarnings("unchecked")
 	public Chunk(int maxLevel, int pageSize, int pageSizeShift, int subpageOverflowMask)
 	{
 		this.maxLevel = maxLevel;
@@ -47,7 +46,6 @@ public abstract class Chunk<T>
 				allocationCapacity[j] = initializeSize;
 			}
 		}
-		subPages = new SubPage[1 << maxLevel];
 		freeBytes = allocationCapacity[1];
 		chunkSize = freeBytes;
 		memory = initializeMemory(chunkSize);
@@ -86,6 +84,7 @@ public abstract class Chunk<T>
 	 */
 	public abstract boolean isDirect();
 	
+	@SuppressWarnings("unchecked")
 	public long allocate(int normalizeSize)
 	{
 		if (allocationCapacity[1] < normalizeSize)
@@ -103,6 +102,10 @@ public abstract class Chunk<T>
 			SubPage<T> head = arena.findSubPageHead(normalizeSize);
 			synchronized (head)
 			{
+				if (subPages == null)
+				{
+					subPages = new SubPage[1 << maxLevel];
+				}
 				SubPage<T> subPage = subPages[subPageIdx];
 				if (subPage != null)
 				{

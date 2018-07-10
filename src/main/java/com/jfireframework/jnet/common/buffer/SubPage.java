@@ -66,7 +66,7 @@ public class SubPage<T>
         {
             return -1;
         }
-        int bitmapIdx = allocateFromBitMap();
+        int bitmapIdx = findAvail();
         if (bitmapIdx == -1)
         {
             return -1;
@@ -89,7 +89,7 @@ public class SubPage<T>
         prev = next = null;
     }
     
-    private int allocateFromBitMap()
+    private int findAvail()
     {
         int nextAvail = this.nextAvail;
         if (nextAvail != -1)
@@ -102,15 +102,15 @@ public class SubPage<T>
             long bits = bitMap[i];
             if (~bits != 0)
             {
-                int memoryIdx = i << 6;
-                for (int j = 0; j < 64 && memoryIdx < maxNumAvail; j++)
+                int bitmapIdx = i << 6;
+                for (int j = 0; j < 64 && bitmapIdx < maxNumAvail; j++)
                 {
                     if ((bits & 1) == 0)
                     {
-                        return memoryIdx;
+                        return bitmapIdx;
                     }
                     bits >>>= 1;
-                    memoryIdx += 1;
+                    bitmapIdx += 1;
                 }
                 return -1;
             }

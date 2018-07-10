@@ -14,19 +14,19 @@ public class ThreadCache
 	final MemoryRegionCache<ByteBuffer>[]	tinySubPagesDirectCaches;
 	final MemoryRegionCache<ByteBuffer>[]	smallSubPagesDirectCaches;
 	final MemoryRegionCache<ByteBuffer>[]	normalDirectCaches;
-	final int								pageSizeShift;
+	final int								pagesizeShift;
 	
-	public ThreadCache(HeapArena heapArena, DirectArena directArena, int tinyCacheSize, int smallCacheSize, int normalCacheSize, int maxCachedBufferCapacity, int pageSizeShift)
+	public ThreadCache(HeapArena heapArena, DirectArena directArena, int tinyCacheSize, int smallCacheSize, int normalCacheSize, int maxCachedBufferCapacity, int pagesizeShift)
 	{
-		this.pageSizeShift = pageSizeShift;
+		this.pagesizeShift = pagesizeShift;
 		this.heapArena = heapArena;
 		tinySubPagesHeapCaches = createSubPageMemoryRegionCache(tinyCacheSize);
 		smallSubPageHeapCaches = createSubPageMemoryRegionCache(smallCacheSize);
-		normalHeapCaches = createNormalSizeMemoryRegionCache(normalCacheSize, pageSizeShift, maxCachedBufferCapacity);
+		normalHeapCaches = createNormalSizeMemoryRegionCache(normalCacheSize, pagesizeShift, maxCachedBufferCapacity);
 		this.directArena = directArena;
 		tinySubPagesDirectCaches = createSubPageMemoryRegionCache(normalCacheSize);
 		smallSubPagesDirectCaches = createSubPageMemoryRegionCache(normalCacheSize);
-		normalDirectCaches = createNormalSizeMemoryRegionCache(normalCacheSize, pageSizeShift, maxCachedBufferCapacity);
+		normalDirectCaches = createNormalSizeMemoryRegionCache(normalCacheSize, pagesizeShift, maxCachedBufferCapacity);
 		if (heapArena != null)
 		{
 			heapArena.numThreadCaches.incrementAndGet();
@@ -166,7 +166,7 @@ public class ThreadCache
 	MemoryRegionCache<?> cacheForNormal(int normalizeCapacity, Arena<?> arena)
 	{
 		int shift = MathUtil.log2(normalizeCapacity);
-		int idx = shift - pageSizeShift;
+		int idx = shift - pagesizeShift;
 		if (arena.isDirect())
 		{
 			if (normalDirectCaches == null || normalDirectCaches.length <= idx)

@@ -54,6 +54,10 @@ public final class Bits
 	{
 		try
 		{
+			if (System.getProperty("io.jnet.buffer.unaligned") != null)
+			{
+				return Boolean.valueOf(System.getProperty("io.jnet.buffer.unaligned"));
+			}
 			Method method = Class.forName("java.nio.Bits").getDeclaredMethod("unaligned");
 			method.setAccessible(true);
 			return (Boolean) method.invoke(null);
