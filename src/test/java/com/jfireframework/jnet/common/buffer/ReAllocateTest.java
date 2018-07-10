@@ -21,10 +21,10 @@ public class ReAllocateTest
 		int offset = buffer.offset;
 		long handle = buffer.handle;
 		assertEquals(16, buffer.capacity());
-		buffer.putInt(8);
-		buffer.putInt(8);
-		buffer.putInt(8);
-		buffer.putInt(8);
+		buffer.putInt(4);
+		buffer.putInt(5);
+		buffer.putInt(6);
+		buffer.putInt(7);
 		assertEquals(16, buffer.capacity());
 		buffer.putInt(8);
 		assertEquals(32, buffer.capacity());
@@ -32,10 +32,11 @@ public class ReAllocateTest
 		assertEquals(0, buffer.getReadPosi());
 		assertNotEquals(offset, buffer.offset);
 		assertNotEquals(handle, buffer.handle);
-		for (int i = 0; i < 5; i++)
-		{
-			assertEquals(8, buffer.getInt());
-		}
+		assertEquals(4, buffer.getInt());
+		assertEquals(5, buffer.getInt());
+		assertEquals(6, buffer.getInt());
+		assertEquals(7, buffer.getInt());
+		assertEquals(8, buffer.getInt());
 		assertEquals(0, buffer.remainRead());
 	}
 }

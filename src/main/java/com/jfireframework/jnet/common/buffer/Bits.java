@@ -1,9 +1,6 @@
 package com.jfireframework.jnet.common.buffer;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.nio.Buffer;
-import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import com.jfireframework.baseutil.reflect.ReflectUtil;
 import sun.misc.Unsafe;
@@ -16,20 +13,10 @@ public final class Bits
 	private static final Unsafe		unsafe							= ReflectUtil.getUnsafe();
 	private static final long		UNSAFE_COPY_THRESHOLD			= 1024L * 1024L;
 	private static final int		arrayBaseOffset					= unsafe.arrayBaseOffset(byte[].class);
-	private static final Field		addressField;
 	public static boolean			unaligned;
 	private static final boolean	nativeByteOrder;
 	static
 	{
-		try
-		{
-			addressField = Buffer.class.getDeclaredField("address");
-			addressField.setAccessible(true);
-		}
-		catch (NoSuchFieldException | SecurityException e)
-		{
-			throw new RuntimeException(e);
-		}
 		unaligned = detectUnaligned();
 		nativeByteOrder = detectNativeByteOrder();
 	}
@@ -66,18 +53,6 @@ public final class Bits
 		{
 			ReflectUtil.throwException(e);
 			return false;
-		}
-	}
-	
-	public static final long getAddress(ByteBuffer buffer)
-	{
-		try
-		{
-			return addressField.getLong(buffer);
-		}
-		catch (IllegalArgumentException | IllegalAccessException e)
-		{
-			throw new RuntimeException(e);
 		}
 	}
 	

@@ -107,7 +107,7 @@ public class UnPooledHeapBuffer extends UnPooledBuffer<byte[]>
     }
     
     @Override
-    void put2(UnPooledDirectBuffer buffer, int len)
+    void put1(UnPooledDirectBuffer buffer, int len)
     {
         int posi = nextWritePosi(len);
         ByteBuffer byteBuffer = buffer.memory;

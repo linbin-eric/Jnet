@@ -76,7 +76,7 @@ public abstract class UnPooledBuffer<T> implements IoBuffer
 		}
 		else if (buffer instanceof UnPooledDirectBuffer)
 		{
-			put2((UnPooledDirectBuffer) buffer, len);
+			put1((UnPooledDirectBuffer) buffer, len);
 		}
 		else
 		{
@@ -92,7 +92,7 @@ public abstract class UnPooledBuffer<T> implements IoBuffer
 	
 	abstract void put1(UnPooledHeapBuffer buffer, int len);
 	
-	abstract void put2(UnPooledDirectBuffer buffer, int len);
+	abstract void put1(UnPooledDirectBuffer buffer, int len);
 	
 	@Override
 	public IoBuffer put(byte b)

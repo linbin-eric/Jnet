@@ -9,7 +9,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
-import com.jfireframework.baseutil.time.Timewatch;
 
 @RunWith(Parameterized.class)
 public class TinyAllocateTest
@@ -38,14 +37,8 @@ public class TinyAllocateTest
 	@Test
 	public void test()
 	{
-		Timewatch timewatch = new Timewatch();
 		test0(true);
-		timewatch.end();
-		System.out.println("堆外内存耗时:" + timewatch.getTotal());
-		timewatch.start();
 		test0(false);
-		timewatch.end();
-		System.out.println("堆内存耗时:" + timewatch.getTotal());
 	}
 	
 	private void test0(boolean direct)
@@ -58,7 +51,6 @@ public class TinyAllocateTest
 		Queue<IoBuffer> buffers = new LinkedList<>();
 		Queue<SubPage<?>> subPages = new LinkedList<>();
 		SubPage<?> head = arena.findSubPageHead(reqCapacity);
-		Timewatch timewatch = new Timewatch();
 		for (int i = 0; i < numPage; i++)
 		{
 			for (int elementIdx = 0; elementIdx < elementNum; elementIdx++)
@@ -84,9 +76,6 @@ public class TinyAllocateTest
 			subPages.offer(chunk.subPages[i]);
 			assertEquals(0, chunk.subPages[i].numAvail);
 		}
-		timewatch.end();
-		System.out.println("分配耗时:" + timewatch.getTotal());
-		timewatch.start();
 		for (int i = 0; i < numPage; i++)
 		{
 			for (int elementIdx = 0; elementIdx < elementNum; elementIdx++)
@@ -111,7 +100,5 @@ public class TinyAllocateTest
 				assertTrue(chunk.subPages[0].next == head);
 			}
 		}
-		timewatch.end();
-		System.out.println("回收耗时:" + timewatch.getTotal());
 	}
 }
