@@ -17,17 +17,25 @@ public abstract class UnPooledBuffer<T> implements IoBuffer
 		readPosi = writePosi = 0;
 	}
 	
+	public IoBuffer capacityReadyFor(int newCapacity)
+	{
+		reallocate(newCapacity);
+		return this;
+	}
+	
 	int nextWritePosi(int length)
 	{
 		int writePosi = this.writePosi;
 		int newWritePosi = writePosi + length;
 		if (newWritePosi > capacity)
 		{
-			throw new IllegalArgumentException("数组容量:" + capacity + ",当前写入位置:" + writePosi + ",溢出");
+			reallocate(newWritePosi);
 		}
 		this.writePosi = newWritePosi;
 		return writePosi;
 	}
+	
+	abstract void reallocate(int newCapacity);
 	
 	int nextReadPosi(int length)
 	{
@@ -51,9 +59,10 @@ public abstract class UnPooledBuffer<T> implements IoBuffer
 	
 	void checkWrite(int posi, int length)
 	{
-		if (posi + length > capacity)
+		int newLength = posi + length;
+		if (newLength > capacity)
 		{
-			throw new IllegalArgumentException("数组容量:" + capacity + ",当前写入位置:" + writePosi + ",溢出");
+			reallocate(newLength);
 		}
 	}
 	

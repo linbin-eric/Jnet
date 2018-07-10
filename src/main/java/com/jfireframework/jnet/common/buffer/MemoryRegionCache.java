@@ -347,6 +347,20 @@ public class MemoryRegionCache<T> extends AccessInfo<T>
 		return true;
 	}
 	
+	int size()
+	{
+		long pIndex = producerIndex;
+		long cIndex = this.consumerIndex;
+		return (int) (pIndex - cIndex);
+	}
+	
+	boolean isEmpty()
+	{
+		long pIndex = producerIndex;
+		long cIndex = this.consumerIndex;
+		return cIndex == pIndex;
+	}
+	
 	/**
 	 * 返回true意味着有数据可以使用
 	 * 

@@ -89,6 +89,11 @@ public class PooledBufferAllocator implements BufferAllocator
 																			
 																		};
 	
+	public PooledBufferAllocator()
+	{
+		this(PAGESIZE, MAXLEVEL, NUM_HEAP_ARENA, NUM_DIRECT_ARENA, MAX_CACHEED_BUFFER_CAPACITY, TINY_CACHE_SIZE, SMALL_CACHE_SIZE, NORMAL_CACHE_SIZE, USE_CACHE_FOR_ALL_THREAD, PREFER_DIRECT);
+	}
+	
 	public PooledBufferAllocator(int pagesize, int maxLevel, int numHeapArenas, int numDirectArenas, //
 	        int maxCachedBufferCapacity, int tinyCacheSize, int smallCacheSize, int normalCacheSize, //
 	        boolean useCacheForAllThread)

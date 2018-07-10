@@ -22,6 +22,17 @@ public class UnPooledRecycledBufferAllocator implements BufferAllocator
 																					return buffer;
 																				};
 																			};
+	private boolean									preferDirect			= true;
+	
+	public UnPooledRecycledBufferAllocator()
+	{
+		this(true);
+	}
+	
+	public UnPooledRecycledBufferAllocator(boolean preferDirect)
+	{
+		this.preferDirect = preferDirect;
+	}
 	
 	@Override
 	public IoBuffer heapBuffer(int initializeCapacity)
@@ -37,5 +48,31 @@ public class UnPooledRecycledBufferAllocator implements BufferAllocator
 		UnPooledBuffer<ByteBuffer> buffer = unPooledDirectBuffers.get();
 		buffer.init(ByteBuffer.allocateDirect(initializeCapacity), initializeCapacity);
 		return buffer;
+	}
+	
+	@Override
+	public IoBuffer ioBuffer(int initializeCapacity)
+	{
+		if (preferDirect)
+		{
+			return directBuffer(initializeCapacity);
+		}
+		else
+		{
+			return heapBuffer(initializeCapacity);
+		}
+	}
+	
+	@Override
+	public IoBuffer ioBuffer(int initializeCapacity, boolean direct)
+	{
+		if (direct)
+		{
+			return directBuffer(initializeCapacity);
+		}
+		else
+		{
+			return heapBuffer(initializeCapacity);
+		}
 	}
 }

@@ -24,8 +24,8 @@ public class ThreadCache
 		smallSubPageHeapCaches = createSubPageMemoryRegionCache(smallCacheSize);
 		normalHeapCaches = createNormalSizeMemoryRegionCache(normalCacheSize, pagesizeShift, maxCachedBufferCapacity);
 		this.directArena = directArena;
-		tinySubPagesDirectCaches = createSubPageMemoryRegionCache(normalCacheSize);
-		smallSubPagesDirectCaches = createSubPageMemoryRegionCache(normalCacheSize);
+		tinySubPagesDirectCaches = createSubPageMemoryRegionCache(tinyCacheSize);
+		smallSubPagesDirectCaches = createSubPageMemoryRegionCache(smallCacheSize);
 		normalDirectCaches = createNormalSizeMemoryRegionCache(normalCacheSize, pagesizeShift, maxCachedBufferCapacity);
 		if (heapArena != null)
 		{
@@ -61,7 +61,7 @@ public class ThreadCache
 	{
 		int normalizeSize = MathUtil.normalizeSize(maxCachedBufferCapacity);
 		int shift = MathUtil.log2(normalizeSize);
-		int length = shift - normalizeSize;
+		int length = shift - pagesizeShift + 1;
 		if (length > 0 && cacheSize > 0)
 		{
 			MemoryRegionCache<T>[] array = new MemoryRegionCache[length];
@@ -89,7 +89,7 @@ public class ThreadCache
 		
 	}
 	
-	private MemoryRegionCache<?> findCache(int normalizeCapacity, SizeType sizeType, Arena<?> arena)
+	MemoryRegionCache<?> findCache(int normalizeCapacity, SizeType sizeType, Arena<?> arena)
 	{
 		MemoryRegionCache<?> cache = null;
 		switch (sizeType)
@@ -147,7 +147,7 @@ public class ThreadCache
 		int smallIdx = Arena.smallIdx(normalizeCapacity);
 		if (arena.isDirect())
 		{
-			if (smallSubPagesDirectCaches == null || smallSubPageHeapCaches.length <= smallIdx)
+			if (smallSubPagesDirectCaches == null || smallSubPagesDirectCaches.length <= smallIdx)
 			{
 				return null;
 			}

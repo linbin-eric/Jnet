@@ -113,6 +113,10 @@ public abstract class Arena<T>
 		}
 		else if (normalizeCapacity <= chunkSize)
 		{
+			if (cache.allocate(buffer, normalizeCapacity, SizeType.NORMAL, this))
+			{
+				return;
+			}
 			allocateNormal(buffer, normalizeCapacity, cache);
 		}
 		else
@@ -159,8 +163,7 @@ public abstract class Arena<T>
 			buffer.setReadPosi(oldReadPosi).setWritePosi(oldWritePosi);
 			if (oldReadPosi != oldWritePosi)
 			{
-				int len = oldWritePosi - oldReadPosi;
-				memoryCopy(oldMemory, oldOffset, buffer.memory, buffer.offset, oldReadPosi, len);
+				memoryCopy(oldMemory, oldOffset, buffer.memory, buffer.offset, oldWritePosi);
 			}
 		}
 		// 这种情况是缩小，目前还不支持
@@ -171,7 +174,7 @@ public abstract class Arena<T>
 		free(oldChunk, oldHandle, oldCapacity, oldCache);
 	}
 	
-	abstract void memoryCopy(T src, int srcOffset, T desc, int destOffset, int posi, int len);
+	abstract void memoryCopy(T src, int srcOffset, T desc, int destOffset, int oldWritePosi);
 	
 	static int tinyIdx(int normalizeCapacity)
 	{
@@ -234,7 +237,7 @@ public abstract class Arena<T>
 	{
 		if (isTinyOrSmall(normalizeCapacity))
 		{
-			if (isTinyOrSmall(normalizeCapacity))
+			if (isTiny(normalizeCapacity))
 			{
 				return SizeType.TINY;
 			}

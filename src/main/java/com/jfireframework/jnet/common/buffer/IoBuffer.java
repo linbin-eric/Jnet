@@ -292,4 +292,10 @@ public interface IoBuffer
 	 */
 	void free();
 	
+	/**
+	 * 扩容容量，使得最少支持newCapacity
+	 * 
+	 * @param newCapacity
+	 */
+	IoBuffer capacityReadyFor(int newCapacity);
 }

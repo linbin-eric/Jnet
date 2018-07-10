@@ -7,6 +7,9 @@ import com.jfireframework.jnet.common.buffer.ArenaTest;
 import com.jfireframework.jnet.common.buffer.BufferRecycleTest;
 import com.jfireframework.jnet.common.buffer.ChunkListTest;
 import com.jfireframework.jnet.common.buffer.HugeAllocateTest;
+import com.jfireframework.jnet.common.buffer.MemoryRegionCacheNormalTest;
+import com.jfireframework.jnet.common.buffer.MemoryRegionCacheSmallTest;
+import com.jfireframework.jnet.common.buffer.MemoryRegionCacheTinyTest;
 import com.jfireframework.jnet.common.buffer.NormalAllocateTest;
 import com.jfireframework.jnet.common.buffer.PooledBufferRWTest;
 import com.jfireframework.jnet.common.buffer.ReAllocateTest;
@@ -26,6 +29,9 @@ import com.jfireframework.jnet.common.buffer.UnPooledBufferRWTest;
         ChunkListTest.class, //
         BufferRecycleTest.class, //
         ReAllocateTest.class, //
+        MemoryRegionCacheTinyTest.class, //
+        MemoryRegionCacheSmallTest.class, //
+        MemoryRegionCacheNormalTest.class, //
         UnPooledBufferRWTest.class, //
 })
 @RunWith(Suite.class)

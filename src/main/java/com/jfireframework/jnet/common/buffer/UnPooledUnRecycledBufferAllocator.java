@@ -4,7 +4,18 @@ import java.nio.ByteBuffer;
 
 public class UnPooledUnRecycledBufferAllocator implements BufferAllocator
 {
-	public static UnPooledUnRecycledBufferAllocator DEFAULT = new UnPooledUnRecycledBufferAllocator();
+	public static UnPooledUnRecycledBufferAllocator	DEFAULT	= new UnPooledUnRecycledBufferAllocator();
+	private boolean									preferDirect;
+	
+	public UnPooledUnRecycledBufferAllocator(boolean preferDirect)
+	{
+		this.preferDirect = preferDirect;
+	}
+	
+	public UnPooledUnRecycledBufferAllocator()
+	{
+		this(true);
+	}
 	
 	@Override
 	public IoBuffer heapBuffer(int initializeCapacity)
@@ -20,6 +31,32 @@ public class UnPooledUnRecycledBufferAllocator implements BufferAllocator
 		UnPooledBuffer<ByteBuffer> buffer = new UnPooledDirectBuffer();
 		buffer.init(ByteBuffer.allocateDirect(initializeCapacity), initializeCapacity);
 		return buffer;
+	}
+	
+	@Override
+	public IoBuffer ioBuffer(int initializeCapacity)
+	{
+		if (preferDirect)
+		{
+			return directBuffer(initializeCapacity);
+		}
+		else
+		{
+			return heapBuffer(initializeCapacity);
+		}
+	}
+	
+	@Override
+	public IoBuffer ioBuffer(int initializeCapacity, boolean direct)
+	{
+		if (direct)
+		{
+			return directBuffer(initializeCapacity);
+		}
+		else
+		{
+			return heapBuffer(initializeCapacity);
+		}
 	}
 	
 }

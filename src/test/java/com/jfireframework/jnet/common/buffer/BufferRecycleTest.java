@@ -27,7 +27,6 @@ public class BufferRecycleTest
 			public void run()
 			{
 				buffer.free();
-				
 			}
 		});
 		thread.start();

@@ -63,11 +63,11 @@ public class DirectArena extends Arena<ByteBuffer>
 	}
 	
 	@Override
-	void memoryCopy(ByteBuffer src, int srcOffset, ByteBuffer desc, int destOffset, int posi, int len)
+	void memoryCopy(ByteBuffer src, int srcOffset, ByteBuffer desc, int destOffset, int oldWritePosi)
 	{
 		long srcAddress = PlatFormFunction.bytebufferOffsetAddress(src) + srcOffset;
 		long destAddress = PlatFormFunction.bytebufferOffsetAddress(desc) + destOffset;
-		Bits.copyDirectMemory(srcAddress, destAddress, len);
+		Bits.copyDirectMemory(srcAddress, destAddress, oldWritePosi);
 	}
 	
 }

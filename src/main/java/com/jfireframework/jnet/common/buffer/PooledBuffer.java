@@ -325,6 +325,20 @@ public abstract class PooledBuffer<T> implements IoBuffer
 	}
 	
 	@Override
+	public IoBuffer capacityReadyFor(int newCapacity)
+	{
+		if (newCapacity <= capacity)
+		{
+			;
+		}
+		else
+		{
+			reAllocate(newCapacity);
+		}
+		return this;
+	}
+	
+	@Override
 	public int indexOf(byte[] array)
 	{
 		for (int i = readPosi; i < writePosi; i++)
