@@ -20,14 +20,6 @@ public interface ChannelContext
 	void setAttachment(Object attachment);
 	
 	/**
-	 * 处理从通道读取到的报文
-	 * 
-	 * @param buffer
-	 * @throws Throwable
-	 */
-	void read(IoBuffer buffer) throws Throwable;
-	
-	/**
 	 * 向通道写出数据
 	 * 
 	 * @param buffer
@@ -35,6 +27,20 @@ public interface ChannelContext
 	 */
 	void write(IoBuffer buffer);
 	
+	/**
+	 * 处理数据
+	 * 
+	 * @param buffer
+	 * @throws Throwable
+	 */
+	void process(IoBuffer buffer) throws Throwable;
+	
 	AsynchronousSocketChannel socketChannel();
 	
+	/**
+	 * 添加数据处理器
+	 * 
+	 * @param dataProcessors
+	 */
+	void addDataProcessor(DataProcessor<?>... dataProcessors);
 }

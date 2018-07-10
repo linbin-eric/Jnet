@@ -5,7 +5,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
-import com.jfireframework.jnet.common.api.ReadProcessor;
+import com.jfireframework.jnet.common.api.DataProcessor;
 import com.jfireframework.schedule.api.Timer;
 import com.jfireframework.schedule.api.Timetask;
 import com.jfireframework.schedule.handler.SimpleExpireHandler;
@@ -18,7 +18,7 @@ import com.jfireframework.schedule.trigger.RepeatDelayTrigger;
  * @author linbin
  *
  */
-public class HeartBeatProcessor implements ReadProcessor<Object>
+public class HeartBeatProcessor implements DataProcessor<Object>
 {
     private static final Timer TIMER;
     static

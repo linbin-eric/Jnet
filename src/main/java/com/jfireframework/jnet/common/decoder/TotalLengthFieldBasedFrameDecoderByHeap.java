@@ -2,13 +2,13 @@ package com.jfireframework.jnet.common.decoder;
 
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
-import com.jfireframework.jnet.common.api.ReadProcessor;
+import com.jfireframework.jnet.common.api.DataProcessor;
 import com.jfireframework.jnet.common.buffer.PooledIoBuffer;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
 import com.jfireframework.jnet.common.exception.TooLongException;
 import com.jfireframework.jnet.common.util.Allocator;
 
-public class TotalLengthFieldBasedFrameDecoderByHeap implements ReadProcessor<PooledIoBuffer>
+public class TotalLengthFieldBasedFrameDecoderByHeap implements DataProcessor<PooledIoBuffer>
 {
     // 代表长度字段开始读取的位置
     private final int lengthFieldOffset;

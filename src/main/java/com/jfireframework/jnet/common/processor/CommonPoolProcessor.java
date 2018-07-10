@@ -4,9 +4,9 @@ import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
-import com.jfireframework.jnet.common.api.ReadProcessor;
+import com.jfireframework.jnet.common.api.DataProcessor;
 
-public class CommonPoolProcessor implements ReadProcessor<Object>
+public class CommonPoolProcessor implements DataProcessor<Object>
 {
 	private ExecutorService executorService;
 	

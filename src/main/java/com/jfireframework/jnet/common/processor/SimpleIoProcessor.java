@@ -2,9 +2,9 @@ package com.jfireframework.jnet.common.processor;
 
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
-import com.jfireframework.jnet.common.api.ReadProcessor;
+import com.jfireframework.jnet.common.api.DataProcessor;
 
-public class SimpleIoProcessor implements ReadProcessor<Object>
+public class SimpleIoProcessor implements DataProcessor<Object>
 {
     
     @Override

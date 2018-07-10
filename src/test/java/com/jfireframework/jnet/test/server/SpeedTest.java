@@ -23,7 +23,7 @@ import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelConnectListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
-import com.jfireframework.jnet.common.api.ReadProcessor;
+import com.jfireframework.jnet.common.api.DataProcessor;
 import com.jfireframework.jnet.common.buffer.PooledIoBuffer;
 import com.jfireframework.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
 import com.jfireframework.jnet.common.processor.ChannelAttachProcessor;
@@ -90,7 +90,7 @@ public class SpeedTest
 	ChannelConnectListener build(IoMode iomode, AioListener aioListener)
 	{
 		ChannelConnectListener channelContextBuilder = null;
-		final ReadProcessor<PooledIoBuffer> processor = new ReadProcessorAdapter<PooledIoBuffer>() {
+		final DataProcessor<PooledIoBuffer> processor = new ReadProcessorAdapter<PooledIoBuffer>() {
 			
 			@Override
 			public void process(PooledIoBuffer buf, ProcessorChain chain, ChannelContext channelContext)
@@ -213,7 +213,7 @@ public class SpeedTest
 		AioListener aioListener = new DefaultAioListener();
 		clientBuilder.setAioListener(aioListener);
 		ChannelConnectListener channelContextBuilder = null;
-		final ReadProcessor<PooledIoBuffer> processor = new ReadProcessorAdapter<PooledIoBuffer>() {
+		final DataProcessor<PooledIoBuffer> processor = new ReadProcessorAdapter<PooledIoBuffer>() {
 			
 			@Override
 			public void process(PooledIoBuffer buf, ProcessorChain chain, ChannelContext channelContext)

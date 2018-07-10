@@ -2,10 +2,10 @@ package com.jfireframework.jnet.common.processor;
 
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
-import com.jfireframework.jnet.common.api.ReadProcessor;
+import com.jfireframework.jnet.common.api.DataProcessor;
 import com.jfireframework.jnet.common.processor.worker.MutlisAttachWorker;
 
-public class MutliAttachIoProcessor implements ReadProcessor<Object>
+public class MutliAttachIoProcessor implements DataProcessor<Object>
 {
     private final MutlisAttachWorker worker;
     

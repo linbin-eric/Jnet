@@ -23,7 +23,7 @@ public class AcceptHandler implements CompletionHandler<AsynchronousSocketChanne
     @Override
     public void completed(AsynchronousSocketChannel socketChannel, AsynchronousServerSocketChannel serverChannel)
     {
-        ChannelContext channelContext = channelContextBuilder.onConnect(socketChannel, aioListener);
+        ChannelContext channelContext = channelContextBuilder.initChannelContext(socketChannel, aioListener);
         new ReadHandler(aioListener, channelContext).start();
         serverChannel.accept(serverChannel, this);
     }

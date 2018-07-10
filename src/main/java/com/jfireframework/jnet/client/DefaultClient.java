@@ -40,7 +40,7 @@ public class DefaultClient implements AioClient
         {
             AsynchronousSocketChannel socketChannel = AsynchronousSocketChannel.open(channelGroup);
             socketChannel.connect(new InetSocketAddress(serverIp, port)).get(connectTimeout, TimeUnit.SECONDS);
-            channelContext = clientChannelContextBuilder.onConnect(socketChannel, aioListener);
+            channelContext = clientChannelContextBuilder.initChannelContext(socketChannel, aioListener);
             new ReadHandler(aioListener, channelContext).start();
         }
         catch (IOException | InterruptedException | ExecutionException | TimeoutException e)

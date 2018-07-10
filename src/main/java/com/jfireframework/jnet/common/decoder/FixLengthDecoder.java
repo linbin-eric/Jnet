@@ -2,12 +2,12 @@ package com.jfireframework.jnet.common.decoder;
 
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
-import com.jfireframework.jnet.common.api.ReadProcessor;
+import com.jfireframework.jnet.common.api.DataProcessor;
 import com.jfireframework.jnet.common.buffer.PooledIoBuffer;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
 import com.jfireframework.jnet.common.util.Allocator;
 
-public class FixLengthDecoder implements ReadProcessor<PooledIoBuffer>
+public class FixLengthDecoder implements DataProcessor<PooledIoBuffer>
 {
     private final int frameLength;
     

@@ -2,11 +2,10 @@ package com.jfireframework.jnet.common.decoder;
 
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
-import com.jfireframework.jnet.common.api.ReadProcessor;
+import com.jfireframework.jnet.common.api.DataProcessor;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
 import com.jfireframework.jnet.common.exception.TooLongException;
-import com.jfireframework.jnet.common.util.Allocator;
 
 /**
  * 特定结束符整包解码器
@@ -14,7 +13,7 @@ import com.jfireframework.jnet.common.util.Allocator;
  * @author 林斌
  * 
  */
-public class DelimiterBasedFrameDecoder implements ReadProcessor<IoBuffer>
+public class DelimiterBasedFrameDecoder implements DataProcessor<IoBuffer>
 {
 	private byte[]			delimiter;
 	private int				maxLength;
@@ -51,13 +50,13 @@ public class DelimiterBasedFrameDecoder implements ReadProcessor<IoBuffer>
 			int index = ioBuf.indexOf(delimiter);
 			if (index == -1)
 			{
-				ioBuf.compact().grow(ioBuf.capacity() * 2);
+				ioBuf.compact().capacityReadyFor(ioBuf.capacity() * 2);
 				return;
 			}
 			else
 			{
 				int contentLength = index - ioBuf.getReadPosi();
-				IoBuffer buf = Allocator.allocateDirect(contentLength);
+				IoBuffer buf = allocator.ioBuffer(contentLength);
 				buf.put(ioBuf, contentLength);
 				ioBuf.setReadPosi(index + delimiter.length);
 				chain.chain(buf);

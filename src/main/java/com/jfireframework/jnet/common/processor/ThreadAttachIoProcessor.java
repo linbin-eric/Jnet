@@ -3,10 +3,10 @@ package com.jfireframework.jnet.common.processor;
 import java.util.concurrent.ExecutorService;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
-import com.jfireframework.jnet.common.api.ReadProcessor;
+import com.jfireframework.jnet.common.api.DataProcessor;
 import com.jfireframework.jnet.common.processor.worker.ThreadAttachWorker;
 
-public class ThreadAttachIoProcessor implements ReadProcessor<Object>
+public class ThreadAttachIoProcessor implements DataProcessor<Object>
 {
     private final ExecutorService                        executorService;
     private static final ThreadLocal<ThreadAttachWorker> localWorkers = new ThreadLocal<>();

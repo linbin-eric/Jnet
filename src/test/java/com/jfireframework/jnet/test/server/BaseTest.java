@@ -24,7 +24,7 @@ import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelConnectListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
-import com.jfireframework.jnet.common.api.ReadProcessor;
+import com.jfireframework.jnet.common.api.DataProcessor;
 import com.jfireframework.jnet.common.buffer.PooledIoBuffer;
 import com.jfireframework.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
 import com.jfireframework.jnet.common.decoder.TotalLengthFieldBasedFrameDecoderByHeap;
@@ -114,7 +114,7 @@ public class BaseTest
 	ChannelConnectListener build(IoMode iomode, AioListener aioListener)
 	{
 		ChannelConnectListener channelContextBuilder = null;
-		final ReadProcessor<PooledIoBuffer> businessProcessor = new ReadProcessorAdapter<PooledIoBuffer>() {
+		final DataProcessor<PooledIoBuffer> businessProcessor = new ReadProcessorAdapter<PooledIoBuffer>() {
 			final String traceId = TRACEID.newTraceId();
 			
 			@Override
@@ -238,7 +238,7 @@ public class BaseTest
 		clientBuilder.setPort(port);
 		clientBuilder.setAioListener(aioListener);
 		ChannelConnectListener channelContextBuilder = null;
-		final ReadProcessor<PooledIoBuffer> businessProcessor = new ReadProcessorAdapter<PooledIoBuffer>() {
+		final DataProcessor<PooledIoBuffer> businessProcessor = new ReadProcessorAdapter<PooledIoBuffer>() {
 			final String traceId = TRACEID.newTraceId();
 			
 			@Override

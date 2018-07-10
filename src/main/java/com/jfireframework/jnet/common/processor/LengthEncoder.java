@@ -2,10 +2,10 @@ package com.jfireframework.jnet.common.processor;
 
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
-import com.jfireframework.jnet.common.api.ReadProcessor;
+import com.jfireframework.jnet.common.api.DataProcessor;
 import com.jfireframework.jnet.common.buffer.PooledIoBuffer;
 
-public class LengthEncoder implements ReadProcessor<Object>
+public class LengthEncoder implements DataProcessor<Object>
 {
     // 代表长度字段开始读取的位置
     private final int lengthFieldOffset;

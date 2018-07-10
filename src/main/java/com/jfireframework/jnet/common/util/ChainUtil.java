@@ -2,22 +2,22 @@ package com.jfireframework.jnet.common.util;
 
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorChain;
-import com.jfireframework.jnet.common.api.ReadProcessor;
+import com.jfireframework.jnet.common.api.DataProcessor;
 
 public class ChainUtil
 {
-    public static ProcessorChain parse(final ReadProcessor<?>[] processors, final ChannelContext channelContext)
+    public static ProcessorChain parse(final DataProcessor<?>[] processors, final ChannelContext channelContext)
     {
         abstract class InternelProcessorChain implements ProcessorChain
         {
             protected final InternelProcessorChain        next;
-            protected final ReadProcessor<? super Object> processor;
+            protected final DataProcessor<? super Object> processor;
             
             @SuppressWarnings("unchecked")
-            public InternelProcessorChain(InternelProcessorChain next, ReadProcessor<?> processor)
+            public InternelProcessorChain(InternelProcessorChain next, DataProcessor<?> processor)
             {
                 this.next = next;
-                this.processor = (ReadProcessor<? super Object>) processor;
+                this.processor = (DataProcessor<? super Object>) processor;
             }
             
             public abstract void execCurrent(Object data) throws Throwable;
