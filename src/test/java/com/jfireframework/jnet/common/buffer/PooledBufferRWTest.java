@@ -206,11 +206,11 @@ public class PooledBufferRWTest
 		buffer.putInt(4);
 		buffer.putShort((short) 2);
 		buffer.putLong(23l);
-		ByteBuffer nioBuffer = buffer.byteBuffer();
+		ByteBuffer nioBuffer = buffer.readableByteBuffer();
 		assertEquals(4, nioBuffer.getInt());
 		assertEquals(2, nioBuffer.getShort());
 		assertEquals(23l, nioBuffer.getLong());
-		nioBuffer = buffer.byteBuffer();
+		nioBuffer = buffer.readableByteBuffer();
 		assertEquals(4, nioBuffer.getInt());
 		assertEquals(2, nioBuffer.getShort());
 		assertEquals(23l, nioBuffer.getLong());

@@ -69,7 +69,7 @@ public class ReadHandler implements CompletionHandler<Integer, Void>
      */
     protected ByteBuffer getWriteBuffer()
     {
-        ByteBuffer ioBuffer = ioBuf.byteBuffer();
+        ByteBuffer ioBuffer = ioBuf.readableByteBuffer();
         ioBuffer.position(ioBuffer.limit()).limit(ioBuffer.capacity());
         return ioBuffer;
     }

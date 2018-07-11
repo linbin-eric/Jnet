@@ -15,7 +15,7 @@ public class PooledHeapBuffer extends PooledBuffer<byte[]>
 	}
 	
 	@Override
-	public ByteBuffer byteBuffer()
+	public ByteBuffer readableByteBuffer()
 	{
 		return ByteBuffer.wrap(memory, readPosi + offset, remainRead());
 	}

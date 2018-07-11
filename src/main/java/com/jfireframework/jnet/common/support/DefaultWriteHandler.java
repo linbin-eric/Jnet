@@ -2,49 +2,51 @@ package com.jfireframework.jnet.common.support;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
-import java.nio.channels.CompletionHandler;
 import com.jfireframework.baseutil.concurrent.CpuCachePadingInt;
-import com.jfireframework.baseutil.concurrent.MPSCQueue;
+import com.jfireframework.baseutil.concurrent.MPSCLinkedQueue;
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
+import com.jfireframework.jnet.common.api.WriteHandler;
+import com.jfireframework.jnet.common.buffer.BufferAllocator;
+import com.jfireframework.jnet.common.buffer.IoBuffer;
 import com.jfireframework.jnet.common.buffer.PooledIoBuffer;
 import com.jfireframework.jnet.common.util.Allocator;
 
-public class WriteHandler implements CompletionHandler<Integer, PooledIoBuffer>
+public class DefaultWriteHandler implements WriteHandler
 {
     private static final int                SPIN_THRESHOLD   = 1 << 7;
     private final static int                WORK             = 1;
     private final static int                IDLE             = 2;
     // 终止状态。进入该状态后，不再继续使用
     private final static int                TERMINATION      = 3;
-    private final PooledIoBuffer                  outCachedBuf     = Allocator.allocateDirect(1024);
-    private final PooledIoBuffer[]                bufArray;
+    private final IoBuffer[]                bufArray;
     private final CpuCachePadingInt         status           = new CpuCachePadingInt(IDLE);
     private final AsynchronousSocketChannel socketChannel;
     private final AioListener               aioListener;
-    // private final SendBufStorage bufStorage = new MpscBufStorage();
-    private MPSCQueue<PooledIoBuffer>             storage          = new MPSCQueue<>();
+    private MPSCLinkedQueue<IoBuffer>       storage          = new MPSCLinkedQueue<>();
     private final ChannelContext            channelContext;
     private int                             currentSendCount = 0;
+    private final BufferAllocator           allocator;
     
-    public WriteHandler(AioListener aioListener, ChannelContext channelContext, int maxMerge)
+    public DefaultWriteHandler(AioListener aioListener, ChannelContext channelContext, int maxMerge, BufferAllocator allocator)
     {
+        this.allocator = allocator;
         this.aioListener = aioListener;
         this.channelContext = channelContext;
         this.socketChannel = channelContext.socketChannel();
-        bufArray = new PooledIoBuffer[maxMerge];
+        bufArray = new IoBuffer[maxMerge];
     }
     
     @Override
-    public void completed(Integer result, PooledIoBuffer buf)
+    public void completed(Integer result, WriteEntry entry)
     {
-        ByteBuffer buffer = buf.cachedByteBuffer();
+        ByteBuffer buffer = entry.getByteBuffer();
         if (buffer.hasRemaining())
         {
-            socketChannel.write(buffer, buf, this);
+            socketChannel.write(buffer, entry, this);
             return;
         }
-        buf.clear();
+        e
         aioListener.afterWrited(channelContext, currentSendCount);
         writeNextBuf();
     }

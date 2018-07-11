@@ -26,7 +26,7 @@ public class PooledDirectBuffer extends PooledBuffer<ByteBuffer>
 	}
 	
 	@Override
-	public ByteBuffer byteBuffer()
+	public ByteBuffer readableByteBuffer()
 	{
 		ByteBuffer duplicate = memory.duplicate();
 		duplicate.limit(offset + writePosi).position(offset + readPosi);

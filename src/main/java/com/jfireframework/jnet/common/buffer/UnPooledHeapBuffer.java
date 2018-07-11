@@ -17,7 +17,7 @@ public class UnPooledHeapBuffer extends UnPooledBuffer<byte[]>
 	}
 	
 	@Override
-	public ByteBuffer byteBuffer()
+	public ByteBuffer readableByteBuffer()
 	{
 		if (cachedNioBuffer == null)
 		{

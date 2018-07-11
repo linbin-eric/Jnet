@@ -5,42 +5,28 @@ import com.jfireframework.jnet.common.buffer.IoBuffer;
 
 public interface ChannelContext
 {
-	/**
-	 * 与当前通道关联的一个附属对象
-	 * 
-	 * @return
-	 */
-	Object getAttachment();
-	
-	/**
-	 * 设置关联的附属对象
-	 * 
-	 * @param attachment
-	 */
-	void setAttachment(Object attachment);
-	
-	/**
-	 * 向通道写出数据
-	 * 
-	 * @param buffer
-	 * @throws Throwable
-	 */
-	void write(IoBuffer buffer);
-	
-	/**
-	 * 处理数据
-	 * 
-	 * @param buffer
-	 * @throws Throwable
-	 */
-	void process(IoBuffer buffer) throws Throwable;
-	
-	AsynchronousSocketChannel socketChannel();
-	
-	/**
-	 * 添加数据处理器
-	 * 
-	 * @param dataProcessors
-	 */
-	void addDataProcessor(DataProcessor<?>... dataProcessors);
+    /**
+     * 向通道写出数据
+     * 
+     * @param buffer
+     * @throws Throwable
+     */
+    void write(IoBuffer buffer);
+    
+    /**
+     * 处理数据
+     * 
+     * @param buffer
+     * @throws Throwable
+     */
+    void process(IoBuffer buffer) throws Throwable;
+    
+    /**
+     * 设置数据处理器
+     * 
+     * @param dataProcessors
+     */
+    void setDataProcessor(DataProcessor<?>... dataProcessors);
+    
+    AsynchronousSocketChannel socketChannel();
 }
