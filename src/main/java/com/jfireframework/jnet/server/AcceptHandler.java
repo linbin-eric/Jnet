@@ -6,49 +6,60 @@ import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
-import com.jfireframework.jnet.common.api.ChannelContextInitializer;
 import com.jfireframework.jnet.common.api.ReadCompletionHandler;
 import com.jfireframework.jnet.common.api.WriteCompletionHandler;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
+import com.jfireframework.jnet.common.internal.BatchWriteCompletionHandler;
 import com.jfireframework.jnet.common.internal.DefaultChannelContext;
+import com.jfireframework.jnet.common.internal.DefaultReadCompletionHandler;
+import com.jfireframework.jnet.common.internal.SingleWriteCompletionHandler;
 
-public class AcceptHandler implements CompletionHandler<AsynchronousSocketChannel, AsynchronousServerSocketChannel>
+public abstract class AcceptHandler implements CompletionHandler<AsynchronousSocketChannel, AsynchronousServerSocketChannel>
 {
-	protected final ChannelContextInitializer	channelContextInitializer;
-	protected final AioListener					aioListener;
-	protected final BufferAllocator				allocator;
-	
-	public AcceptHandler(ChannelContextInitializer channelContextInitializer, AioListener aioListener, BufferAllocator allocator)
-	{
-		this.allocator = allocator;
-		this.aioListener = aioListener;
-		this.channelContextInitializer = channelContextInitializer;
-	}
-	
-	@Override
-	public void completed(AsynchronousSocketChannel socketChannel, AsynchronousServerSocketChannel serverChannel)
-	{
-		WriteCompletionHandler writeCompletionHandle = channelContextInitializer.provideWriteCompletionHandler(socketChannel, aioListener, allocator);
-		ChannelContext channelContext = new DefaultChannelContext(socketChannel, aioListener, writeCompletionHandle);
-		writeCompletionHandle.bind(channelContext);
-		channelContextInitializer.onChannelContextInit(channelContext);
-		ReadCompletionHandler readCompletionHandler = channelContextInitializer.provideReadCompletionHandler(socketChannel, aioListener, allocator);
-		readCompletionHandler.bind(channelContext);
-		readCompletionHandler.start();
-		serverChannel.accept(serverChannel, this);
-	}
-	
-	@Override
-	public void failed(Throwable exc, AsynchronousServerSocketChannel serverChannel)
-	{
-		try
-		{
-			serverChannel.close();
-		}
-		catch (IOException e)
-		{
-			e.printStackTrace();
-		}
-	}
-	
+    protected final AioListener     aioListener;
+    protected final BufferAllocator allocator;
+    protected final int             batchWriteNum;
+    protected final int             writeQueueCapacity;
+    
+    public AcceptHandler(AioListener aioListener, BufferAllocator allocator, int batchWriteNum, int writeQueueCapacity)
+    {
+        this.allocator = allocator;
+        this.aioListener = aioListener;
+        this.batchWriteNum = batchWriteNum;
+        this.writeQueueCapacity = writeQueueCapacity;
+    }
+    
+    public AcceptHandler(AioListener aioListener, BufferAllocator allocator)
+    {
+        this(aioListener, allocator, 1, 512);
+    }
+    
+    @Override
+    public void completed(AsynchronousSocketChannel socketChannel, AsynchronousServerSocketChannel serverChannel)
+    {
+        WriteCompletionHandler writeCompletionHandler = batchWriteNum <= 1 ? new SingleWriteCompletionHandler(socketChannel, aioListener, allocator, writeQueueCapacity) : new BatchWriteCompletionHandler(aioListener, socketChannel, allocator, writeQueueCapacity, batchWriteNum);
+        ChannelContext channelContext = new DefaultChannelContext(socketChannel, aioListener);
+        ReadCompletionHandler readCompletionHandler = new DefaultReadCompletionHandler(aioListener, allocator, socketChannel);
+        writeCompletionHandler.bind(channelContext);
+        readCompletionHandler.bind(channelContext);
+        channelContext.bindWriteCompleteHandler(writeCompletionHandler);
+        onChannelContextInit(channelContext);
+        serverChannel.accept(serverChannel, this);
+    }
+    
+    @Override
+    public void failed(Throwable exc, AsynchronousServerSocketChannel serverChannel)
+    {
+        try
+        {
+            serverChannel.close();
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+    }
+    
+    protected abstract void onChannelContextInit(ChannelContext channelContext);
+    
 }
