@@ -1,4 +1,4 @@
-package com.jfireframework.jnet.common.support;
+package com.jfireframework.jnet.common.internal;
 
 import java.io.IOException;
 import com.jfireframework.jnet.common.api.AioListener;
@@ -8,7 +8,7 @@ public class DefaultAioListener implements AioListener
 {
 	
 	@Override
-	public void afterWrited(ChannelContext channelContext, int writes)
+	public void afterWrited(ChannelContext channelContext, Integer writes)
 	{
 	}
 	

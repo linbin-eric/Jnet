@@ -34,7 +34,7 @@ public class HeartBeatProcessor implements DataProcessor<Object>
     }
     
     @Override
-    public void initialize(final ChannelContext channelContext)
+    public void bind(final ChannelContext channelContext)
     {
         lastBeatTime = System.currentTimeMillis();
         TIMER.add(new RepeatDelayTrigger(new Timetask() {

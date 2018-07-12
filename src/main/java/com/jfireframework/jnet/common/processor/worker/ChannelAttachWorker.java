@@ -6,7 +6,7 @@ import java.util.concurrent.ExecutorService;
 import com.jfireframework.baseutil.concurrent.CpuCachePadingInt;
 import com.jfireframework.baseutil.concurrent.SpscQueue;
 import com.jfireframework.jnet.common.api.ChannelContext;
-import com.jfireframework.jnet.common.api.ProcessorChain;
+import com.jfireframework.jnet.common.api.ProcessorInvoker;
 
 public class ChannelAttachWorker implements Runnable
 {
@@ -57,7 +57,7 @@ public class ChannelAttachWorker implements Runnable
 			}
 			try
 			{
-				entity.chain.chain(entity.data);
+				entity.invoker.process(entity.data);
 			}
 			catch (Throwable e)
 			{
@@ -73,9 +73,9 @@ public class ChannelAttachWorker implements Runnable
 		} while (true);
 	}
 	
-	public void commit(ChannelContext channelContext, ProcessorChain chain, Object data)
+	public void commit(ChannelContext channelContext, ProcessorInvoker invoker, Object data)
 	{
-		entities.offer(new ChannelAttachEntity(channelContext, chain, data));
+		entities.offer(new ChannelAttachEntity(channelContext, invoker, data));
 		tryExecute();
 	}
 	
@@ -90,14 +90,14 @@ public class ChannelAttachWorker implements Runnable
 	
 	class ChannelAttachEntity
 	{
-		ChannelContext	channelContext;
-		ProcessorChain	chain;
-		Object			data;
+		ChannelContext		channelContext;
+		ProcessorInvoker	invoker;
+		Object				data;
 		
-		public ChannelAttachEntity(ChannelContext channelContext, ProcessorChain chain, Object data)
+		public ChannelAttachEntity(ChannelContext channelContext, ProcessorInvoker invoker, Object data)
 		{
 			this.channelContext = channelContext;
-			this.chain = chain;
+			this.invoker = invoker;
 			this.data = data;
 		}
 		

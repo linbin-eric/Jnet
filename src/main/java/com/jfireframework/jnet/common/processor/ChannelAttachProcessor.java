@@ -16,7 +16,7 @@ public class ChannelAttachProcessor implements DataProcessor<Object>
     }
     
     @Override
-    public void initialize(ChannelContext channelContext)
+    public void bind(ChannelContext channelContext)
     {
         // TODO Auto-generated method stub
         

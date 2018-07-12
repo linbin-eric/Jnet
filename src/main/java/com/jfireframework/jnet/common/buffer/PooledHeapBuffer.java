@@ -8,6 +8,10 @@ public class PooledHeapBuffer extends PooledBuffer<byte[]>
 	@Override
 	public IoBuffer compact()
 	{
+		if (readPosi == 0)
+		{
+			return this;
+		}
 		System.arraycopy(memory, offset + readPosi, memory, offset, remainRead());
 		writePosi -= readPosi;
 		readPosi = 0;
@@ -18,6 +22,12 @@ public class PooledHeapBuffer extends PooledBuffer<byte[]>
 	public ByteBuffer readableByteBuffer()
 	{
 		return ByteBuffer.wrap(memory, readPosi + offset, remainRead());
+	}
+	
+	@Override
+	public ByteBuffer writableByteBuffer()
+	{
+		return ByteBuffer.wrap(memory, offset + writePosi, remainWrite());
 	}
 	
 	@Override

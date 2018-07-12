@@ -8,7 +8,7 @@ public class SimpleIoProcessor implements DataProcessor<Object>
 {
     
     @Override
-    public void initialize(ChannelContext channelContext)
+    public void bind(ChannelContext channelContext)
     {
         ;
     }

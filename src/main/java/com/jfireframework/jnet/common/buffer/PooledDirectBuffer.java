@@ -19,6 +19,10 @@ public class PooledDirectBuffer extends PooledBuffer<ByteBuffer>
 	@Override
 	public IoBuffer compact()
 	{
+		if (readPosi == 0)
+		{
+			return this;
+		}
 		Bits.copyDirectMemory(addressPlusOffsetCache + readPosi, addressPlusOffsetCache, remainRead());
 		writePosi -= readPosi;
 		readPosi = 0;
@@ -30,6 +34,14 @@ public class PooledDirectBuffer extends PooledBuffer<ByteBuffer>
 	{
 		ByteBuffer duplicate = memory.duplicate();
 		duplicate.limit(offset + writePosi).position(offset + readPosi);
+		return duplicate;
+	}
+	
+	@Override
+	public ByteBuffer writableByteBuffer()
+	{
+		ByteBuffer duplicate = memory.duplicate();
+		duplicate.limit(offset + capacity).position(offset + writePosi);
 		return duplicate;
 	}
 	

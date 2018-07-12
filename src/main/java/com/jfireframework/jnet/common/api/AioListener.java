@@ -8,7 +8,7 @@ public interface AioListener
 	 * @param channelContext
 	 * @param writes
 	 */
-	void afterWrited(ChannelContext channelContext, int writes);
+	void afterWrited(ChannelContext channelContext, Integer writes);
 	
 	/**
 	 * 通道发生异常时触发

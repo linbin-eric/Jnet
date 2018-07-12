@@ -8,6 +8,10 @@ public class UnPooledDirectBuffer extends UnPooledBuffer<ByteBuffer>
 	@Override
 	public IoBuffer compact()
 	{
+		if (readPosi == 0)
+		{
+			return this;
+		}
 		memory.limit(writePosi).position(readPosi);
 		memory.compact();
 		writePosi -= readPosi;
@@ -20,6 +24,13 @@ public class UnPooledDirectBuffer extends UnPooledBuffer<ByteBuffer>
 	public ByteBuffer readableByteBuffer()
 	{
 		memory.limit(writePosi).position(readPosi);
+		return memory;
+	}
+	
+	@Override
+	public ByteBuffer writableByteBuffer()
+	{
+		memory.limit(capacity).position(writePosi);
 		return memory;
 	}
 	

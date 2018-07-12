@@ -5,11 +5,13 @@ import java.nio.ByteBuffer;
 public class UnPooledHeapBuffer extends UnPooledBuffer<byte[]>
 {
 	
-	private ByteBuffer cachedNioBuffer;
-	
 	@Override
 	public IoBuffer compact()
 	{
+		if (readPosi == 0)
+		{
+			return this;
+		}
 		System.arraycopy(memory, readPosi, memory, 0, remainRead());
 		writePosi -= readPosi;
 		readPosi = 0;
@@ -19,18 +21,13 @@ public class UnPooledHeapBuffer extends UnPooledBuffer<byte[]>
 	@Override
 	public ByteBuffer readableByteBuffer()
 	{
-		if (cachedNioBuffer == null)
-		{
-			cachedNioBuffer = ByteBuffer.wrap(memory, readPosi, remainRead());
-			return cachedNioBuffer;
-		}
-		else
-		{
-			cachedNioBuffer.clear();
-			cachedNioBuffer.limit(remainRead());
-			cachedNioBuffer.position(readPosi);
-			return cachedNioBuffer;
-		}
+		return ByteBuffer.wrap(memory, readPosi, remainRead());
+	}
+	
+	@Override
+	public ByteBuffer writableByteBuffer()
+	{
+		return ByteBuffer.wrap(memory, writePosi, remainWrite());
 	}
 	
 	@Override
@@ -124,4 +121,5 @@ public class UnPooledHeapBuffer extends UnPooledBuffer<byte[]>
 		System.arraycopy(oldMemory, 0, memory, 0, writePosi);
 		capacity = newCapacity;
 	}
+	
 }

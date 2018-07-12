@@ -7,7 +7,7 @@ public interface DataProcessor<T>
 	 * 
 	 * @param channelContext
 	 */
-	void initialize(ChannelContext channelContext);
+	void bind(ChannelContext channelContext);
 	
 	/**
 	 * 处理由上一个Invoker传递过来的数据

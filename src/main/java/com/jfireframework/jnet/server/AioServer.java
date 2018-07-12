@@ -5,9 +5,10 @@ import java.net.InetSocketAddress;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.util.concurrent.TimeUnit;
-import com.jfireframework.baseutil.exception.JustThrowException;
+import com.jfireframework.baseutil.reflect.ReflectUtil;
 import com.jfireframework.jnet.common.api.AioListener;
-import com.jfireframework.jnet.common.api.ChannelConnectListener;
+import com.jfireframework.jnet.common.api.ChannelContextInitializer;
+import com.jfireframework.jnet.common.buffer.BufferAllocator;
 
 public class AioServer
 {
@@ -17,12 +18,12 @@ public class AioServer
 	private int								port;
 	private AcceptHandler					acceptHandler;
 	
-	public AioServer(String ip, int port, AsynchronousChannelGroup channelGroup, ChannelConnectListener serverChannelContextBuilder, AioListener serverListener)
+	public AioServer(String ip, int port, AsynchronousChannelGroup channelGroup, ChannelContextInitializer channelContextInitializer, AioListener serverListener, BufferAllocator allocator)
 	{
 		this.ip = ip;
 		this.port = port;
 		this.channelGroup = channelGroup;
-		acceptHandler = new AcceptHandler(serverChannelContextBuilder, serverListener);
+		acceptHandler = new AcceptHandler(channelContextInitializer, serverListener, allocator);
 	}
 	
 	/**
@@ -40,7 +41,7 @@ public class AioServer
 		}
 		catch (IOException e)
 		{
-			throw new JustThrowException(e);
+			ReflectUtil.throwException(e);
 		}
 	}
 	

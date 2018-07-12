@@ -12,7 +12,7 @@ import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelConnectListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.buffer.PooledIoBuffer;
-import com.jfireframework.jnet.common.support.ReadHandler;
+import com.jfireframework.jnet.common.internal.DefaultReadCompletionHandler;
 
 public class DefaultClient implements AioClient
 {
@@ -41,7 +41,7 @@ public class DefaultClient implements AioClient
             AsynchronousSocketChannel socketChannel = AsynchronousSocketChannel.open(channelGroup);
             socketChannel.connect(new InetSocketAddress(serverIp, port)).get(connectTimeout, TimeUnit.SECONDS);
             channelContext = clientChannelContextBuilder.initChannelContext(socketChannel, aioListener);
-            new ReadHandler(aioListener, channelContext).start();
+            new DefaultReadCompletionHandler(aioListener, channelContext).start();
         }
         catch (IOException | InterruptedException | ExecutionException | TimeoutException e)
         {

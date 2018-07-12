@@ -19,7 +19,7 @@ public class LengthEncoder implements DataProcessor<Object>
     }
     
     @Override
-    public void initialize(ChannelContext channelContext)
+    public void bind(ChannelContext channelContext)
     {
     }
     

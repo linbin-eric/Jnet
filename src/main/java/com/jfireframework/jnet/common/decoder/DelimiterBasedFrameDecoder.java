@@ -1,8 +1,8 @@
 package com.jfireframework.jnet.common.decoder;
 
 import com.jfireframework.jnet.common.api.ChannelContext;
-import com.jfireframework.jnet.common.api.ProcessorChain;
 import com.jfireframework.jnet.common.api.DataProcessor;
+import com.jfireframework.jnet.common.api.ProcessorInvoker;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
 import com.jfireframework.jnet.common.exception.TooLongException;
@@ -32,14 +32,14 @@ public class DelimiterBasedFrameDecoder implements DataProcessor<IoBuffer>
 	}
 	
 	@Override
-	public void initialize(ChannelContext channelContext)
+	public void bind(ChannelContext channelContext)
 	{
 		// TODO Auto-generated method stub
 		
 	}
 	
 	@Override
-	public void process(IoBuffer ioBuf, ProcessorChain chain, ChannelContext channelContext) throws Throwable
+	public void process(IoBuffer ioBuf, ProcessorInvoker next) throws Throwable
 	{
 		do
 		{
@@ -50,16 +50,23 @@ public class DelimiterBasedFrameDecoder implements DataProcessor<IoBuffer>
 			int index = ioBuf.indexOf(delimiter);
 			if (index == -1)
 			{
-				ioBuf.compact().capacityReadyFor(ioBuf.capacity() * 2);
+				if (ioBuf.getReadPosi() == 0)
+				{
+					ioBuf.capacityReadyFor(ioBuf.capacity() * 2);
+				}
+				else
+				{
+					ioBuf.compact();
+				}
 				return;
 			}
 			else
 			{
 				int contentLength = index - ioBuf.getReadPosi();
-				IoBuffer buf = allocator.ioBuffer(contentLength);
-				buf.put(ioBuf, contentLength);
+				IoBuffer packet = allocator.ioBuffer(contentLength);
+				packet.put(ioBuf, contentLength);
 				ioBuf.setReadPosi(index + delimiter.length);
-				chain.chain(buf);
+				next.process(packet);
 			}
 		} while (true);
 	}

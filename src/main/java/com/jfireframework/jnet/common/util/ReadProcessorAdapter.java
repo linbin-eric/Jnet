@@ -7,7 +7,7 @@ public abstract class ReadProcessorAdapter<T> implements DataProcessor<T>
 {
     
     @Override
-    public void initialize(ChannelContext channelContext)
+    public void bind(ChannelContext channelContext)
     {
         
     }
