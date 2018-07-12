@@ -41,7 +41,7 @@ public abstract class AbstractWriteCompletionHandler implements WriteCompletionH
 	}
 	
 	@Override
-	public void write(IoBuffer buf)
+	public void offer(IoBuffer buf)
 	{
 		if (buf == null)
 		{

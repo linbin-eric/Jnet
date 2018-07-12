@@ -7,6 +7,14 @@ import com.jfireframework.jnet.common.buffer.IoBuffer;
 
 public interface ReadCompletionHandler extends CompletionHandler<Integer, ReadEntry>
 {
+	
+	/**
+	 * 开始监听数据
+	 */
+	void start();
+	
+	void bind(ChannelContext channelContext);
+	
 	class ReadEntry
 	{
 		IoBuffer	ioBuffer;
@@ -39,10 +47,4 @@ public interface ReadCompletionHandler extends CompletionHandler<Integer, ReadEn
 		}
 	}
 	
-	/**
-	 * 开始监听数据
-	 */
-	void start();
-	
-	void bind(ChannelContext channelContext);
 }

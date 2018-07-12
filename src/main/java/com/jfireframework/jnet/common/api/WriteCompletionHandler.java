@@ -7,6 +7,22 @@ import com.jfireframework.jnet.common.buffer.IoBuffer;
 
 public interface WriteCompletionHandler extends CompletionHandler<Integer, WriteEntry>
 {
+	/**
+	 * 绑定与该写完成器使用通道关联的ChannelContext
+	 * 
+	 * @param channelContext
+	 */
+	void bind(ChannelContext channelContext);
+	
+	/**
+	 * 提供数据供写出<br/>
+	 * 如果当前写完成器已经处于停止状态，则抛出非法状态异常
+	 * 
+	 * @param buffer
+	 * @throws IllegalStateException
+	 */
+	void offer(IoBuffer buffer) throws IllegalStateException;
+	
 	class WriteEntry
 	{
 		ByteBuffer	byteBuffer;
@@ -39,18 +55,4 @@ public interface WriteCompletionHandler extends CompletionHandler<Integer, Write
 		}
 	}
 	
-	/**
-	 * 将数据写出。如果当前写完成器已经停止工作，则会抛出IllegalStateException。此时主方法应该将buffer释放
-	 * 
-	 * @param buffer
-	 * @throws IllegalStateException
-	 */
-	void write(IoBuffer buffer) throws IllegalStateException;
-	
-	/**
-	 * 绑定与该写完成器使用通道关联的ChannelContext
-	 * 
-	 * @param channelContext
-	 */
-	void bind(ChannelContext channelContext);
 }
