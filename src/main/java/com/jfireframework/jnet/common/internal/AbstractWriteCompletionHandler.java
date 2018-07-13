@@ -35,12 +35,12 @@ public abstract class AbstractWriteCompletionHandler implements WriteCompletionH
     protected final AioListener               aioListener;
     protected ChannelContext                  channelContext;
     
-    public AbstractWriteCompletionHandler(AsynchronousSocketChannel socketChannel, AioListener aioListener, BufferAllocator allocator, int capacity)
+    public AbstractWriteCompletionHandler(AsynchronousSocketChannel socketChannel, AioListener aioListener, BufferAllocator allocator, int queueCapacity)
     {
         this.socketChannel = socketChannel;
         this.allocator = allocator;
         this.aioListener = aioListener;
-        queue = capacity == 0 ? new MPSCLinkedQueue<IoBuffer>() : new MPSCArrayQueue<IoBuffer>(capacity);
+        queue = queueCapacity == 0 ? new MPSCLinkedQueue<IoBuffer>() : new MPSCArrayQueue<IoBuffer>(queueCapacity);
         
     }
     

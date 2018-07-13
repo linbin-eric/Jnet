@@ -1,12 +1,12 @@
 package com.jfireframework.jnet.common.processor.worker;
 
 import java.io.IOException;
-import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 import com.jfireframework.baseutil.concurrent.CpuCachePadingInt;
-import com.jfireframework.baseutil.concurrent.SpscQueue;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorInvoker;
+import com.jfireframework.jnet.common.util.FixArray;
+import com.jfireframework.jnet.common.util.SPSCFixArray;
 
 public class ChannelAttachWorker implements Runnable
 {
@@ -15,7 +15,14 @@ public class ChannelAttachWorker implements Runnable
 	private static final int					WORK			= 1;
 	private static final int					SPIN_THRESHOLD	= 1 << 7;
 	private final ExecutorService				executorService;
-	private final Queue<ChannelAttachEntity>	entities		= new SpscQueue<>();
+	private final FixArray<ChannelAttachEntity>	entities		= new SPSCFixArray<ChannelAttachEntity>(512) {
+																	
+																	@Override
+																	protected ChannelAttachEntity newInstance()
+																	{
+																		return new ChannelAttachEntity();
+																	}
+																};
 	private final CpuCachePadingInt				status			= new CpuCachePadingInt(IDLE);
 	
 	public ChannelAttachWorker(ExecutorService executorService)
@@ -93,13 +100,6 @@ public class ChannelAttachWorker implements Runnable
 		ChannelContext		channelContext;
 		ProcessorInvoker	invoker;
 		Object				data;
-		
-		public ChannelAttachEntity(ChannelContext channelContext, ProcessorInvoker invoker, Object data)
-		{
-			this.channelContext = channelContext;
-			this.invoker = invoker;
-			this.data = data;
-		}
 		
 	}
 }
