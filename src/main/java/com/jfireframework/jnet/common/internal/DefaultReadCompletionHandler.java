@@ -83,16 +83,10 @@ public class DefaultReadCompletionHandler implements ReadCompletionHandler
     @Override
     public void failed(Throwable exc, ReadEntry entry)
     {
-        try
+        entry.getIoBuffer().free();
+        if (aioListener != null)
         {
-            if (aioListener != null)
-            {
-                aioListener.catchException(exc, channelContext);
-            }
-        }
-        finally
-        {
-            entry.getIoBuffer().free();
+            aioListener.catchException(exc, socketChannel);
         }
     }
     

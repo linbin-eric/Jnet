@@ -9,7 +9,6 @@ import com.jfireframework.baseutil.concurrent.MPSCLinkedQueue;
 import com.jfireframework.baseutil.reflect.ReflectUtil;
 import com.jfireframework.baseutil.reflect.UnsafeFieldAccess;
 import com.jfireframework.jnet.common.api.AioListener;
-import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.WriteCompletionHandler;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
@@ -33,7 +32,6 @@ public abstract class AbstractWriteCompletionHandler implements WriteCompletionH
     protected final AsynchronousSocketChannel socketChannel;
     protected final BufferAllocator           allocator;
     protected final AioListener               aioListener;
-    protected ChannelContext                  channelContext;
     
     public AbstractWriteCompletionHandler(AsynchronousSocketChannel socketChannel, AioListener aioListener, BufferAllocator allocator, int queueCapacity)
     {
@@ -103,7 +101,7 @@ public abstract class AbstractWriteCompletionHandler implements WriteCompletionH
         {
             try
             {
-                aioListener.afterWrited(channelContext, result);
+                aioListener.afterWrited(socketChannel, result);
             }
             catch (Throwable e)
             {
@@ -164,9 +162,4 @@ public abstract class AbstractWriteCompletionHandler implements WriteCompletionH
         }
     }
     
-    @Override
-    public void bind(ChannelContext channelContext)
-    {
-        this.channelContext = channelContext;
-    }
 }

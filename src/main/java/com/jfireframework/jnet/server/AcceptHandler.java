@@ -40,9 +40,12 @@ public abstract class AcceptHandler implements CompletionHandler<AsynchronousSoc
         WriteCompletionHandler writeCompletionHandler = batchWriteNum <= 1 ? new SingleWriteCompletionHandler(socketChannel, aioListener, allocator, writeQueueCapacity) : new BatchWriteCompletionHandler(aioListener, socketChannel, allocator, writeQueueCapacity, batchWriteNum);
         ChannelContext channelContext = new DefaultChannelContext(socketChannel, aioListener);
         ReadCompletionHandler readCompletionHandler = new DefaultReadCompletionHandler(aioListener, allocator, socketChannel);
-        writeCompletionHandler.bind(channelContext);
         readCompletionHandler.bind(channelContext);
         channelContext.bindWriteCompleteHandler(writeCompletionHandler);
+        if (aioListener != null)
+        {
+            aioListener.onAccept(socketChannel, channelContext);
+        }
         onChannelContextInit(channelContext);
         serverChannel.accept(serverChannel, this);
     }
