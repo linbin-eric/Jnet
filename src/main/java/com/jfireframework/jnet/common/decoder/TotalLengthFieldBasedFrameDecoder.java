@@ -1,10 +1,13 @@
 package com.jfireframework.jnet.common.decoder;
 
+import java.util.HashSet;
+import java.util.Set;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.DataProcessor;
 import com.jfireframework.jnet.common.api.ProcessorInvoker;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
+import com.jfireframework.jnet.common.buffer.PooledBufferAllocator;
 import com.jfireframework.jnet.common.exception.TooLongException;
 
 /**
@@ -16,15 +19,17 @@ import com.jfireframework.jnet.common.exception.TooLongException;
 public class TotalLengthFieldBasedFrameDecoder implements DataProcessor<IoBuffer>
 {
 	// 代表长度字段开始读取的位置
-	private final int		lengthFieldOffset;
+	private final int				lengthFieldOffset;
 	// 代表长度字段自身的长度。支持1,2,4.如果是1则使用unsignedbyte方式读取。如果是2则使用unsignedshort方式读取,4使用int方式读取。
-	private final int		lengthFieldLength;
+	private final int				lengthFieldLength;
 	// 将长度字段读取完毕，需要的偏移量,就是上面两个值相加
-	private final int		lengthFieldEndOffset;
+	private final int				lengthFieldEndOffset;
 	// 需要忽略的字节数
-	private final int		skipBytes;
-	private final int		maxLegnth;
-	private BufferAllocator	allocator;
+	private final int				skipBytes;
+	private final int				maxLegnth;
+	private BufferAllocator			allocator;
+	private Set<Integer>			set						= new HashSet<>();
+	private PooledBufferAllocator	pooledBufferAllocator	= new PooledBufferAllocator();
 	
 	/**
 	 * 
@@ -52,6 +57,7 @@ public class TotalLengthFieldBasedFrameDecoder implements DataProcessor<IoBuffer
 	@Override
 	public void process(IoBuffer ioBuffer, ProcessorInvoker next) throws Throwable
 	{
+		boolean first = false;
 		do
 		{
 			int maskReadPosi = ioBuffer.getReadPosi();
@@ -95,11 +101,23 @@ public class TotalLengthFieldBasedFrameDecoder implements DataProcessor<IoBuffer
 			}
 			else
 			{
-				IoBuffer packet = allocator.ioBuffer(length);
+				IoBuffer packet = pooledBufferAllocator.ioBuffer(length);
+				// IoBuffer packet = allocator.directBuffer(length);
+				assert packet.getReadPosi() == 0;
+				assert packet.getWritePosi() == 0;
+				if (packet.getReadPosi() != 0 || packet.getWritePosi() != 0)
+				{
+					System.err.println("问题");
+				}
 				packet.put(ioBuffer, length);
+				// ioBuffer.addReadPosi(length);
 				ioBuffer.getInt();
-				// ioBuffer.addReadPosi(4);
-				System.out.println(ioBuffer.getInt());
+				int i = ioBuffer.getInt();
+				if (set.add(i) == false && first == false)
+				{
+					System.err.println("重复" + ioBuffer.getReadPosi() + "," + ioBuffer.getWritePosi());
+					first = true;
+				}
 				if (skipBytes != 0)
 				{
 					packet.addReadPosi(skipBytes);

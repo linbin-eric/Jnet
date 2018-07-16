@@ -161,10 +161,10 @@ public abstract class Arena<T>
 		if (newReqCapacity > oldCapacity)
 		{
 			buffer.setReadPosi(oldReadPosi).setWritePosi(oldWritePosi);
-			if (oldReadPosi != oldWritePosi)
-			{
-				memoryCopy(oldMemory, oldOffset, buffer.memory, buffer.offset, oldWritePosi);
-			}
+			// if (oldReadPosi != oldWritePosi)
+			// {
+			memoryCopy(oldMemory, oldOffset, buffer.memory, buffer.offset, oldWritePosi);
+			// }
 		}
 		// 这种情况是缩小，目前还不支持
 		else

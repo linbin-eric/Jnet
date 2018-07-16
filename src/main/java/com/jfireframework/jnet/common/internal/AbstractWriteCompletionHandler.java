@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.Queue;
-import com.jfireframework.baseutil.concurrent.MPSCArrayQueue;
 import com.jfireframework.baseutil.concurrent.MPSCLinkedQueue;
 import com.jfireframework.baseutil.reflect.ReflectUtil;
 import com.jfireframework.baseutil.reflect.UnsafeFieldAccess;
@@ -38,8 +37,9 @@ public abstract class AbstractWriteCompletionHandler implements WriteCompletionH
 		this.socketChannel = socketChannel;
 		this.allocator = allocator;
 		this.aioListener = aioListener;
-		queue = queueCapacity == 0 ? new MPSCLinkedQueue<IoBuffer>() : new MPSCArrayQueue<IoBuffer>(queueCapacity);
-		
+		// queue = queueCapacity == 0 ? new MPSCLinkedQueue<IoBuffer>() : new
+		// MPSCArrayQueue<IoBuffer>(queueCapacity);
+		queue = new MPSCLinkedQueue();
 	}
 	
 	@Override

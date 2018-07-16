@@ -40,8 +40,8 @@ public class BaseTest
 	private AioServer			aioServer;
 	private String				ip				= "127.0.0.1";
 	private int					port			= 7598;
-	private int					numPerThread	= 10;
-	private int					numClients		= 1;
+	private int					numPerThread	= 100000;
+	private int					numClients		= 5;
 	private AioClient[]			clients;
 	private CountDownLatch[]	latchs;
 	private int[]				sendContent;
@@ -53,8 +53,8 @@ public class BaseTest
 	public static Collection<Object[]> params()
 	{
 		return Arrays.asList(new Object[][] { //
-		        { new PooledBufferAllocator(), 0 }, //
-				// { new PooledBufferAllocator(), 1 }
+		        { new PooledBufferAllocator(), 1 }, //
+				// { new PooledBufferAllocator(), 10 }
 				
 		});
 	}
@@ -78,6 +78,7 @@ public class BaseTest
 		for (int i = 0; i < numClients; i++)
 		{
 			final int index = i;
+			final int[] result = results[index];
 			clients[i] = new DefaultClient(new ChannelContextInitializer() {
 				
 				@Override
@@ -86,7 +87,7 @@ public class BaseTest
 					channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1000, bufferAllocator), //
 					        new DataProcessor<IoBuffer>() {
 						        CountDownLatch latch = latchs[index];
-						        int[]	result	= results[index];
+						        int		errorIndex	= Integer.MAX_VALUE;
 						        
 						        @Override
 						        public void bind(ChannelContext channelContext)
@@ -99,7 +100,7 @@ public class BaseTest
 						        {
 							        int j = buffer.getInt();
 							        result[j] = j;
-							        System.out.println("读取到" + j);
+							        // System.out.println("收到" + j);
 							        latch.countDown();
 						        }
 					        });
@@ -186,11 +187,12 @@ public class BaseTest
 				e.printStackTrace();
 			}
 		}
-		for (int[] each : results)
+		for (int index = 0; index < numClients; index++)
 		{
+			int[] result = results[index];
 			for (int i = 0; i < numPerThread; i++)
 			{
-				assertEquals(i, each[i]);
+				assertEquals("序号" + index, i, result[i]);
 			}
 		}
 		for (AioClient each : clients)

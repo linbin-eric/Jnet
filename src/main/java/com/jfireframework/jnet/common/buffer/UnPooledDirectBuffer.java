@@ -131,7 +131,7 @@ public class UnPooledDirectBuffer extends UnPooledBuffer<ByteBuffer>
 	{
 		ByteBuffer oldMemory = memory;
 		memory = ByteBuffer.allocateDirect(newCapacity);
-		oldMemory.position(readPosi).limit(writePosi);
+		oldMemory.position(0).limit(writePosi);
 		memory.put(oldMemory);
 		memory.position(0).limit(newCapacity);
 		capacity = newCapacity;
