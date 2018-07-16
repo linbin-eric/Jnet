@@ -22,7 +22,6 @@ import com.jfireframework.jnet.common.api.ProcessorInvoker;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
 import com.jfireframework.jnet.common.buffer.PooledBufferAllocator;
-import com.jfireframework.jnet.common.buffer.UnPooledUnRecycledBufferAllocator;
 import com.jfireframework.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
 import com.jfireframework.jnet.common.internal.DefaultAcceptHandler;
 import com.jfireframework.jnet.server.AioServer;
@@ -40,7 +39,7 @@ public class BaseTest
     private AioServer           aioServer;
     private String              ip           = "127.0.0.1";
     private int                 port         = 7598;
-    private int                 numPerThread = 200000;
+    private int                 numPerThread = 100000;
     private int                 numClients   = 20;
     private AioClient[]         clients;
     private CountDownLatch      latch        = new CountDownLatch(numClients);
@@ -52,7 +51,7 @@ public class BaseTest
     public static Collection<Object[]> params()
     {
         return Arrays.asList(new Object[][] { //
-                { UnPooledUnRecycledBufferAllocator.DEFAULT, 1 }, //
+                { PooledBufferAllocator.DEFAULT, 1 }, //
                 // { new PooledBufferAllocator(), 10 }
                 
         });
@@ -141,6 +140,7 @@ public class BaseTest
     public void test()
     {
         final CyclicBarrier barrier = new CyclicBarrier(numClients);
+        final CountDownLatch finish = new CountDownLatch(numClients);
         for (int i = 0; i < numClients; i++)
         {
             final int index = i;
@@ -173,11 +173,14 @@ public class BaseTest
                         }
                         buffer.free();
                     }
+                    finish.countDown();
                 }
             }).start();
         }
         try
         {
+            finish.await();
+            logger.debug("写出完毕");
             latch.await(10000, TimeUnit.SECONDS);
         }
         catch (InterruptedException e)

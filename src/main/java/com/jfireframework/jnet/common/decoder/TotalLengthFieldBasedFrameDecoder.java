@@ -96,12 +96,6 @@ public class TotalLengthFieldBasedFrameDecoder implements DataProcessor<IoBuffer
             else
             {
                 IoBuffer packet = allocator.ioBuffer(length);
-                assert packet.getReadPosi() == 0;
-                assert packet.getWritePosi() == 0;
-                if (packet.getReadPosi() != 0 || packet.getWritePosi() != 0)
-                {
-                    System.err.println("问题");
-                }
                 packet.put(ioBuffer, length);
                 ioBuffer.addReadPosi(length);
                 if (skipBytes != 0)
