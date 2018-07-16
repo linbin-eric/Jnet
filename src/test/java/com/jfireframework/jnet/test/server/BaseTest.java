@@ -21,6 +21,7 @@ import com.jfireframework.jnet.common.api.DataProcessor;
 import com.jfireframework.jnet.common.api.ProcessorInvoker;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
+import com.jfireframework.jnet.common.buffer.PooledBufferAllocator;
 import com.jfireframework.jnet.common.buffer.UnPooledUnRecycledBufferAllocator;
 import com.jfireframework.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
 import com.jfireframework.jnet.common.internal.DefaultAcceptHandler;
@@ -39,10 +40,10 @@ public class BaseTest
     private AioServer           aioServer;
     private String              ip           = "127.0.0.1";
     private int                 port         = 7598;
-    private int                 numPerThread = 10000;
+    private int                 numPerThread = 200000;
     private int                 numClients   = 20;
     private AioClient[]         clients;
-    private CountDownLatch[]    latchs;
+    private CountDownLatch      latch        = new CountDownLatch(numClients);
     private int[]               sendContent;
     private int[][]             results;
     private static final Logger logger       = LoggerFactory.getLogger(BaseTest.class);
@@ -61,12 +62,10 @@ public class BaseTest
     {
         clients = new AioClient[numClients];
         results = new int[numClients][numPerThread];
-        latchs = new CountDownLatch[numClients];
         for (int i = 0; i < numClients; i++)
         {
             results[i] = new int[numPerThread];
             Arrays.fill(results[i], -1);
-            latchs[i] = new CountDownLatch(numPerThread);
         }
         sendContent = new int[numPerThread];
         for (int i = 0; i < numPerThread; i++)
@@ -112,7 +111,7 @@ public class BaseTest
                 {
                     channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1000, bufferAllocator), //
                             new DataProcessor<IoBuffer>() {
-                                CountDownLatch latch = latchs[index];
+                                int count = 0;
                                 
                                 @Override
                                 public void bind(ChannelContext channelContext)
@@ -126,7 +125,11 @@ public class BaseTest
                                     int j = buffer.getInt();
                                     result[j] = j;
                                     buffer.free();
-                                    latch.countDown();
+                                    count++;
+                                    if (count == numPerThread)
+                                    {
+                                        latch.countDown();
+                                    }
                                 }
                             });
                 }
@@ -157,7 +160,7 @@ public class BaseTest
                     }
                     for (int j : sendContent)
                     {
-                        IoBuffer buffer = UnPooledUnRecycledBufferAllocator.DEFAULT.ioBuffer(8);
+                        IoBuffer buffer = PooledBufferAllocator.DEFAULT.ioBuffer(8);
                         buffer.putInt(8);
                         buffer.putInt(j);
                         try
@@ -168,21 +171,18 @@ public class BaseTest
                         {
                             ;
                         }
+                        buffer.free();
                     }
                 }
             }).start();
         }
-        for (CountDownLatch each : latchs)
+        try
         {
-            try
-            {
-                each.await(10000, TimeUnit.SECONDS);
-            }
-            catch (InterruptedException e)
-            {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
+            latch.await(10000, TimeUnit.SECONDS);
+        }
+        catch (InterruptedException e)
+        {
+            e.printStackTrace();
         }
         for (int index = 0; index < numClients; index++)
         {
