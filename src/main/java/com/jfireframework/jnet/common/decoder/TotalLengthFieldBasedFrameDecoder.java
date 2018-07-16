@@ -8,6 +8,7 @@ import com.jfireframework.jnet.common.api.ProcessorInvoker;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
 import com.jfireframework.jnet.common.buffer.PooledBufferAllocator;
+import com.jfireframework.jnet.common.buffer.PooledUnThreadCacheBufferAllocator;
 import com.jfireframework.jnet.common.exception.TooLongException;
 
 /**
@@ -101,7 +102,7 @@ public class TotalLengthFieldBasedFrameDecoder implements DataProcessor<IoBuffer
 			}
 			else
 			{
-				IoBuffer packet = pooledBufferAllocator.ioBuffer(length);
+				IoBuffer packet = PooledUnThreadCacheBufferAllocator.DEFAULT.ioBuffer(length);
 				// IoBuffer packet = allocator.directBuffer(length);
 				assert packet.getReadPosi() == 0;
 				assert packet.getWritePosi() == 0;
@@ -115,7 +116,8 @@ public class TotalLengthFieldBasedFrameDecoder implements DataProcessor<IoBuffer
 				int i = ioBuffer.getInt();
 				if (set.add(i) == false && first == false)
 				{
-					System.err.println("重复" + ioBuffer.getReadPosi() + "," + ioBuffer.getWritePosi());
+					// System.err.println("重复" + ioBuffer.getReadPosi() + "," +
+					// ioBuffer.getWritePosi());
 					first = true;
 				}
 				if (skipBytes != 0)

@@ -421,6 +421,9 @@ public abstract class PooledBuffer<T> implements IoBuffer
 	{
 		chunk.arena.free(chunk, handle, capacity, cache);
 		handle = offset = capacity = readPosi = writePosi = 0;
+		memory = null;
+		cache = null;
+		chunk = null;
 		if (recycleHandler != null)
 		{
 			RecycleHandler tmp = recycleHandler;

@@ -7,43 +7,40 @@ import com.jfireframework.jnet.common.api.ChannelContext;
 
 public class DefaultAioListener implements AioListener
 {
-    
-    @Override
-    public void catchException(Throwable e, AsynchronousSocketChannel socketChannel)
-    {
-        if (e instanceof IOException == false)
-        {
-            e.printStackTrace();
-        }
-        try
-        {
-            socketChannel.close();
-        }
-        catch (IOException e1)
-        {
-            e1.printStackTrace();
-        }
-    }
-    
-    @Override
-    public void afterWrited(AsynchronousSocketChannel socketChannel, Integer writes)
-    {
-        // TODO Auto-generated method stub
-        
-    }
-    
-    @Override
-    public void onAccept(AsynchronousSocketChannel socketChannel, ChannelContext channelContext)
-    {
-        // TODO Auto-generated method stub
-        
-    }
-    
-    @Override
-    public void afterReceived(AsynchronousSocketChannel socketChannel)
-    {
-        // TODO Auto-generated method stub
-        
-    }
-    
+	
+	@Override
+	public void catchException(Throwable e, AsynchronousSocketChannel socketChannel)
+	{
+		e.printStackTrace();
+		try
+		{
+			socketChannel.close();
+		}
+		catch (IOException e1)
+		{
+			e1.printStackTrace();
+		}
+	}
+	
+	@Override
+	public void afterWrited(AsynchronousSocketChannel socketChannel, Integer writes)
+	{
+		// TODO Auto-generated method stub
+		
+	}
+	
+	@Override
+	public void onAccept(AsynchronousSocketChannel socketChannel, ChannelContext channelContext)
+	{
+		// TODO Auto-generated method stub
+		
+	}
+	
+	@Override
+	public void afterReceived(AsynchronousSocketChannel socketChannel)
+	{
+		// TODO Auto-generated method stub
+		
+	}
+	
 }

@@ -145,6 +145,10 @@ public abstract class AbstractWriteCompletionHandler implements WriteCompletionH
 	@Override
 	public void failed(Throwable exc, WriteEntry entry)
 	{
+		if (aioListener != null)
+		{
+			aioListener.catchException(exc, socketChannel);
+		}
 		state = TERMINATION;
 		entry.getIoBuffer().free();
 		entry.clear();

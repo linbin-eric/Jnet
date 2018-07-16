@@ -149,6 +149,7 @@ public abstract class Arena<T>
 	
 	public void reAllocate(PooledBuffer<T> buffer, int newReqCapacity)
 	{
+		System.out.println("触发");
 		Chunk<T> oldChunk = buffer.chunk;
 		long oldHandle = buffer.handle;
 		int oldReadPosi = buffer.readPosi;

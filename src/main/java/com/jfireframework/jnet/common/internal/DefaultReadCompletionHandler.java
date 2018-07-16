@@ -44,6 +44,7 @@ public class DefaultReadCompletionHandler implements ReadCompletionHandler
 			}
 			catch (Throwable e)
 			{
+				catchException(e);
 				ReflectUtil.throwException(e);
 			}
 			finally
@@ -60,6 +61,7 @@ public class DefaultReadCompletionHandler implements ReadCompletionHandler
 		}
 		catch (Throwable e)
 		{
+			catchException(e);
 			buffer.free();
 			try
 			{
@@ -80,14 +82,19 @@ public class DefaultReadCompletionHandler implements ReadCompletionHandler
 		socketChannel.read(entry.getByteBuffer(), entry, this);
 	}
 	
+	private void catchException(Throwable e)
+	{
+		if (aioListener != null)
+		{
+			aioListener.catchException(e, socketChannel);
+		}
+	}
+	
 	@Override
 	public void failed(Throwable exc, ReadEntry entry)
 	{
 		entry.getIoBuffer().free();
-		if (aioListener != null)
-		{
-			aioListener.catchException(exc, socketChannel);
-		}
+		catchException(exc);
 	}
 	
 	@Override
