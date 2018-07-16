@@ -1,4 +1,4 @@
-package com.jfireframework.jnet.test.recycler;
+package com.jfireframework.jnet.common.recycler;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;

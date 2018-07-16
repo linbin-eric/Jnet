@@ -127,7 +127,7 @@ public class PooledDirectBuffer extends PooledBuffer<ByteBuffer>
 	void put2(PooledDirectBuffer buffer, int len)
 	{
 		int posi = nextWritePosi(len);
-		Bits.copyDirectMemory(buffer.addressPlusOffsetCache + readPosi, realAddress(posi), len);
+		Bits.copyDirectMemory(buffer.addressPlusOffsetCache + buffer.readPosi, realAddress(posi), len);
 	}
 	
 }

@@ -24,7 +24,7 @@ public class DefaultClient implements AioClient
 	private final AioListener			aioListener;
 	private final BufferAllocator		allocator;
 	private ChannelContext				channelContext;
-	private int							state;
+	private int							state			= NOT_INIT;
 	private static final int			NOT_INIT		= 1;
 	private static final int			CONNECTED		= 2;
 	private static final int			DISCONNECTED	= 3;

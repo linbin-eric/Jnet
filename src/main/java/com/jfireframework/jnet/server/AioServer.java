@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousServerSocketChannel;
+import java.util.concurrent.TimeUnit;
 import com.jfireframework.baseutil.reflect.ReflectUtil;
 import com.jfireframework.jnet.common.api.AcceptHandler;
 
@@ -42,7 +43,7 @@ public class AioServer
 		}
 	}
 	
-	public void stop()
+	public void shutdown()
 	{
 		try
 		{
@@ -50,6 +51,20 @@ public class AioServer
 			channelGroup.shutdownNow();
 		}
 		catch (Exception e)
+		{
+			ReflectUtil.throwException(e);
+		}
+	}
+	
+	public void termination()
+	{
+		try
+		{
+			serverSocketChannel.close();
+			channelGroup.shutdownNow();
+			channelGroup.awaitTermination(10, TimeUnit.SECONDS);
+		}
+		catch (Throwable e)
 		{
 			ReflectUtil.throwException(e);
 		}

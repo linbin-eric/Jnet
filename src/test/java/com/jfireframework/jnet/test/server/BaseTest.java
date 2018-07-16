@@ -1,42 +1,30 @@
 package com.jfireframework.jnet.test.server;
 
-import java.nio.channels.AsynchronousSocketChannel;
+import static org.junit.Assert.assertEquals;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicInteger;
-import org.junit.Assert;
-import org.junit.Before;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.jfireframework.baseutil.TRACEID;
 import com.jfireframework.jnet.client.AioClient;
-import com.jfireframework.jnet.client.AioClientBuilder;
-import com.jfireframework.jnet.common.api.AioListener;
-import com.jfireframework.jnet.common.api.ChannelConnectListener;
+import com.jfireframework.jnet.client.DefaultClient;
 import com.jfireframework.jnet.common.api.ChannelContext;
-import com.jfireframework.jnet.common.api.ProcessorChain;
+import com.jfireframework.jnet.common.api.ChannelContextInitializer;
 import com.jfireframework.jnet.common.api.DataProcessor;
-import com.jfireframework.jnet.common.buffer.PooledIoBuffer;
+import com.jfireframework.jnet.common.api.ProcessorInvoker;
+import com.jfireframework.jnet.common.buffer.BufferAllocator;
+import com.jfireframework.jnet.common.buffer.IoBuffer;
+import com.jfireframework.jnet.common.buffer.PooledBufferAllocator;
+import com.jfireframework.jnet.common.buffer.UnPooledRecycledBufferAllocator;
 import com.jfireframework.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
-import com.jfireframework.jnet.common.decoder.TotalLengthFieldBasedFrameDecoderByHeap;
-import com.jfireframework.jnet.common.internal.DefaultAioListener;
-import com.jfireframework.jnet.common.internal.DefaultChannelContext;
-import com.jfireframework.jnet.common.processor.ChannelAttachProcessor;
-import com.jfireframework.jnet.common.processor.CommonPoolProcessor;
-import com.jfireframework.jnet.common.processor.MutliAttachIoProcessor;
-import com.jfireframework.jnet.common.processor.ThreadAttachIoProcessor;
-import com.jfireframework.jnet.common.processor.worker.FixedAttachWorker;
-import com.jfireframework.jnet.common.util.Allocator;
-import com.jfireframework.jnet.common.util.ReadProcessorAdapter;
+import com.jfireframework.jnet.common.internal.DefaultAcceptHandler;
 import com.jfireframework.jnet.server.AioServer;
 import com.jfireframework.jnet.server.AioServerBuilder;
 
@@ -49,377 +37,168 @@ import com.jfireframework.jnet.server.AioServerBuilder;
 @RunWith(Parameterized.class)
 public class BaseTest
 {
-	private int								port			= 8546;
-	private int								clientThreadNum	= 10;
-	private int								sendCount		= 10000;
-	private CountDownLatch					latch			= new CountDownLatch(sendCount);
-	private ConcurrentLinkedQueue<Integer>	waitForSend		= new ConcurrentLinkedQueue<>();
-	private int[]							sendContent;
-	private ExecutorService					serverExecutor;
-	private ExecutorService					clientExecutor;
-	private IoMode							clientIoMode;
-	private IoMode							serverIoMode;
-	private static final Logger				logger			= LoggerFactory.getLogger(BaseTest.class);
-	
-	public BaseTest(IoMode serverIoMode, IoMode clientIoMode)
-	{
-		this.serverIoMode = serverIoMode;
-		this.clientIoMode = clientIoMode;
-	}
+	private AioServer			aioServer;
+	private String				ip				= "127.0.0.1";
+	private int					port			= 7598;
+	private int					numPerThread	= 10;
+	private int					numClients		= 1;
+	private AioClient[]			clients;
+	private CountDownLatch[]	latchs;
+	private int[]				sendContent;
+	private int[][]				results;
+	private BufferAllocator		allocator		= new UnPooledRecycledBufferAllocator();
+	private static final Logger	logger			= LoggerFactory.getLogger(BaseTest.class);
 	
 	@Parameters
-	public static Collection<IoMode[]> data()
+	public static Collection<Object[]> params()
 	{
-		return Arrays.asList(new IoMode[][] { //
-		        { IoMode.SIMPLE, IoMode.SIMPLE }, //
-		        { IoMode.SIMPLE, IoMode.THREAD_ATTACH }, //
-		        { IoMode.SIMPLE, IoMode.CHANNEL_ATTACH }, //
-		        { IoMode.SIMPLE, IoMode.MUTLI_ATTACH }, //
-		        { IoMode.SIMPLE, IoMode.COMMON_POOL }, //
-		        { IoMode.THREAD_ATTACH, IoMode.SIMPLE }, //
-		        { IoMode.THREAD_ATTACH, IoMode.THREAD_ATTACH }, //
-		        { IoMode.THREAD_ATTACH, IoMode.CHANNEL_ATTACH }, //
-		        { IoMode.THREAD_ATTACH, IoMode.MUTLI_ATTACH }, //
-		        { IoMode.THREAD_ATTACH, IoMode.COMMON_POOL }, //
-		        { IoMode.CHANNEL_ATTACH, IoMode.SIMPLE }, //
-		        { IoMode.CHANNEL_ATTACH, IoMode.THREAD_ATTACH }, //
-		        { IoMode.CHANNEL_ATTACH, IoMode.CHANNEL_ATTACH }, //
-		        { IoMode.CHANNEL_ATTACH, IoMode.MUTLI_ATTACH }, //
-		        { IoMode.CHANNEL_ATTACH, IoMode.COMMON_POOL }, //
-		        { IoMode.MUTLI_ATTACH, IoMode.SIMPLE }, //
-		        { IoMode.MUTLI_ATTACH, IoMode.THREAD_ATTACH }, //
-		        { IoMode.MUTLI_ATTACH, IoMode.CHANNEL_ATTACH }, //
-		        { IoMode.MUTLI_ATTACH, IoMode.MUTLI_ATTACH }, //
-		        { IoMode.MUTLI_ATTACH, IoMode.COMMON_POOL }, //
-		        { IoMode.COMMON_POOL, IoMode.SIMPLE }, //
-		        { IoMode.COMMON_POOL, IoMode.THREAD_ATTACH }, //
-		        { IoMode.COMMON_POOL, IoMode.CHANNEL_ATTACH }, //
-		        { IoMode.COMMON_POOL, IoMode.MUTLI_ATTACH }, //
-		        { IoMode.COMMON_POOL, IoMode.COMMON_POOL }, //
-		
+		return Arrays.asList(new Object[][] { //
+		        { new PooledBufferAllocator(), 0 }, //
+				// { new PooledBufferAllocator(), 1 }
+				
 		});
 	}
 	
-	@Before
-	public void before()
+	public BaseTest(final BufferAllocator bufferAllocator, int batchWriteNum)
 	{
-		sendContent = new int[sendCount];
-		for (int i = 0; i < sendCount; i++)
+		clients = new AioClient[numClients];
+		results = new int[numClients][numPerThread];
+		latchs = new CountDownLatch[numClients];
+		for (int i = 0; i < numClients; i++)
 		{
-			waitForSend.offer(Integer.valueOf(i));
+			results[i] = new int[numPerThread];
+			Arrays.fill(results[i], -1);
+			latchs[i] = new CountDownLatch(numPerThread);
 		}
-		logger.info("开始测试，服务端模式:{},客户端模式:{}", serverIoMode, clientIoMode);
-	}
-	
-	ChannelConnectListener build(IoMode iomode, AioListener aioListener)
-	{
-		ChannelConnectListener channelContextBuilder = null;
-		final DataProcessor<PooledIoBuffer> businessProcessor = new ReadProcessorAdapter<PooledIoBuffer>() {
-			final String traceId = TRACEID.newTraceId();
+		sendContent = new int[numPerThread];
+		for (int i = 0; i < numPerThread; i++)
+		{
+			sendContent[i] = i;
+		}
+		for (int i = 0; i < numClients; i++)
+		{
+			final int index = i;
+			clients[i] = new DefaultClient(new ChannelContextInitializer() {
+				
+				@Override
+				public void onChannelContextInit(ChannelContext channelContext)
+				{
+					channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1000, bufferAllocator), //
+					        new DataProcessor<IoBuffer>() {
+						        CountDownLatch latch = latchs[index];
+						        int[]	result	= results[index];
+						        
+						        @Override
+						        public void bind(ChannelContext channelContext)
+						        {
+							        ;
+						        }
+						        
+						        @Override
+						        public void process(IoBuffer buffer, ProcessorInvoker next) throws Throwable
+						        {
+							        int j = buffer.getInt();
+							        result[j] = j;
+							        System.out.println("读取到" + j);
+							        latch.countDown();
+						        }
+					        });
+				}
+			}, ip, port, null, bufferAllocator);
+		}
+		AioServerBuilder builder = new AioServerBuilder();
+		builder.setAcceptHandler(new DefaultAcceptHandler(null, bufferAllocator, batchWriteNum, 512, new ChannelContextInitializer() {
 			
 			@Override
-			public void process(PooledIoBuffer buf, ProcessorChain chain, ChannelContext channelContext)
+			public void onChannelContextInit(ChannelContext channelContext)
 			{
-				logger.debug("traceId:{} 服务端收到消息,{}", traceId, buf);
-				buf.setReadPosi(0);
-				channelContext.write(buf);
+				channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 100, bufferAllocator), new DataProcessor<IoBuffer>() {
+					private ChannelContext channelContext;
+					
+					@Override
+					public void bind(ChannelContext channelContext)
+					{
+						this.channelContext = channelContext;
+					}
+					
+					@Override
+					public void process(IoBuffer buffer, ProcessorInvoker next) throws Throwable
+					{
+						buffer.addReadPosi(-4);
+						channelContext.write(buffer);
+					}
+				});
 			}
-		};
-		switch (iomode)
-		{
-			case SIMPLE:
-				channelContextBuilder = new ChannelConnectListener() {
-					
-					@Override
-					public ChannelContext onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
-					{
-						return new DefaultChannelContext(socketChannel, 10, aioListener, //
-						        new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 500), //
-						        businessProcessor);
-					}
-					
-				};
-				break;
-			case CHANNEL_ATTACH:
-				serverExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2 + 1);
-				channelContextBuilder = new ChannelConnectListener() {
-					
-					@Override
-					public ChannelContext onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
-					{
-						return new DefaultChannelContext(socketChannel, 10, aioListener, //
-						        new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 500), //
-						        new ChannelAttachProcessor(serverExecutor), //
-						        businessProcessor);
-					}
-					
-				};
-				break;
-			case THREAD_ATTACH:
-				serverExecutor = Executors.newCachedThreadPool();
-				channelContextBuilder = new ChannelConnectListener() {
-					
-					@Override
-					public ChannelContext onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
-					{
-						return new DefaultChannelContext(socketChannel, 10, aioListener, //
-						        new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 500), //
-						        new ThreadAttachIoProcessor(serverExecutor), //
-						        businessProcessor);
-					}
-					
-				};
-				break;
-			case MUTLI_ATTACH:
-				final FixedAttachWorker[] processors = new FixedAttachWorker[1 << 5];
-				for (int i = 0; i < processors.length; i++)
-				{
-					processors[i] = new FixedAttachWorker();
-				}
-				serverExecutor = Executors.newCachedThreadPool();
-				for (FixedAttachWorker each : processors)
-				{
-					serverExecutor.submit(each);
-				}
-				final int mask = processors.length - 1;
-				channelContextBuilder = new ChannelConnectListener() {
-					AtomicInteger index = new AtomicInteger(0);
-					
-					@Override
-					public ChannelContext onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
-					{
-						int andIncrement = index.getAndIncrement();
-						return new DefaultChannelContext(socketChannel, 10, aioListener, //
-						        new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 500), //
-						        new MutliAttachIoProcessor(processors[andIncrement & mask]), //
-						        businessProcessor);
-					}
-					
-				};
-				break;
-			case COMMON_POOL:
-				serverExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2);
-				channelContextBuilder = new ChannelConnectListener() {
-					
-					@Override
-					public ChannelContext onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
-					{
-						return new DefaultChannelContext(socketChannel, 10, aioListener, //
-						        new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 500), //
-						        new CommonPoolProcessor(serverExecutor), //
-						        businessProcessor);
-					}
-					
-				};
-				break;
-			
-		}
-		return channelContextBuilder;
-	}
-	
-	private AioServer buildServer()
-	{
-		AioListener aioListener = new DefaultAioListener();
-		AioServerBuilder serverBuilder = new AioServerBuilder();
-		serverBuilder.setAioListener(aioListener);
-		serverBuilder.setBindIp("127.0.0.1");
-		serverBuilder.setPort(port);
-		serverBuilder.setChannelConnectListener(build(serverIoMode, aioListener));
-		AioServer aioServer = serverBuilder.build();
-		return aioServer;
-	}
-	
-	private AioClient buildClient()
-	{
-		
-		AioListener aioListener = new DefaultAioListener();
-		AioClientBuilder clientBuilder = new AioClientBuilder();
-		clientBuilder.setServerIp("127.0.0.1");
-		clientBuilder.setPort(port);
-		clientBuilder.setAioListener(aioListener);
-		ChannelConnectListener channelContextBuilder = null;
-		final DataProcessor<PooledIoBuffer> businessProcessor = new ReadProcessorAdapter<PooledIoBuffer>() {
-			final String traceId = TRACEID.newTraceId();
-			
-			@Override
-			public void process(PooledIoBuffer buf, ProcessorChain chain, ChannelContext channelContext)
-			{
-				try
-				{
-					logger.debug("traceId:{} 单位端收到消息:{}", traceId, buf);
-					Integer value = buf.getInt();
-					sendContent[value] += 1;
-					buf.release();
-					latch.countDown();
-				}
-				catch (Exception e)
-				{
-					logger.error("traceId:{} 单位端收到消息:{}", traceId, buf, e);
-					
-				}
-			}
-		};
-		switch (clientIoMode)
-		{
-			case SIMPLE:
-				channelContextBuilder = new ChannelConnectListener() {
-					
-					@Override
-					public ChannelContext onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
-					{
-						ChannelContext channelContext = new DefaultChannelContext(socketChannel, 10, aioListener, //
-						        new TotalLengthFieldBasedFrameDecoderByHeap(0, 4, 4, 500), businessProcessor //
-						);
-						return channelContext;
-					}
-					
-				};
-				break;
-			case CHANNEL_ATTACH:
-				clientExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2 + 1);
-				channelContextBuilder = new ChannelConnectListener() {
-					
-					@Override
-					public ChannelContext onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
-					{
-						ChannelContext channelContext = new DefaultChannelContext(socketChannel, 10, aioListener, //
-						        new TotalLengthFieldBasedFrameDecoderByHeap(0, 4, 4, 500), //
-						        new ChannelAttachProcessor(clientExecutor), //
-						        businessProcessor);
-						return channelContext;
-					}
-					
-				};
-				break;
-			case THREAD_ATTACH:
-				clientExecutor = Executors.newCachedThreadPool();
-				channelContextBuilder = new ChannelConnectListener() {
-					
-					@Override
-					public ChannelContext onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
-					{
-						return new DefaultChannelContext(socketChannel, 10, aioListener, //
-						        new TotalLengthFieldBasedFrameDecoderByHeap(0, 4, 4, 500), //
-						        new ThreadAttachIoProcessor(clientExecutor), //
-						        businessProcessor
-						//
-						);
-					}
-					
-				};
-				break;
-			case MUTLI_ATTACH:
-				final FixedAttachWorker[] processors = new FixedAttachWorker[1 << 5];
-				for (int i = 0; i < processors.length; i++)
-				{
-					processors[i] = new FixedAttachWorker();
-				}
-				clientExecutor = Executors.newCachedThreadPool();
-				for (FixedAttachWorker each : processors)
-				{
-					clientExecutor.submit(each);
-				}
-				final int mask = processors.length - 1;
-				channelContextBuilder = new ChannelConnectListener() {
-					AtomicInteger index = new AtomicInteger(0);
-					
-					@Override
-					public ChannelContext onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
-					{
-						int andIncrement = index.getAndIncrement();
-						return new DefaultChannelContext(socketChannel, mask, aioListener, //
-						        new TotalLengthFieldBasedFrameDecoderByHeap(0, 4, 4, 500), //
-						        new MutliAttachIoProcessor(processors[andIncrement & mask]), //
-						        businessProcessor);
-					}
-					
-				};
-				break;
-			case COMMON_POOL:
-				clientExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()*2);
-				channelContextBuilder = new ChannelConnectListener() {
-					
-					@Override
-					public ChannelContext onConnect(AsynchronousSocketChannel socketChannel, AioListener aioListener)
-					{
-						return new DefaultChannelContext(socketChannel, 10, aioListener, //
-						        new TotalLengthFieldBasedFrameDecoderByHeap(0, 4, 4, 500), //
-						        new CommonPoolProcessor(clientExecutor), //
-						        businessProcessor
-						//
-						);
-					}
-				};
-				break;
-			default:
-				break;
-		}
-		clientBuilder.setChannelConnectListener(channelContextBuilder);
-		AioClient client = clientBuilder.build();
-		client.connect();
-		return client;
+		}));
+		builder.setBindIp(ip);
+		builder.setPort(port);
+		aioServer = builder.build();
+		aioServer.start();
 	}
 	
 	@Test
-	public void test() throws Throwable
+	public void test()
 	{
-		
-		AioServer aioServer = buildServer();
-		aioServer.start();
-		ExecutorService executorService = Executors.newCachedThreadPool(new ThreadFactory() {
-			int i = 0;
-			
-			@Override
-			public Thread newThread(Runnable r)
-			{
-				return new Thread(r, "测试线程" + (i++));
-			}
-		});
-		for (int i = 0; i < clientThreadNum; i++)
+		final CyclicBarrier barrier = new CyclicBarrier(numClients);
+		for (int i = 0; i < numClients; i++)
 		{
-			executorService.execute(new Runnable() {
+			final int index = i;
+			new Thread(new Runnable() {
 				
 				@Override
 				public void run()
 				{
-					final AioClient client = buildClient();
-					client.connect();
-					do
+					AioClient client = clients[index];
+					try
 					{
-						Integer value = waitForSend.poll();
-						if (value != null)
+						barrier.await();
+					}
+					catch (InterruptedException | BrokenBarrierException e1)
+					{
+						e1.printStackTrace();
+					}
+					for (int j : sendContent)
+					{
+						IoBuffer buffer = allocator.ioBuffer(8);
+						buffer.putInt(8);
+						buffer.putInt(j);
+						try
 						{
-							try
-							{
-								PooledIoBuffer buf = Allocator.allocate(100);
-								// 报文长度是8
-								buf.putInt(8);
-								buf.putInt(value);
-								client.write(buf);
-							}
-							catch (Throwable e)
-							{
-								e.printStackTrace();
-							}
+							client.write(buffer);
 						}
-					} while (waitForSend.isEmpty() == false);
+						catch (Exception e)
+						{
+							;
+						}
+					}
 				}
-			});
+			}).start();
 		}
-		latch.await();
-		for (int i = 0; i < sendCount; i++)
+		for (CountDownLatch each : latchs)
 		{
-			Assert.assertEquals(1, sendContent[i]);
+			try
+			{
+				each.await(10000, TimeUnit.SECONDS);
+			}
+			catch (InterruptedException e)
+			{
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
-		aioServer.stop();
-		if (serverExecutor != null)
+		for (int[] each : results)
 		{
-			serverExecutor.shutdownNow();
+			for (int i = 0; i < numPerThread; i++)
+			{
+				assertEquals(i, each[i]);
+			}
 		}
-		if (clientExecutor != null)
+		for (AioClient each : clients)
 		{
-			clientExecutor.shutdownNow();
+			each.close();
 		}
-		logger.info("测试成功，服务端模式:{},客户端模式:{}", serverIoMode, clientIoMode);
+		aioServer.termination();
+		logger.info("测试完毕");
 	}
+	
 }

@@ -46,6 +46,7 @@ public class DefaultAcceptHandler implements AcceptHandler
 			aioListener.onAccept(socketChannel, channelContext);
 		}
 		channelContextInitializer.onChannelContextInit(channelContext);
+		readCompletionHandler.start();
 		serverChannel.accept(serverChannel, this);
 	}
 	

@@ -142,11 +142,12 @@ public class PooledBufferRWTest
 	@Test
 	public void test2()
 	{
+		buffer.addWritePosi(4).addReadPosi(4);
 		paramBuffer.putInt(3);
 		paramBuffer.putShort((short) 100);
 		paramBuffer.putLong(1000l);
 		buffer.put(paramBuffer);
-		assertEquals(14, buffer.getWritePosi());
+		assertEquals(18, buffer.getWritePosi());
 		assertEquals(3, buffer.getInt());
 		assertEquals((short) 100, buffer.getShort());
 		assertEquals(1000l, buffer.getLong());
