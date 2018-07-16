@@ -23,15 +23,17 @@ public class UnPooledDirectBuffer extends UnPooledBuffer<ByteBuffer>
     @Override
     public ByteBuffer readableByteBuffer()
     {
-        memory.limit(writePosi).position(readPosi);
-        return memory;
+        ByteBuffer duplicate = memory.duplicate();
+        duplicate.limit(writePosi).position(readPosi);
+        return duplicate;
     }
     
     @Override
     public ByteBuffer writableByteBuffer()
     {
-        memory.limit(capacity).position(writePosi);
-        return memory;
+        ByteBuffer duplicate = memory.duplicate();
+        duplicate.limit(capacity).position(writePosi);
+        return duplicate;
     }
     
     @Override
