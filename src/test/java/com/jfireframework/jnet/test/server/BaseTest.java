@@ -34,7 +34,7 @@ import com.jfireframework.jnet.common.processor.ChannelAttachProcessor;
 import com.jfireframework.jnet.common.processor.CommonPoolProcessor;
 import com.jfireframework.jnet.common.processor.MutliAttachIoProcessor;
 import com.jfireframework.jnet.common.processor.ThreadAttachIoProcessor;
-import com.jfireframework.jnet.common.processor.worker.MutlisAttachWorker;
+import com.jfireframework.jnet.common.processor.worker.FixedAttachWorker;
 import com.jfireframework.jnet.common.util.Allocator;
 import com.jfireframework.jnet.common.util.ReadProcessorAdapter;
 import com.jfireframework.jnet.server.AioServer;
@@ -171,13 +171,13 @@ public class BaseTest
 				};
 				break;
 			case MUTLI_ATTACH:
-				final MutlisAttachWorker[] processors = new MutlisAttachWorker[1 << 5];
+				final FixedAttachWorker[] processors = new FixedAttachWorker[1 << 5];
 				for (int i = 0; i < processors.length; i++)
 				{
-					processors[i] = new MutlisAttachWorker();
+					processors[i] = new FixedAttachWorker();
 				}
 				serverExecutor = Executors.newCachedThreadPool();
-				for (MutlisAttachWorker each : processors)
+				for (FixedAttachWorker each : processors)
 				{
 					serverExecutor.submit(each);
 				}
@@ -309,13 +309,13 @@ public class BaseTest
 				};
 				break;
 			case MUTLI_ATTACH:
-				final MutlisAttachWorker[] processors = new MutlisAttachWorker[1 << 5];
+				final FixedAttachWorker[] processors = new FixedAttachWorker[1 << 5];
 				for (int i = 0; i < processors.length; i++)
 				{
-					processors[i] = new MutlisAttachWorker();
+					processors[i] = new FixedAttachWorker();
 				}
 				clientExecutor = Executors.newCachedThreadPool();
-				for (MutlisAttachWorker each : processors)
+				for (FixedAttachWorker each : processors)
 				{
 					clientExecutor.submit(each);
 				}

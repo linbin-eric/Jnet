@@ -35,7 +35,7 @@ public interface FixArray<E>
 	void commit(long index);
 	
 	/**
-	 * 返回下一个可以消费的坐标
+	 * 返回下一个可以消费的坐标.如果当前没有可以消费的数据，则返回-1
 	 * 
 	 * @return
 	 */

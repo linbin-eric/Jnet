@@ -2,69 +2,96 @@ package com.jfireframework.jnet.client;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousSocketChannel;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import com.jfireframework.baseutil.exception.JustThrowException;
+import java.util.concurrent.Future;
+import com.jfireframework.baseutil.reflect.ReflectUtil;
 import com.jfireframework.jnet.common.api.AioListener;
-import com.jfireframework.jnet.common.api.ChannelConnectListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
-import com.jfireframework.jnet.common.buffer.PooledIoBuffer;
+import com.jfireframework.jnet.common.api.ChannelContextInitializer;
+import com.jfireframework.jnet.common.api.ReadCompletionHandler;
+import com.jfireframework.jnet.common.api.WriteCompletionHandler;
+import com.jfireframework.jnet.common.buffer.BufferAllocator;
+import com.jfireframework.jnet.common.buffer.IoBuffer;
+import com.jfireframework.jnet.common.internal.DefaultChannelContext;
 import com.jfireframework.jnet.common.internal.DefaultReadCompletionHandler;
+import com.jfireframework.jnet.common.internal.SingleWriteCompletionHandler;
 
 public class DefaultClient implements AioClient
 {
-    private static final int                 connectTimeout = 10;
-    protected final AsynchronousChannelGroup channelGroup;
-    protected final String                   serverIp;
-    protected final int                      port;
-    protected final AioListener              aioListener;
-    protected final ChannelConnectListener   clientChannelContextBuilder;
-    protected ChannelContext                 channelContext;
-    
-    public DefaultClient(ChannelConnectListener clientChannelContextBuilder, AsynchronousChannelGroup channelGroup, String serverIp, int port, AioListener aioListener)
-    {
-        this.channelGroup = channelGroup;
-        this.serverIp = serverIp;
-        this.port = port;
-        this.aioListener = aioListener;
-        this.clientChannelContextBuilder = clientChannelContextBuilder;
-    }
-    
-    @Override
-    public void connect()
-    {
-        try
-        {
-            AsynchronousSocketChannel socketChannel = AsynchronousSocketChannel.open(channelGroup);
-            socketChannel.connect(new InetSocketAddress(serverIp, port)).get(connectTimeout, TimeUnit.SECONDS);
-            channelContext = clientChannelContextBuilder.initChannelContext(socketChannel, aioListener);
-            new DefaultReadCompletionHandler(aioListener, channelContext).start();
-        }
-        catch (IOException | InterruptedException | ExecutionException | TimeoutException e)
-        {
-            throw new JustThrowException(e);
-        }
-    }
-    
-    @Override
-    public void close()
-    {
-        try
-        {
-            channelContext.socketChannel().close();
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
-    }
-    
-    @Override
-    public void write(PooledIoBuffer packet)
-    {
-        channelContext.write(packet);
-    }
+	private ChannelContextInitializer	channelContextInitializer;
+	private final String				ip;
+	private final int					port;
+	private final AioListener			aioListener;
+	private final BufferAllocator		allocator;
+	private ChannelContext				channelContext;
+	private int							state;
+	private static final int			NOT_INIT		= 1;
+	private static final int			CONNECTED		= 2;
+	private static final int			DISCONNECTED	= 3;
+	
+	public DefaultClient(ChannelContextInitializer channelContextInitializer, String ip, int port, AioListener aioListener, BufferAllocator allocator)
+	{
+		this.channelContextInitializer = channelContextInitializer;
+		this.ip = ip;
+		this.port = port;
+		this.aioListener = aioListener;
+		this.allocator = allocator;
+	}
+	
+	@Override
+	public void write(IoBuffer packet) throws Exception
+	{
+		if (state == NOT_INIT || state == DISCONNECTED)
+		{
+			try
+			{
+				AsynchronousSocketChannel asynchronousSocketChannel = AsynchronousSocketChannel.open();
+				Future<Void> future = asynchronousSocketChannel.connect(new InetSocketAddress(ip, port));
+				future.get();
+				channelContext = new DefaultChannelContext(asynchronousSocketChannel, aioListener);
+				channelContextInitializer.onChannelContextInit(channelContext);
+				ReadCompletionHandler readCompletionHandler = new DefaultReadCompletionHandler(aioListener, allocator, asynchronousSocketChannel);
+				readCompletionHandler.bind(channelContext);
+				WriteCompletionHandler writeCompletionHandler = new SingleWriteCompletionHandler(asynchronousSocketChannel, aioListener, allocator, 512);
+				channelContext.bindWriteCompleteHandler(writeCompletionHandler);
+				readCompletionHandler.start();
+				state = CONNECTED;
+			}
+			catch (Exception e)
+			{
+				ReflectUtil.throwException(e);
+				return;
+			}
+		}
+		try
+		{
+			channelContext.write(packet);
+		}
+		catch (Throwable e)
+		{
+			state = DISCONNECTED;
+			ReflectUtil.throwException(e);
+		}
+	}
+	
+	@Override
+	public void close()
+	{
+		if (state == NOT_INIT || state == DISCONNECTED)
+		{
+			return;
+		}
+		else
+		{
+			state = DISCONNECTED;
+			try
+			{
+				channelContext.socketChannel().close();
+			}
+			catch (IOException e)
+			{
+				ReflectUtil.throwException(e);
+			}
+		}
+	}
 }

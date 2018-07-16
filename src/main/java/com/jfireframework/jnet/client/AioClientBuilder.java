@@ -2,9 +2,10 @@ package com.jfireframework.jnet.client;
 
 import java.nio.channels.AsynchronousChannelGroup;
 import java.util.concurrent.ThreadFactory;
-import com.jfireframework.baseutil.exception.JustThrowException;
+import com.jfireframework.baseutil.reflect.ReflectUtil;
 import com.jfireframework.jnet.common.api.AioListener;
-import com.jfireframework.jnet.common.api.ChannelConnectListener;
+import com.jfireframework.jnet.common.api.ChannelContextInitializer;
+import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.internal.DefaultAioListener;
 
 public class AioClientBuilder
@@ -18,13 +19,14 @@ public class AioClientBuilder
 	private String						serverIp	= "0.0.0.0";
 	private AsynchronousChannelGroup	channelGroup;
 	private AioListener					aioListener;
-	private ChannelConnectListener		channelConnectListener;
+	private ChannelContextInitializer	channelContextInitializer;
+	private BufferAllocator				allocator;
 	
-	public synchronized AioClient build()
+	public AioClient build()
 	{
 		try
 		{
-			if (channelConnectListener == null)
+			if (channelContextInitializer == null)
 			{
 				throw new NullPointerException();
 			}
@@ -36,7 +38,7 @@ public class AioClientBuilder
 					@Override
 					public Thread newThread(Runnable r)
 					{
-						return new Thread(r, "客户端IO线程-" + (i++));
+						return new Thread(r, "AioClient-" + (i++));
 					}
 				});
 			}
@@ -44,11 +46,12 @@ public class AioClientBuilder
 			{
 				aioListener = new DefaultAioListener();
 			}
-			return new DefaultClient(channelConnectListener, channelGroup, serverIp, port, aioListener);
+			return new DefaultClient(channelContextInitializer, serverIp, port, aioListener, allocator);
 		}
 		catch (Throwable e)
 		{
-			throw new JustThrowException(e);
+			ReflectUtil.throwException(e);
+			return null;
 		}
 	}
 	
@@ -72,9 +75,14 @@ public class AioClientBuilder
 		this.aioListener = aioListener;
 	}
 	
-	public void setChannelConnectListener(ChannelConnectListener channelConnectListener)
+	public void setChannelContextInitializer(ChannelContextInitializer channelContextInitializer)
 	{
-		this.channelConnectListener = channelConnectListener;
+		this.channelContextInitializer = channelContextInitializer;
+	}
+	
+	public void setAllocator(BufferAllocator allocator)
+	{
+		this.allocator = allocator;
 	}
 	
 }

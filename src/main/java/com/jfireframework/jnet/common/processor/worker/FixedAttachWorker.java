@@ -11,26 +11,25 @@ import com.jfireframework.jnet.common.util.SPSCFixArray;
 import sun.misc.Unsafe;
 
 @SuppressWarnings("restriction")
-public class ChannelAttachWorker implements Runnable
+public class FixedAttachWorker implements Runnable
 {
-	
 	private static final int					IDLE			= 0;
 	private static final int					WORK			= 1;
 	private static final int					SPIN_THRESHOLD	= 1 << 7;
 	private static final Unsafe					unsafe			= ReflectUtil.getUnsafe();
-	private static final long					STATE_OFFSET	= UnsafeFieldAccess.getFieldOffset("state", ChannelAttachWorker.class);
+	private static final long					STATE_OFFSET	= UnsafeFieldAccess.getFieldOffset("state", FixedAttachWorker.class);
 	private final ExecutorService				executorService;
-	private final FixArray<ChannelAttachEntity>	entities		= new SPSCFixArray<ChannelAttachEntity>(512) {
+	private final FixArray<FixedAttachEntity>	entities		= new SPSCFixArray<FixedAttachEntity>(512) {
 																	
 																	@Override
-																	protected ChannelAttachEntity newInstance()
+																	protected FixedAttachEntity newInstance()
 																	{
-																		return new ChannelAttachEntity();
+																		return new FixedAttachEntity();
 																	}
 																};
 	private int									state			= IDLE;
 	
-	public ChannelAttachWorker(ExecutorService executorService)
+	public FixedAttachWorker(ExecutorService executorService)
 	{
 		this.executorService = executorService;
 	}
@@ -67,7 +66,7 @@ public class ChannelAttachWorker implements Runnable
 					}
 				}
 			}
-			ChannelAttachEntity slot = entities.getSlot(avail);
+			FixedAttachEntity slot = entities.getSlot(avail);
 			ChannelContext channelContext = slot.channelContext;
 			ProcessorInvoker invoker = slot.invoker;
 			Object data = slot.data;
@@ -93,7 +92,7 @@ public class ChannelAttachWorker implements Runnable
 	public void commit(ChannelContext channelContext, ProcessorInvoker invoker, Object data)
 	{
 		long offerIndexAvail = entities.waitUntilOfferIndexAvail();
-		ChannelAttachEntity slot = entities.getSlot(offerIndexAvail);
+		FixedAttachEntity slot = entities.getSlot(offerIndexAvail);
 		slot.channelContext = channelContext;
 		slot.invoker = invoker;
 		slot.data = data;
@@ -110,7 +109,7 @@ public class ChannelAttachWorker implements Runnable
 		}
 	}
 	
-	class ChannelAttachEntity
+	class FixedAttachEntity
 	{
 		ChannelContext		channelContext;
 		ProcessorInvoker	invoker;
