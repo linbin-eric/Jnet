@@ -17,8 +17,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.jfireframework.baseutil.StringUtil;
 import com.jfireframework.baseutil.time.Timewatch;
-import com.jfireframework.jnet.client.AioClient;
-import com.jfireframework.jnet.client.AioClientBuilder;
+import com.jfireframework.jnet.client.JnetClient;
+import com.jfireframework.jnet.client.JnetClientBuilder;
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelConnectListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
@@ -205,9 +205,9 @@ public class SpeedTest
 		return aioServer;
 	}
 	
-	private AioClientBuilder buildClient(final AtomicInteger total, final CountDownLatch latch)
+	private JnetClientBuilder buildClient(final AtomicInteger total, final CountDownLatch latch)
 	{
-		AioClientBuilder clientBuilder = new AioClientBuilder();
+		JnetClientBuilder clientBuilder = new JnetClientBuilder();
 		clientBuilder.setServerIp("127.0.0.1");
 		clientBuilder.setPort(port);
 		AioListener aioListener = new DefaultAioListener();
@@ -340,7 +340,7 @@ public class SpeedTest
 		aioServer.start();
 		final CyclicBarrier barrier = new CyclicBarrier(clientThreadNum + 1);
 		ExecutorService executorService = Executors.newFixedThreadPool(clientThreadNum);
-		final AioClientBuilder clientBuilder = buildClient(total, latch);
+		final JnetClientBuilder clientBuilder = buildClient(total, latch);
 		for (int i = 0; i < clientThreadNum; i++)
 		{
 			executorService.execute(new Runnable() {
@@ -348,7 +348,7 @@ public class SpeedTest
 				@Override
 				public void run()
 				{
-					final AioClient client = clientBuilder.build();
+					final JnetClient client = clientBuilder.build();
 					client.connect();
 					try
 					{

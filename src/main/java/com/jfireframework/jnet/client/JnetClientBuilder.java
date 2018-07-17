@@ -1,14 +1,13 @@
 package com.jfireframework.jnet.client;
 
 import java.nio.channels.AsynchronousChannelGroup;
-import java.util.concurrent.ThreadFactory;
 import com.jfireframework.baseutil.reflect.ReflectUtil;
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContextInitializer;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.internal.DefaultAioListener;
 
-public class AioClientBuilder
+public class JnetClientBuilder
 {
 	
 	// 服务器的启动端口
@@ -22,7 +21,7 @@ public class AioClientBuilder
 	private ChannelContextInitializer	channelContextInitializer;
 	private BufferAllocator				allocator;
 	
-	public AioClient build()
+	public JnetClient build()
 	{
 		try
 		{
@@ -30,23 +29,15 @@ public class AioClientBuilder
 			{
 				throw new NullPointerException();
 			}
-			if (channelGroup == null)
-			{
-				channelGroup = AsynchronousChannelGroup.withFixedThreadPool(Runtime.getRuntime().availableProcessors(), new ThreadFactory() {
-					int i = 1;
-					
-					@Override
-					public Thread newThread(Runnable r)
-					{
-						return new Thread(r, "AioClient-" + (i++));
-					}
-				});
-			}
 			if (aioListener == null)
 			{
 				aioListener = new DefaultAioListener();
 			}
-			return new DefaultClient(channelContextInitializer, serverIp, port, aioListener, allocator);
+			if (allocator == null)
+			{
+				throw new NullPointerException();
+			}
+			return new DefaultClient(channelContextInitializer, serverIp, port, aioListener, allocator, channelGroup);
 		}
 		catch (Throwable e)
 		{
