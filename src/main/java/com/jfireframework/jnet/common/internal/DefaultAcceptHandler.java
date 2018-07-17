@@ -36,7 +36,7 @@ public class DefaultAcceptHandler implements AcceptHandler
 	@Override
 	public void completed(AsynchronousSocketChannel socketChannel, AsynchronousServerSocketChannel serverChannel)
 	{
-		WriteCompletionHandler writeCompletionHandler = batchWriteNum <= 1 ? new SingleWriteCompletionHandler(socketChannel, aioListener, allocator, writeQueueCapacity) : new BatchWriteCompletionHandler(aioListener, socketChannel, allocator, writeQueueCapacity, batchWriteNum);
+		WriteCompletionHandler writeCompletionHandler = new BatchWriteCompletionHandler(aioListener, socketChannel, allocator, writeQueueCapacity);
 		ChannelContext channelContext = new DefaultChannelContext(socketChannel, aioListener);
 		ReadCompletionHandler readCompletionHandler = new DefaultReadCompletionHandler(aioListener, allocator, socketChannel);
 		readCompletionHandler.bind(channelContext);

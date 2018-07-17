@@ -39,11 +39,10 @@ public class BaseTest
 	private AioServer			aioServer;
 	private String				ip				= "127.0.0.1";
 	private int					port			= 7598;
-	private int					numPerThread	= 100000;
+	private int					numPerThread	= 1000000;
 	private int					numClients		= 10;
 	private JnetClient[]		clients;
 	private CountDownLatch		latch			= new CountDownLatch(numClients);
-	private int[]				sendContent;
 	private int[][]				results;
 	private static final Logger	logger			= LoggerFactory.getLogger(BaseTest.class);
 	
@@ -65,11 +64,6 @@ public class BaseTest
 		{
 			results[i] = new int[numPerThread];
 			Arrays.fill(results[i], -1);
-		}
-		sendContent = new int[numPerThread];
-		for (int i = 0; i < numPerThread; i++)
-		{
-			sendContent[i] = i;
 		}
 		AioServerBuilder builder = new AioServerBuilder();
 		builder.setAcceptHandler(new DefaultAcceptHandler(null, bufferAllocator, batchWriteNum, 512, new ChannelContextInitializer() {
@@ -163,7 +157,7 @@ public class BaseTest
 					{
 						e1.printStackTrace();
 					}
-					for (int j : sendContent)
+					for (int j = 0; j < numPerThread; j++)
 					{
 						IoBuffer buffer = PooledBufferAllocator.DEFAULT.ioBuffer(8);
 						buffer.putInt(8);

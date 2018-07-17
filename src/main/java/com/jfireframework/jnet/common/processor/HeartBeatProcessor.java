@@ -3,8 +3,7 @@ package com.jfireframework.jnet.common.processor;
 import java.io.IOException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import com.jfireframework.baseutil.reflect.ReflectUtil;
-import com.jfireframework.baseutil.reflect.UnsafeFieldAccess;
+import com.jfireframework.baseutil.reflect.UNSAFE;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.DataProcessor;
 import com.jfireframework.jnet.common.api.ProcessorInvoker;
@@ -13,7 +12,6 @@ import com.jfireframework.schedule.api.Timetask;
 import com.jfireframework.schedule.handler.SimpleExpireHandler;
 import com.jfireframework.schedule.timer.FixedCapacityWheelTimer;
 import com.jfireframework.schedule.trigger.RepeatDelayTrigger;
-import sun.misc.Unsafe;
 
 /**
  * 心跳检测处理器。
@@ -21,7 +19,6 @@ import sun.misc.Unsafe;
  * @author linbin
  *
  */
-@SuppressWarnings("restriction")
 public class HeartBeatProcessor implements DataProcessor<Object>
 {
 	private static final Timer TIMER;
@@ -31,8 +28,7 @@ public class HeartBeatProcessor implements DataProcessor<Object>
 	}
 	private final long			heartBeatDuration;
 	private volatile long		lastBeatTime;
-	private static final Unsafe	UNSAFE	= ReflectUtil.getUnsafe();
-	private static final long	OFFSET	= UnsafeFieldAccess.getFieldOffset("lastBeatTime", HeartBeatProcessor.class);
+	private static final long	OFFSET	= UNSAFE.getFieldOffset("lastBeatTime", HeartBeatProcessor.class);
 	
 	public HeartBeatProcessor(long heartBeatDuration, TimeUnit unit)
 	{

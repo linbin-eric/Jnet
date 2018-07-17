@@ -7,23 +7,29 @@ import com.jfireframework.jnet.common.buffer.IoBuffer;
 
 public class BatchWriteCompletionHandler extends AbstractWriteCompletionHandler
 {
-	private final int maxMerge;
+	private final int maxBufferedCapacity;
 	
-	public BatchWriteCompletionHandler(AioListener aioListener, AsynchronousSocketChannel socketChannel, BufferAllocator allocator, int capacity, int maxMerge)
+	public BatchWriteCompletionHandler(AioListener aioListener, AsynchronousSocketChannel socketChannel, BufferAllocator allocator, int capacity, int maxBufferedCapacity)
 	{
 		super(socketChannel, aioListener, allocator, capacity);
-		this.maxMerge = maxMerge;
+		this.maxBufferedCapacity = maxBufferedCapacity;
+	}
+	
+	public BatchWriteCompletionHandler(AioListener aioListener, AsynchronousSocketChannel socketChannel, BufferAllocator allocator, int capacity)
+	{
+		this(aioListener, socketChannel, allocator, capacity, 1024 * 1024);
 	}
 	
 	@Override
 	protected void writeQueuedBuffer()
 	{
 		IoBuffer head = null;
-		int maxMerge = this.maxMerge;
+		int maxBufferedCapacity = this.maxBufferedCapacity;
 		int count = 0;
 		IoBuffer buffer;
-		while (count < maxMerge && (buffer = queue.poll()) != null)
+		while (count < maxBufferedCapacity && (buffer = queue.poll()) != null)
 		{
+			count += buffer.remainRead();
 			if (head == null)
 			{
 				head = buffer;
@@ -33,7 +39,6 @@ public class BatchWriteCompletionHandler extends AbstractWriteCompletionHandler
 				head.put(buffer);
 				buffer.free();
 			}
-			count++;
 		}
 		entry.setIoBuffer(head);
 		entry.setByteBuffer(head.readableByteBuffer());

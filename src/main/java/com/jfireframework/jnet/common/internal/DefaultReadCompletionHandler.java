@@ -73,13 +73,18 @@ public class DefaultReadCompletionHandler implements ReadCompletionHandler
 			}
 			return;
 		}
-		if (buffer.getReadPosi() > 4096)
+		if (needCompact(buffer))
 		{
 			buffer.compact();
 		}
 		entry.setIoBuffer(buffer);
 		entry.setByteBuffer(buffer.writableByteBuffer());
 		socketChannel.read(entry.getByteBuffer(), entry, this);
+	}
+	
+	private boolean needCompact(IoBuffer buffer)
+	{
+		return buffer.getReadPosi() > 1024 * 1024 && buffer.remainRead() < 1024;
 	}
 	
 	private void catchException(Throwable e)

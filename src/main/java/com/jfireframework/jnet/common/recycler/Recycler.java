@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import com.jfireframework.baseutil.reflect.ReflectUtil;
-import com.jfireframework.baseutil.reflect.UnsafeFieldAccess;
+import com.jfireframework.baseutil.reflect.UNSAFE;
 import com.jfireframework.jnet.common.thread.FastThreadLocal;
 import com.jfireframework.jnet.common.util.MathUtil;
 import com.jfireframework.jnet.common.util.SystemPropertyUtil;
@@ -561,7 +561,7 @@ public abstract class Recycler<T>
 		volatile Link		next;
 		int					readIndex;
 		volatile int		writeIndex;
-		static final long	WRITE_INDEX_ADDRESS	= UnsafeFieldAccess.getFieldOffset("writeIndex", Link.class);
+		static final long	WRITE_INDEX_ADDRESS	= UNSAFE.getFieldOffset("writeIndex", Link.class);
 		static final Unsafe	unsafe				= ReflectUtil.getUnsafe();
 		final int			linkSize;
 		

@@ -2,7 +2,7 @@ package com.jfireframework.jnet.common.util;
 
 import java.util.Arrays;
 import com.jfireframework.baseutil.reflect.ReflectUtil;
-import com.jfireframework.baseutil.reflect.UnsafeFieldAccess;
+import com.jfireframework.baseutil.reflect.UNSAFE;
 import sun.misc.Unsafe;
 
 @SuppressWarnings("restriction")
@@ -52,8 +52,8 @@ abstract class Core extends Pad3
 {
 	
 	static Unsafe		unsafe					= ReflectUtil.getUnsafe();
-	static final long	consumerIndexAddress	= UnsafeFieldAccess.getFieldOffset("consumerIndex", ComsumerIndex.class);
-	static final long	producerIndexAddress	= UnsafeFieldAccess.getFieldOffset("producerIndex", ProducerIndex.class);
+	static final long	consumerIndexAddress	= UNSAFE.getFieldOffset("consumerIndex", ComsumerIndex.class);
+	static final long	producerIndexAddress	= UNSAFE.getFieldOffset("producerIndex", ProducerIndex.class);
 	static final long	availableBufferOffset	= unsafe.arrayBaseOffset(new int[0].getClass());
 	static final long	bufferOffset			= unsafe.arrayBaseOffset(Object[].class);
 	static final long	availableBufferScaleShift;

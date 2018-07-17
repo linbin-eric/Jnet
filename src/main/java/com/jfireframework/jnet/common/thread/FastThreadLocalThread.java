@@ -9,6 +9,11 @@ public class FastThreadLocalThread extends Thread
 		super(runnable);
 	}
 	
+	public FastThreadLocalThread(Runnable runnable, String name)
+	{
+		super(runnable, name);
+	}
+	
 	public FastThreadLocalMap getIfHaveFastThreadLocalMap()
 	{
 		return fastThreadLocalMap;

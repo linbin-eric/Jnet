@@ -6,6 +6,7 @@ import com.jfireframework.baseutil.reflect.ReflectUtil;
 import com.jfireframework.jnet.common.api.AcceptHandler;
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.internal.DefaultAioListener;
+import com.jfireframework.jnet.common.thread.FastThreadLocalThread;
 
 public class AioServerBuilder
 {
@@ -27,7 +28,7 @@ public class AioServerBuilder
 					@Override
 					public Thread newThread(Runnable r)
 					{
-						return new Thread(r, "AioServer_IoWorker-" + (i++));
+						return new FastThreadLocalThread(r, "AioServer_IoWorker-" + (i++));
 					}
 				});
 			}

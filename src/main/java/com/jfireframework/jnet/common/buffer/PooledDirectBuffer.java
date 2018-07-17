@@ -23,9 +23,17 @@ public class PooledDirectBuffer extends PooledBuffer<ByteBuffer>
 		{
 			return this;
 		}
-		Bits.copyDirectMemory(addressPlusOffsetCache + readPosi, addressPlusOffsetCache, remainRead());
-		writePosi -= readPosi;
-		readPosi = 0;
+		int length = remainRead();
+		if (length == 0)
+		{
+			writePosi = readPosi = 0;
+		}
+		else
+		{
+			Bits.copyDirectMemory(addressPlusOffsetCache + readPosi, addressPlusOffsetCache, length);
+			writePosi = length;
+			readPosi = 0;
+		}
 		return this;
 	}
 	
