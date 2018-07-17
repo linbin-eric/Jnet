@@ -90,11 +90,11 @@ public class DefaultClient implements JnetClient
 				ReflectUtil.throwException(e);
 			}
 		}
+		buffer.free();
 	}
 	
 	void nonBlockWrite(IoBuffer buffer)
 	{
-		connectIfNecessary();
 		channelContext.write(buffer);
 	}
 	
@@ -122,6 +122,7 @@ public class DefaultClient implements JnetClient
 	@Override
 	public void write(IoBuffer packet, boolean block) throws Exception
 	{
+		connectIfNecessary();
 		if (block)
 		{
 			blockWrite(packet);
