@@ -16,7 +16,7 @@ import com.jfireframework.baseutil.StringUtil;
 @RunWith(Parameterized.class)
 public class SmallAllocateTest
 {
-    PooledBufferAllocator allocator = new PooledUnThreadCacheBufferAllocator();
+	PooledBufferAllocator	allocator	= new PooledUnThreadCacheBufferAllocator("test");
     int                   reqCapacity;
     
     public SmallAllocateTest(int reqCapacity)

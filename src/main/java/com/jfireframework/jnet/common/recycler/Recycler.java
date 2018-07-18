@@ -213,7 +213,7 @@ public abstract class Recycler<T>
 					else
 					{
 						prev = null;
-						anchor = cursor;
+						anchor = null;
 					}
 				}
 				if (cursor.transfer(this))
@@ -222,6 +222,7 @@ public abstract class Recycler<T>
 				}
 				else if (cursor.ownerThread.get() == null)
 				{
+					cursor.returnResidueSpace();
 					if (prev == null)
 					{
 						removeHead(cursor);
@@ -371,6 +372,10 @@ public abstract class Recycler<T>
 			return true;
 		}
 		
+		void returnResidueSpace()
+		{
+			
+		}
 		/**
 		 * 尽可能将当前的数据转移到Stack中.
 		 * 

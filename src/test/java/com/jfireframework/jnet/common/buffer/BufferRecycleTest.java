@@ -5,7 +5,7 @@ import org.junit.Test;
 
 public class BufferRecycleTest
 {
-	PooledUnThreadCacheBufferAllocator allocator = new PooledUnThreadCacheBufferAllocator();
+	PooledUnThreadCacheBufferAllocator allocator = new PooledUnThreadCacheBufferAllocator("test");
 	
 	@Test
 	public void test()

@@ -16,7 +16,7 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class MemoryRegionCacheSmallTest
 {
-	PooledBufferAllocator	allocator	= new PooledBufferAllocator();
+	PooledBufferAllocator	allocator	= new PooledBufferAllocator("test");
 	private int				size;
 	
 	public MemoryRegionCacheSmallTest(int size)

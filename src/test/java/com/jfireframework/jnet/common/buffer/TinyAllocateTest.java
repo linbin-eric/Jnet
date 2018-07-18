@@ -14,7 +14,7 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class TinyAllocateTest
 {
-    PooledBufferAllocator allocator = new PooledUnThreadCacheBufferAllocator();
+	PooledBufferAllocator	allocator	= new PooledUnThreadCacheBufferAllocator("test");
     int                   reqCapacity;
     
     @Parameters

@@ -11,4 +11,8 @@ public class PlatFormFunction
 		return ((DirectBuffer) buffer).address();
 	}
 	
+	public static sun.misc.Cleaner bytebufferCleaner(ByteBuffer buffer)
+	{
+		return ((DirectBuffer) buffer).cleaner();
+	}
 }

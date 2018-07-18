@@ -14,7 +14,7 @@ public class ArenaTest
     
     public ArenaTest()
     {
-        allocator = new PooledUnThreadCacheBufferAllocator();
+		allocator = new PooledUnThreadCacheBufferAllocator("test");
         
     }
     

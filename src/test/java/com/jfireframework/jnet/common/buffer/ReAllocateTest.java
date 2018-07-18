@@ -6,7 +6,7 @@ import org.junit.Test;
 
 public class ReAllocateTest
 {
-	PooledUnThreadCacheBufferAllocator allocator = new PooledUnThreadCacheBufferAllocator();
+	PooledUnThreadCacheBufferAllocator allocator = new PooledUnThreadCacheBufferAllocator("test");
 	
 	@Test
 	public void test()

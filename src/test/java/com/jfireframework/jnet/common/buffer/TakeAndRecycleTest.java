@@ -6,7 +6,7 @@ import org.junit.Test;
 public class TakeAndRecycleTest
 {
 	int									pagesize	= 4096;
-	PooledUnThreadCacheBufferAllocator	allocator	= new PooledUnThreadCacheBufferAllocator(pagesize, 4, 1, 1, true);
+	PooledUnThreadCacheBufferAllocator	allocator	= new PooledUnThreadCacheBufferAllocator(pagesize, 4, 1, 1, true, "test");
 	
 	@Test
 	public void test()

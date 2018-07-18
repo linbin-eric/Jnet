@@ -4,7 +4,6 @@ import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import com.jfireframework.baseutil.reflect.ReflectUtil;
 import com.jfireframework.jnet.common.util.PlatFormFunction;
-import sun.misc.Cleaner;
 
 @SuppressWarnings("restriction")
 public class DirectArena extends Arena<ByteBuffer>
@@ -47,12 +46,10 @@ public class DirectArena extends Arena<ByteBuffer>
 	{
 		try
 		{
-			int size = chunk.memory.capacity() / 1024 / 1024;
-			sun.misc.Cleaner cleaner = (Cleaner) cleanerField.get(chunk.memory);
+			sun.misc.Cleaner cleaner = PlatFormFunction.bytebufferCleaner(chunk.memory);
 			cleaner.clean();
-			System.out.println("执行清除" + size);
 		}
-		catch (IllegalArgumentException | IllegalAccessException e)
+		catch (Throwable e)
 		{
 			ReflectUtil.throwException(e);
 		}
