@@ -3,9 +3,9 @@ package com.jfireframework.jnet.common.buffer;
 public class HeapArena extends Arena<byte[]>
 {
 	
-	public HeapArena(PooledBufferAllocator parent, int maxLevel, int pageSize, int pageSizeShift, int subpageOverflowMask)
+	public HeapArena(PooledBufferAllocator parent, int maxLevel, int pageSize, int pageSizeShift, int subpageOverflowMask, String name)
 	{
-		super(parent, maxLevel, pageSize, pageSizeShift, subpageOverflowMask);
+		super(parent, maxLevel, pageSize, pageSizeShift, subpageOverflowMask, name);
 	}
 	
 	@Override

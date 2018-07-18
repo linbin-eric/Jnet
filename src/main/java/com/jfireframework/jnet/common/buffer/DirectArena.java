@@ -25,9 +25,9 @@ public class DirectArena extends Arena<ByteBuffer>
 		}
 	}
 	
-	public DirectArena(PooledBufferAllocator parent, int maxLevel, int pageSize, int pageSizeShift, int subpageOverflowMask)
+	public DirectArena(PooledBufferAllocator parent, int maxLevel, int pageSize, int pageSizeShift, int subpageOverflowMask, String name)
 	{
-		super(parent, maxLevel, pageSize, pageSizeShift, subpageOverflowMask);
+		super(parent, maxLevel, pageSize, pageSizeShift, subpageOverflowMask, name);
 	}
 	
 	@Override
@@ -47,8 +47,10 @@ public class DirectArena extends Arena<ByteBuffer>
 	{
 		try
 		{
+			int size = chunk.memory.capacity() / 1024 / 1024;
 			sun.misc.Cleaner cleaner = (Cleaner) cleanerField.get(chunk.memory);
 			cleaner.clean();
+			System.out.println("执行清除" + size);
 		}
 		catch (IllegalArgumentException | IllegalAccessException e)
 		{

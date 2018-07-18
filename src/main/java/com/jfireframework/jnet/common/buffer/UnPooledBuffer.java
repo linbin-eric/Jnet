@@ -1,6 +1,6 @@
 package com.jfireframework.jnet.common.buffer;
 
-import com.jfireframework.jnet.common.recycler.Recycler.RecycleHandler;
+import com.jfireframework.jnet.common.recycler.RecycleHandler;
 
 public abstract class UnPooledBuffer<T> implements IoBuffer
 {

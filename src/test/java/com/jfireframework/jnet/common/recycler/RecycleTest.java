@@ -18,7 +18,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Test;
 import com.jfireframework.jnet.common.recycler.Recycler;
 import com.jfireframework.jnet.common.recycler.Recycler.DefaultHandler;
-import com.jfireframework.jnet.common.recycler.Recycler.RecycleHandler;
 import com.jfireframework.jnet.common.recycler.Recycler.Stack;
 import com.jfireframework.jnet.common.thread.FastThreadLocal;
 import com.jfireframework.jnet.common.thread.FastThreadLocalThread;

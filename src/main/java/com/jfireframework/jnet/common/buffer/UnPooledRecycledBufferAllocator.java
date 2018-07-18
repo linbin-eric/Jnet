@@ -1,11 +1,12 @@
 package com.jfireframework.jnet.common.buffer;
 
 import java.nio.ByteBuffer;
+import com.jfireframework.jnet.common.recycler.RecycleHandler;
 import com.jfireframework.jnet.common.recycler.Recycler;
 
 public class UnPooledRecycledBufferAllocator implements BufferAllocator
 {
-	public static UnPooledRecycledBufferAllocator	DEFAULT					= new UnPooledRecycledBufferAllocator();
+	public static UnPooledRecycledBufferAllocator	DEFAULT					= new UnPooledRecycledBufferAllocator("UnPooledRecycledBufferAllocator_default");
 	private Recycler<UnPooledHeapBuffer>			unPooledHeapBuffers		= new Recycler<UnPooledHeapBuffer>() {
 																				protected UnPooledHeapBuffer newObject(RecycleHandler handler)
 																				{
@@ -23,15 +24,17 @@ public class UnPooledRecycledBufferAllocator implements BufferAllocator
 																				};
 																			};
 	private boolean									preferDirect			= true;
+	private String									name;
 	
-	public UnPooledRecycledBufferAllocator()
+	public UnPooledRecycledBufferAllocator(String name)
 	{
-		this(true);
+		this(true, name);
 	}
 	
-	public UnPooledRecycledBufferAllocator(boolean preferDirect)
+	public UnPooledRecycledBufferAllocator(boolean preferDirect, String name)
 	{
 		this.preferDirect = preferDirect;
+		this.name = name;
 	}
 	
 	@Override
@@ -74,5 +77,11 @@ public class UnPooledRecycledBufferAllocator implements BufferAllocator
 		{
 			return heapBuffer(initializeCapacity);
 		}
+	}
+	
+	@Override
+	public String name()
+	{
+		return name;
 	}
 }

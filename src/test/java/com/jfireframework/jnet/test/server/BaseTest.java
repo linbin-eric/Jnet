@@ -40,7 +40,7 @@ public class BaseTest
 	private String				ip				= "127.0.0.1";
 	private int					port			= 7598;
 	private int					numPerThread	= 1000000;
-	private int					numClients		= 10;
+	private int					numClients		= 20;
 	private JnetClient[]		clients;
 	private CountDownLatch		latch			= new CountDownLatch(numClients);
 	private int[][]				results;
@@ -136,7 +136,7 @@ public class BaseTest
 	}
 	
 	@Test
-	public void test()
+	public void test() throws InterruptedException
 	{
 		final CyclicBarrier barrier = new CyclicBarrier(numClients);
 		final CountDownLatch finish = new CountDownLatch(numClients);
@@ -197,8 +197,13 @@ public class BaseTest
 		{
 			each.close();
 		}
-		aioServer.termination();
 		logger.info("测试完毕");
+		logger.info("可用内存" + Runtime.getRuntime().freeMemory() / 1024 / 1024);
+		System.gc();
+		TimeUnit.SECONDS.sleep(1);
+		logger.info("可用内存" + Runtime.getRuntime().freeMemory() / 1024 / 1024);
+		TimeUnit.SECONDS.sleep(10);
+		aioServer.termination();
 	}
 	
 }
