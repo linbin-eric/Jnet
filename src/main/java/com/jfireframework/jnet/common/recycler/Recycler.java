@@ -11,34 +11,34 @@ import com.jfireframework.jnet.common.util.SystemPropertyUtil;
 
 public abstract class Recycler<T>
 {
-	public static final AtomicInteger							IDGENERATOR					= new AtomicInteger(0);
-	public static final int										recyclerId					= IDGENERATOR.getAndIncrement();
+	public static final AtomicInteger					IDGENERATOR					= new AtomicInteger(0);
+	public static final int								recyclerId					= IDGENERATOR.getAndIncrement();
 	// Stack最大可以存储的缓存对象个数
-	public static final int										MAX_CACHE_INSTANCE_CAPACITY	= Math.max(MathUtil.normalizeSize(SystemPropertyUtil.getInt("io.jnet.recycler.maxCacheInstanceCapacity", 0)), 32 * 1024);
+	public static final int								MAX_CACHE_INSTANCE_CAPACITY	= Math.max(MathUtil.normalizeSize(SystemPropertyUtil.getInt("io.jnet.recycler.maxCacheInstanceCapacity", 0)), 32 * 1024);
 	// 一个线程最多持有的延迟队列个数
-	public static final int										MAX_DELAY_QUEUE_NUM			= Math.max(SystemPropertyUtil.getInt("io.jnet.recycler.maxDelayQueueNum", 0), 256);
+	public static final int								MAX_DELAY_QUEUE_NUM			= Math.max(SystemPropertyUtil.getInt("io.jnet.recycler.maxDelayQueueNum", 0), 256);
 	// Stack最多可以在延迟队列中存放的个数
-	public static final int										MAX_SHARED_CAPACITY			= Math.max(SystemPropertyUtil.getInt("io.jnet.recycler.maxSharedCapacity", 0), MAX_CACHE_INSTANCE_CAPACITY);
-	public static final int										LINK_SIZE					= Math.max(SystemPropertyUtil.getInt("io.jnet.recycler.linSize", 0), 1024);
+	public static final int								MAX_SHARED_CAPACITY			= Math.max(SystemPropertyUtil.getInt("io.jnet.recycler.maxSharedCapacity", 0), MAX_CACHE_INSTANCE_CAPACITY);
+	public static final int								LINK_SIZE					= Math.max(SystemPropertyUtil.getInt("io.jnet.recycler.linSize", 0), 1024);
 	/////////////////////////////////
-	private int													maxCachedInstanceCapacity;
-	private int													stackInitSize				= 2048;
-	private int													maxDelayQueueNum;
-	private int													linkSize;
-	private int													maxSharedCapacity;
+	private int											maxCachedInstanceCapacity;
+	private int											stackInitSize				= 2048;
+	private int											maxDelayQueueNum;
+	private int											linkSize;
+	private int											maxSharedCapacity;
 	
-	private final FastThreadLocal<Map<Stack, WeakOrderQueue>>	delayQueues					= new FastThreadLocal<Map<Stack, WeakOrderQueue>>() {
-																								protected java.util.Map<Stack, WeakOrderQueue> initializeValue()
-																								{
-																									return new WeakHashMap<>();
-																								};
-																							};
-	private final FastThreadLocal<Stack>						currentStack				= new FastThreadLocal<Stack>() {
-																								protected Stack initializeValue()
-																								{
-																									return new Stack();
-																								};
-																							};
+	final FastThreadLocal<Map<Stack, WeakOrderQueue>>	delayQueues					= new FastThreadLocal<Map<Stack, WeakOrderQueue>>() {
+																						protected java.util.Map<Stack, WeakOrderQueue> initializeValue()
+																						{
+																							return new WeakHashMap<>();
+																						};
+																					};
+	final FastThreadLocal<Stack>						currentStack				= new FastThreadLocal<Stack>() {
+																						protected Stack initializeValue()
+																						{
+																							return new Stack();
+																						};
+																					};
 	
 	protected abstract T newObject(RecycleHandler handler);
 	
@@ -222,6 +222,8 @@ public abstract class Recycler<T>
 				}
 				else if (cursor.ownerThread.get() == null)
 				{
+					// 做最后一次数据迁移尝试
+					cursor.transfer(this);
 					cursor.returnResidueSpace();
 					if (prev == null)
 					{
@@ -374,10 +376,16 @@ public abstract class Recycler<T>
 		
 		void returnResidueSpace()
 		{
-			
+			// 在最后一次迁移尝试后，如果该Link的read没有处于终止位置（LinkSize），则意味着该Link的空间尚未归还
+			if (cursor.read != linkSize)
+			{
+				reclaimSpace(linkSize, sharedCapacity);
+			}
 		}
+		
 		/**
-		 * 尽可能将当前的数据转移到Stack中.
+		 * 尽可能的移动数据到Stack中。如果有数据被移动，返回true。否则返回false.<br/>
+		 * 转移过程中每消耗完一个Link，则将对应的容量归还到共享容量中。
 		 * 
 		 * @param stack
 		 */

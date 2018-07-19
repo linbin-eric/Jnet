@@ -15,8 +15,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.junit.Before;
 import org.junit.Test;
-import com.jfireframework.jnet.common.recycler.Recycler;
 import com.jfireframework.jnet.common.recycler.Recycler.DefaultHandler;
 import com.jfireframework.jnet.common.recycler.Recycler.Stack;
 import com.jfireframework.jnet.common.thread.FastThreadLocal;
@@ -35,6 +35,7 @@ public class RecycleTest
 	private Field	lastRecycleIdField;
 	private Field	currentStackField;
 	private Field	sharedCapacityField;
+	Recycler<Entry>	recycler;
 	
 	public RecycleTest()
 	{
@@ -57,16 +58,20 @@ public class RecycleTest
 		
 	}
 	
-	Recycler<Entry> recycler = new Recycler<Entry>() {
-		
-		@Override
-		protected Entry newObject(RecycleHandler handler)
-		{
-			Entry entry = new Entry();
-			entry.handler = handler;
-			return entry;
-		}
-	};
+	@Before
+	public void before()
+	{
+		recycler = new Recycler<Entry>() {
+			
+			@Override
+			protected Entry newObject(RecycleHandler handler)
+			{
+				Entry entry = new Entry();
+				entry.handler = handler;
+				return entry;
+			}
+		};
+	}
 	
 	@Test
 	public void test()
@@ -219,7 +224,7 @@ public class RecycleTest
 		assertTrue(another != recycler.get());
 	}
 	
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private AtomicInteger getShareCapacity() throws IllegalAccessException
 	{
 		FastThreadLocal<Stack> object = (FastThreadLocal<Stack>) currentStackField.get(recycler);
@@ -286,5 +291,49 @@ public class RecycleTest
 			set.remove(recycler.get());
 		}
 		assertEquals(0, set.size());
+	}
+	
+	/**
+	 * 检查是否会归还剩余的共享容量
+	 * 
+	 * @throws InterruptedException
+	 */
+	@Test
+	public void test7() throws InterruptedException
+	{
+		int size = Recycler.LINK_SIZE + (Recycler.LINK_SIZE >> 1);
+		final Queue<Entry> queue = new LinkedList<>();
+		for (int i = 0; i < size; i++)
+		{
+			queue.add(recycler.get());
+		}
+		final CountDownLatch latch = new CountDownLatch(1);
+		new Thread(new Runnable() {
+			
+			@Override
+			public void run()
+			{
+				for (Entry each : queue)
+				{
+					each.handler.recycle(each);
+				}
+				latch.countDown();
+			}
+		}).start();
+		latch.await();
+		Recycler<Entry>.Stack stack = recycler.currentStack.get();
+		assertEquals(Recycler.MAX_SHARED_CAPACITY - 2 * Recycler.LINK_SIZE, stack.sharedCapacity.get());
+		System.gc();
+		for (int i = 0; i < size; i++)
+		{
+			recycler.get();
+			if (i == 0)
+			{
+				assertEquals(Recycler.MAX_SHARED_CAPACITY - 1 * Recycler.LINK_SIZE, stack.sharedCapacity.get());
+			}
+		}
+		assertEquals(Recycler.MAX_SHARED_CAPACITY - 1 * Recycler.LINK_SIZE, stack.sharedCapacity.get());
+		recycler.get();
+		assertEquals(Recycler.MAX_SHARED_CAPACITY, stack.sharedCapacity.get());
 	}
 }

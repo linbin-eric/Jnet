@@ -1,4 +1,4 @@
-package com.jfireframework.jnet.test.server;
+package com.jfireframework.jnet;
 
 import static org.junit.Assert.assertEquals;
 import java.util.Arrays;
