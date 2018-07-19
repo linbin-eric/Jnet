@@ -3,16 +3,14 @@ package com.jfireframework.jnet.common.buffer;
 import java.lang.reflect.Method;
 import java.nio.ByteOrder;
 import com.jfireframework.baseutil.reflect.ReflectUtil;
-import sun.misc.Unsafe;
+import com.jfireframework.baseutil.reflect.UNSAFE;
 
-@SuppressWarnings("restriction")
 public final class Bits
 {
 	public static final int			JNI_COPY_TO_ARRAY_THRESHOLD		= 6;
 	public static final int			JNI_COPY_FROM_ARRAY_THRESHOLD	= 6;
-	private static final Unsafe		unsafe							= ReflectUtil.getUnsafe();
 	private static final long		UNSAFE_COPY_THRESHOLD			= 1024L * 1024L;
-	private static final int		arrayBaseOffset					= unsafe.arrayBaseOffset(byte[].class);
+	private static final int		arrayBaseOffset					= UNSAFE.arrayBaseOffset(byte[].class);
 	public static boolean			unaligned;
 	private static final boolean	nativeByteOrder;
 	static
@@ -70,7 +68,7 @@ public final class Bits
 		while (length > 0)
 		{
 			long size = (length > UNSAFE_COPY_THRESHOLD) ? UNSAFE_COPY_THRESHOLD : length;
-			unsafe.copyMemory(src, offset, null, dstAddr, size);
+			UNSAFE.copyMemory(src, offset, null, dstAddr, size);
 			length -= size;
 			offset += size;
 			dstAddr += size;
@@ -91,7 +89,7 @@ public final class Bits
 		while (length > 0)
 		{
 			long size = (length > UNSAFE_COPY_THRESHOLD) ? UNSAFE_COPY_THRESHOLD : length;
-			unsafe.copyMemory(null, srcAddr, dst, offset, size);
+			UNSAFE.copyMemory(null, srcAddr, dst, offset, size);
 			length -= size;
 			srcAddr += size;
 			offset += size;
@@ -107,24 +105,24 @@ public final class Bits
 	 */
 	public static void copyDirectMemory(long srcAddr, long destAddr, long length)
 	{
-		unsafe.copyMemory(srcAddr, destAddr, length);
+		UNSAFE.copyMemory(srcAddr, destAddr, length);
 	}
 	
 	public static void put(long address, byte b)
 	{
-		unsafe.putByte(address, b);
+		UNSAFE.putByte(address, b);
 	}
 	
 	public static byte get(long address)
 	{
-		return unsafe.getByte(address);
+		return UNSAFE.getByte(address);
 	}
 	
 	public static void putInt(long address, int value)
 	{
 		if (unaligned)
 		{
-			unsafe.putInt(address, nativeByteOrder ? value : swap(value));
+			UNSAFE.putInt(address, nativeByteOrder ? value : swap(value));
 		}
 		else
 		{
@@ -144,7 +142,7 @@ public final class Bits
 	{
 		if (unaligned)
 		{
-			int x = unsafe.getInt(address);
+			int x = UNSAFE.getInt(address);
 			return nativeByteOrder ? x : swap(x);
 		}
 		return getIntBigendian(address);
@@ -159,7 +157,7 @@ public final class Bits
 	{
 		if (unaligned)
 		{
-			unsafe.putLong(address, nativeByteOrder ? value : swap(value));
+			UNSAFE.putLong(address, nativeByteOrder ? value : swap(value));
 		}
 		else
 		{
@@ -183,7 +181,7 @@ public final class Bits
 	{
 		if (unaligned)
 		{
-			long value = unsafe.getLong(address);
+			long value = UNSAFE.getLong(address);
 			return nativeByteOrder ? value : swap(value);
 		}
 		return getLongBigEndian(address);
@@ -205,7 +203,7 @@ public final class Bits
 	{
 		if (unaligned)
 		{
-			unsafe.putShort(address, nativeByteOrder ? s : swap(s));
+			UNSAFE.putShort(address, nativeByteOrder ? s : swap(s));
 		}
 		else
 		{
@@ -223,7 +221,7 @@ public final class Bits
 	{
 		if (unaligned)
 		{
-			short s = unsafe.getShort(address);
+			short s = UNSAFE.getShort(address);
 			return nativeByteOrder ? s : swap(s);
 		}
 		else

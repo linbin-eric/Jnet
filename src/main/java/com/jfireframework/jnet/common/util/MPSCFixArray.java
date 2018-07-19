@@ -3,9 +3,7 @@ package com.jfireframework.jnet.common.util;
 import java.util.Arrays;
 import com.jfireframework.baseutil.reflect.ReflectUtil;
 import com.jfireframework.baseutil.reflect.UNSAFE;
-import sun.misc.Unsafe;
 
-@SuppressWarnings("restriction")
 abstract class PadFor64Bit
 {
 	// 64长度的缓存行，要进行填充，需要8个byte。
@@ -47,21 +45,18 @@ abstract class Pad3 extends ComsumerIndex
 	}
 }
 
-@SuppressWarnings("restriction")
 abstract class Core extends Pad3
 {
-	
-	static Unsafe		unsafe					= ReflectUtil.getUnsafe();
 	static final long	consumerIndexAddress	= UNSAFE.getFieldOffset("consumerIndex", ComsumerIndex.class);
 	static final long	producerIndexAddress	= UNSAFE.getFieldOffset("producerIndex", ProducerIndex.class);
-	static final long	availableBufferOffset	= unsafe.arrayBaseOffset(new int[0].getClass());
-	static final long	bufferOffset			= unsafe.arrayBaseOffset(Object[].class);
+	static final long	availableBufferOffset	= UNSAFE.arrayBaseOffset(new int[0].getClass());
+	static final long	bufferOffset			= UNSAFE.arrayBaseOffset(Object[].class);
 	static final long	availableBufferScaleShift;
 	static final long	bufferScaleShift;
 	
 	static
 	{
-		int availableBufferScale = unsafe.arrayIndexScale(new int[0].getClass());
+		int availableBufferScale = UNSAFE.arrayIndexScale(new int[0].getClass());
 		if (availableBufferScale == 4)
 		{
 			availableBufferScaleShift = 2;
@@ -74,7 +69,7 @@ abstract class Core extends Pad3
 		{
 			throw new IllegalArgumentException();
 		}
-		int bufferScale = unsafe.arrayIndexScale(Object[].class);
+		int bufferScale = UNSAFE.arrayIndexScale(Object[].class);
 		if (bufferScale == 4)
 		{
 			bufferScaleShift = 2;
@@ -121,26 +116,26 @@ abstract class Core extends Pad3
 	
 	final void setConsumerIndexOrdered(long consumerIndex)
 	{
-		unsafe.putOrderedLong(this, consumerIndexAddress, consumerIndex);
+		UNSAFE.putOrderedLong(this, consumerIndexAddress, consumerIndex);
 	}
 	
 	boolean isAvailable(long index)
 	{
 		int flag = (int) (index >>> indexShift);
 		long address = ((index & mask) << availableBufferScaleShift) + availableBufferOffset;
-		return unsafe.getIntVolatile(availableBuffers, address) == flag;
+		return UNSAFE.getIntVolatile(availableBuffers, address) == flag;
 	}
 	
 	boolean isAvailable(long address, int flag)
 	{
-		return unsafe.getIntVolatile(availableBuffers, address) == flag;
+		return UNSAFE.getIntVolatile(availableBuffers, address) == flag;
 	}
 	
 	void setAvailable(long index)
 	{
 		int flag = (int) (index >>> indexShift);
 		long address = ((index & mask) << availableBufferScaleShift) + availableBufferOffset;
-		unsafe.putOrderedInt(availableBuffers, address, flag);
+		UNSAFE.putOrderedInt(availableBuffers, address, flag);
 	}
 	
 	/**
@@ -153,7 +148,7 @@ abstract class Core extends Pad3
 		long pIndex = producerIndex;
 		if (pIndex < producerIndexLimit)
 		{
-			if (unsafe.compareAndSwapLong(this, producerIndexAddress, pIndex, pIndex + 1))
+			if (UNSAFE.compareAndSwapLong(this, producerIndexAddress, pIndex, pIndex + 1))
 			{
 				return pIndex;
 			}
@@ -163,7 +158,7 @@ abstract class Core extends Pad3
 			pIndex = producerIndex;
 			if (pIndex < producerIndexLimit)
 			{
-				if (unsafe.compareAndSwapLong(this, producerIndexAddress, pIndex, pIndex + 1))
+				if (UNSAFE.compareAndSwapLong(this, producerIndexAddress, pIndex, pIndex + 1))
 				{
 					return pIndex;
 				}
@@ -186,7 +181,7 @@ abstract class Core extends Pad3
 				}
 				else
 				{
-					if (unsafe.compareAndSwapLong(this, producerIndexAddress, pIndex, pIndex + 1))
+					if (UNSAFE.compareAndSwapLong(this, producerIndexAddress, pIndex, pIndex + 1))
 					{
 						return pIndex;
 					}
@@ -198,7 +193,7 @@ abstract class Core extends Pad3
 	Object get(long index)
 	{
 		long address = ((index & mask) << bufferScaleShift) + bufferOffset;
-		return unsafe.getObject(buffer, address);
+		return UNSAFE.getObject(buffer, address);
 	}
 	
 }

@@ -198,11 +198,6 @@ public class BaseTest
 			each.close();
 		}
 		logger.info("测试完毕");
-		logger.info("可用内存" + Runtime.getRuntime().freeMemory() / 1024 / 1024);
-		System.gc();
-		TimeUnit.SECONDS.sleep(1);
-		logger.info("可用内存" + Runtime.getRuntime().freeMemory() / 1024 / 1024);
-		TimeUnit.SECONDS.sleep(10);
 		aioServer.termination();
 	}
 	

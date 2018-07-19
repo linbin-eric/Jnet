@@ -2,22 +2,18 @@ package com.jfireframework.jnet.common.processor.worker;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
-import com.jfireframework.baseutil.reflect.ReflectUtil;
 import com.jfireframework.baseutil.reflect.UNSAFE;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ProcessorInvoker;
 import com.jfireframework.jnet.common.util.FixArray;
 import com.jfireframework.jnet.common.util.SPSCFixArray;
-import sun.misc.Unsafe;
 
-@SuppressWarnings("restriction")
 public class ChannelAttachWorker implements Runnable
 {
 	
 	private static final int					IDLE			= 0;
 	private static final int					WORK			= 1;
 	private static final int					SPIN_THRESHOLD	= 1 << 7;
-	private static final Unsafe					unsafe			= ReflectUtil.getUnsafe();
 	private static final long					STATE_OFFSET	= UNSAFE.getFieldOffset("state", ChannelAttachWorker.class);
 	private final ExecutorService				executorService;
 	private final FixArray<ChannelAttachEntity>	entities		= new SPSCFixArray<ChannelAttachEntity>(512) {
@@ -104,7 +100,7 @@ public class ChannelAttachWorker implements Runnable
 	private void tryExecute()
 	{
 		int now = state;
-		if (now == IDLE && unsafe.compareAndSwapLong(this, STATE_OFFSET, IDLE, WORK))
+		if (now == IDLE && UNSAFE.compareAndSwapLong(this, STATE_OFFSET, IDLE, WORK))
 		{
 			executorService.execute(this);
 		}
