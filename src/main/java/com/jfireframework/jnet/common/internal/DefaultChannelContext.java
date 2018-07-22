@@ -44,7 +44,7 @@ public class DefaultChannelContext implements ChannelContext
             }
             
             @Override
-            public boolean backpressureProcess(Object data) throws Throwable
+            public boolean backPressureProcess(Object data) throws Throwable
             {
                 throw new IllegalStateException("这是处理链条的结尾，不应该走到这个步骤");
             }
@@ -63,7 +63,7 @@ public class DefaultChannelContext implements ChannelContext
                 }
                 
                 @Override
-                public boolean backpressureProcess(Object data) throws Throwable
+                public boolean backPressureProcess(Object data) throws Throwable
                 {
                     return processor.backpressureProcess(data, next);
                 }
@@ -84,21 +84,21 @@ public class DefaultChannelContext implements ChannelContext
     }
     
     @Override
-    public void bindWriteCompleteHandler(WriteCompletionHandler writeCompletionHandler)
+    public void bind(WriteCompletionHandler writeCompletionHandler)
     {
         this.writeCompletionHandler = writeCompletionHandler;
     }
     
     @Override
-    public boolean backpressureWrite(IoBuffer buffer)
+    public boolean backPressureWrite(IoBuffer buffer)
     {
-        return writeCompletionHandler.backpressureOffer(buffer, true);
+        return writeCompletionHandler.backPressureOffer(buffer, true);
     }
     
     @Override
-    public boolean backpressureProcess(IoBuffer buffer) throws Throwable
+    public boolean backPressureProcess(IoBuffer buffer) throws Throwable
     {
-        return invoker.backpressureProcess(buffer);
+        return invoker.backPressureProcess(buffer);
     }
     
 }

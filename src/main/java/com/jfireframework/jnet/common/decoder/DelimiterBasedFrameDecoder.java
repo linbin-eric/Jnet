@@ -99,7 +99,7 @@ public class DelimiterBasedFrameDecoder implements DataProcessor<IoBuffer>
                 IoBuffer packet = allocator.ioBuffer(contentLength);
                 packet.put(ioBuf, contentLength);
                 ioBuf.setReadPosi(index + delimiter.length);
-                boolean process = next.backpressureProcess(packet);
+                boolean process = next.backPressureProcess(packet);
                 if (process == false)
                 {
                     return false;

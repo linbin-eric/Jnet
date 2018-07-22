@@ -12,6 +12,12 @@ public interface AioListener
      */
     void afterWrited(AsynchronousSocketChannel socketChannel, Integer writes);
     
+    /**
+     * 当ChannelContext实例被创建时触发
+     * 
+     * @param socketChannel
+     * @param channelContext
+     */
     void onAccept(AsynchronousSocketChannel socketChannel, ChannelContext channelContext);
     
     /**

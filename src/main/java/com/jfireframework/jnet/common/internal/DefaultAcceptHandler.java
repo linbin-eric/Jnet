@@ -15,32 +15,43 @@ public class DefaultAcceptHandler implements AcceptHandler
 {
     protected final AioListener               aioListener;
     protected final BufferAllocator           allocator;
-    protected final int                       batchWriteNum;
-    protected final int                       writeQueueCapacity;
+    protected final int                       maxWriteBytes;
+    protected final int                       queueCapacity;
     protected final ChannelContextInitializer channelContextInitializer;
+    protected final boolean                   backPressure;
     
-    public DefaultAcceptHandler(AioListener aioListener, BufferAllocator allocator, int batchWriteNum, int writeQueueCapacity, ChannelContextInitializer channelContextInitializer)
+    /**
+     * 
+     * @param aioListener
+     * @param allocator
+     * @param maxWriteBytes 单次最大写字节数，写完成器默认会不断聚合数据，直到达到最大写字节数或者聚合完毕，才会真正执行写操作
+     * @param channelContextInitializer
+     * @param backPressure
+     * @param queueCapacity 背压模式时，写完成器的队列长度。
+     */
+    public DefaultAcceptHandler(AioListener aioListener, BufferAllocator allocator, int maxWriteBytes, ChannelContextInitializer channelContextInitializer, boolean backPressure, int queueCapacity)
     {
         this.allocator = allocator;
         this.aioListener = aioListener;
-        this.batchWriteNum = batchWriteNum;
-        this.writeQueueCapacity = writeQueueCapacity;
+        this.maxWriteBytes = maxWriteBytes;
+        this.queueCapacity = queueCapacity;
         this.channelContextInitializer = channelContextInitializer;
+        this.backPressure = backPressure;
     }
     
     public DefaultAcceptHandler(AioListener aioListener, BufferAllocator allocator, ChannelContextInitializer channelContextInitializer)
     {
-        this(aioListener, allocator, 1, 512, channelContextInitializer);
+        this(aioListener, allocator, 1, channelContextInitializer, false, -1);
     }
     
     @Override
     public void completed(AsynchronousSocketChannel socketChannel, AsynchronousServerSocketChannel serverChannel)
     {
-        WriteCompletionHandler writeCompletionHandler = new BatchWriteCompletionHandler(aioListener, socketChannel, allocator, writeQueueCapacity);
+        WriteCompletionHandler writeCompletionHandler = backPressure ? new BackPressureWriteCompleteHandler(socketChannel, aioListener, allocator, maxWriteBytes, queueCapacity) : new DefaultWriteCompletionHandler(socketChannel, aioListener, allocator, maxWriteBytes);
         ChannelContext channelContext = new DefaultChannelContext(socketChannel, aioListener);
-        ReadCompletionHandler readCompletionHandler = new DefaultReadCompletionHandler(aioListener, allocator, socketChannel);
+        ReadCompletionHandler readCompletionHandler = new DefaultReadCompletionHandler(aioListener, allocator, socketChannel, true);
         readCompletionHandler.bind(channelContext);
-        channelContext.bindWriteCompleteHandler(writeCompletionHandler);
+        channelContext.bind(writeCompletionHandler);
         writeCompletionHandler.bind(readCompletionHandler);
         if (aioListener != null)
         {
@@ -63,5 +74,4 @@ public class DefaultAcceptHandler implements AcceptHandler
             e.printStackTrace();
         }
     }
-    
 }

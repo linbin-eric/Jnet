@@ -4,17 +4,15 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.Queue;
-import com.jfireframework.baseutil.concurrent.MPSCLinkedQueue;
 import com.jfireframework.baseutil.reflect.UNSAFE;
 import com.jfireframework.jnet.common.api.AioListener;
-import com.jfireframework.jnet.common.api.ReadCompletionHandler;
 import com.jfireframework.jnet.common.api.WriteCompletionHandler;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
 
-public abstract class AbstractWriteCompletionHandler implements WriteCompletionHandler
+public abstract class AbstractWriteCompleteHandler implements WriteCompletionHandler
 {
-    protected static final long               STATE_OFFSET   = UNSAFE.getFieldOffset("state", AbstractWriteCompletionHandler.class);
+    protected static final long               STATE_OFFSET   = UNSAFE.getFieldOffset("state", DefaultWriteCompletionHandler.class);
     protected static final int                SPIN_THRESHOLD = 1 << 7;
     protected static final int                WORK           = 1;
     protected static final int                IDLE           = 2;
@@ -28,47 +26,14 @@ public abstract class AbstractWriteCompletionHandler implements WriteCompletionH
     protected final AsynchronousSocketChannel socketChannel;
     protected final BufferAllocator           allocator;
     protected final AioListener               aioListener;
+    protected final int                       maxWriteBytes;
     
-    public AbstractWriteCompletionHandler(AsynchronousSocketChannel socketChannel, AioListener aioListener, BufferAllocator allocator, int queueCapacity)
+    public AbstractWriteCompleteHandler(AsynchronousSocketChannel socketChannel, AioListener aioListener, BufferAllocator allocator, int maxWriteBytes)
     {
         this.socketChannel = socketChannel;
         this.allocator = allocator;
         this.aioListener = aioListener;
-        // queue = queueCapacity == 0 ? new MPSCLinkedQueue<IoBuffer>() : new
-        // MPSCArrayQueue<IoBuffer>(queueCapacity);
-        queue = new MPSCLinkedQueue<IoBuffer>();
-    }
-    
-    @Override
-    public void offer(IoBuffer buf)
-    {
-        if (buf == null)
-        {
-            throw new NullPointerException();
-        }
-        if (queue.offer(buf) == false)
-        {
-            while (queue.offer(buf) == false)
-            {
-                Thread.yield();
-            }
-        }
-        int now = state;
-        if (now == TERMINATION)
-        {
-            throw new IllegalStateException("该通道已经处于关闭状态，无法执行写操作");
-        }
-        if (now == IDLE && changeToWork())
-        {
-            if (queue.isEmpty() == false)
-            {
-                writeQueuedBuffer();
-            }
-            else
-            {
-                rest();
-            }
-        }
+        this.maxWriteBytes = Math.max(1, maxWriteBytes);
     }
     
     protected void rest()
@@ -89,6 +54,11 @@ public abstract class AbstractWriteCompletionHandler implements WriteCompletionH
                 }
             }
         }
+    }
+    
+    protected boolean changeToWork()
+    {
+        return UNSAFE.compareAndSwapInt(this, STATE_OFFSET, IDLE, WORK);
     }
     
     @Override
@@ -132,11 +102,28 @@ public abstract class AbstractWriteCompletionHandler implements WriteCompletionH
     /**
      * 从MPSCQueue中取得IoBuffer，并且执行写操作
      */
-    protected abstract void writeQueuedBuffer();
-    
-    protected boolean changeToWork()
+    protected void writeQueuedBuffer()
     {
-        return UNSAFE.compareAndSwapInt(this, STATE_OFFSET, IDLE, WORK);
+        IoBuffer head = null;
+        int maxBufferedCapacity = this.maxWriteBytes;
+        int count = 0;
+        IoBuffer buffer;
+        while (count < maxBufferedCapacity && (buffer = queue.poll()) != null)
+        {
+            count += buffer.remainRead();
+            if (head == null)
+            {
+                head = buffer;
+            }
+            else
+            {
+                head.put(buffer);
+                buffer.free();
+            }
+        }
+        entry.setIoBuffer(head);
+        entry.setByteBuffer(head.readableByteBuffer());
+        socketChannel.write(entry.getByteBuffer(), entry, this);
     }
     
     @Override
@@ -163,15 +150,4 @@ public abstract class AbstractWriteCompletionHandler implements WriteCompletionH
         }
     }
     
-    @Override
-    public boolean backpressureOffer(IoBuffer buffer) throws IllegalStateException
-    {
-        throw new UnsupportedOperationException();
-    }
-    
-    @Override
-    public void bind(ReadCompletionHandler readCompletionHandler)
-    {
-        ;
-    }
 }

@@ -16,12 +16,19 @@ public class DefaultReadCompletionHandler implements ReadCompletionHandler
     protected final BufferAllocator           allocator;
     protected final ReadEntry                 entry = new ReadEntry();
     protected ChannelContext                  channelContext;
+    private final boolean                     backPressure;
     
-    public DefaultReadCompletionHandler(AioListener aioListener, BufferAllocator allocator, AsynchronousSocketChannel socketChannel)
+    public DefaultReadCompletionHandler(AioListener aioListener, BufferAllocator allocator, AsynchronousSocketChannel socketChannel, boolean backPressure)
     {
         this.aioListener = aioListener;
         this.allocator = allocator;
         this.socketChannel = socketChannel;
+        this.backPressure = backPressure;
+    }
+    
+    public DefaultReadCompletionHandler(AioListener aioListener, BufferAllocator allocator, AsynchronousSocketChannel socketChannel)
+    {
+        this(aioListener, allocator, socketChannel, false);
     }
     
     @Override
@@ -57,7 +64,17 @@ public class DefaultReadCompletionHandler implements ReadCompletionHandler
         buffer.addWritePosi(read);
         try
         {
-            channelContext.process(buffer);
+            if (backPressure)
+            {
+                if (channelContext.backPressureProcess(buffer) == false)
+                {
+                    return;
+                }
+            }
+            else
+            {
+                channelContext.process(buffer);
+            }
         }
         catch (Throwable e)
         {
@@ -111,7 +128,35 @@ public class DefaultReadCompletionHandler implements ReadCompletionHandler
     @Override
     public void continueRead()
     {
-        throw new UnsupportedOperationException();
+        IoBuffer buffer = entry.getIoBuffer();
+        try
+        {
+            boolean process = channelContext.backPressureProcess(buffer);
+            if (process == false)
+            {
+                return;
+            }
+        }
+        catch (Throwable e)
+        {
+            catchException(e);
+            buffer.free();
+            try
+            {
+                socketChannel.close();
+            }
+            catch (IOException e1)
+            {
+                ;
+            }
+            return;
+        }
+        if (needCompact(buffer))
+        {
+            buffer.compact();
+        }
+        entry.setByteBuffer(buffer.writableByteBuffer());
+        socketChannel.read(entry.getByteBuffer(), entry, this);
     }
     
 }

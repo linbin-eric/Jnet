@@ -8,24 +8,31 @@ import com.jfireframework.jnet.common.processor.worker.ChannelAttachWorker;
 
 public class ChannelAttachProcessor implements DataProcessor<Object>
 {
-	private final ChannelAttachWorker	worker;
-	private ChannelContext				channelContext;
-	
-	public ChannelAttachProcessor(ExecutorService executorService)
-	{
-		worker = new ChannelAttachWorker(executorService);
-	}
-	
-	@Override
-	public void bind(ChannelContext channelContext)
-	{
-		this.channelContext = channelContext;
-	}
-	
-	@Override
-	public void process(Object data, ProcessorInvoker next) throws Throwable
-	{
-		worker.commit(channelContext, next, data);
-	}
-	
+    private final ChannelAttachWorker worker;
+    private ChannelContext            channelContext;
+    
+    public ChannelAttachProcessor(ExecutorService executorService)
+    {
+        worker = new ChannelAttachWorker(executorService);
+    }
+    
+    @Override
+    public void bind(ChannelContext channelContext)
+    {
+        this.channelContext = channelContext;
+    }
+    
+    @Override
+    public void process(Object data, ProcessorInvoker next) throws Throwable
+    {
+        worker.commit(channelContext, next, data);
+    }
+    
+    @Override
+    public boolean backpressureProcess(Object data, ProcessorInvoker next) throws Throwable
+    {
+        // TODO Auto-generated method stub
+        return false;
+    }
+    
 }

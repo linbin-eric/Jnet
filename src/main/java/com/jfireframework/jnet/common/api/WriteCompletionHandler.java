@@ -24,8 +24,13 @@ public interface WriteCompletionHandler extends CompletionHandler<Integer, Write
      * @return
      * @throws IllegalStateException
      */
-    boolean backpressureOffer(IoBuffer buffer, boolean first) throws IllegalStateException;
+    boolean backPressureOffer(IoBuffer buffer, boolean first) throws IllegalStateException;
     
+    /**
+     * 绑定该通道关联的读完成器实例
+     * 
+     * @param readCompletionHandler
+     */
     void bind(ReadCompletionHandler readCompletionHandler);
     
     class WriteEntry

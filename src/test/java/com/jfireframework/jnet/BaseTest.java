@@ -23,7 +23,7 @@ import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
 import com.jfireframework.jnet.common.buffer.PooledBufferAllocator;
 import com.jfireframework.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
-import com.jfireframework.jnet.common.internal.BackPressureAcceptHandler;
+import com.jfireframework.jnet.common.internal.DefaultAcceptHandler;
 import com.jfireframework.jnet.server.AioServer;
 import com.jfireframework.jnet.server.AioServerBuilder;
 
@@ -66,7 +66,7 @@ public class BaseTest
             Arrays.fill(results[i], -1);
         }
         AioServerBuilder builder = new AioServerBuilder();
-        builder.setAcceptHandler(new BackPressureAcceptHandler(null, bufferAllocator, batchWriteNum, 512, new ChannelContextInitializer() {
+        builder.setAcceptHandler(new DefaultAcceptHandler(null, bufferAllocator, batchWriteNum, new ChannelContextInitializer() {
             
             @Override
             public void onChannelContextInit(ChannelContext channelContext)
@@ -91,11 +91,11 @@ public class BaseTest
                     public boolean backpressureProcess(IoBuffer buffer, ProcessorInvoker next) throws Throwable
                     {
                         buffer.addReadPosi(-4);
-                        return channelContext.backpressureWrite(buffer);
+                        return channelContext.backPressureWrite(buffer);
                     }
                 });
             }
-        }));
+        }, false, -1));
         builder.setBindIp(ip);
         builder.setPort(port);
         aioServer = builder.build();

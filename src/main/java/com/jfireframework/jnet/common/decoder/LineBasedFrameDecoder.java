@@ -125,7 +125,7 @@ public class LineBasedFrameDecoder implements DataProcessor<IoBuffer>
                 IoBuffer packet = allocator.ioBuffer(length);
                 packet.put(ioBuffer, length);
                 ioBuffer.setReadPosi(eol + 1);
-                boolean process = next.backpressureProcess(packet);
+                boolean process = next.backPressureProcess(packet);
                 if (process == false)
                 {
                     return process;

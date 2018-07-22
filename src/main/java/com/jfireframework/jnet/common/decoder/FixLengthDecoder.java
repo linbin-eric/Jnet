@@ -59,7 +59,7 @@ public class FixLengthDecoder implements DataProcessor<IoBuffer>
             IoBuffer packet = allocator.ioBuffer(frameLength);
             packet.put(ioBuf, frameLength);
             ioBuf.addReadPosi(frameLength);
-            boolean process = next.backpressureProcess(packet);
+            boolean process = next.backPressureProcess(packet);
             if (process == false)
             {
                 return false;

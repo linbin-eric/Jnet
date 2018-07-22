@@ -13,10 +13,15 @@ public interface ReadCompletionHandler extends CompletionHandler<Integer, ReadEn
      */
     void start();
     
+    /**
+     * 绑定通道实例
+     * 
+     * @param channelContext
+     */
     void bind(ChannelContext channelContext);
     
     /**
-     * 从上次背压拒绝的地方开始，继续读取工作
+     * 从上次完成方法的中断处开始，继续读取工作。
      */
     void continueRead();
     
