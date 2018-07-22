@@ -9,15 +9,16 @@ import com.jfireframework.jnet.common.api.ReadCompletionHandler;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
 
-public class DefaultReadCompletionHandler implements ReadCompletionHandler
+public class BackPressureReadCompletionHandler implements ReadCompletionHandler
 {
+    
     protected final AsynchronousSocketChannel socketChannel;
     protected final AioListener               aioListener;
     protected final BufferAllocator           allocator;
     protected final ReadEntry                 entry = new ReadEntry();
     protected ChannelContext                  channelContext;
     
-    public DefaultReadCompletionHandler(AioListener aioListener, BufferAllocator allocator, AsynchronousSocketChannel socketChannel)
+    public BackPressureReadCompletionHandler(AioListener aioListener, BufferAllocator allocator, AsynchronousSocketChannel socketChannel)
     {
         this.aioListener = aioListener;
         this.allocator = allocator;
@@ -57,10 +58,15 @@ public class DefaultReadCompletionHandler implements ReadCompletionHandler
         buffer.addWritePosi(read);
         try
         {
-            channelContext.process(buffer);
+            boolean process = channelContext.backpressureProcess(buffer);
+            if (process == false)
+            {
+                return;
+            }
         }
         catch (Throwable e)
         {
+            e.printStackTrace();
             catchException(e);
             buffer.free();
             try
@@ -77,7 +83,6 @@ public class DefaultReadCompletionHandler implements ReadCompletionHandler
         {
             buffer.compact();
         }
-        entry.setIoBuffer(buffer);
         entry.setByteBuffer(buffer.writableByteBuffer());
         socketChannel.read(entry.getByteBuffer(), entry, this);
     }
@@ -111,7 +116,36 @@ public class DefaultReadCompletionHandler implements ReadCompletionHandler
     @Override
     public void continueRead()
     {
-        throw new UnsupportedOperationException();
+        IoBuffer buffer = entry.getIoBuffer();
+        try
+        {
+            boolean process = channelContext.backpressureProcess(buffer);
+            if (process == false)
+            {
+                return;
+            }
+        }
+        catch (Throwable e)
+        {
+            e.printStackTrace();
+            catchException(e);
+            buffer.free();
+            try
+            {
+                socketChannel.close();
+            }
+            catch (IOException e1)
+            {
+                ;
+            }
+            return;
+        }
+        if (needCompact(buffer))
+        {
+            buffer.compact();
+        }
+        entry.setByteBuffer(buffer.writableByteBuffer());
+        socketChannel.read(entry.getByteBuffer(), entry, this);
     }
     
 }

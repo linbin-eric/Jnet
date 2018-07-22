@@ -4,71 +4,46 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.Queue;
-import com.jfireframework.baseutil.concurrent.MPSCLinkedQueue;
+import com.jfireframework.baseutil.concurrent.MPSCArrayQueue;
 import com.jfireframework.baseutil.reflect.UNSAFE;
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ReadCompletionHandler;
 import com.jfireframework.jnet.common.api.WriteCompletionHandler;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
+import com.jfireframework.jnet.common.util.BackPressureCommonPool;
 
-public abstract class AbstractWriteCompletionHandler implements WriteCompletionHandler
+public class BackPressureWriteCompleteHandler implements WriteCompletionHandler
 {
-    protected static final long               STATE_OFFSET   = UNSAFE.getFieldOffset("state", AbstractWriteCompletionHandler.class);
-    protected static final int                SPIN_THRESHOLD = 1 << 7;
-    protected static final int                WORK           = 1;
-    protected static final int                IDLE           = 2;
+    protected static final long               STATE_OFFSET        = UNSAFE.getFieldOffset("state", AbstractWriteCompletionHandler.class);
+    protected static final int                SPIN_THRESHOLD      = 1 << 7;
+    protected static final int                WORK                = 1;
+    protected static final int                IDLE                = 2;
     // 终止状态位，也就是负数标识位
-    protected static final int                TERMINATION    = 3;
+    protected static final int                TERMINATION         = 3;
     // 终止状态。进入该状态后，不再继续使用
     ////////////////////////////////////////////////////////////
-    protected volatile int                    state          = IDLE;
+    protected volatile int                    state               = IDLE;
     protected Queue<IoBuffer>                 queue;
-    protected final WriteEntry                entry          = new WriteEntry();
+    protected final WriteEntry                entry               = new WriteEntry();
     protected final AsynchronousSocketChannel socketChannel;
     protected final BufferAllocator           allocator;
     protected final AioListener               aioListener;
+    private ReadCompletionHandler             readCompletionHandler;
+    private int                               maxBufferedCapacity = 1024 * 1024;
     
-    public AbstractWriteCompletionHandler(AsynchronousSocketChannel socketChannel, AioListener aioListener, BufferAllocator allocator, int queueCapacity)
+    public BackPressureWriteCompleteHandler(AsynchronousSocketChannel socketChannel, AioListener aioListener, BufferAllocator allocator, int queueCapacity)
     {
         this.socketChannel = socketChannel;
         this.allocator = allocator;
         this.aioListener = aioListener;
-        // queue = queueCapacity == 0 ? new MPSCLinkedQueue<IoBuffer>() : new
-        // MPSCArrayQueue<IoBuffer>(queueCapacity);
-        queue = new MPSCLinkedQueue<IoBuffer>();
+        queue = new MPSCArrayQueue<IoBuffer>(Math.max(queueCapacity, 4096));
     }
     
     @Override
     public void offer(IoBuffer buf)
     {
-        if (buf == null)
-        {
-            throw new NullPointerException();
-        }
-        if (queue.offer(buf) == false)
-        {
-            while (queue.offer(buf) == false)
-            {
-                Thread.yield();
-            }
-        }
-        int now = state;
-        if (now == TERMINATION)
-        {
-            throw new IllegalStateException("该通道已经处于关闭状态，无法执行写操作");
-        }
-        if (now == IDLE && changeToWork())
-        {
-            if (queue.isEmpty() == false)
-            {
-                writeQueuedBuffer();
-            }
-            else
-            {
-                rest();
-            }
-        }
+        throw new UnsupportedOperationException();
     }
     
     protected void rest()
@@ -132,7 +107,29 @@ public abstract class AbstractWriteCompletionHandler implements WriteCompletionH
     /**
      * 从MPSCQueue中取得IoBuffer，并且执行写操作
      */
-    protected abstract void writeQueuedBuffer();
+    protected void writeQueuedBuffer()
+    {
+        IoBuffer head = null;
+        int maxBufferedCapacity = this.maxBufferedCapacity;
+        int count = 0;
+        IoBuffer buffer;
+        while (count < maxBufferedCapacity && (buffer = queue.poll()) != null)
+        {
+            count += buffer.remainRead();
+            if (head == null)
+            {
+                head = buffer;
+            }
+            else
+            {
+                head.put(buffer);
+                buffer.free();
+            }
+        }
+        entry.setIoBuffer(head);
+        entry.setByteBuffer(head.readableByteBuffer());
+        socketChannel.write(entry.getByteBuffer(), entry, this);
+    }
     
     protected boolean changeToWork()
     {
@@ -164,14 +161,50 @@ public abstract class AbstractWriteCompletionHandler implements WriteCompletionH
     }
     
     @Override
-    public boolean backpressureOffer(IoBuffer buffer) throws IllegalStateException
+    public boolean backpressureOffer(IoBuffer buf, boolean first) throws IllegalStateException
     {
-        throw new UnsupportedOperationException();
+        if (buf == null)
+        {
+            throw new NullPointerException();
+        }
+        if (first)
+        {
+            if (queue.offer(buf) == false)
+            {
+                BackPressureCommonPool.submit(buf, this, readCompletionHandler);
+                return false;
+            }
+        }
+        else
+        {
+            if (queue.offer(buf) == false)
+            {
+                return false;
+            }
+        }
+        int now = state;
+        if (now == TERMINATION)
+        {
+            throw new IllegalStateException("该通道已经处于关闭状态，无法执行写操作");
+        }
+        if (now == IDLE && changeToWork())
+        {
+            if (queue.isEmpty() == false)
+            {
+                writeQueuedBuffer();
+            }
+            else
+            {
+                rest();
+            }
+        }
+        return true;
     }
     
     @Override
     public void bind(ReadCompletionHandler readCompletionHandler)
     {
-        ;
+        this.readCompletionHandler = readCompletionHandler;
     }
+    
 }

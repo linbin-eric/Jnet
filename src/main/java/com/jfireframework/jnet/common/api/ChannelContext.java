@@ -13,6 +13,8 @@ public interface ChannelContext
      */
     void write(IoBuffer buffer);
     
+    boolean backpressureWrite(IoBuffer buffer);
+    
     /**
      * 处理读完成器读取到的数据。<br/>
      * 注意:该过程不可以对buffer执行任何的free操作。因为该Buffer后续还需要继续给读完成器使用
@@ -21,6 +23,8 @@ public interface ChannelContext
      * @throws Throwable
      */
     void process(IoBuffer buffer) throws Throwable;
+    
+    boolean backpressureProcess(IoBuffer buffer) throws Throwable;
     
     /**
      * 设置数据处理器

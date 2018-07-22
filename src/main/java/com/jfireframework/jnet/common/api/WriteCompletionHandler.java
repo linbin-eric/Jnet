@@ -16,6 +16,18 @@ public interface WriteCompletionHandler extends CompletionHandler<Integer, Write
      */
     void offer(IoBuffer buffer) throws IllegalStateException;
     
+    /**
+     * 提供数据写出。如果数据放入待发送队列，则返回true。如果队列已满，则返回false<br/>
+     * 如果当前写完成器已经处于停止状态，则抛出非法状态异常。
+     * 
+     * @param buffer
+     * @return
+     * @throws IllegalStateException
+     */
+    boolean backpressureOffer(IoBuffer buffer, boolean first) throws IllegalStateException;
+    
+    void bind(ReadCompletionHandler readCompletionHandler);
+    
     class WriteEntry
     {
         ByteBuffer byteBuffer;
