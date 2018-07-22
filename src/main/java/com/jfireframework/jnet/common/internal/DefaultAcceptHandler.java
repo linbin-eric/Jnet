@@ -49,7 +49,7 @@ public class DefaultAcceptHandler implements AcceptHandler
     {
         WriteCompletionHandler writeCompletionHandler = backPressure ? new BackPressureWriteCompleteHandler(socketChannel, aioListener, allocator, maxWriteBytes, queueCapacity) : new DefaultWriteCompletionHandler(socketChannel, aioListener, allocator, maxWriteBytes);
         ChannelContext channelContext = new DefaultChannelContext(socketChannel, aioListener);
-        ReadCompletionHandler readCompletionHandler = new DefaultReadCompletionHandler(aioListener, allocator, socketChannel, true);
+        ReadCompletionHandler readCompletionHandler = new DefaultReadCompletionHandler(aioListener, allocator, socketChannel, backPressure);
         readCompletionHandler.bind(channelContext);
         channelContext.bind(writeCompletionHandler);
         writeCompletionHandler.bind(readCompletionHandler);

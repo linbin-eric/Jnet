@@ -39,7 +39,7 @@ public class BaseTest
     private AioServer           aioServer;
     private String              ip           = "127.0.0.1";
     private int                 port         = 7598;
-    private int                 numPerThread = 10000;
+    private int                 numPerThread = 100000;
     private int                 numClients   = 30;
     private JnetClient[]        clients;
     private CountDownLatch      latch        = new CountDownLatch(numClients);
@@ -95,7 +95,7 @@ public class BaseTest
                     }
                 });
             }
-        }, false, -1));
+        }, true, 1024));
         builder.setBindIp(ip);
         builder.setPort(port);
         aioServer = builder.build();

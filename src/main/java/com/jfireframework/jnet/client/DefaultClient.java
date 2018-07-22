@@ -14,9 +14,9 @@ import com.jfireframework.jnet.common.api.ReadCompletionHandler;
 import com.jfireframework.jnet.common.api.WriteCompletionHandler;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
-import com.jfireframework.jnet.common.internal.BackPressureWriteCompleteHandler;
 import com.jfireframework.jnet.common.internal.DefaultChannelContext;
 import com.jfireframework.jnet.common.internal.DefaultReadCompletionHandler;
+import com.jfireframework.jnet.common.internal.DefaultWriteCompletionHandler;
 
 public class DefaultClient implements JnetClient
 {
@@ -62,7 +62,7 @@ public class DefaultClient implements JnetClient
                 channelContextInitializer.onChannelContextInit(channelContext);
                 ReadCompletionHandler readCompletionHandler = new DefaultReadCompletionHandler(aioListener, allocator, asynchronousSocketChannel);
                 readCompletionHandler.bind(channelContext);
-                WriteCompletionHandler writeCompletionHandler = new BackPressureWriteCompleteHandler(asynchronousSocketChannel, aioListener, allocator, 512);
+                WriteCompletionHandler writeCompletionHandler = new DefaultWriteCompletionHandler(asynchronousSocketChannel, aioListener, allocator, 512);
                 channelContext.bind(writeCompletionHandler);
                 readCompletionHandler.start();
                 state = CONNECTED;

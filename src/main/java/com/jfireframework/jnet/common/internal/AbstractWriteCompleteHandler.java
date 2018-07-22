@@ -12,7 +12,7 @@ import com.jfireframework.jnet.common.buffer.IoBuffer;
 
 public abstract class AbstractWriteCompleteHandler implements WriteCompletionHandler
 {
-    protected static final long               STATE_OFFSET   = UNSAFE.getFieldOffset("state", DefaultWriteCompletionHandler.class);
+    protected static final long               STATE_OFFSET   = UNSAFE.getFieldOffset("state", AbstractWriteCompleteHandler.class);
     protected static final int                SPIN_THRESHOLD = 1 << 7;
     protected static final int                WORK           = 1;
     protected static final int                IDLE           = 2;
