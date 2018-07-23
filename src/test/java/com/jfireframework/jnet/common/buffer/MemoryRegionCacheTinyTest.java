@@ -77,7 +77,7 @@ public class MemoryRegionCacheTinyTest
 		@SuppressWarnings("rawtypes")
 		MemoryRegionCache memoryRegionCache = threadCache.findCache(size, SizeType.TINY, threadCache.arena(preferDirect));
 		assertEquals(tinyCacheSize, memoryRegionCache.size());
-		assertFalse(memoryRegionCache.offer(chunk, -1l));
+		assertFalse(memoryRegionCache.offer(chunk, -1L));
 		for (int i = 0; i < tinyCacheSize; i++)
 		{
 			PooledBuffer<?> buffer = (PooledBuffer<?>) allocator.ioBuffer(size, preferDirect);

@@ -128,7 +128,7 @@ public class SubPage<T>
     
     public static void main(String[] args)
     {
-        long l = -1l;
+		long l = -1L;
         long result = l & (~(1 << 31));
         System.out.println(result);
         System.out.println(Integer.MAX_VALUE);

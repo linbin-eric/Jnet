@@ -17,6 +17,7 @@ public abstract class UnPooledBuffer<T> implements IoBuffer
 		readPosi = writePosi = 0;
 	}
 	
+	@Override
 	public IoBuffer capacityReadyFor(int newCapacity)
 	{
 		reallocate(newCapacity);
@@ -359,6 +360,7 @@ public abstract class UnPooledBuffer<T> implements IoBuffer
 		return capacity - writePosi;
 	}
 	
+	@Override
 	public void free()
 	{
 		if (recycleHandler != null)

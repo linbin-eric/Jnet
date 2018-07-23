@@ -77,7 +77,7 @@ public class MemoryRegionCacheNormalTest
 		@SuppressWarnings("rawtypes")
 		MemoryRegionCache memoryRegionCache = threadCache.findCache(size, SizeType.NORMAL, threadCache.arena(preferDirect));
 		assertEquals(normalCacheSize, memoryRegionCache.size());
-		assertFalse(memoryRegionCache.offer(chunk, -1l));
+		assertFalse(memoryRegionCache.offer(chunk, -1L));
 		for (int i = 0; i < normalCacheSize; i++)
 		{
 			PooledBuffer<?> buffer = (PooledBuffer<?>) allocator.ioBuffer(size, preferDirect);

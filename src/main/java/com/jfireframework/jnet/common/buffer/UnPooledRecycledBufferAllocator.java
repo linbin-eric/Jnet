@@ -8,6 +8,7 @@ public class UnPooledRecycledBufferAllocator implements BufferAllocator
 {
 	public static UnPooledRecycledBufferAllocator	DEFAULT					= new UnPooledRecycledBufferAllocator("UnPooledRecycledBufferAllocator_default");
 	private Recycler<UnPooledHeapBuffer>			unPooledHeapBuffers		= new Recycler<UnPooledHeapBuffer>() {
+																				@Override
 																				protected UnPooledHeapBuffer newObject(RecycleHandler handler)
 																				{
 																					UnPooledHeapBuffer buffer = new UnPooledHeapBuffer();
@@ -16,6 +17,7 @@ public class UnPooledRecycledBufferAllocator implements BufferAllocator
 																				};
 																			};
 	private Recycler<UnPooledDirectBuffer>			unPooledDirectBuffers	= new Recycler<UnPooledDirectBuffer>() {
+																				@Override
 																				protected UnPooledDirectBuffer newObject(RecycleHandler handler)
 																				{
 																					UnPooledDirectBuffer buffer = new UnPooledDirectBuffer();

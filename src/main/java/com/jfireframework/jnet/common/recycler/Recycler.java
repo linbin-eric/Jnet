@@ -28,12 +28,14 @@ public abstract class Recycler<T>
 	private int											maxSharedCapacity;
 	
 	final FastThreadLocal<Map<Stack, WeakOrderQueue>>	delayQueues					= new FastThreadLocal<Map<Stack, WeakOrderQueue>>() {
+																						@Override
 																						protected java.util.Map<Stack, WeakOrderQueue> initializeValue()
 																						{
 																							return new WeakHashMap<>();
 																						};
 																					};
 	final FastThreadLocal<Stack>						currentStack				= new FastThreadLocal<Stack>() {
+																						@Override
 																						protected Stack initializeValue()
 																						{
 																							return new Stack();

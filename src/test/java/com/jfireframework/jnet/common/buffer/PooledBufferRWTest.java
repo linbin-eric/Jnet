@@ -62,7 +62,7 @@ public class PooledBufferRWTest
 		buffer.put(new byte[] { 36, 90 });
 		buffer.addWritePosi(1);
 		buffer.putInt(5);
-		buffer.putLong(12564l);
+		buffer.putLong(12564L);
 		buffer.putShort((short) 1000);
 		assertEquals((byte) 27, buffer.get());
 		buffer.addReadPosi(1);
@@ -70,7 +70,7 @@ public class PooledBufferRWTest
 		assertEquals((byte) 90, buffer.get());
 		buffer.addReadPosi(1);
 		assertEquals(5, buffer.getInt());
-		assertEquals(12564l, buffer.getLong());
+		assertEquals(12564L, buffer.getLong());
 		assertEquals((short) 1000, buffer.getShort());
 		assertNotEquals(100, buffer.getReadPosi());
 		assertNotEquals(101, buffer.getWritePosi());
@@ -94,18 +94,18 @@ public class PooledBufferRWTest
 		buffer.clear();
 		buffer.putInt(3);
 		buffer.putShort((short) 2);
-		buffer.putLong(213121l);
+		buffer.putLong(213121L);
 		assertEquals(3, buffer.getInt());
 		assertEquals(2, buffer.getShort());
-		assertEquals(213121l, buffer.getLong());
+		assertEquals(213121L, buffer.getLong());
 		buffer.clear();
 		buffer.putInt(3, 0);
 		buffer.putShort((short) 2, 6);
-		buffer.putLong(1000l, 12);
+		buffer.putLong(1000L, 12);
 		buffer.setWritePosi(20);
 		assertEquals(3, buffer.setReadPosi(0).getInt());
 		assertEquals((short) 2, buffer.setReadPosi(6).getShort());
-		assertEquals(1000l, buffer.setReadPosi(12).getLong());
+		assertEquals(1000L, buffer.setReadPosi(12).getLong());
 		buffer.clear();
 		buffer.put((byte) 12);
 		buffer.put((byte) 13);
@@ -145,12 +145,12 @@ public class PooledBufferRWTest
 		buffer.addWritePosi(4).addReadPosi(4);
 		paramBuffer.putInt(3);
 		paramBuffer.putShort((short) 100);
-		paramBuffer.putLong(1000l);
+		paramBuffer.putLong(1000L);
 		buffer.put(paramBuffer);
 		assertEquals(18, buffer.getWritePosi());
 		assertEquals(3, buffer.getInt());
 		assertEquals((short) 100, buffer.getShort());
-		assertEquals(1000l, buffer.getLong());
+		assertEquals(1000L, buffer.getLong());
 	}
 	
 	/**
@@ -206,14 +206,14 @@ public class PooledBufferRWTest
 	{
 		buffer.putInt(4);
 		buffer.putShort((short) 2);
-		buffer.putLong(23l);
+		buffer.putLong(23L);
 		ByteBuffer nioBuffer = buffer.readableByteBuffer();
 		assertEquals(4, nioBuffer.getInt());
 		assertEquals(2, nioBuffer.getShort());
-		assertEquals(23l, nioBuffer.getLong());
+		assertEquals(23L, nioBuffer.getLong());
 		nioBuffer = buffer.readableByteBuffer();
 		assertEquals(4, nioBuffer.getInt());
 		assertEquals(2, nioBuffer.getShort());
-		assertEquals(23l, nioBuffer.getLong());
+		assertEquals(23L, nioBuffer.getLong());
 	}
 }

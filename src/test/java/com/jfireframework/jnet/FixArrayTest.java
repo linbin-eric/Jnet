@@ -22,6 +22,7 @@ public class FixArrayTest
 	public void testBastUtilArrayQueue() throws InterruptedException
 	{
 		final FixArray<Slot> baseUtilArrayQueue = new MPSCFixArray<Slot>(capacity) {
+			@Override
 			protected Slot newInstance()
 			{
 				return new Slot();
