@@ -6,6 +6,8 @@ import java.util.Collection;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -27,6 +29,8 @@ import com.jfireframework.jnet.common.buffer.PooledBufferAllocator;
 import com.jfireframework.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
 import com.jfireframework.jnet.common.internal.DefaultAcceptHandler;
 import com.jfireframework.jnet.common.processor.BackPressureSubmitProcessor;
+import com.jfireframework.jnet.common.processor.ChannelAttachProcessor;
+import com.jfireframework.jnet.common.processor.ThreadYieldRetryProcessor;
 import com.jfireframework.jnet.server.AioServer;
 import com.jfireframework.jnet.server.AioServerBuilder;
 
@@ -37,29 +41,27 @@ import com.jfireframework.jnet.server.AioServerBuilder;
  *
  */
 @RunWith(Parameterized.class)
-public class BaseTest
+public class BaseTest2
 {
     private AioServer           aioServer;
     private String              ip           = "127.0.0.1";
     private int                 port         = 7598;
-    private int                 numPerThread = 100000;
-    private int                 numClients   = 10;
+    private int                 numPerThread = 1000000;
+    private int                 numClients   = 20;
     private JnetClient[]        clients;
     private CountDownLatch      latch        = new CountDownLatch(numClients);
     private int[][]             results;
-    private static final Logger logger       = LoggerFactory.getLogger(BaseTest.class);
+    private static final Logger logger       = LoggerFactory.getLogger(BaseTest2.class);
     
     @Parameters
     public static Collection<Object[]> params()
     {
         return Arrays.asList(new Object[][] { //
-                { PooledBufferAllocator.DEFAULT, 1024, new BackPressureMode(2048, BackPressureService.DEFAULT) }, //
-                { PooledBufferAllocator.DEFAULT, 1024, new BackPressureMode() }, //
-        
+                { PooledBufferAllocator.DEFAULT, 1024, new BackPressureMode(2048, BackPressureService.DEFAULT), "channel" }, //
         });
     }
     
-    public BaseTest(final BufferAllocator bufferAllocator, int batchWriteNum, final BackPressureMode backPressureMode)
+    public BaseTest2(final BufferAllocator bufferAllocator, int batchWriteNum, final BackPressureMode backPressureMode, final String type)
     {
         clients = new JnetClient[numClients];
         results = new int[numClients][numPerThread];
@@ -69,14 +71,15 @@ public class BaseTest
             Arrays.fill(results[i], -1);
         }
         AioServerBuilder builder = new AioServerBuilder();
+        final ExecutorService fixService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         builder.setAcceptHandler(new DefaultAcceptHandler(null, bufferAllocator, batchWriteNum, new ChannelContextInitializer() {
             
             @Override
             public void onChannelContextInit(ChannelContext channelContext)
             {
-                if (backPressureMode.isEnable())
+                if (type.equals("channel"))
                 {
-                    channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 100, bufferAllocator), new DataProcessor<IoBuffer>() {
+                    channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 100, bufferAllocator), new BackPressureSubmitProcessor(), new ChannelAttachProcessor(fixService), new DataProcessor<IoBuffer>() {
                         
                         @Override
                         public void bind(ChannelContext channelContext)
@@ -89,24 +92,7 @@ public class BaseTest
                             buffer.addReadPosi(-4);
                             return next.process(buffer);
                         }
-                    }, new BackPressureSubmitProcessor());
-                }
-                else
-                {
-                    channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 100, bufferAllocator), new DataProcessor<IoBuffer>() {
-                        
-                        @Override
-                        public void bind(ChannelContext channelContext)
-                        {
-                        }
-                        
-                        @Override
-                        public boolean process(IoBuffer buffer, ProcessorInvoker next) throws Throwable
-                        {
-                            buffer.addReadPosi(-4);
-                            return next.process(buffer);
-                        }
-                    });
+                    }, new ThreadYieldRetryProcessor());
                 }
             }
         }, backPressureMode));

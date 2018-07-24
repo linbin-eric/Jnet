@@ -23,16 +23,9 @@ public class ChannelAttachProcessor implements DataProcessor<Object>
     }
     
     @Override
-    public void process(Object data, ProcessorInvoker next) throws Throwable
+    public boolean process(Object data, ProcessorInvoker next) throws Throwable
     {
-        worker.commit(channelContext, next, data);
-    }
-    
-    @Override
-    public boolean backpressureProcess(Object data, ProcessorInvoker next) throws Throwable
-    {
-        // TODO Auto-generated method stub
-        return false;
+        return worker.commit(channelContext, next, data);
     }
     
 }
