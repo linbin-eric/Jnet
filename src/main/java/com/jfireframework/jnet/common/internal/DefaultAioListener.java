@@ -46,5 +46,12 @@ public class DefaultAioListener implements AioListener
         // TODO Auto-generated method stub
         
     }
+	
+	@Override
+	public void onClose(AsynchronousSocketChannel socketChannel, Throwable e)
+	{
+		// TODO Auto-generated method stub
+		
+	}
     
 }

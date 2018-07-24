@@ -50,68 +50,7 @@ public class TotalLengthFieldBasedFrameDecoder implements DataProcessor<IoBuffer
 	}
 	
 	@Override
-	public void process(IoBuffer ioBuffer, ProcessorInvoker next) throws Throwable
-	{
-		do
-		{
-			int maskReadPosi = ioBuffer.getReadPosi();
-			int left = ioBuffer.remainRead();
-			if (lengthFieldEndOffset > left)
-			{
-				if (ioBuffer.remainWrite() < lengthFieldEndOffset)
-				{
-					ioBuffer.capacityReadyFor(ioBuffer.getWritePosi() + lengthFieldEndOffset);
-				}
-				return;
-			}
-			// iobuffer中可能包含好几个报文，所以这里应该是增加的方式而不是直接设置的方式
-			ioBuffer.addReadPosi(lengthFieldOffset);
-			// 获取到整体报文的长度
-			int length = 0;
-			switch (lengthFieldLength)
-			{
-				case 1:
-					length = ioBuffer.get() & 0xff;
-					break;
-				case 2:
-					length = ioBuffer.getShort() & 0xff;
-					break;
-				case 4:
-					length = ioBuffer.getInt();
-					break;
-				default:
-					throw new IllegalArgumentException();
-			}
-			// 得到整体长度后，开始从头读取这个长度的内容
-			ioBuffer.setReadPosi(maskReadPosi);
-			if (length >= maxLegnth)
-			{
-				throw new TooLongException();
-			}
-			if (length > ioBuffer.remainRead())
-			{
-				if (ioBuffer.remainWrite() < length)
-				{
-					ioBuffer.capacityReadyFor(ioBuffer.getWritePosi() + length);
-				}
-				return;
-			}
-			else
-			{
-				IoBuffer packet = allocator.ioBuffer(length);
-				packet.put(ioBuffer, length);
-				ioBuffer.addReadPosi(length);
-				if (skipBytes != 0)
-				{
-					packet.addReadPosi(skipBytes);
-				}
-				next.process(packet);
-			}
-		} while (true);
-	}
-	
-	@Override
-	public boolean backpressureProcess(IoBuffer ioBuffer, ProcessorInvoker next) throws Throwable
+	public boolean process(IoBuffer ioBuffer, ProcessorInvoker next) throws Throwable
 	{
 		do
 		{
@@ -166,13 +105,13 @@ public class TotalLengthFieldBasedFrameDecoder implements DataProcessor<IoBuffer
 				{
 					packet.addReadPosi(skipBytes);
 				}
-				boolean process = next.backPressureProcess(packet);
-				if (process == false)
+				if (next.process(packet) == false)
 				{
 					return false;
 				}
 			}
 		} while (true);
 	}
+	
 	
 }
