@@ -6,6 +6,8 @@ import java.util.Collection;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -27,6 +29,8 @@ import com.jfireframework.jnet.common.buffer.PooledBufferAllocator;
 import com.jfireframework.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
 import com.jfireframework.jnet.common.internal.DefaultAcceptHandler;
 import com.jfireframework.jnet.common.processor.BackPressureSubmitProcessor;
+import com.jfireframework.jnet.common.processor.ChannelAttachProcessor;
+import com.jfireframework.jnet.common.processor.ThreadYieldRetryProcessor;
 import com.jfireframework.jnet.server.AioServer;
 import com.jfireframework.jnet.server.AioServerBuilder;
 
@@ -39,189 +43,201 @@ import com.jfireframework.jnet.server.AioServerBuilder;
 @RunWith(Parameterized.class)
 public class BaseTest
 {
-    private AioServer           aioServer;
-    private String              ip           = "127.0.0.1";
-    private int                 port         = 7598;
-    private int                 numPerThread = 100000;
-    private int                 numClients   = 10;
-    private JnetClient[]        clients;
-    private CountDownLatch      latch        = new CountDownLatch(numClients);
-    private int[][]             results;
-    private static final Logger logger       = LoggerFactory.getLogger(BaseTest.class);
-    
-    @Parameters
-    public static Collection<Object[]> params()
-    {
-        return Arrays.asList(new Object[][] { //
-                { PooledBufferAllocator.DEFAULT, 1024, new BackPressureMode(2048, BackPressureService.DEFAULT) }, //
-                { PooledBufferAllocator.DEFAULT, 1024, new BackPressureMode() }, //
-        
-        });
-    }
-    
-    public BaseTest(final BufferAllocator bufferAllocator, int batchWriteNum, final BackPressureMode backPressureMode)
-    {
-        clients = new JnetClient[numClients];
-        results = new int[numClients][numPerThread];
-        for (int i = 0; i < numClients; i++)
-        {
-            results[i] = new int[numPerThread];
-            Arrays.fill(results[i], -1);
-        }
-        AioServerBuilder builder = new AioServerBuilder();
-        builder.setAcceptHandler(new DefaultAcceptHandler(null, bufferAllocator, batchWriteNum, new ChannelContextInitializer() {
-            
-            @Override
-            public void onChannelContextInit(ChannelContext channelContext)
-            {
-                if (backPressureMode.isEnable())
-                {
-                    channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 100, bufferAllocator), new DataProcessor<IoBuffer>() {
-                        
-                        @Override
-                        public void bind(ChannelContext channelContext)
-                        {
-                        }
-                        
-                        @Override
-                        public boolean process(IoBuffer buffer, ProcessorInvoker next) throws Throwable
-                        {
-                            buffer.addReadPosi(-4);
-                            return next.process(buffer);
-                        }
-                    }, new BackPressureSubmitProcessor());
-                }
-                else
-                {
-                    channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 100, bufferAllocator), new DataProcessor<IoBuffer>() {
-                        
-                        @Override
-                        public void bind(ChannelContext channelContext)
-                        {
-                        }
-                        
-                        @Override
-                        public boolean process(IoBuffer buffer, ProcessorInvoker next) throws Throwable
-                        {
-                            buffer.addReadPosi(-4);
-                            return next.process(buffer);
-                        }
-                    });
-                }
-            }
-        }, backPressureMode));
-        builder.setBindIp(ip);
-        builder.setPort(port);
-        aioServer = builder.build();
-        aioServer.start();
-        for (int i = 0; i < numClients; i++)
-        {
-            final int index = i;
-            final int[] result = results[index];
-            JnetClientBuilder jnetClientBuilder = new JnetClientBuilder();
-            jnetClientBuilder.setServerIp(ip);
-            jnetClientBuilder.setPort(port);
-            jnetClientBuilder.setChannelContextInitializer(new ChannelContextInitializer() {
-                
-                @Override
-                public void onChannelContextInit(ChannelContext channelContext)
-                {
-                    channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1000, bufferAllocator), //
-                            new DataProcessor<IoBuffer>() {
-                                int count = 0;
-                                
-                                @Override
-                                public void bind(ChannelContext channelContext)
-                                {
-                                    ;
-                                }
-                                
-                                @Override
-                                public boolean process(IoBuffer buffer, ProcessorInvoker next) throws Throwable
-                                {
-                                    int j = buffer.getInt();
-                                    result[j] = j;
-                                    buffer.free();
-                                    count++;
-                                    if (count == numPerThread)
-                                    {
-                                        latch.countDown();
-                                    }
-                                    return true;
-                                }
-                                
-                            });
-                }
-            });
-            jnetClientBuilder.setAllocator(bufferAllocator);
-            clients[i] = jnetClientBuilder.build();
-        }
-    }
-    
-    @Test
-    public void test() throws InterruptedException
-    {
-        final CyclicBarrier barrier = new CyclicBarrier(numClients);
-        final CountDownLatch finish = new CountDownLatch(numClients);
-        for (int i = 0; i < numClients; i++)
-        {
-            final int index = i;
-            new Thread(new Runnable() {
-                
-                @Override
-                public void run()
-                {
-                    JnetClient client = clients[index];
-                    try
-                    {
-                        barrier.await();
-                    }
-                    catch (InterruptedException | BrokenBarrierException e1)
-                    {
-                        e1.printStackTrace();
-                    }
-                    for (int j = 0; j < numPerThread; j++)
-                    {
-                        IoBuffer buffer = PooledBufferAllocator.DEFAULT.ioBuffer(8);
-                        buffer.putInt(8);
-                        buffer.putInt(j);
-                        try
-                        {
-                            client.write(buffer);
-                        }
-                        catch (Exception e)
-                        {
-                            ;
-                        }
-                    }
-                    finish.countDown();
-                }
-            }).start();
-        }
-        try
-        {
-            finish.await();
-            logger.debug("写出完毕");
-            latch.await(10000, TimeUnit.SECONDS);
-        }
-        catch (InterruptedException e)
-        {
-            e.printStackTrace();
-        }
-        for (int index = 0; index < numClients; index++)
-        {
-            int[] result = results[index];
-            for (int i = 0; i < numPerThread; i++)
-            {
-                assertEquals("序号" + index, i, result[i]);
-            }
-        }
-        for (JnetClient each : clients)
-        {
-            each.close();
-        }
-        logger.info("测试完毕");
-        aioServer.termination();
-    }
-    
+	private AioServer			aioServer;
+	private String				ip				= "127.0.0.1";
+	private int					port			= 7598;
+	private int					numPerThread	= 10000000;
+	private int					numClients		= 10;
+	private JnetClient[]		clients;
+	private CountDownLatch		latch			= new CountDownLatch(numClients);
+	private int[][]				results;
+	private static final Logger	logger			= LoggerFactory.getLogger(BaseTest.class);
+	
+	static enum IoMode
+	{
+		IO, Channel
+	}
+	
+	@Parameters(name = "IO模式:{3}，是否开启背压:{2}")
+	public static Collection<Object[]> params()
+	{
+		return Arrays.asList(new Object[][] { //
+		        { PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(2048, BackPressureService.DEFAULT), IoMode.IO }, //
+		        { PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(), IoMode.IO }, //
+		        { PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(2048, BackPressureService.DEFAULT), IoMode.Channel }, //
+		
+		});
+	}
+	
+	public BaseTest(final BufferAllocator bufferAllocator, int batchWriteNum, final BackPressureMode backPressureMode, final IoMode ioMode)
+	{
+		clients = new JnetClient[numClients];
+		results = new int[numClients][numPerThread];
+		for (int i = 0; i < numClients; i++)
+		{
+			results[i] = new int[numPerThread];
+			Arrays.fill(results[i], -1);
+		}
+		AioServerBuilder builder = new AioServerBuilder();
+		builder.setAcceptHandler(new DefaultAcceptHandler(null, bufferAllocator, batchWriteNum, new ChannelContextInitializer() {
+			
+			@Override
+			public void onChannelContextInit(ChannelContext channelContext)
+			{
+				
+				switch (ioMode)
+				{
+					case IO:
+						channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 100, bufferAllocator), new DataProcessor<IoBuffer>() {
+							
+							@Override
+							public void bind(ChannelContext channelContext)
+							{
+							}
+							
+							@Override
+							public boolean process(IoBuffer buffer, ProcessorInvoker next) throws Throwable
+							{
+								buffer.addReadPosi(-4);
+								return next.process(buffer);
+							}
+						}, new BackPressureSubmitProcessor());
+						break;
+					case Channel:
+						final ExecutorService fixService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+						channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 100, bufferAllocator), new BackPressureSubmitProcessor(), new ChannelAttachProcessor(fixService), new DataProcessor<IoBuffer>() {
+							
+							@Override
+							public void bind(ChannelContext channelContext)
+							{
+							}
+							
+							@Override
+							public boolean process(IoBuffer buffer, ProcessorInvoker next) throws Throwable
+							{
+								buffer.addReadPosi(-4);
+								return next.process(buffer);
+							}
+						}, new ThreadYieldRetryProcessor());
+						break;
+					default:
+						break;
+				}
+			}
+		}, backPressureMode));
+		builder.setBindIp(ip);
+		builder.setPort(port);
+		aioServer = builder.build();
+		aioServer.start();
+		for (int i = 0; i < numClients; i++)
+		{
+			final int index = i;
+			final int[] result = results[index];
+			JnetClientBuilder jnetClientBuilder = new JnetClientBuilder();
+			jnetClientBuilder.setServerIp(ip);
+			jnetClientBuilder.setPort(port);
+			jnetClientBuilder.setBackPressureMode(new BackPressureMode(1024));
+			jnetClientBuilder.setChannelContextInitializer(new ChannelContextInitializer() {
+				
+				@Override
+				public void onChannelContextInit(ChannelContext channelContext)
+				{
+					channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1000, bufferAllocator), //
+					        new DataProcessor<IoBuffer>() {
+						        int count = 0;
+						        
+						        @Override
+						        public void bind(ChannelContext channelContext)
+						        {
+							        ;
+						        }
+						        
+						        @Override
+						        public boolean process(IoBuffer buffer, ProcessorInvoker next) throws Throwable
+						        {
+							        int j = buffer.getInt();
+							        result[j] = j;
+							        buffer.free();
+							        count++;
+							        if (count == numPerThread)
+							        {
+								        latch.countDown();
+							        }
+							        return true;
+						        }
+						        
+					        });
+				}
+			});
+			jnetClientBuilder.setAllocator(bufferAllocator);
+			clients[i] = jnetClientBuilder.build();
+		}
+	}
+	
+	@Test
+	public void test() throws InterruptedException
+	{
+		final CyclicBarrier barrier = new CyclicBarrier(numClients);
+		final CountDownLatch finish = new CountDownLatch(numClients);
+		for (int i = 0; i < numClients; i++)
+		{
+			final int index = i;
+			new Thread(new Runnable() {
+				
+				@Override
+				public void run()
+				{
+					JnetClient client = clients[index];
+					try
+					{
+						barrier.await();
+					}
+					catch (InterruptedException | BrokenBarrierException e1)
+					{
+						e1.printStackTrace();
+					}
+					for (int j = 0; j < numPerThread; j++)
+					{
+						IoBuffer buffer = PooledBufferAllocator.DEFAULT.ioBuffer(8);
+						buffer.putInt(8);
+						buffer.putInt(j);
+						try
+						{
+							client.write(buffer);
+						}
+						catch (Exception e)
+						{
+							;
+						}
+					}
+					finish.countDown();
+				}
+			}).start();
+		}
+		try
+		{
+			finish.await();
+			logger.debug("写出完毕");
+			latch.await(10000, TimeUnit.SECONDS);
+		}
+		catch (InterruptedException e)
+		{
+			e.printStackTrace();
+		}
+		for (int index = 0; index < numClients; index++)
+		{
+			int[] result = results[index];
+			for (int i = 0; i < numPerThread; i++)
+			{
+				assertEquals("序号" + index, i, result[i]);
+			}
+		}
+		for (JnetClient each : clients)
+		{
+			each.close();
+		}
+		logger.info("测试完毕");
+		aioServer.termination();
+	}
+	
 }

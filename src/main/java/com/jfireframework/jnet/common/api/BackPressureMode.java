@@ -14,14 +14,29 @@ public class BackPressureMode
 	private int					queueCapacity;
 	private BackPressureService	backPressureService;
 	
+	/**
+	 * 开启背压，设定写完成器的队列长度以及背压服务实例
+	 * 
+	 * @param queueCapacity
+	 * @param backPressureService
+	 */
 	public BackPressureMode(int queueCapacity, BackPressureService backPressureService)
 	{
 		enable = true;
-		if (enable)
-		{
-			this.queueCapacity = Math.max(512, MathUtil.normalizeSize(queueCapacity));
-			this.backPressureService = backPressureService;
-		}
+		this.queueCapacity = Math.max(512, MathUtil.normalizeSize(queueCapacity));
+		this.backPressureService = backPressureService;
+	}
+	
+	/**
+	 * 开启背压，设定了写完成器的队列长度。
+	 * 
+	 * @param queueCapacity
+	 */
+	public BackPressureMode(int queueCapacity)
+	{
+		enable = true;
+		this.queueCapacity = queueCapacity;
+		backPressureService = null;
 	}
 	
 	public BackPressureMode()
@@ -52,6 +67,11 @@ public class BackPressureMode
 	public BackPressureService getBackPressureService()
 	{
 		return backPressureService;
+	}
+	
+	public String toString()
+	{
+		return String.valueOf(enable);
 	}
 	
 }

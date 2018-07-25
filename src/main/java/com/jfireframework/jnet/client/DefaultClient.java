@@ -33,8 +33,9 @@ public class DefaultClient implements JnetClient
 	private final AsynchronousChannelGroup	channelGroup;
 	private ChannelContext					channelContext;
 	private int								state			= NOT_INIT;
+	private BackPressureMode				backPressureMode;
 	
-	public DefaultClient(ChannelContextInitializer channelContextInitializer, String ip, int port, AioListener aioListener, BufferAllocator allocator, AsynchronousChannelGroup channelGroup)
+	public DefaultClient(ChannelContextInitializer channelContextInitializer, String ip, int port, AioListener aioListener, BufferAllocator allocator, AsynchronousChannelGroup channelGroup, BackPressureMode backPressureMode)
 	{
 		this.channelContextInitializer = channelContextInitializer;
 		this.ip = ip;
@@ -42,6 +43,7 @@ public class DefaultClient implements JnetClient
 		this.aioListener = aioListener;
 		this.allocator = allocator;
 		this.channelGroup = channelGroup;
+		this.backPressureMode = backPressureMode;
 	}
 	
 	@Override
@@ -63,7 +65,7 @@ public class DefaultClient implements JnetClient
 				channelContextInitializer.onChannelContextInit(channelContext);
 				ReadCompletionHandler readCompletionHandler = new DefaultReadCompletionHandler(aioListener, allocator, asynchronousSocketChannel);
 				readCompletionHandler.bind(channelContext);
-				WriteCompletionHandler writeCompletionHandler = new DefaultWriteCompleteHandler(asynchronousSocketChannel, aioListener, allocator, 1024 * 1024 * 2, new BackPressureMode());
+				WriteCompletionHandler writeCompletionHandler = new DefaultWriteCompleteHandler(asynchronousSocketChannel, aioListener, allocator, 1024 * 1024 * 2, backPressureMode);
 				channelContext.bind(writeCompletionHandler, readCompletionHandler);
 				readCompletionHandler.start();
 				state = CONNECTED;
@@ -96,7 +98,10 @@ public class DefaultClient implements JnetClient
 	
 	void nonBlockWrite(IoBuffer buffer)
 	{
-		channelContext.write(buffer);
+		while (channelContext.write(buffer) == false)
+		{
+			Thread.yield();
+		}
 	}
 	
 	@Override
