@@ -1,16 +1,17 @@
 package com.jfireframework.jnet.common.processor;
 
 import com.jfireframework.jnet.common.api.ChannelContext;
-import com.jfireframework.jnet.common.api.ProcessorChain;
-import com.jfireframework.jnet.common.api.ReadProcessor;
+import com.jfireframework.jnet.common.api.DataProcessor;
+import com.jfireframework.jnet.common.api.ProcessorInvoker;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
 
-public class LengthEncoder implements ReadProcessor<Object>
+public class LengthEncoder implements DataProcessor<IoBuffer>
 {
     // 代表长度字段开始读取的位置
-    private final int lengthFieldOffset;
+    private final int      lengthFieldOffset;
     // 代表长度字段自身的长度。支持1,2,4.如果是1则使用unsignedbyte方式读取。如果是2则使用unsignedshort方式读取,4使用int方式读取。
-    private final int lengthFieldLength;
+    private final int      lengthFieldLength;
+    private ChannelContext channelContext;
     
     public LengthEncoder(int lengthFieldOffset, int lengthFieldLength)
     {
@@ -19,37 +20,37 @@ public class LengthEncoder implements ReadProcessor<Object>
     }
     
     @Override
-    public void initialize(ChannelContext channelContext)
+    public void bind(ChannelContext channelContext)
     {
+        this.channelContext = channelContext;
     }
     
     @Override
-    public void process(Object data, ProcessorChain chain, ChannelContext channelContext) throws Throwable
+    public void process(IoBuffer buf, ProcessorInvoker next) throws Throwable
     {
-        if (data instanceof IoBuffer)
+        int length = buf.remainRead();
+        switch (lengthFieldLength)
         {
-            IoBuffer buf = (IoBuffer) data;
-            int length = buf.remainRead();
-            switch (lengthFieldLength)
-            {
-                case 1:
-                    buf.put((byte) length, lengthFieldOffset);
-                    break;
-                case 2:
-                    buf.writeShort((short) length, lengthFieldOffset);
-                    break;
-                case 4:
-                    buf.writeInt(length, lengthFieldOffset);
-                    break;
-                default:
-                    break;
-            }
-            channelContext.write(buf);
+            case 1:
+                buf.put((byte) length, lengthFieldOffset);
+                break;
+            case 2:
+                buf.putShort((short) length, lengthFieldOffset);
+                break;
+            case 4:
+                buf.putInt(length, lengthFieldOffset);
+                break;
+            default:
+                break;
         }
-        else
-        {
-            chain.chain(data);
-        }
+        channelContext.write(buf);
+    }
+    
+    @Override
+    public boolean backpressureProcess(IoBuffer data, ProcessorInvoker next) throws Throwable
+    {
+        // TODO Auto-generated method stub
+        return false;
     }
     
 }

@@ -1,269 +1,310 @@
 package com.jfireframework.jnet.common.buffer;
 
 import java.nio.ByteBuffer;
-import com.jfireframework.jnet.common.recycler.Recycler.RecycleHandler;
 
-public abstract class IoBuffer
+public interface IoBuffer
 {
-	protected int				index;
-	protected Chunk				chunk;
-	protected ByteBuffer		cachedByteBuffer;
-	protected int				capacity;
-	protected int				readPosi;
-	protected int				writePosi;
-	protected Archon			archon;
-	// 用于池化IoBuffer。如果没有此需求，该属性始终为空
-	protected RecycleHandler	recycleHandler;
-	
-	public static IoBuffer heapIoBuffer()
-	{
-		return new HeapIoBuffer();
-	}
-	
-	public static IoBuffer directBuffer()
-	{
-		return new DirectIoBuffer();
-	}
-	
-	protected void initialize(int off, int capacity, Object mem, int index, Chunk chunk, Archon archon)
-	{
-		this.capacity = capacity;
-		this.index = index;
-		this.chunk = chunk;
-		this.archon = archon;
-		cachedByteBuffer = null;
-		//
-		_initialize(off, capacity, mem);
-	}
-	
-	protected abstract void _initialize(int off, int capacity, Object mem);
-	
-	/**
-	 * 通过一个初始化的Buffer：src进行扩容操作。具体流程如下<br/>
-	 * 将自身数据拷贝到src中。该拷贝方法会复制的信息包含:<br/>
-	 * 从off到writePosi的所有数据,相对readPosi,相对writePosi <br/>
-	 * 将src中的数据和自身的数据进行互换。互换的信息包含：<br/>
-	 * mem,chunk,archon,readPosi,writePosi,off,capacity,index <br/>
-	 * 
-	 * @param src
-	 */
-	protected abstract void expansion(IoBuffer src);
-	
-	/**
-	 * 增大buffer的容量到newSize
-	 * 
-	 * @param newSize
-	 */
-	public IoBuffer grow(int newSize)
-	{
-		ensureEnoughWrite(newSize - capacity);
-		return this;
-	}
-	
-	protected void ensureEnoughWrite(int needToWrite)
-	{
-		if (needToWrite < 0 || remainWrite() >= needToWrite)
-		{
-			return;
-		}
-		archon.expansion(this, capacity + needToWrite);
-	}
-	
-	public Chunk belong()
-	{
-		return chunk;
-	}
-	
-	public void release()
-	{
-		if (archon != null)
-		{
-			archon.recycle(this);
-		}
-	}
-	
-	public void destory()
-	{
-		index = -1;
-		chunk = null;
-		archon = null;
-		cachedByteBuffer = null;
-		_destoryMem();
-	}
-	
-	protected abstract void _destoryMem();
-	
-	@Override
-	public String toString()
-	{
-		return "Handler [index=" + index + ", chunk=" + chunk + ", cachedByteBuffer=" + cachedByteBuffer + ", capacity=" + capacity + ", readPosi=" + readPosi + ", writePosi=" + writePosi + ", archon=" + archon + "]";
-	}
-	
-	public int getIndex()
-	{
-		return index;
-	}
-	
-	public ByteBuffer cachedByteBuffer()
-	{
-		if (cachedByteBuffer != null)
-		{
-			return cachedByteBuffer;
-		}
-		return byteBuffer();
-	}
-	
-	public int capacity()
-	{
-		return capacity;
-	}
-	
-	public IoBuffer put(byte b)
-	{
-		ensureEnoughWrite(1);
-		_put(b);
-		return this;
-	}
-	
-	protected abstract void _put(byte b);
-	
-	public IoBuffer put(byte b, int posi)
-	{
-		if (posi < 0)
-		{
-			throw new IllegalArgumentException();
-		}
-		ensureEnoughWrite(posi - getWritePosi());
-		_put(b, posi);
-		return this;
-	}
-	
-	protected abstract void _put(byte b, int posi);
-	
-	public IoBuffer put(byte[] content)
-	{
-		ensureEnoughWrite(content.length);
-		_put(content);
-		return this;
-	}
-	
-	protected abstract void _put(byte[] content);
-	
-	public IoBuffer put(byte[] content, int off, int len)
-	{
-		ensureEnoughWrite(off + len - getWritePosi());
-		_put(content, off, len);
-		return this;
-	}
-	
-	protected abstract void _put(byte[] content, int off, int len);
-	
-	public IoBuffer put(IoBuffer bucket)
-	{
-		return put(bucket, bucket.remainRead());
-	}
-	
-	public IoBuffer put(IoBuffer handler, int len)
-	{
-		ensureEnoughWrite(len);
-		_put(handler, len);
-		return this;
-	}
-	
-	protected abstract void _put(IoBuffer handler, int len);
-	
-	public IoBuffer writeInt(int i, int off)
-	{
-		ensureEnoughWrite(off + 4 - getWritePosi());
-		_writeInt(i, off);
-		return this;
-	}
-	
-	protected abstract void _writeInt(int i, int off);
-	
-	public IoBuffer writeShort(short s, int off)
-	{
-		ensureEnoughWrite(off + 2 - getWritePosi());
-		_writeShort(s, off);
-		return this;
-	}
-	
-	protected abstract void _writeShort(short s, int off);
-	
-	public IoBuffer writeLong(long l, int off)
-	{
-		ensureEnoughWrite(off + 8 - getWritePosi());
-		_writeLong(l, off);
-		return this;
-	}
-	
-	protected abstract void _writeLong(long l, int off);
-	
-	public IoBuffer writeInt(int i)
-	{
-		ensureEnoughWrite(4);
-		_writeInt(i);
-		return this;
-	}
-	
-	protected abstract void _writeInt(int i);
-	
-	public IoBuffer writeShort(short s)
-	{
-		ensureEnoughWrite(2);
-		_writeShort(s);
-		return this;
-	}
-	
-	protected abstract void _writeShort(short s);
-	
-	public IoBuffer writeLong(long l)
-	{
-		ensureEnoughWrite(8);
-		_writeLong(l);
-		return this;
-	}
-	
-	protected abstract void _writeLong(long l);
-	
-	public abstract int getReadPosi();
-	
-	public abstract void setReadPosi(int readPosi);
-	
-	public abstract int getWritePosi();
-	
-	public abstract void setWritePosi(int writePosi);
-	
-	public abstract IoBuffer clearData();
-	
-	public abstract byte get();
-	
-	public abstract byte get(int posi);
-	
-	public abstract int remainRead();
-	
-	public abstract int remainWrite();
-	
-	public abstract IoBuffer compact();
-	
-	public abstract IoBuffer get(byte[] content);
-	
-	public abstract IoBuffer get(byte[] content, int off, int len);
-	
-	public abstract void addReadPosi(int add);
-	
-	public abstract void addWritePosi(int add);
-	
-	public abstract int indexOf(byte[] array);
-	
-	public abstract int readInt();
-	
-	public abstract short readShort();
-	
-	public abstract long readLong();
-	
-	public abstract ByteBuffer byteBuffer();
-	
-	public abstract boolean isDirect();
-	
+    
+    /**
+     * 返回当前Buffer的大小，该数值并不是固定值。因为Buffer是会随着写入自动扩容
+     * 
+     * @return
+     */
+    int capacity();
+    
+    /**
+     * 在当前位置写入一个byte
+     * 
+     * @param b
+     * @return
+     */
+    IoBuffer put(byte b);
+    
+    /**
+     * 在指定位置写入一个byte
+     * 
+     * @param b
+     * @param posi
+     * @return
+     */
+    IoBuffer put(byte b, int posi);
+    
+    /**
+     * 写入一个字节数组
+     * 
+     * @param content
+     * @return
+     */
+    IoBuffer put(byte[] content);
+    
+    /**
+     * 写入一个字节数组，指定起始位置和写入长度
+     * 
+     * @param content
+     * @param off
+     * @param len
+     * @return
+     */
+    IoBuffer put(byte[] content, int off, int len);
+    
+    /**
+     * 将一个buffer的内容写入该buffer。该写入不影响参数buffer的所有参数
+     * 
+     * @param buffer
+     * @return
+     */
+    IoBuffer put(IoBuffer buffer);
+    
+    /**
+     * 将一个buffer的内容写入该buffer，并且指定写入长度。该写入不影响参数buffer的所有参数。
+     * 
+     * @param buffer
+     * @param len
+     * @return
+     */
+    IoBuffer put(IoBuffer buffer, int len);
+    
+    /**
+     * 在当前位置写入一个int
+     * 
+     * @param i
+     * @return
+     */
+    IoBuffer putInt(int i);
+    
+    /**
+     * 在指定位置posi写入一个int
+     * 
+     * @param value
+     * @param posi
+     * @return
+     */
+    IoBuffer putInt(int value, int posi);
+    
+    /**
+     * 在指定位置posi写入一个short
+     * 
+     * @param value
+     * @param posi
+     * @return
+     */
+    IoBuffer putShort(short value, int posi);
+    
+    /**
+     * 在指定位置posi写入一个long
+     * 
+     * @param value
+     * @param posi
+     * @return
+     */
+    IoBuffer putLong(long value, int posi);
+    
+    /**
+     * 在当前位置写入一个short
+     * 
+     * @param s
+     * @return
+     */
+    IoBuffer putShort(short s);
+    
+    /**
+     * 在当前位置写入一个long
+     * 
+     * @param l
+     * @return
+     */
+    IoBuffer putLong(long l);
+    
+    /**
+     * 返回读取位置，该读取位置的初始值为0
+     * 
+     * @return
+     */
+    int getReadPosi();
+    
+    /**
+     * 设置读取位置
+     * 
+     * @param readPosi
+     */
+    IoBuffer setReadPosi(int readPosi);
+    
+    /**
+     * 返回写入位置，该写入位置的初始值为0
+     * 
+     * @return
+     */
+    int getWritePosi();
+    
+    /**
+     * 设置写入位置
+     * 
+     * @param writePosi
+     */
+    IoBuffer setWritePosi(int writePosi);
+    
+    /**
+     * 将写入位置和读取位置归零
+     * 
+     * @return
+     */
+    IoBuffer clear();
+    
+    /**
+     * 将读取位置和写入位置归零。并且将整个区域清空为0
+     * 
+     * @return
+     */
+    IoBuffer clearAndErasureData();
+    
+    /**
+     * 在当前读取位置读取一个byte并返回。读取位置自增。
+     * 
+     * @return
+     */
+    byte get();
+    
+    /**
+     * 在指定位置读取一个byte并且返回。
+     * 
+     * @param posi
+     * @return
+     */
+    byte get(int posi);
+    
+    /**
+     * 返回剩余可以读取的字节数。
+     * 
+     * @return
+     */
+    int remainRead();
+    
+    /**
+     * 返回没有自动扩容前剩余的可写入字节数
+     * 
+     * @return
+     */
+    int remainWrite();
+    
+    /**
+     * 当前Buffer进行压缩。将剩余的读取数据拷贝至buffer的最前端。调整新读取位置为0。新写入位置为调整为旧写入位置减去移动的长度。
+     * 
+     * @return
+     */
+    IoBuffer compact();
+    
+    /**
+     * 从当前位置读取数据填充参数数组。读取位置增加数组长度
+     * 
+     * @param content
+     * @return
+     */
+    IoBuffer get(byte[] content);
+    
+    /**
+     * 从当前位置读取数据填充参数数组，从参数数组的off位置开始，填充长度为len。读取位置增加len。
+     * 
+     * @param content
+     * @param off
+     * @param len
+     * @return
+     */
+    IoBuffer get(byte[] content, int off, int len);
+    
+    /**
+     * 读取位置增加add
+     * 
+     * @param add
+     */
+    IoBuffer addReadPosi(int add);
+    
+    /**
+     * 写入位置增加add
+     * 
+     * @param add
+     */
+    IoBuffer addWritePosi(int add);
+    
+    /**
+     * 在数据内容中检索特定的字节数组存在。如果存在，则返回对应的读取位置。否则返回-1
+     * 
+     * @param array
+     * @return
+     */
+    int indexOf(byte[] array);
+    
+    /**
+     * 在读取位置读取int。读取位置增加4
+     * 
+     * @return
+     */
+    int getInt();
+    
+    /**
+     * 在读取位置读取short。读取位置增加2
+     * 
+     * @return
+     */
+    short getShort();
+    
+    /**
+     * 在读取位置读取long。读取位置增加8
+     * 
+     * @return
+     */
+    long getLong();
+    
+    /**
+     * 在位置posi读取一个int。该操作不会影响readPosi
+     * 
+     * @param posi
+     * @return
+     */
+    int getInt(int posi);
+    
+    /**
+     * 在位置posi读取一个short。该操作不会影响readPosi
+     * 
+     * @param posi
+     * @return
+     */
+    short getShort(int posi);
+    
+    /**
+     * 在位置posi读取一个long。该操作不会影响readPosi
+     * 
+     * @param posi
+     * @return
+     */
+    long getLong(int posi);
+    
+    /**
+     * 返回一个处于读模式的ByteBuffer。该ByteBuffer的可读内容为[readPosi,writePosi)之间。<br/>
+     * 该ByteBuffer共享了IoBuffer的内容空间。任何对该Buffer的写入操作都会反映在IoBuffer上
+     * 
+     * @return
+     */
+    ByteBuffer readableByteBuffer();
+    
+    /**
+     * 返回一个处于写模式的ByteBuffer。该ByteBuffer的可写范围是[writePosi,capacity).<br/>
+     * 该ByteBuffer共享了IoBuffer的内容空间。任何对该Buffer的写入操作都会反映在IoBuffer上
+     * 
+     * @return
+     */
+    ByteBuffer writableByteBuffer();
+    
+    boolean isDirect();
+    
+    /**
+     * 释放该Buffer持有的空间以及实例对象
+     */
+    void free();
+    
+    /**
+     * 扩容容量，使得最少支持newCapacity
+     * 
+     * @param newCapacity
+     */
+    IoBuffer capacityReadyFor(int newCapacity);
 }

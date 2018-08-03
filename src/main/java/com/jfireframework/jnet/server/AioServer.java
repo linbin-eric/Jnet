@@ -5,9 +5,8 @@ import java.net.InetSocketAddress;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.util.concurrent.TimeUnit;
-import com.jfireframework.baseutil.exception.JustThrowException;
-import com.jfireframework.jnet.common.api.AioListener;
-import com.jfireframework.jnet.common.api.ChannelConnectListener;
+import com.jfireframework.baseutil.reflect.ReflectUtil;
+import com.jfireframework.jnet.common.api.AcceptHandler;
 
 public class AioServer
 {
@@ -17,12 +16,12 @@ public class AioServer
 	private int								port;
 	private AcceptHandler					acceptHandler;
 	
-	public AioServer(String ip, int port, AsynchronousChannelGroup channelGroup, ChannelConnectListener serverChannelContextBuilder, AioListener serverListener)
+	public AioServer(String ip, int port, AsynchronousChannelGroup channelGroup, AcceptHandler acceptHandler)
 	{
 		this.ip = ip;
 		this.port = port;
 		this.channelGroup = channelGroup;
-		acceptHandler = new AcceptHandler(serverChannelContextBuilder, serverListener);
+		this.acceptHandler = acceptHandler;
 	}
 	
 	/**
@@ -40,11 +39,24 @@ public class AioServer
 		}
 		catch (IOException e)
 		{
-			throw new JustThrowException(e);
+			ReflectUtil.throwException(e);
 		}
 	}
 	
-	public void stop()
+	public void shutdown()
+	{
+		try
+		{
+			serverSocketChannel.close();
+			channelGroup.shutdownNow();
+		}
+		catch (Exception e)
+		{
+			ReflectUtil.throwException(e);
+		}
+	}
+	
+	public void termination()
 	{
 		try
 		{
@@ -52,9 +64,9 @@ public class AioServer
 			channelGroup.shutdownNow();
 			channelGroup.awaitTermination(10, TimeUnit.SECONDS);
 		}
-		catch (Exception e)
+		catch (Throwable e)
 		{
-			throw new RuntimeException(e);
+			ReflectUtil.throwException(e);
 		}
 	}
 }

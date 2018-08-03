@@ -1,0 +1,42 @@
+package com.jfireframework.jnet.common.buffer;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import org.junit.Test;
+
+public class HugeAllocateTest
+{
+	PooledBufferAllocator allocator = PooledBufferAllocator.DEFAULT;
+	
+	@Test
+	public void testHeap()
+	{
+		ThreadCache threadCache = allocator.threadCache();
+		Arena<?> arena = threadCache.heapArena;
+		int allocateCapacity = arena.chunkSize + 1;
+		PooledBuffer<?> buffer = (PooledBuffer<?>) allocator.heapBuffer(allocateCapacity);
+		int newChunkCount = arena.newChunkCount;
+		test0(allocateCapacity, buffer, arena);
+		assertEquals(arena.newChunkCount, newChunkCount);
+	}
+	
+	private void test0(int allocateCapacity, PooledBuffer<?> buffer, Arena<?> arena)
+	{
+		assertTrue(buffer.chunk.unpooled);
+		assertEquals(0, buffer.offset);
+		assertEquals(allocateCapacity, buffer.capacity);
+		buffer.free();
+	}
+	
+	@Test
+	public void testDirect()
+	{
+		ThreadCache threadCache = allocator.threadCache();
+		Arena<?> arena = threadCache.directArena;
+		int allocateCapacity = arena.chunkSize + 1;
+		int newChunkCount = arena.newChunkCount;
+		PooledBuffer<?> buffer = (PooledBuffer<?>) allocator.directBuffer(allocateCapacity);
+		test0(allocateCapacity, buffer, arena);
+		assertEquals(arena.newChunkCount, newChunkCount);
+	}
+}

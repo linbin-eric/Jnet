@@ -1,5 +1,7 @@
 package com.jfireframework.jnet.common.api;
 
+import java.nio.channels.AsynchronousSocketChannel;
+
 public interface AioListener
 {
 	/**
@@ -8,7 +10,15 @@ public interface AioListener
 	 * @param channelContext
 	 * @param writes
 	 */
-	void afterWrited(ChannelContext channelContext, int writes);
+	void afterWrited(AsynchronousSocketChannel socketChannel, Integer writes);
+	
+	/**
+	 * 当ChannelContext实例被创建时触发
+	 * 
+	 * @param socketChannel
+	 * @param channelContext
+	 */
+	void onAccept(AsynchronousSocketChannel socketChannel, ChannelContext channelContext);
 	
 	/**
 	 * 通道发生异常时触发
@@ -16,20 +26,21 @@ public interface AioListener
 	 * @param e
 	 * @param channelContext
 	 */
-	void catchException(Throwable e, ChannelContext channelContext);
-	
-	/**
-	 * 当通道注册读取时触发
-	 * 
-	 * @param channelContext
-	 */
-	void readRegister(ChannelContext channelContext);
+	void catchException(Throwable e, AsynchronousSocketChannel socketChannel);
 	
 	/**
 	 * 通道收到消息后触发
 	 * 
 	 * @param context
 	 */
-	void afterReceived(ChannelContext channelContext);
+	void afterReceived(AsynchronousSocketChannel socketChannel);
+	
+	/**
+	 * 在通道关闭时被触发
+	 * 
+	 * @param socketChannel
+	 * @param e
+	 */
+	void onClose(AsynchronousSocketChannel socketChannel, Throwable e);
 	
 }

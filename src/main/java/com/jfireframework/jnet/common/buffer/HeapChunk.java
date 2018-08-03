@@ -1,24 +1,28 @@
 package com.jfireframework.jnet.common.buffer;
 
-class HeapChunk extends Chunk
+public class HeapChunk extends Chunk<byte[]>
 {
-	private byte[] mem;
 	
-	public HeapChunk(int maxLevel, int unit)
+	public HeapChunk(int maxLevel, int pageSize, int pageSizeShift, int subpageOverflowMask)
 	{
-		super(maxLevel, unit);
+		super(maxLevel, pageSize, pageSizeShift, subpageOverflowMask);
+	}
+	
+	public HeapChunk(int chunkSize)
+	{
+		super(chunkSize);
 	}
 	
 	@Override
-	protected void initializeMem(int capacity)
+	byte[] initializeMemory(int size)
 	{
-		mem = new byte[capacity];
+		return new byte[size];
 	}
 	
 	@Override
-	protected void initHandler(Archon archon, IoBuffer handler, int index, int off, int len)
+	public boolean isDirect()
 	{
-		handler.initialize(off, len, mem, index, this, archon);
+		return false;
 	}
 	
 }

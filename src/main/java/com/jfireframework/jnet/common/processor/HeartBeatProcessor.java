@@ -3,9 +3,10 @@ package com.jfireframework.jnet.common.processor;
 import java.io.IOException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import com.jfireframework.baseutil.reflect.UNSAFE;
 import com.jfireframework.jnet.common.api.ChannelContext;
-import com.jfireframework.jnet.common.api.ProcessorChain;
-import com.jfireframework.jnet.common.api.ReadProcessor;
+import com.jfireframework.jnet.common.api.DataProcessor;
+import com.jfireframework.jnet.common.api.ProcessorInvoker;
 import com.jfireframework.schedule.api.Timer;
 import com.jfireframework.schedule.api.Timetask;
 import com.jfireframework.schedule.handler.SimpleExpireHandler;
@@ -18,15 +19,16 @@ import com.jfireframework.schedule.trigger.RepeatDelayTrigger;
  * @author linbin
  *
  */
-public class HeartBeatProcessor implements ReadProcessor<Object>
+public class HeartBeatProcessor implements DataProcessor<Object>
 {
     private static final Timer TIMER;
     static
     {
         TIMER = new FixedCapacityWheelTimer(1800, new SimpleExpireHandler(), Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()), 1, TimeUnit.SECONDS);
     }
-    private final long    heartBeatDuration;
-    private volatile long lastBeatTime;
+    private final long        heartBeatDuration;
+    private volatile long     lastBeatTime;
+    private static final long OFFSET = UNSAFE.getFieldOffset("lastBeatTime", HeartBeatProcessor.class);
     
     public HeartBeatProcessor(long heartBeatDuration, TimeUnit unit)
     {
@@ -34,7 +36,7 @@ public class HeartBeatProcessor implements ReadProcessor<Object>
     }
     
     @Override
-    public void initialize(final ChannelContext channelContext)
+    public void bind(final ChannelContext channelContext)
     {
         lastBeatTime = System.currentTimeMillis();
         TIMER.add(new RepeatDelayTrigger(new Timetask() {
@@ -67,10 +69,17 @@ public class HeartBeatProcessor implements ReadProcessor<Object>
     }
     
     @Override
-    public void process(Object data, ProcessorChain chain, ChannelContext channelContext) throws Throwable
+    public void process(Object data, ProcessorInvoker next) throws Throwable
     {
-        lastBeatTime = System.currentTimeMillis();
-        chain.chain(data);
+        UNSAFE.putOrderedLong(this, OFFSET, System.currentTimeMillis());
+        next.process(data);
+    }
+    
+    @Override
+    public boolean backpressureProcess(Object data, ProcessorInvoker next) throws Throwable
+    {
+        // TODO Auto-generated method stub
+        return false;
     }
     
 }

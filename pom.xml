@@ -23,7 +23,7 @@
 		<dependency>
 			<groupId>com.jfireframework</groupId>
 			<artifactId>baseutil</artifactId>
-			<version>1.2.1</version>
+			<version>1.2.5-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>

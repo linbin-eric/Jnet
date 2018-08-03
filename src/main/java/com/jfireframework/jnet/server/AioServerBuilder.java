@@ -2,28 +2,24 @@ package com.jfireframework.jnet.server;
 
 import java.nio.channels.AsynchronousChannelGroup;
 import java.util.concurrent.ThreadFactory;
-import com.jfireframework.baseutil.StringUtil;
-import com.jfireframework.baseutil.exception.JustThrowException;
+import com.jfireframework.baseutil.reflect.ReflectUtil;
+import com.jfireframework.jnet.common.api.AcceptHandler;
 import com.jfireframework.jnet.common.api.AioListener;
-import com.jfireframework.jnet.common.api.ChannelConnectListener;
-import com.jfireframework.jnet.common.support.DefaultAioListener;
+import com.jfireframework.jnet.common.internal.DefaultAioListener;
+import com.jfireframework.jnet.common.thread.FastThreadLocalThread;
 
 public class AioServerBuilder
 {
 	private AioListener					aioListener;
-	private ChannelConnectListener		channelConnectListener;
 	private int							port	= -1;
 	private String						bindIp	= "0.0.0.0";
 	private AsynchronousChannelGroup	channelGroup;
+	private AcceptHandler				acceptHandler;
 	
 	public AioServer build()
 	{
 		try
 		{
-			if (channelConnectListener == null)
-			{
-				throw new NullPointerException(StringUtil.format("channelContextBuilder 不能为空"));
-			}
 			if (channelGroup == null)
 			{
 				channelGroup = AsynchronousChannelGroup.withFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2 + 1, new ThreadFactory() {
@@ -32,7 +28,7 @@ public class AioServerBuilder
 					@Override
 					public Thread newThread(Runnable r)
 					{
-						return new Thread(r, "服务端IO线程-" + (i++));
+						return new FastThreadLocalThread(r, "AioServer_IoWorker-" + (i++));
 					}
 				});
 			}
@@ -40,18 +36,19 @@ public class AioServerBuilder
 			{
 				aioListener = new DefaultAioListener();
 			}
-			AioServer aioServer = new AioServer(bindIp, port, channelGroup, channelConnectListener, aioListener);
+			if (acceptHandler == null)
+			{
+				throw new NullPointerException("AcceptHandler 没有赋值");
+			}
+			
+			AioServer aioServer = new AioServer(bindIp, port, channelGroup, acceptHandler);
 			return aioServer;
 		}
 		catch (Throwable e)
 		{
-			throw new JustThrowException(e);
+			ReflectUtil.throwException(e);
+			return null;
 		}
-	}
-	
-	public void setChannelConnectListener(ChannelConnectListener channelConnectListener)
-	{
-		this.channelConnectListener = channelConnectListener;
 	}
 	
 	public void setPort(int port)
@@ -72,6 +69,12 @@ public class AioServerBuilder
 	public void setAioListener(AioListener aioListener)
 	{
 		this.aioListener = aioListener;
+	}
+	
+	public AioServerBuilder setAcceptHandler(AcceptHandler acceptHandler)
+	{
+		this.acceptHandler = acceptHandler;
+		return this;
 	}
 	
 }
