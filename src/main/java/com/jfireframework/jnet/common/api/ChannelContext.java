@@ -14,6 +14,8 @@ public interface ChannelContext
      */
     boolean writeIfAvailable(IoBuffer buffer);
 
+    boolean availableForWrite();
+
     /**
      * 设置数据处理器.容器会自动在末尾添加一个处理器，该处理的实现仅仅是调用了write接口。
      *

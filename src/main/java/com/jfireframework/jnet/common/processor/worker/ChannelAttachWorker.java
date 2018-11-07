@@ -13,10 +13,10 @@ public class ChannelAttachWorker implements Runnable
 
     private static final int                           IDLE           = -1;
     private static final int                           WORK           = 1;
-    private static final int                           SPIN_THRESHOLD = 1 << 7;
+    private static final int                           SPIN_THRESHOLD = 128;
     private static final long                          STATE_OFFSET   = UNSAFE.getFieldOffset("state", ChannelAttachWorker.class);
     private final        ExecutorService               executorService;
-    private final        FixArray<ChannelAttachEntity> entities       = new SPSCFixArray<ChannelAttachEntity>(512)
+    private final        FixArray<ChannelAttachEntity> entities       = new SPSCFixArray<ChannelAttachEntity>(8)
     {
 
         @Override
@@ -71,7 +71,7 @@ public class ChannelAttachWorker implements Runnable
                         }
                         else
                         {
-                            System.out.println("放弃");
+                            System.out.println(Thread.currentThread().getName()+"放弃");
                         }
                         return;
                     }
@@ -81,8 +81,8 @@ public class ChannelAttachWorker implements Runnable
             ChannelContext      channelContext = slot.channelContext;
             DataProcessor       downStream     = slot.downStream;
             Object              data           = slot.data;
-            entities.comsumeAvail(avail);
             slot.clear();
+            entities.comsumeAvail(avail);
             try
             {
                 if (downStream.process(data) == false)
@@ -133,6 +133,7 @@ public class ChannelAttachWorker implements Runnable
      */
     public void notifyedWriteAvailable()
     {
+        System.out.println("触发");
         tryExecute();
     }
 

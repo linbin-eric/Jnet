@@ -1,11 +1,19 @@
 package com.jfireframework.jnet.common.internal;
 
+import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.DataProcessor;
 
 public abstract class BindDownAndUpStreamDataProcessor<E> implements DataProcessor<E>
 {
-    protected DataProcessor downStream;
-    protected DataProcessor upStream;
+    protected DataProcessor  downStream;
+    protected DataProcessor  upStream;
+    protected ChannelContext channelContext;
+
+    @Override
+    public void bind(ChannelContext channelContext)
+    {
+        this.channelContext = channelContext;
+    }
 
     @Override
     public void bindDownStream(DataProcessor<?> downStream)
@@ -23,5 +31,11 @@ public abstract class BindDownAndUpStreamDataProcessor<E> implements DataProcess
     public boolean canAccept()
     {
         return downStream.canAccept();
+    }
+
+    @Override
+    public void notifyedWriteAvailable() throws Throwable
+    {
+        upStream.notifyedWriteAvailable();
     }
 }

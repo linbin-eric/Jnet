@@ -28,6 +28,12 @@ public class DefaultChannelContext implements ChannelContext
     }
 
     @Override
+    public boolean availableForWrite()
+    {
+       return writeCompletionHandler.canAccept();
+    }
+
+    @Override
     public AsynchronousSocketChannel socketChannel()
     {
         return socketChannel;

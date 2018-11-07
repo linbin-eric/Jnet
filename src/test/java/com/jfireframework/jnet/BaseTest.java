@@ -12,6 +12,7 @@ import com.jfireframework.jnet.common.buffer.PooledBufferAllocator;
 import com.jfireframework.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
 import com.jfireframework.jnet.common.internal.BindDownAndUpStreamDataProcessor;
 import com.jfireframework.jnet.common.internal.DefaultAcceptHandler;
+import com.jfireframework.jnet.common.processor.BackPressureHelper;
 import com.jfireframework.jnet.common.processor.ChannelAttachProcessor;
 import com.jfireframework.jnet.server.AioServer;
 import com.jfireframework.jnet.server.AioServerBuilder;
@@ -42,7 +43,7 @@ public class BaseTest
     private              String         ip           = "127.0.0.1";
     private              int            port         = 7598;
     private              int            numPerThread = 100000;
-    private              int            numClients   = 10;
+    private              int            numClients   = 1;
     private              JnetClient[]   clients;
     private              CountDownLatch latch        = new CountDownLatch(numClients);
     private              int[][]        results;
@@ -61,7 +62,7 @@ public class BaseTest
         {
 
             @Override
-            public void onChannelContextInit(ChannelContext channelContext)
+            public void onChannelContextInit(final ChannelContext channelContext)
             {
                 switch (ioMode)
                 {
@@ -69,133 +70,30 @@ public class BaseTest
                         channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 100, bufferAllocator), //
                                 new BindDownAndUpStreamDataProcessor<IoBuffer>()
                                 {
-                                    IoBuffer reSend;
-                                    AtomicInteger flag = new AtomicInteger(0);
-
-                                    @Override
-                                    public void bind(ChannelContext channelContext)
-                                    {
-                                    }
 
                                     @Override
                                     public boolean process(IoBuffer data) throws Throwable
                                     {
                                         data.addReadPosi(-4);
-                                        if (downStream.process(data) == false)
-                                        {
-                                            reSend = data;
-                                            flag.set(1);
-                                            int now;
-                                            while (downStream.canAccept() && (now = flag.get()) == 1)
-                                            {
-                                                if (flag.compareAndSet(1, 0))
-                                                {
-                                                    if (downStream.process(data))
-                                                    {
-                                                        return true;
-                                                    }
-                                                    else
-                                                    {
-                                                        flag.set(1);
-                                                    }
-                                                }
-                                            }
-                                            return false;
-                                        }
-                                        else
-                                        {
-                                            return true;
-                                        }
+                                        return downStream.process(data);
                                     }
-
-                                    @Override
-                                    public void notifyedWriteAvailable() throws Throwable
-                                    {
-                                        int now;
-                                        while (downStream.canAccept() && (now = flag.get()) == 1)
-                                        {
-                                            if (flag.compareAndSet(1, 0))
-                                            {
-                                                if (downStream.process(reSend))
-                                                {
-                                                    upStream.notifyedWriteAvailable();
-                                                    break;
-                                                }
-                                                else
-                                                {
-                                                    flag.set(1);
-                                                }
-                                            }
-                                        }
-                                    }
-                                });
+                                }, new BackPressureHelper());
                         break;
                     case Channel:
                         final ExecutorService fixService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
                         channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 100, bufferAllocator), //
+                               new BackPressureHelper(),//
                                 new ChannelAttachProcessor(fixService), //
                                 new BindDownAndUpStreamDataProcessor<IoBuffer>()
                                 {
-                                    IoBuffer reSend;
-                                    AtomicInteger flag = new AtomicInteger(0);
-
-                                    @Override
-                                    public void bind(ChannelContext channelContext)
-                                    {
-                                    }
 
                                     @Override
                                     public boolean process(IoBuffer data) throws Throwable
                                     {
                                         data.addReadPosi(-4);
-                                        if (downStream.process(data) == false)
-                                        {
-                                            reSend = data;
-                                            flag.set(1);
-                                            int now;
-                                            while (downStream.canAccept() && (now = flag.get()) == 1)
-                                            {
-                                                if (flag.compareAndSet(1, 0))
-                                                {
-                                                    if (downStream.process(data))
-                                                    {
-                                                        return true;
-                                                    }
-                                                    else
-                                                    {
-                                                        flag.set(1);
-                                                    }
-                                                }
-                                            }
-                                            return false;
-                                        }
-                                        else
-                                        {
-                                            return true;
-                                        }
+                                        return downStream.process(data);
                                     }
-
-                                    @Override
-                                    public void notifyedWriteAvailable() throws Throwable
-                                    {
-                                        int now;
-                                        while (downStream.canAccept() && (now = flag.get()) == 1)
-                                        {
-                                            if (flag.compareAndSet(1, 0))
-                                            {
-                                                if (downStream.process(reSend))
-                                                {
-                                                    upStream.notifyedWriteAvailable();
-                                                    break;
-                                                }
-                                                else
-                                                {
-                                                    flag.set(1);
-                                                }
-                                            }
-                                        }
-                                    }
-                                });
+                                }, new BackPressureHelper());
                         break;
                     default:
                         break;
@@ -277,9 +175,9 @@ public class BaseTest
     public static Collection<Object[]> params()
     {
         return Arrays.asList(new Object[][]{ //
-                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(2048), IoMode.IO}, //
                 {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(), IoMode.IO}, //
-                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(2048), IoMode.Channel}, //
+                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(1024), IoMode.IO}, //
+                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(1024), IoMode.Channel}, //
         });
     }
 

@@ -154,7 +154,7 @@ public class DefaultReadCompletionHandler extends BindDownAndUpStreamDataProcess
                         }
                         entry.setByteBuffer(buffer.writableByteBuffer());
                         socketChannel.read(entry.getByteBuffer(), entry, this);
-                        break;
+                        return;
                     }
                     else
                     {
