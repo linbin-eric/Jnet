@@ -21,6 +21,7 @@ public class ChannelAttachProcessor extends BindDownAndUpStreamDataProcessor<Obj
     public void bind(ChannelContext channelContext)
     {
         this.channelContext = channelContext;
+        worker.setChannelContext( channelContext);
     }
 
     @Override
@@ -40,6 +41,12 @@ public class ChannelAttachProcessor extends BindDownAndUpStreamDataProcessor<Obj
     {
         this.upStream = upStream;
         worker.setUpStream(upStream);
+    }
+    @Override
+    public void bindDownStream(DataProcessor<?> downStream)
+    {
+        this.downStream = downStream;
+    worker.setDownStream(downStream);
     }
 
     @Override

@@ -263,8 +263,16 @@ public abstract class MPSCFixArray<E> extends Core implements FixArray<E>
         {
             while (isAvailable(address, flag) == false)
             {
-                Thread.yield();
+//                Thread.yield();
+                try
+                {
+                    Thread.sleep(1);
+                } catch (InterruptedException e)
+                {
+                    e.printStackTrace();
+                }
             }
+
         }
         return cIndex;
     }

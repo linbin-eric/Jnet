@@ -1,9 +1,11 @@
 package com.jfireframework.jnet.common.processor.worker;
 
+import com.jfireframework.baseutil.concurrent.FastMPSCArrayQueue;
 import com.jfireframework.baseutil.reflect.UNSAFE;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.DataProcessor;
 import com.jfireframework.jnet.common.util.FixArray;
+import com.jfireframework.jnet.common.util.MPSCFixArray;
 import com.jfireframework.jnet.common.util.SPSCFixArray;
 
 import java.util.concurrent.ExecutorService;
@@ -16,7 +18,7 @@ public class ChannelAttachWorker implements Runnable
     private static final int                           SPIN_THRESHOLD = 128;
     private static final long                          STATE_OFFSET   = UNSAFE.getFieldOffset("state", ChannelAttachWorker.class);
     private final        ExecutorService               executorService;
-    private final        FixArray<ChannelAttachEntity> entities       = new SPSCFixArray<ChannelAttachEntity>(8)
+    private final        FixArray<ChannelAttachEntity> entities       = new SPSCFixArray<ChannelAttachEntity>(512)
     {
 
         @Override
@@ -25,8 +27,10 @@ public class ChannelAttachWorker implements Runnable
             return new ChannelAttachEntity();
         }
     };
-    private              int                           state          = IDLE;
+    private volatile     int                           state          = IDLE;
     private              DataProcessor<?>              upStream;
+    private              DataProcessor<?>              downStream;
+    private              ChannelContext                channelContext;
 
     public ChannelAttachWorker(ExecutorService executorService)
     {
@@ -36,70 +40,55 @@ public class ChannelAttachWorker implements Runnable
     @Override
     public void run()
     {
-        int spin = 0;
-        do
+        try
         {
-            long avail = entities.nextAvail();
-            if (avail == -1)
+            int spin = 0;
+            do
             {
-                spin = 0;
-                for (; ; )
+                long avail = entities.nextAvail();
+                if (avail == -1)
                 {
-                    if ((avail = entities.nextAvail()) != -1)
+                    spin = 0;
+                    for (; ; )
                     {
-                        break;
-                    }
-                    else if ((spin += 1) < SPIN_THRESHOLD)
-                    {
-                        ;
-                    }
-                    else
-                    {
-                        state = IDLE;
-                        try
+                        if ((avail = entities.nextAvail()) != -1)
                         {
-                            upStream.notifyedWriteAvailable();
-                        } catch (Throwable throwable)
-                        {
-                            throwable.printStackTrace();
-                            return;
+                            break;
                         }
-                        if (entities.isEmpty() == false)
+                        else if ((spin += 1) < SPIN_THRESHOLD)
                         {
-                            tryExecute();
-                            System.out.println("成功");
+                            ;
                         }
                         else
                         {
-                            System.out.println(Thread.currentThread().getName()+"放弃");
+                            state = IDLE;
+                            upStream.notifyedWriteAvailable();
+                            if (entities.isEmpty() == false)
+                            {
+                                tryExecute();
+                            }
+                            return;
                         }
-                        return;
                     }
                 }
-            }
-            ChannelAttachEntity slot           = entities.getSlot(avail);
-            ChannelContext      channelContext = slot.channelContext;
-            DataProcessor       downStream     = slot.downStream;
-            Object              data           = slot.data;
-            slot.clear();
-            entities.comsumeAvail(avail);
-            try
-            {
+                ChannelAttachEntity slot           = entities.getSlot(avail);
+                ChannelContext      channelContext = slot.channelContext;
+                DataProcessor       downStream     = slot.downStream;
+                Object              data           = slot.data;
+                slot.clear();
+                entities.comsumeAvail(avail);
                 if (downStream.process(data) == false)
                 {
                     state = IDLE;
-                    if (downStream.canAccept())
-                    {
-                        tryExecute();
-                    }
+                    tryExecute();
                     break;
                 }
-            } catch (Throwable e)
-            {
-                e.printStackTrace();
-                channelContext.close(e);
-            }
-        } while (true);
+            } while (true);
+        } catch (Throwable e)
+        {
+            e.printStackTrace();
+            channelContext.close(e);
+        }
     }
 
     public boolean commit(ChannelContext channelContext, DataProcessor<?> downStream, Object data)
@@ -133,14 +122,13 @@ public class ChannelAttachWorker implements Runnable
      */
     public void notifyedWriteAvailable()
     {
-        System.out.println("触发");
         tryExecute();
     }
 
     private void tryExecute()
     {
-        int now = state;
-        if (now == IDLE && UNSAFE.compareAndSwapInt(this, STATE_OFFSET, IDLE, WORK))
+        int now;
+        if (downStream.canAccept() && (now = state) == IDLE && UNSAFE.compareAndSwapInt(this, STATE_OFFSET, IDLE, WORK))
         {
             executorService.execute(this);
         }
@@ -149,6 +137,11 @@ public class ChannelAttachWorker implements Runnable
     public void setUpStream(DataProcessor<?> upStream)
     {
         this.upStream = upStream;
+    }
+
+    public void setDownStream(DataProcessor downStream)
+    {
+        this.downStream = downStream;
     }
 
     class ChannelAttachEntity
@@ -163,5 +156,10 @@ public class ChannelAttachWorker implements Runnable
             downStream = null;
             data = null;
         }
+    }
+
+    public void setChannelContext(ChannelContext channelContext)
+    {
+        this.channelContext = channelContext;
     }
 }
