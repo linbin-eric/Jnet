@@ -4,6 +4,7 @@ import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.DataProcessor;
 import com.jfireframework.jnet.common.api.ProcessorInvoker;
 import com.jfireframework.jnet.common.processor.worker.FixedAttachWorker;
+import com.sun.org.apache.bcel.internal.generic.RETURN;
 
 public class FixedAttachIoProcessor implements DataProcessor<Object>
 {
@@ -22,16 +23,11 @@ public class FixedAttachIoProcessor implements DataProcessor<Object>
     }
     
     @Override
-    public void process(Object data, ProcessorInvoker next) throws Throwable
+	public boolean process(Object data, ProcessorInvoker next) throws Throwable
     {
-        worker.commit(channelContext, next, data);
+		worker.commit(channelContext, next, data);
+        return true;
     }
     
-    @Override
-    public boolean backpressureProcess(Object data, ProcessorInvoker next) throws Throwable
-    {
-        // TODO Auto-generated method stub
-        return false;
-    }
     
 }
