@@ -1,14 +1,15 @@
 package com.jfireframework.jnet.common.util;
 
-import java.util.Arrays;
 import com.jfireframework.baseutil.reflect.ReflectUtil;
 import com.jfireframework.baseutil.reflect.UNSAFE;
+
+import java.util.Arrays;
 
 abstract class PadFor64Bit
 {
     // 64长度的缓存行，要进行填充，需要8个byte。
     long p1, p2, p3, p4, p5, p6, p7;
-    
+
     public static long noHuop(PadFor64Bit instance)
     {
         return instance.p1 + instance.p2 + instance.p3 + instance.p4 + instance.p5 + instance.p6 + instance.p7;
@@ -23,7 +24,7 @@ abstract class ProducerIndex extends PadFor64Bit
 abstract class Pad2 extends ProducerIndex
 {
     public long p1, p2, p3, p4, p5, p6, p7;
-    
+
     public static long noHuop(Pad2 instance)
     {
         return instance.p1 + instance.p2 + instance.p3 + instance.p4 + instance.p5 + instance.p6 + instance.p7;
@@ -38,7 +39,7 @@ abstract class ComsumerIndex extends Pad2
 abstract class Pad3 extends ComsumerIndex
 {
     long p1, p2, p3, p4, p5, p6, p7;
-    
+
     public static long noHuop(Pad3 instance)
     {
         return instance.p1 + instance.p2 + instance.p3 + instance.p4 + instance.p5 + instance.p6 + instance.p7;
@@ -53,7 +54,7 @@ abstract class Core extends Pad3
     static final long bufferOffset          = UNSAFE.arrayBaseOffset(Object[].class);
     static final long availableBufferScaleShift;
     static final long bufferScaleShift;
-    
+
     static
     {
         int availableBufferScale = UNSAFE.arrayIndexScale(new int[0].getClass());
@@ -83,17 +84,17 @@ abstract class Core extends Pad3
             throw new IllegalArgumentException();
         }
     }
-    
-    protected final Object[] buffer;
-    protected final int      mask;
-    protected final int[]    availableBuffers;
-    protected final int      indexShift;
-    protected long           consumerLimit;
-    protected volatile long  producerIndexLimit = 0;
-    
+
+    protected final    Object[] buffer;
+    protected final    int      mask;
+    protected final    int[]    availableBuffers;
+    protected final    int      indexShift;
+    protected          long     consumerLimit;
+    protected volatile long     producerIndexLimit = 0;
+
     Core(int capacity)
     {
-        int size = 1;
+        int size       = 1;
         int indexShift = 0;
         while (size < capacity && size > 0)
         {
@@ -113,34 +114,34 @@ abstract class Core extends Pad3
             throw new IllegalArgumentException("capacity 无法计算得到其最小的2次方幂");
         }
     }
-    
+
     final void setConsumerIndexOrdered(long consumerIndex)
     {
         UNSAFE.putOrderedLong(this, consumerIndexAddress, consumerIndex);
     }
-    
+
     boolean isAvailable(long index)
     {
-        int flag = (int) (index >>> indexShift);
+        int  flag    = (int) (index >>> indexShift);
         long address = ((index & mask) << availableBufferScaleShift) + availableBufferOffset;
         return UNSAFE.getIntVolatile(availableBuffers, address) == flag;
     }
-    
+
     boolean isAvailable(long address, int flag)
     {
         return UNSAFE.getIntVolatile(availableBuffers, address) == flag;
     }
-    
+
     void setAvailable(long index)
     {
-        int flag = (int) (index >>> indexShift);
+        int  flag    = (int) (index >>> indexShift);
         long address = ((index & mask) << availableBufferScaleShift) + availableBufferOffset;
         UNSAFE.putOrderedInt(availableBuffers, address, flag);
     }
-    
+
     /**
      * 获取下一个可以使用的生产者下标.在不可用时，如果wait参数为false，则直接返回-1.否则执行Thread.yeild等待后继续尝试，直到有可用的为止
-     * 
+     *
      * @return
      */
     long nextProducerIndex(boolean wait)
@@ -189,18 +190,17 @@ abstract class Core extends Pad3
             }
         } while (true);
     }
-    
+
     Object get(long index)
     {
         long address = ((index & mask) << bufferScaleShift) + bufferOffset;
         return UNSAFE.getObject(buffer, address);
     }
-    
 }
 
 public abstract class MPSCFixArray<E> extends Core implements FixArray<E>
 {
-    
+
     public MPSCFixArray(int capacity)
     {
         super(capacity);
@@ -210,15 +210,14 @@ public abstract class MPSCFixArray<E> extends Core implements FixArray<E>
             {
                 buffer[i] = newInstance();
             }
-        }
-        catch (Throwable e)
+        } catch (Throwable e)
         {
             ReflectUtil.throwException(e);
         }
     }
-    
+
     protected abstract E newInstance();
-    
+
     @Override
     public boolean isEmpty()
     {
@@ -226,26 +225,26 @@ public abstract class MPSCFixArray<E> extends Core implements FixArray<E>
         long producerIndex = this.producerIndex;
         return consumerIndex == producerIndex;
     }
-    
+
     @Override
     public long nextOfferIndex()
     {
         return nextProducerIndex(false);
     }
-    
+
     @Override
     @SuppressWarnings("unchecked")
     public E getSlot(long index)
     {
         return (E) get(index);
     }
-    
+
     @Override
     public void commit(long index)
     {
         setAvailable(index);
     }
-    
+
     @Override
     public long nextAvail()
     {
@@ -258,7 +257,7 @@ public abstract class MPSCFixArray<E> extends Core implements FixArray<E>
                 return -1;
             }
         }
-        int flag = (int) (cIndex >>> indexShift);
+        int  flag    = (int) (cIndex >>> indexShift);
         long address = ((cIndex & mask) << availableBufferScaleShift) + availableBufferOffset;
         if (isAvailable(address, flag) == false)
         {
@@ -269,13 +268,13 @@ public abstract class MPSCFixArray<E> extends Core implements FixArray<E>
         }
         return cIndex;
     }
-    
+
     @Override
     public void comsumeAvail(long index)
     {
         setConsumerIndexOrdered(index + 1);
     }
-    
+
     @Override
     public long waitUntilOfferIndexAvail()
     {

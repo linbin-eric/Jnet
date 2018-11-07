@@ -5,12 +5,12 @@ import com.jfireframework.baseutil.reflect.UNSAFE;
 
 abstract class SPSCCore extends Pad3
 {
-    
+
     static final long consumerIndexAddress = UNSAFE.getFieldOffset("consumerIndex", ComsumerIndex.class);
     static final long producerIndexAddress = UNSAFE.getFieldOffset("producerIndex", ProducerIndex.class);
     static final long bufferOffset         = UNSAFE.arrayBaseOffset(Object[].class);
     static final long bufferScaleShift;
-    
+
     static
     {
         int bufferScale = UNSAFE.arrayIndexScale(Object[].class);
@@ -27,16 +27,16 @@ abstract class SPSCCore extends Pad3
             throw new IllegalArgumentException();
         }
     }
-    
+
     protected final Object[] buffer;
     protected final int      mask;
     protected final int      indexShift;
-    protected long           consumerLimit;
-    protected long           producerIndexLimit = 0;
-    
+    protected       long     consumerLimit;
+    protected       long     producerIndexLimit = 0;
+
     SPSCCore(int capacity)
     {
-        int size = 1;
+        int size       = 1;
         int indexShift = 0;
         while (size < capacity && size > 0)
         {
@@ -54,15 +54,15 @@ abstract class SPSCCore extends Pad3
             throw new IllegalArgumentException("capacity 无法计算得到其最小的2次方幂");
         }
     }
-    
+
     final void setConsumerIndexOrdered(long consumerIndex)
     {
         UNSAFE.putOrderedLong(this, consumerIndexAddress, consumerIndex);
     }
-    
+
     /**
      * 获取下一个可以使用的生产者下标
-     * 
+     *
      * @return
      */
     long nextProducerIndex(boolean wait)
@@ -93,13 +93,13 @@ abstract class SPSCCore extends Pad3
             }
         }
     }
-    
+
     Object get(long index)
     {
         long address = ((index & mask) << bufferScaleShift) + bufferOffset;
         return UNSAFE.getObject(buffer, address);
     }
-    
+
     void setAvail(long index)
     {
         UNSAFE.putOrderedLong(this, producerIndexAddress, index + 1);
@@ -117,15 +117,14 @@ public abstract class SPSCFixArray<E> extends SPSCCore implements FixArray<E>
             {
                 buffer[i] = newInstance();
             }
-        }
-        catch (Throwable e)
+        } catch (Throwable e)
         {
             ReflectUtil.throwException(e);
         }
     }
-    
+
     protected abstract E newInstance();
-    
+
     @Override
     public boolean isEmpty()
     {
@@ -133,26 +132,26 @@ public abstract class SPSCFixArray<E> extends SPSCCore implements FixArray<E>
         long producerIndex = this.producerIndex;
         return consumerIndex == producerIndex;
     }
-    
+
     @Override
     public long nextOfferIndex()
     {
         return nextProducerIndex(false);
     }
-    
+
     @Override
     @SuppressWarnings("unchecked")
     public E getSlot(long index)
     {
         return (E) get(index);
     }
-    
+
     @Override
     public void commit(long index)
     {
         setAvail(index);
     }
-    
+
     @Override
     public long nextAvail()
     {
@@ -167,13 +166,13 @@ public abstract class SPSCFixArray<E> extends SPSCCore implements FixArray<E>
         }
         return cIndex;
     }
-    
+
     @Override
     public void comsumeAvail(long index)
     {
         setConsumerIndexOrdered(index + 1);
     }
-    
+
     @Override
     public long waitUntilOfferIndexAvail()
     {

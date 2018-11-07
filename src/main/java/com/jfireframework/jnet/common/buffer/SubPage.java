@@ -4,22 +4,22 @@ import com.jfireframework.baseutil.reflect.ReflectUtil;
 
 public class SubPage<T>
 {
-    int            elementSize;
-    long[]         bitMap;
-    int            bitMapLength;
-    int            nextAvail;
-    int            maxNumAvail;
-    int            numAvail;
     final Chunk<T> chunk;
     final int      pageSize;
     final int      allocationsCapacityIdx;
     final int      offset;
-    SubPage<T>     prev;
-    SubPage<T>     next;
-    
+    int    elementSize;
+    long[] bitMap;
+    int    bitMapLength;
+    int    nextAvail;
+    int    maxNumAvail;
+    int    numAvail;
+    SubPage<T> prev;
+    SubPage<T> next;
+
     /**
      * 这是一个特殊节点，不参与分配，仅用做标识
-     * 
+     *
      * @param pageSize
      */
     public SubPage(int pageSize)
@@ -31,7 +31,7 @@ public class SubPage<T>
         elementSize = 0;
         prev = next = this;
     }
-    
+
     public SubPage(Chunk<T> chunk, int pageSize, int allocationsCapacityIdx, int offset, int elementSize, Arena<T> arena)
     {
         this.chunk = chunk;
@@ -42,7 +42,15 @@ public class SubPage<T>
         bitMap = new long[pageSize >> 4 >> 6];
         init(elementSize, arena);
     }
-    
+
+    public static void main(String[] args)
+    {
+        long l      = -1L;
+        long result = l & (~(1 << 31));
+        System.out.println(result);
+        System.out.println(Integer.MAX_VALUE);
+    }
+
     public void init(int elementSize, Arena<T> arena)
     {
         this.elementSize = elementSize;
@@ -51,17 +59,17 @@ public class SubPage<T>
         bitMapLength = (maxNumAvail & 63) == 0 ? maxNumAvail >>> 6 : (maxNumAvail >>> 6) + 1;
         addToArena(elementSize, arena);
     }
-    
+
     private void addToArena(int elementSize, Arena<T> arena)
     {
-        SubPage<T> head = arena.findSubPageHead(elementSize);
+        SubPage<T> head    = arena.findSubPageHead(elementSize);
         SubPage<T> succeed = head.next;
         head.next = this;
         next = succeed;
         succeed.prev = this;
         prev = head;
     }
-    
+
     public long allocate()
     {
         if (numAvail == 0)
@@ -83,14 +91,14 @@ public class SubPage<T>
         }
         return toHandle(bitmapIdx);
     }
-    
+
     private void removeFromArena()
     {
         next.prev = prev;
         prev.next = next;
         prev = next = null;
     }
-    
+
     private int findAvail()
     {
         int nextAvail = this.nextAvail;
@@ -119,24 +127,16 @@ public class SubPage<T>
         }
         return -1;
     }
-    
+
     long toHandle(int memoryIdx)
     {
         // 由于bitMapIdx的初始值是0，为了表达这个0是具备含义的，因此在低3位使用一个1来使得整体高32位不会为0
         return 0x4000000000000000L | ((long) memoryIdx << 32) | (allocationsCapacityIdx);
     }
-    
-    public static void main(String[] args)
-    {
-		long l = -1L;
-        long result = l & (~(1 << 31));
-        System.out.println(result);
-        System.out.println(Integer.MAX_VALUE);
-    }
-    
+
     /**
      * 返回true意味着该SubPage还在Arena的链表中
-     * 
+     *
      * @return
      */
     public boolean free(long handle, int bitmapIdx, SubPage<T> head, Arena<T> arena)

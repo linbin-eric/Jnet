@@ -1,59 +1,58 @@
 package com.jfireframework.jnet.common.buffer;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
-import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.Collection;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.Collection;
+
+import static org.junit.Assert.*;
+
 @RunWith(Parameterized.class)
 public class UnPooledBufferRWTest
 {
     private IoBuffer buffer;
     private IoBuffer paramBuffer;
-    
-    @Parameters
-    public static Collection<?> data()
-    {
-        return Arrays.asList(new Object[][] { //
-                { UnPooledUnRecycledBufferAllocator.DEFAULT.heapBuffer(128), UnPooledUnRecycledBufferAllocator.DEFAULT.heapBuffer(30) }, //
-                { UnPooledUnRecycledBufferAllocator.DEFAULT.heapBuffer(128), UnPooledUnRecycledBufferAllocator.DEFAULT.directBuffer(30) }, //
-                { UnPooledUnRecycledBufferAllocator.DEFAULT.directBuffer(128), UnPooledUnRecycledBufferAllocator.DEFAULT.heapBuffer(30) }, //
-                { UnPooledUnRecycledBufferAllocator.DEFAULT.directBuffer(128), UnPooledUnRecycledBufferAllocator.DEFAULT.directBuffer(30) }, //
-                { UnPooledRecycledBufferAllocator.DEFAULT.heapBuffer(128), UnPooledRecycledBufferAllocator.DEFAULT.heapBuffer(30) }, //
-                { UnPooledRecycledBufferAllocator.DEFAULT.heapBuffer(128), UnPooledRecycledBufferAllocator.DEFAULT.directBuffer(30) }, //
-                { UnPooledRecycledBufferAllocator.DEFAULT.directBuffer(128), UnPooledRecycledBufferAllocator.DEFAULT.heapBuffer(30) }, //
-                { UnPooledRecycledBufferAllocator.DEFAULT.directBuffer(128), UnPooledRecycledBufferAllocator.DEFAULT.directBuffer(30) },//
-        });
-    }
-    
+
     public UnPooledBufferRWTest(IoBuffer buffer, IoBuffer paramBuffer)
     {
         this.buffer = buffer;
         this.paramBuffer = paramBuffer;
     }
-    
+
+    @Parameters
+    public static Collection<?> data()
+    {
+        return Arrays.asList(new Object[][]{ //
+                {UnPooledUnRecycledBufferAllocator.DEFAULT.heapBuffer(128), UnPooledUnRecycledBufferAllocator.DEFAULT.heapBuffer(30)}, //
+                {UnPooledUnRecycledBufferAllocator.DEFAULT.heapBuffer(128), UnPooledUnRecycledBufferAllocator.DEFAULT.directBuffer(30)}, //
+                {UnPooledUnRecycledBufferAllocator.DEFAULT.directBuffer(128), UnPooledUnRecycledBufferAllocator.DEFAULT.heapBuffer(30)}, //
+                {UnPooledUnRecycledBufferAllocator.DEFAULT.directBuffer(128), UnPooledUnRecycledBufferAllocator.DEFAULT.directBuffer(30)}, //
+                {UnPooledRecycledBufferAllocator.DEFAULT.heapBuffer(128), UnPooledRecycledBufferAllocator.DEFAULT.heapBuffer(30)}, //
+                {UnPooledRecycledBufferAllocator.DEFAULT.heapBuffer(128), UnPooledRecycledBufferAllocator.DEFAULT.directBuffer(30)}, //
+                {UnPooledRecycledBufferAllocator.DEFAULT.directBuffer(128), UnPooledRecycledBufferAllocator.DEFAULT.heapBuffer(30)}, //
+                {UnPooledRecycledBufferAllocator.DEFAULT.directBuffer(128), UnPooledRecycledBufferAllocator.DEFAULT.directBuffer(30)},//
+        });
+    }
+
     @Before
     public void before()
     {
         buffer.clearAndErasureData();
         paramBuffer.clearAndErasureData();
     }
-    
+
     @Test
     public void test()
     {
         assertEquals(128, buffer.capacity());
         buffer.put((byte) 27);
         buffer.addWritePosi(1);
-        buffer.put(new byte[] { 36, 90 });
+        buffer.put(new byte[]{36, 90});
         buffer.addWritePosi(1);
         buffer.putInt(5);
         buffer.putLong(12564L);
@@ -78,7 +77,7 @@ public class UnPooledBufferRWTest
         buffer.put((byte) 12, 100);
         assertEquals((byte) 12, buffer.get(100));
         buffer.clear();
-        byte[] content = new byte[] { 12, 20, 35 };
+        byte[] content = new byte[]{12, 20, 35};
         buffer.put(content);
         assertEquals(12, buffer.get());
         assertEquals(20, buffer.get());
@@ -106,7 +105,7 @@ public class UnPooledBufferRWTest
         buffer.put((byte) 14);
         byte[] result = new byte[3];
         buffer.get(result);
-        assertArrayEquals(new byte[] { 12, 13, 14 }, result);
+        assertArrayEquals(new byte[]{12, 13, 14}, result);
         buffer.clear();
         buffer.put((byte) 13);
         buffer.put((byte) 13);
@@ -116,7 +115,7 @@ public class UnPooledBufferRWTest
         buffer.put((byte) 12);
         buffer.put((byte) 17);
         buffer.put((byte) 20);
-        byte[] indexs = new byte[] { 17, 20 };
+        byte[] indexs = new byte[]{17, 20};
         assertEquals(6, buffer.indexOf(indexs));
         buffer.addWritePosi(-1);
         assertEquals(-1, buffer.indexOf(indexs));
@@ -131,7 +130,7 @@ public class UnPooledBufferRWTest
         assertEquals(2, buffer.getShort(90));
         assertEquals(100, buffer.getLong(100));
     }
-    
+
     // 测试放入buffer
     @Test
     public void test2()
@@ -147,7 +146,7 @@ public class UnPooledBufferRWTest
         assertEquals(1000L, buffer.getLong());
         buffer.free();
     }
-    
+
     /**
      * 检查异常情况是否捕获
      */
@@ -158,8 +157,7 @@ public class UnPooledBufferRWTest
         try
         {
             buffer.putInt(4);
-        }
-        catch (Exception e)
+        } catch (Exception e)
         {
             assertTrue(e instanceof IllegalArgumentException);
         }
@@ -167,8 +165,7 @@ public class UnPooledBufferRWTest
         try
         {
             buffer.getInt();
-        }
-        catch (Exception e)
+        } catch (Exception e)
         {
             assertTrue(e instanceof IllegalArgumentException);
         }
@@ -176,16 +173,14 @@ public class UnPooledBufferRWTest
         try
         {
             buffer.putInt(10, 125);
-        }
-        catch (Exception e)
+        } catch (Exception e)
         {
             assertTrue(e instanceof IllegalArgumentException);
         }
         try
         {
             buffer.clear().getInt(123);
-        }
-        catch (Exception e)
+        } catch (Exception e)
         {
             assertTrue(e instanceof IllegalArgumentException);
         }
@@ -194,13 +189,12 @@ public class UnPooledBufferRWTest
         try
         {
             buffer.put(paramBuffer, 20);
-        }
-        catch (Exception e)
+        } catch (Exception e)
         {
             assertTrue(e instanceof IllegalArgumentException);
         }
     }
-    
+
     /**
      * 测试压缩功能
      */
@@ -219,7 +213,7 @@ public class UnPooledBufferRWTest
         assertEquals(4, buffer.getWritePosi());
         assertEquals(3, buffer.getInt());
     }
-    
+
     /**
      * 测试ByteBuffer接口
      */

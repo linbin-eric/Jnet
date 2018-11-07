@@ -4,13 +4,13 @@ public class Statistics
 {
     private int[] totals;
     private int[] durations;
-    
+
     public Statistics(int... durations)
     {
         this.durations = durations;
         totals = new int[durations.length];
     }
-    
+
     public void count(int num)
     {
         int length = durations.length;
@@ -23,7 +23,7 @@ public class Statistics
             }
         }
     }
-    
+
     @Override
     public String toString()
     {

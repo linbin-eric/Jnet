@@ -1,34 +1,33 @@
 package com.jfireframework.jnet.common.buffer;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
+import com.jfireframework.baseutil.StringUtil;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
-import com.jfireframework.baseutil.StringUtil;
+
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
+
+import static org.junit.Assert.*;
 
 @RunWith(Parameterized.class)
 public class SmallAllocateTest
 {
-	PooledBufferAllocator	allocator	= new PooledUnThreadCacheBufferAllocator("test");
+    PooledBufferAllocator allocator = new PooledUnThreadCacheBufferAllocator("test");
     int                   reqCapacity;
-    
+
     public SmallAllocateTest(int reqCapacity)
     {
         this.reqCapacity = reqCapacity;
     }
-    
+
     @Parameters
     public static List<Integer> params()
     {
         List<Integer> list = new LinkedList<>();
-        int size = 512;
+        int           size = 512;
         while (size < PooledBufferAllocator.PAGESIZE)
         {
             list.add(size);
@@ -36,24 +35,24 @@ public class SmallAllocateTest
         }
         return list;
     }
-    
+
     @Test
     public void test0()
     {
         test0(true);
         test0(false);
     }
-    
+
     private void test0(boolean direct)
     {
-        int pagesize = allocator.pagesize;
-        int elementNum = pagesize / reqCapacity;
-        int numPage = 1 << allocator.maxLevel;
-        Chunk<?> chunk = null;
-        Arena<?> arena = allocator.threadCache().arena(direct);
-        Queue<IoBuffer> buffers = new LinkedList<>();
-        Queue<SubPage<?>> subPages = new LinkedList<>();
-        SubPage<?> head = arena.findSubPageHead(reqCapacity);
+        int               pagesize   = allocator.pagesize;
+        int               elementNum = pagesize / reqCapacity;
+        int               numPage    = 1 << allocator.maxLevel;
+        Chunk<?>          chunk      = null;
+        Arena<?>          arena      = allocator.threadCache().arena(direct);
+        Queue<IoBuffer>   buffers    = new LinkedList<>();
+        Queue<SubPage<?>> subPages   = new LinkedList<>();
+        SubPage<?>        head       = arena.findSubPageHead(reqCapacity);
         for (int i = 0; i < numPage; i++)
         {
             for (int elementIdx = 0; elementIdx < elementNum; elementIdx++)
@@ -82,7 +81,7 @@ public class SmallAllocateTest
         for (int i = 0; i < numPage; i++)
         {
             SubPage<?> subPage = chunk.subPages[i];
-            long[] bitMap = subPage.bitMap;
+            long[]     bitMap  = subPage.bitMap;
             for (int elementIdx = 0; elementIdx < elementNum; elementIdx++)
             {
                 buffers.poll().free();
@@ -119,22 +118,22 @@ public class SmallAllocateTest
         }
         assertTrue(head.next != head);
     }
-    
+
     @Test
     public void test1()
     {
         test1(true);
         test1(false);
     }
-    
+
     private void test1(boolean preferDirect)
     {
-        Queue<IoBuffer> buffers = new LinkedList<>();
-        int elementNum = allocator.pagesize / 512;
-        Arena<?> arena = allocator.threadCache().arena(preferDirect);
-        SubPage<?> head = arena.findSubPageHead(512);
-        SubPage<?> subPage1;
-        IoBuffer buffer = allocator.ioBuffer(512, preferDirect);
+        Queue<IoBuffer> buffers    = new LinkedList<>();
+        int             elementNum = allocator.pagesize / 512;
+        Arena<?>        arena      = allocator.threadCache().arena(preferDirect);
+        SubPage<?>      head       = arena.findSubPageHead(512);
+        SubPage<?>      subPage1;
+        IoBuffer        buffer     = allocator.ioBuffer(512, preferDirect);
         buffers.add(buffer);
         subPage1 = head.next;
         assertTrue(subPage1.next == head && subPage1.prev == head);

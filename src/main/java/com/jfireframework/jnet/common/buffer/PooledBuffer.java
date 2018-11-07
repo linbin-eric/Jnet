@@ -14,7 +14,7 @@ public abstract class PooledBuffer<T> implements IoBuffer
     ThreadCache    cache;
     Chunk<T>       chunk;
     RecycleHandler recycleHandler;
-    
+
     public void init(Chunk<T> chunk, int capacity, int offset, long handle, ThreadCache cache)
     {
         this.chunk = chunk;
@@ -25,7 +25,7 @@ public abstract class PooledBuffer<T> implements IoBuffer
         this.cache = cache;
         readPosi = writePosi = 0;
     }
-    
+
     public void initUnPooled(Chunk<T> chunk, ThreadCache cache)
     {
         this.chunk = chunk;
@@ -36,17 +36,17 @@ public abstract class PooledBuffer<T> implements IoBuffer
         capacity = chunk.chunkSize;
         handle = -1;
     }
-    
+
     @Override
     public int capacity()
     {
         return capacity;
     }
-    
+
     int nextWritePosi(int length)
     {
         int oldPosi = writePosi;
-        int posi = oldPosi + length;
+        int posi    = oldPosi + length;
         if (posi > capacity)
         {
             reAllocate(posi);
@@ -54,12 +54,12 @@ public abstract class PooledBuffer<T> implements IoBuffer
         writePosi = posi;
         return oldPosi;
     }
-    
+
     void reAllocate(int reqCapacity)
     {
         chunk.arena.reAllocate(this, reqCapacity);
     }
-    
+
     @Override
     public IoBuffer put(byte b)
     {
@@ -67,9 +67,9 @@ public abstract class PooledBuffer<T> implements IoBuffer
         put0(posi, b);
         return this;
     }
-    
+
     abstract void put0(int posi, byte value);
-    
+
     void checkWritePosi(int posi, int length)
     {
         int newPosi = posi + length;
@@ -78,7 +78,7 @@ public abstract class PooledBuffer<T> implements IoBuffer
             reAllocate(newPosi);
         }
     }
-    
+
     @Override
     public IoBuffer put(byte b, int posi)
     {
@@ -86,18 +86,18 @@ public abstract class PooledBuffer<T> implements IoBuffer
         put0(posi, b);
         return this;
     }
-    
+
     @Override
     public IoBuffer put(byte[] content)
     {
         int length = content.length;
-        int posi = nextWritePosi(length);
+        int posi   = nextWritePosi(length);
         put0(content, 0, length, posi);
         return this;
     }
-    
+
     abstract void put0(byte[] content, int off, int len, int posi);
-    
+
     @Override
     public IoBuffer put(byte[] content, int off, int len)
     {
@@ -105,13 +105,13 @@ public abstract class PooledBuffer<T> implements IoBuffer
         put0(content, off, len, posi);
         return this;
     }
-    
+
     @Override
     public IoBuffer put(IoBuffer buffer)
     {
         return put(buffer, buffer.remainRead());
     }
-    
+
     @Override
     public IoBuffer put(IoBuffer buffer, int len)
     {
@@ -138,11 +138,11 @@ public abstract class PooledBuffer<T> implements IoBuffer
         }
         return this;
     }
-    
+
     abstract void put1(PooledHeapBuffer buffer, int len);
-    
+
     abstract void put2(PooledDirectBuffer buffer, int len);
-    
+
     @Override
     public IoBuffer putInt(int i)
     {
@@ -150,9 +150,9 @@ public abstract class PooledBuffer<T> implements IoBuffer
         putInt0(posi, i);
         return this;
     }
-    
+
     abstract void putInt0(int posi, int value);
-    
+
     @Override
     public IoBuffer putInt(int value, int posi)
     {
@@ -160,7 +160,7 @@ public abstract class PooledBuffer<T> implements IoBuffer
         putInt0(posi, value);
         return this;
     }
-    
+
     @Override
     public IoBuffer putShort(short value, int posi)
     {
@@ -168,9 +168,9 @@ public abstract class PooledBuffer<T> implements IoBuffer
         putShort0(posi, value);
         return this;
     }
-    
+
     abstract void putShort0(int posi, short value);
-    
+
     @Override
     public IoBuffer putLong(long value, int posi)
     {
@@ -178,9 +178,9 @@ public abstract class PooledBuffer<T> implements IoBuffer
         putLong0(posi, value);
         return this;
     }
-    
+
     abstract void putLong0(int posi, long value);
-    
+
     @Override
     public IoBuffer putShort(short s)
     {
@@ -188,7 +188,7 @@ public abstract class PooledBuffer<T> implements IoBuffer
         putShort0(posi, s);
         return this;
     }
-    
+
     @Override
     public IoBuffer putLong(long l)
     {
@@ -196,40 +196,40 @@ public abstract class PooledBuffer<T> implements IoBuffer
         putLong0(posi, l);
         return this;
     }
-    
+
     @Override
     public int getReadPosi()
     {
         return readPosi;
     }
-    
+
     @Override
     public IoBuffer setReadPosi(int readPosi)
     {
         this.readPosi = readPosi;
         return this;
     }
-    
+
     @Override
     public int getWritePosi()
     {
         return writePosi;
     }
-    
+
     @Override
     public IoBuffer setWritePosi(int writePosi)
     {
         this.writePosi = writePosi;
         return this;
     }
-    
+
     @Override
     public IoBuffer clear()
     {
         readPosi = writePosi = 0;
         return this;
     }
-    
+
     @Override
     public IoBuffer clearAndErasureData()
     {
@@ -240,7 +240,7 @@ public abstract class PooledBuffer<T> implements IoBuffer
         readPosi = writePosi = 0;
         return this;
     }
-    
+
     int nextReadPosi(int len)
     {
         int oldPosi = readPosi;
@@ -252,16 +252,16 @@ public abstract class PooledBuffer<T> implements IoBuffer
         readPosi = newPosi;
         return oldPosi;
     }
-    
+
     @Override
     public byte get()
     {
         int posi = nextReadPosi(1);
         return get0(posi);
     }
-    
+
     abstract byte get0(int posi);
-    
+
     void checkReadPosi(int posi, int len)
     {
         posi += len;
@@ -270,34 +270,34 @@ public abstract class PooledBuffer<T> implements IoBuffer
             throw new IllegalArgumentException("尝试读取的内容过长，当前没有这么多数据");
         }
     }
-    
+
     @Override
     public byte get(int posi)
     {
         checkReadPosi(posi, 1);
         return get0(posi);
     }
-    
+
     @Override
     public int remainRead()
     {
         return writePosi - readPosi;
     }
-    
+
     @Override
     public int remainWrite()
     {
         return capacity - writePosi;
     }
-    
+
     @Override
     public IoBuffer get(byte[] content)
     {
         return get(content, 0, content.length);
     }
-    
+
     abstract void get0(byte[] content, int off, int len, int posi);
-    
+
     @Override
     public IoBuffer get(byte[] content, int off, int len)
     {
@@ -305,14 +305,14 @@ public abstract class PooledBuffer<T> implements IoBuffer
         get0(content, off, len, posi);
         return this;
     }
-    
+
     @Override
     public IoBuffer addReadPosi(int add)
     {
         readPosi += add;
         return this;
     }
-    
+
     @Override
     public IoBuffer addWritePosi(int add)
     {
@@ -323,7 +323,7 @@ public abstract class PooledBuffer<T> implements IoBuffer
         }
         return this;
     }
-    
+
     @Override
     public IoBuffer capacityReadyFor(int newCapacity)
     {
@@ -337,7 +337,7 @@ public abstract class PooledBuffer<T> implements IoBuffer
         }
         return this;
     }
-    
+
     @Override
     public int indexOf(byte[] array)
     {
@@ -367,55 +367,55 @@ public abstract class PooledBuffer<T> implements IoBuffer
         }
         return -1;
     }
-    
+
     @Override
     public int getInt()
     {
         int posi = nextReadPosi(4);
         return getInt0(posi);
     }
-    
+
     abstract int getInt0(int posi);
-    
+
     @Override
     public short getShort()
     {
         int posi = nextReadPosi(2);
         return getShort0(posi);
     }
-    
+
     abstract short getShort0(int posi);
-    
+
     @Override
     public long getLong()
     {
         int posi = nextReadPosi(8);
         return getLong0(posi);
     }
-    
+
     @Override
     public int getInt(int posi)
     {
         checkReadPosi(posi, 4);
         return getInt0(posi);
     }
-    
+
     @Override
     public short getShort(int posi)
     {
         checkReadPosi(posi, 2);
         return getShort0(posi);
     }
-    
+
     @Override
     public long getLong(int posi)
     {
         checkReadPosi(posi, 4);
         return getLong0(posi);
     }
-    
+
     abstract long getLong0(int posi);
-    
+
     @Override
     public void free()
     {
@@ -431,5 +431,4 @@ public abstract class PooledBuffer<T> implements IoBuffer
             tmp.recycle(this);
         }
     }
-    
 }

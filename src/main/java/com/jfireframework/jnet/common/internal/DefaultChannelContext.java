@@ -1,93 +1,57 @@
 package com.jfireframework.jnet.common.internal;
 
+import com.jfireframework.jnet.common.api.*;
+import com.jfireframework.jnet.common.buffer.IoBuffer;
+
 import java.io.IOException;
 import java.nio.channels.AsynchronousSocketChannel;
-import com.jfireframework.jnet.common.api.AioListener;
-import com.jfireframework.jnet.common.api.BackPressureService;
-import com.jfireframework.jnet.common.api.ChannelContext;
-import com.jfireframework.jnet.common.api.DataProcessor;
-import com.jfireframework.jnet.common.api.ProcessorInvoker;
-import com.jfireframework.jnet.common.api.ReadCompletionHandler;
-import com.jfireframework.jnet.common.api.WriteCompletionHandler;
-import com.jfireframework.jnet.common.buffer.IoBuffer;
 
 public class DefaultChannelContext implements ChannelContext
 {
     private WriteCompletionHandler    writeCompletionHandler;
     private ReadCompletionHandler     readCompletionHandler;
-    private ProcessorInvoker          invoker;
     private AsynchronousSocketChannel socketChannel;
-    private BackPressureService       backPressureService;
     private AioListener               aioListener;
-    
-    public DefaultChannelContext(AsynchronousSocketChannel socketChannel, AioListener aioListener, BackPressureService backPressureService)
+
+    public DefaultChannelContext(AsynchronousSocketChannel socketChannel, AioListener aioListener, ReadCompletionHandler readCompletionHandler, WriteCompletionHandler writeCompletionHandler)
     {
         this.socketChannel = socketChannel;
         this.aioListener = aioListener;
-        this.backPressureService = backPressureService;
+        this.readCompletionHandler = readCompletionHandler;
+        this.writeCompletionHandler = writeCompletionHandler;
     }
-    
+
     @Override
-    public boolean write(IoBuffer buffer)
+    public boolean writeIfAvailable(IoBuffer buffer)
     {
-        return writeCompletionHandler.offer(buffer);
+        return writeCompletionHandler.process(buffer);
     }
-    
+
     @Override
     public AsynchronousSocketChannel socketChannel()
     {
         return socketChannel;
     }
-    
+
     @Override
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public void setDataProcessor(DataProcessor<?>... dataProcessors)
     {
-        ProcessorInvoker last = new ProcessorInvoker() {
-            
-            @Override
-            public boolean process(Object data) throws Throwable
-            {
-                return write((IoBuffer) data);
-            }
-            
-        };
-        ProcessorInvoker prev = last;
-        for (int i = dataProcessors.length - 1; i >= 0; i--)
+        for (int i = 1; i < dataProcessors.length; i++)
         {
-            final ProcessorInvoker next = prev;
-            final DataProcessor processor = dataProcessors[i];
-            ProcessorInvoker invoker = new ProcessorInvoker() {
-                
-                @Override
-                public boolean process(Object data) throws Throwable
-                {
-                    return processor.process(data, next);
-                }
-                
-            };
-            prev = invoker;
+            dataProcessors[i].bindUpStream(dataProcessors[i - 1]);
+            dataProcessors[i - 1].bindDownStream(dataProcessors[i]);
         }
-        invoker = prev;
-        for (DataProcessor<?> each : dataProcessors)
+        readCompletionHandler.bindDownStream(dataProcessors[0]);
+        dataProcessors[0].bindUpStream(readCompletionHandler);
+        dataProcessors[dataProcessors.length - 1].bindDownStream(writeCompletionHandler);
+        writeCompletionHandler.bindUpStream(dataProcessors[dataProcessors.length - 1]);
+        for (DataProcessor dataProcessor : dataProcessors)
         {
-            each.bind(this);
+            dataProcessor.bind(this);
         }
     }
-    
-    @Override
-    public boolean process(IoBuffer buffer) throws Throwable
-    {
-        return invoker.process(buffer);
-    }
-    
-    @Override
-    public void bind(WriteCompletionHandler writeCompletionHandler, ReadCompletionHandler readCompletionHandler)
-    {
-        this.writeCompletionHandler = writeCompletionHandler;
-        this.readCompletionHandler = readCompletionHandler;
-    }
-    
+
     @Override
     public void close()
     {
@@ -95,13 +59,12 @@ public class DefaultChannelContext implements ChannelContext
         {
             socketChannel.close();
             aioListener.onClose(socketChannel, null);
-        }
-        catch (IOException e)
+        } catch (IOException e)
         {
             ;
         }
     }
-    
+
     @Override
     public void close(Throwable e)
     {
@@ -109,17 +72,9 @@ public class DefaultChannelContext implements ChannelContext
         {
             socketChannel.close();
             aioListener.onClose(socketChannel, e);
-        }
-        catch (IOException e1)
+        } catch (IOException e1)
         {
             ;
         }
     }
-    
-    @Override
-    public void submitBackPressureTask(ProcessorInvoker next, Object data)
-    {
-        backPressureService.submit(this, data, next, readCompletionHandler);
-    }
-    
 }

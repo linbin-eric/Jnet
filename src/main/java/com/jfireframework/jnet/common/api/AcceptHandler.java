@@ -6,5 +6,5 @@ import java.nio.channels.CompletionHandler;
 
 public interface AcceptHandler extends CompletionHandler<AsynchronousSocketChannel, AsynchronousServerSocketChannel>
 {
-	
+
 }

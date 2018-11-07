@@ -5,11 +5,9 @@ import com.jfireframework.jnet.common.api.DataProcessor;
 
 public abstract class ReadProcessorAdapter<T> implements DataProcessor<T>
 {
-    
+
     @Override
     public void bind(ChannelContext channelContext)
     {
-        
     }
-    
 }

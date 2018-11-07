@@ -1,27 +1,32 @@
 package com.jfireframework.jnet.common.buffer;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
+
+import static org.junit.Assert.*;
+
 @RunWith(Parameterized.class)
 public class TinyAllocateTest
 {
-	PooledBufferAllocator	allocator	= new PooledUnThreadCacheBufferAllocator("test");
+    PooledBufferAllocator allocator = new PooledUnThreadCacheBufferAllocator("test");
     int                   reqCapacity;
-    
+
+    public TinyAllocateTest(int reqCapacity)
+    {
+        this.reqCapacity = reqCapacity;
+    }
+
     @Parameters
     public static List<Integer> params()
     {
         List<Integer> list = new LinkedList<>();
-        int i = 16;
+        int           i    = 16;
         while (i < 512)
         {
             list.add(i);
@@ -29,29 +34,24 @@ public class TinyAllocateTest
         }
         return list;
     }
-    
-    public TinyAllocateTest(int reqCapacity)
-    {
-        this.reqCapacity = reqCapacity;
-    }
-    
+
     @Test
     public void test()
     {
         test0(true);
         test0(false);
     }
-    
+
     private void test0(boolean direct)
     {
-        int pagesize = allocator.pagesize;
-        int elementNum = pagesize / reqCapacity;
-        int numPage = 1 << allocator.maxLevel;
-        Chunk<?> chunk = null;
-        Arena<?> arena = allocator.threadCache().arena(direct);
-        Queue<IoBuffer> buffers = new LinkedList<>();
-        Queue<SubPage<?>> subPages = new LinkedList<>();
-        SubPage<?> head = arena.findSubPageHead(reqCapacity);
+        int               pagesize   = allocator.pagesize;
+        int               elementNum = pagesize / reqCapacity;
+        int               numPage    = 1 << allocator.maxLevel;
+        Chunk<?>          chunk      = null;
+        Arena<?>          arena      = allocator.threadCache().arena(direct);
+        Queue<IoBuffer>   buffers    = new LinkedList<>();
+        Queue<SubPage<?>> subPages   = new LinkedList<>();
+        SubPage<?>        head       = arena.findSubPageHead(reqCapacity);
         for (int i = 0; i < numPage; i++)
         {
             for (int elementIdx = 0; elementIdx < elementNum; elementIdx++)
@@ -80,7 +80,7 @@ public class TinyAllocateTest
         for (int i = 0; i < numPage; i++)
         {
             SubPage<?> subPage = chunk.subPages[i];
-            long[] bitMap = subPage.bitMap;
+            long[]     bitMap  = subPage.bitMap;
             for (int elementIdx = 0; elementIdx < elementNum; elementIdx++)
             {
                 buffers.poll().free();

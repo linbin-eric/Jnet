@@ -2,32 +2,34 @@ package com.jfireframework.jnet.common.processor;
 
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.DataProcessor;
-import com.jfireframework.jnet.common.api.ProcessorInvoker;
+import com.jfireframework.jnet.common.internal.BindDownAndUpStreamDataProcessor;
 import com.jfireframework.jnet.common.processor.worker.FixedAttachWorker;
-import com.sun.org.apache.bcel.internal.generic.RETURN;
 
-public class FixedAttachIoProcessor implements DataProcessor<Object>
+public class FixedAttachIoProcessor extends BindDownAndUpStreamDataProcessor<Object>
 {
     private final FixedAttachWorker worker;
-    private ChannelContext          channelContext;
-    
+    private       ChannelContext    channelContext;
+
     public FixedAttachIoProcessor(FixedAttachWorker worker)
     {
         this.worker = worker;
     }
-    
+
     @Override
     public void bind(ChannelContext channelContext)
     {
         this.channelContext = channelContext;
     }
-    
+
     @Override
-	public boolean process(Object data, ProcessorInvoker next) throws Throwable
+    public boolean process(Object data) throws Throwable
     {
-		worker.commit(channelContext, next, data);
+//        worker.commit(channelContext, next, data);
         return true;
     }
-    
-    
+
+    @Override
+    public void notifyedWriteAvailable() throws Throwable
+    {
+    }
 }

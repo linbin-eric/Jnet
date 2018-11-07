@@ -4,7 +4,7 @@ import java.nio.ByteBuffer;
 
 public class UnPooledDirectBuffer extends UnPooledBuffer<ByteBuffer>
 {
-    
+
     @Override
     public IoBuffer compact()
     {
@@ -19,7 +19,7 @@ public class UnPooledDirectBuffer extends UnPooledBuffer<ByteBuffer>
         memory.limit(capacity).position(0);
         return this;
     }
-    
+
     @Override
     public ByteBuffer readableByteBuffer()
     {
@@ -27,7 +27,7 @@ public class UnPooledDirectBuffer extends UnPooledBuffer<ByteBuffer>
         duplicate.limit(writePosi).position(readPosi);
         return duplicate;
     }
-    
+
     @Override
     public ByteBuffer writableByteBuffer()
     {
@@ -35,13 +35,13 @@ public class UnPooledDirectBuffer extends UnPooledBuffer<ByteBuffer>
         duplicate.limit(capacity).position(writePosi);
         return duplicate;
     }
-    
+
     @Override
     public boolean isDirect()
     {
         return true;
     }
-    
+
     @Override
     void get0(byte[] content, int off, int length, int posi)
     {
@@ -49,19 +49,19 @@ public class UnPooledDirectBuffer extends UnPooledBuffer<ByteBuffer>
         memory.get(content, off, length);
         memory.position(0);
     }
-    
+
     @Override
     byte get0(int posi)
     {
         return memory.get(posi);
     }
-    
+
     @Override
     void put0(int posi, byte b)
     {
         memory.put(posi, b);
     }
-    
+
     @Override
     void put0(byte[] content, int off, int length, int writePosi)
     {
@@ -69,43 +69,43 @@ public class UnPooledDirectBuffer extends UnPooledBuffer<ByteBuffer>
         memory.put(content, off, length);
         memory.position(0);
     }
-    
+
     @Override
     void putInt0(int i, int posi)
     {
         memory.putInt(posi, i);
     }
-    
+
     @Override
     void putShort0(short s, int posi)
     {
         memory.putShort(posi, s);
     }
-    
+
     @Override
     void putLong0(long l, int posi)
     {
         memory.putLong(posi, l);
     }
-    
+
     @Override
     int getInt0(int posi)
     {
         return memory.getInt(posi);
     }
-    
+
     @Override
     short getShort0(int posi)
     {
         return memory.getShort(posi);
     }
-    
+
     @Override
     long getLong0(int posi)
     {
         return memory.getLong(posi);
     }
-    
+
     @Override
     void put1(UnPooledHeapBuffer buffer, int len)
     {
@@ -115,7 +115,7 @@ public class UnPooledDirectBuffer extends UnPooledBuffer<ByteBuffer>
         memory.put(content, buffer.getReadPosi(), len);
         memory.position(0);
     }
-    
+
     @Override
     void put1(UnPooledDirectBuffer buffer, int len)
     {
@@ -127,7 +127,7 @@ public class UnPooledDirectBuffer extends UnPooledBuffer<ByteBuffer>
         param.position(0).limit(buffer.capacity());
         memory.position(0);
     }
-    
+
     @Override
     void reallocate(int newCapacity)
     {
@@ -138,5 +138,4 @@ public class UnPooledDirectBuffer extends UnPooledBuffer<ByteBuffer>
         memory.position(0).limit(newCapacity);
         capacity = newCapacity;
     }
-    
 }

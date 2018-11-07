@@ -6,12 +6,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class GlobalMetric
 {
-    
+
     private static final ReferenceQueue<ThreadCache> QUEUE = new ReferenceQueue<>();
+
     static
     {
-        new Thread(new Runnable() {
-            
+        new Thread(new Runnable()
+        {
+
             @Override
             public void run()
             {
@@ -21,8 +23,7 @@ public class GlobalMetric
                     {
                         NumThreadCacheReference remove = (NumThreadCacheReference) QUEUE.remove();
                         remove.decrement();
-                    }
-                    catch (InterruptedException e)
+                    } catch (InterruptedException e)
                     {
                         ;
                     }
@@ -30,19 +31,24 @@ public class GlobalMetric
             }
         }, "Arena Num Watcher Thread").start();
     }
-    
+
+    public static final void watchThreadCache(ThreadCache threadCache)
+    {
+        new NumThreadCacheReference(threadCache, QUEUE);
+    }
+
     public static final class NumThreadCacheReference extends PhantomReference<ThreadCache>
     {
         private final AtomicInteger heapArenaNumThreadCache;
         private final AtomicInteger directArenaNumThreadCache;
-        
+
         public NumThreadCacheReference(ThreadCache referent, ReferenceQueue<? super ThreadCache> q)
         {
             super(referent, q);
             heapArenaNumThreadCache = referent.heapArena == null ? null : referent.heapArena.numThreadCaches;
             directArenaNumThreadCache = referent.directArena == null ? null : referent.directArena.numThreadCaches;
         }
-        
+
         public void decrement()
         {
             if (heapArenaNumThreadCache != null)
@@ -54,10 +60,5 @@ public class GlobalMetric
                 directArenaNumThreadCache.decrementAndGet();
             }
         }
-    }
-    
-    public static final void watchThreadCache(ThreadCache threadCache)
-    {
-        new NumThreadCacheReference(threadCache, QUEUE);
     }
 }

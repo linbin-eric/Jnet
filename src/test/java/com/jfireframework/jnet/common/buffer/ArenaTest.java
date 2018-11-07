@@ -1,23 +1,21 @@
 package com.jfireframework.jnet.common.buffer;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import org.junit.Test;
+
 import java.util.LinkedList;
 import java.util.Queue;
-import org.junit.Test;
+
+import static org.junit.Assert.*;
 
 public class ArenaTest
 {
     private PooledBufferAllocator allocator;
-    
+
     public ArenaTest()
     {
-		allocator = new PooledUnThreadCacheBufferAllocator("test");
-        
+        allocator = new PooledUnThreadCacheBufferAllocator("test");
     }
-    
+
     /**
      * 测试随着不同申请率，在多个ChunkList进行移动
      */
@@ -27,14 +25,14 @@ public class ArenaTest
         testMove(true);
         testMove(false);
     }
-    
+
     private void testMove(boolean preferDirect)
     {
-        IoBuffer buffer = allocator.ioBuffer(allocator.pagesize, preferDirect);
-        Queue<IoBuffer> queue = new LinkedList<>();
+        IoBuffer        buffer = allocator.ioBuffer(allocator.pagesize, preferDirect);
+        Queue<IoBuffer> queue  = new LinkedList<>();
         queue.add(buffer);
         ThreadCache threadCache = allocator.threadCache();
-        Arena<?> arena = threadCache.arena(preferDirect);
+        Arena<?>    arena       = threadCache.arena(preferDirect);
         assertNull(arena.c100.head);
         assertNull(arena.c075.head);
         assertNull(arena.c050.head);
@@ -43,7 +41,7 @@ public class ArenaTest
         assertNotNull(arena.cInt.head);
         Chunk<?> chunk = arena.cInt.head;
         assertEquals(1 << (allocator.maxLevel + 1), chunk.allocationCapacity.length);
-        int total = 1 << allocator.maxLevel;
+        int total   = 1 << allocator.maxLevel;
         int quarter = total >>> 2;
         for (int i = 1; i < quarter; i++)
         {
@@ -205,5 +203,4 @@ public class ArenaTest
         assertNull(arena.c000.head);
         assertNull(arena.cInt.head);
     }
-    
 }

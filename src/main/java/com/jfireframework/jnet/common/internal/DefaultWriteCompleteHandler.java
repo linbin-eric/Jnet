@@ -1,36 +1,38 @@
 package com.jfireframework.jnet.common.internal;
 
+import com.jfireframework.baseutil.concurrent.FastMPSCArrayQueue;
+import com.jfireframework.baseutil.concurrent.MPSCLinkedQueue;
+import com.jfireframework.baseutil.reflect.UNSAFE;
+import com.jfireframework.jnet.common.api.AioListener;
+import com.jfireframework.jnet.common.api.BackPressureMode;
+import com.jfireframework.jnet.common.api.ChannelContext;
+import com.jfireframework.jnet.common.api.WriteCompletionHandler;
+import com.jfireframework.jnet.common.buffer.BufferAllocator;
+import com.jfireframework.jnet.common.buffer.IoBuffer;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.Queue;
 
-import com.jfireframework.baseutil.concurrent.MPSCArrayQueue;
-import com.jfireframework.baseutil.concurrent.MPSCLinkedQueue;
-import com.jfireframework.jnet.common.api.AioListener;
-import com.jfireframework.jnet.common.api.BackPressureMode;
-import com.jfireframework.jnet.common.api.WriteCompletionHandler;
-import com.jfireframework.jnet.common.buffer.BufferAllocator;
-import com.jfireframework.jnet.common.buffer.IoBuffer;
-import com.jfireframework.baseutil.reflect.UNSAFE;
-
-public class DefaultWriteCompleteHandler implements WriteCompletionHandler
+public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcessor implements WriteCompletionHandler
 {
     protected static final long                      STATE_OFFSET   = UNSAFE.getFieldOffset("state", DefaultWriteCompleteHandler.class);
-    protected static final int                       SPIN_THRESHOLD = 1 << 7;
+    protected static final int                       SPIN_THRESHOLD = 128;
     protected static final int                       WORK           = 1;
     protected static final int                       IDLE           = 2;
     // 终止状态位，也就是负数标识位
     protected static final int                       TERMINATION    = 3;
-    // 终止状态。进入该状态后，不再继续使用
-    ////////////////////////////////////////////////////////////
-    protected volatile     int                       state          = IDLE;
-    protected              Queue<IoBuffer>           queue;
     protected final        WriteEntry                entry          = new WriteEntry();
     protected final        AsynchronousSocketChannel socketChannel;
     protected final        BufferAllocator           allocator;
     protected final        AioListener               aioListener;
     protected final        int                       maxWriteBytes;
+    // 终止状态。进入该状态后，不再继续使用
+    ////////////////////////////////////////////////////////////
+    protected volatile     int                       state          = IDLE;
+    protected              Queue<IoBuffer>           queue;
+    private                ChannelContext            channelContext;
 
     public DefaultWriteCompleteHandler(AsynchronousSocketChannel socketChannel, AioListener aioListener, BufferAllocator allocator, int maxWriteBytes, BackPressureMode backPressureMode)
     {
@@ -38,12 +40,20 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
         this.allocator = allocator;
         this.aioListener = aioListener;
         this.maxWriteBytes = Math.max(1, maxWriteBytes);
-        queue = backPressureMode.isEnable() ? new MPSCArrayQueue<IoBuffer>(backPressureMode.getQueueCapacity()) : new MPSCLinkedQueue<IoBuffer>();
+        queue = backPressureMode.isEnable() ? new FastMPSCArrayQueue<IoBuffer>(backPressureMode.getQueueCapacity()) : new MPSCLinkedQueue<IoBuffer>();
     }
 
     protected void rest()
     {
         state = IDLE;
+        try
+        {
+            upStream.notifyedWriteAvailable();
+        } catch (Throwable throwable)
+        {
+            channelContext.close(throwable);
+            return;
+        }
         if (queue.isEmpty() == false)
         {
             int now = state;
@@ -74,8 +84,7 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
             try
             {
                 aioListener.afterWrited(socketChannel, result);
-            }
-            catch (Throwable e)
+            } catch (Throwable e)
             {
                 ;
             }
@@ -93,6 +102,19 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
             writeQueuedBuffer();
             return;
         }
+        try
+        {
+            upStream.notifyedWriteAvailable();
+        } catch (Throwable e)
+        {
+            channelContext.close(e);
+            return;
+        }
+        if (queue.isEmpty() == false)
+        {
+            writeQueuedBuffer();
+            return;
+        }
         for (int spin = 0; spin < SPIN_THRESHOLD; spin += 1)
         {
             if (queue.isEmpty() == false)
@@ -102,36 +124,6 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
             }
         }
         rest();
-    }
-
-    @Override
-    public boolean offer(IoBuffer buf)
-    {
-        if (buf == null)
-        {
-            throw new NullPointerException();
-        }
-        if (queue.offer(buf) == false)
-        {
-            return false;
-        }
-        int now = state;
-        if (now == TERMINATION)
-        {
-            throw new IllegalStateException("该通道已经处于关闭状态，无法执行写操作");
-        }
-        if (now == IDLE && changeToWork())
-        {
-            if (queue.isEmpty() == false)
-            {
-                writeQueuedBuffer();
-            }
-            else
-            {
-                rest();
-            }
-        }
-        return true;
     }
 
     /**
@@ -178,10 +170,61 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
         try
         {
             socketChannel.close();
-        }
-        catch (IOException e)
+        } catch (IOException e)
         {
             ;
         }
+    }
+
+    @Override
+    public void bind(ChannelContext channelContext)
+    {
+        this.channelContext = channelContext;
+    }
+
+    @Override
+    public boolean process(Object data) throws IllegalStateException
+    {
+        IoBuffer buf = (IoBuffer) data;
+        if (buf == null)
+        {
+            throw new NullPointerException();
+        }
+        if (queue.offer(buf) == false)
+        {
+            return false;
+        }
+        int now = state;
+        if (now == TERMINATION)
+        {
+            throw new IllegalStateException("该通道已经处于关闭状态，无法执行写操作");
+        }
+        if (now == IDLE && changeToWork())
+        {
+            if (queue.isEmpty() == false)
+            {
+                writeQueuedBuffer();
+            }
+            else
+            {
+                rest();
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public void notifyedWriteAvailable()
+    {
+    }
+
+    @Override
+    public boolean canAccept()
+    {
+        if (queue instanceof MPSCLinkedQueue)
+        {
+            return true;
+        }
+        return ((FastMPSCArrayQueue) queue).canOffer();
     }
 }
