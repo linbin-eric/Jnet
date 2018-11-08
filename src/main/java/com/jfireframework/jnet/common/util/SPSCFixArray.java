@@ -75,6 +75,7 @@ abstract class SPSCCore extends Pad3
         }
         else if (pIndex < (pLimit = consumerIndex + mask + 1))
         {
+            producerIndexLimit = pLimit;
             return pIndex;
         }
         else
@@ -89,6 +90,7 @@ abstract class SPSCCore extends Pad3
                 {
                     Thread.yield();
                 }
+                producerIndexLimit = pLimit;
                 return pIndex;
             }
         }
@@ -137,6 +139,11 @@ public abstract class SPSCFixArray<E> extends SPSCCore implements FixArray<E>
     public long nextOfferIndex()
     {
         return nextProducerIndex(false);
+    }
+
+    public boolean canOffer()
+    {
+        return nextOfferIndex() != -1;
     }
 
     @Override

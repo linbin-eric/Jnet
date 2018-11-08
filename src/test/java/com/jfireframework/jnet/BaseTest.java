@@ -42,7 +42,7 @@ public class BaseTest
     private              AioServer      aioServer;
     private              String         ip           = "127.0.0.1";
     private              int            port         = 7598;
-    private              int            numPerThread = 10000;
+    private              int            numPerThread = 100000;
     private              int            numClients   = 10;
     private              JnetClient[]   clients;
     private              CountDownLatch latch        = new CountDownLatch(numClients);
@@ -58,6 +58,17 @@ public class BaseTest
             Arrays.fill(results[i], -1);
         }
         AioServerBuilder builder = new AioServerBuilder();
+        final ExecutorService fixService = Executors.newFixedThreadPool(4, new ThreadFactory()
+        {
+            AtomicInteger atomicInteger = new AtomicInteger(0);
+
+            @Override
+            public Thread newThread(Runnable r)
+            {
+                int count = atomicInteger.getAndIncrement();
+                return new Thread(r, "channelWorker-" + (count));
+            }
+        });
         builder.setAcceptHandler(new DefaultAcceptHandler(null, bufferAllocator, batchWriteNum, new ChannelContextInitializer()
         {
 
@@ -80,7 +91,6 @@ public class BaseTest
                                 }, new BackPressureHelper());
                         break;
                     case Channel:
-                        final ExecutorService fixService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
                         channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 100, bufferAllocator), //
                                new BackPressureHelper(),//
                                 new ChannelAttachProcessor(fixService), //
@@ -111,7 +121,7 @@ public class BaseTest
             JnetClientBuilder jnetClientBuilder = new JnetClientBuilder();
             jnetClientBuilder.setServerIp(ip);
             jnetClientBuilder.setPort(port);
-            jnetClientBuilder.setBackPressureMode(new BackPressureMode(1024));
+            jnetClientBuilder.setBackPressureMode(new BackPressureMode());
             jnetClientBuilder.setChannelContextInitializer(new ChannelContextInitializer()
             {
 
@@ -175,9 +185,9 @@ public class BaseTest
     public static Collection<Object[]> params()
     {
         return Arrays.asList(new Object[][]{ //
-                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(), IoMode.IO}, //
-                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(1024), IoMode.IO}, //
-                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(1024), IoMode.Channel}, //
+//                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(), IoMode.IO}, //
+//                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(1024), IoMode.IO}, //
+                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(), IoMode.Channel}, //
         });
     }
 

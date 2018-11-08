@@ -12,6 +12,8 @@ public interface FixArray<E>
      */
     long nextOfferIndex();
 
+    boolean canOffer();
+
     /**
      * 返回下一个可以写入的下标，如果不存在，则使用Thread.yeild（）策略等待直到有可用为止
      *

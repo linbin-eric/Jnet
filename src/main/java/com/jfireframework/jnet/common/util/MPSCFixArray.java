@@ -136,7 +136,7 @@ abstract class Core extends Pad3
     {
         int  flag    = (int) (index >>> indexShift);
         long address = ((index & mask) << availableBufferScaleShift) + availableBufferOffset;
-        UNSAFE.putOrderedInt(availableBuffers, address, flag);
+        UNSAFE.putIntVolatile(availableBuffers, address, flag);
     }
 
     /**
@@ -166,8 +166,7 @@ abstract class Core extends Pad3
             }
             else
             {
-                producerIndexLimit = consumerIndex + mask + 1;
-                if (pIndex >= producerIndexLimit)
+                if (pIndex >= (producerIndexLimit = consumerIndex + mask + 1))
                 {
                     if (wait == false)
                     {
@@ -177,7 +176,7 @@ abstract class Core extends Pad3
                     else
                     {
                         Thread.yield();
-                        producerIndexLimit = consumerIndex + mask + 1;
+                        ;
                     }
                 }
                 else
@@ -189,6 +188,23 @@ abstract class Core extends Pad3
                 }
             }
         } while (true);
+    }
+
+    boolean canOffer()
+    {
+        long pIndex = producerIndex;
+        if (pIndex < producerIndexLimit)
+        {
+            return true;
+        }
+        else if (pIndex < (producerIndexLimit = consumerIndex + mask + 1))
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
     }
 
     Object get(long index)
@@ -232,6 +248,11 @@ public abstract class MPSCFixArray<E> extends Core implements FixArray<E>
         return nextProducerIndex(false);
     }
 
+    public boolean canOffer()
+    {
+        return super.canOffer();
+    }
+
     @Override
     @SuppressWarnings("unchecked")
     public E getSlot(long index)
@@ -261,18 +282,28 @@ public abstract class MPSCFixArray<E> extends Core implements FixArray<E>
         long address = ((cIndex & mask) << availableBufferScaleShift) + availableBufferOffset;
         if (isAvailable(address, flag) == false)
         {
+            int     count  = 0;
+            boolean output = false;
             while (isAvailable(address, flag) == false)
             {
-//                Thread.yield();
-                try
+                Thread.yield();
+                if (output == false && count > 1000)
                 {
-                    Thread.sleep(1);
-                } catch (InterruptedException e)
-                {
-                    e.printStackTrace();
+                    output = true;
+                    System.out.println(Thread.currentThread().getName() + ",flag:" + flag + ",now:" + UNSAFE.getIntVolatile(availableBuffers, address) + ",cIndex:" + cIndex + ",cLimit:" + producerIndex + ",next:" + UNSAFE.getIntVolatile(availableBuffers, (((cIndex + 1) & mask) << availableBufferScaleShift) + availableBufferOffset));
+                    int  step  = 10;
+                    long start = cIndex - step > 0 ? cIndex - step : 0;
+                    long end   = cIndex + step;
+                    for (long i = start; i < end; i++)
+                    {
+                        System.out.print("index:" + i + "," + UNSAFE.getIntVolatile(availableBuffers, (((i) & mask) << availableBufferScaleShift) + availableBufferOffset) + ",");
+                    }
+                    System.out.println();
+                    count = 0;
+                    continue;
                 }
+                count++;
             }
-
         }
         return cIndex;
     }

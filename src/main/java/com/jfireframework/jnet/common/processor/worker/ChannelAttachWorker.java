@@ -18,7 +18,7 @@ public class ChannelAttachWorker implements Runnable
     private static final int                           SPIN_THRESHOLD = 128;
     private static final long                          STATE_OFFSET   = UNSAFE.getFieldOffset("state", ChannelAttachWorker.class);
     private final        ExecutorService               executorService;
-    private final        FixArray<ChannelAttachEntity> entities       = new SPSCFixArray<ChannelAttachEntity>(512)
+    private final        FixArray<ChannelAttachEntity> entities       = new MPSCFixArray<ChannelAttachEntity>(256)
     {
 
         @Override
@@ -109,12 +109,7 @@ public class ChannelAttachWorker implements Runnable
 
     public boolean canAccept()
     {
-        long offerIndexAvail = entities.nextOfferIndex();
-        if (offerIndexAvail == -1)
-        {
-            return false;
-        }
-        return true;
+        return entities.canOffer();
     }
 
     /**

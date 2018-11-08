@@ -11,7 +11,7 @@ public class FixArrayTest
 {
     final int    sendNum = 1000000;
     final String value   = "";
-    int capacity          = 2048;
+    int capacity          = 256;
     int producerThreadNum = 24;
     final int    total   = sendNum * producerThreadNum;
 
@@ -83,8 +83,8 @@ public class FixArrayTest
                             Thread.yield();
                         }
                     }
-                    // Slot slot = baseUtilArrayQueue.getSlot(avail);
-                    // slot.value = null;
+                     Slot slot = baseUtilArrayQueue.getSlot(avail);
+                     slot.value = null;
                     baseUtilArrayQueue.comsumeAvail(avail);
                 }
                 timewatch.end();
