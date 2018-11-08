@@ -185,9 +185,9 @@ public class BaseTest
     public static Collection<Object[]> params()
     {
         return Arrays.asList(new Object[][]{ //
-//                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(), IoMode.IO}, //
-//                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(1024), IoMode.IO}, //
-                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(), IoMode.Channel}, //
+                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(), IoMode.IO}, //
+                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(1024), IoMode.IO}, //
+                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(1024), IoMode.Channel}, //
         });
     }
 
@@ -247,6 +247,7 @@ public class BaseTest
                 assertEquals("序号" + index, i, result[i]);
             }
         }
+        System.out.println("验证通过");
         for (JnetClient each : clients)
         {
             each.close();

@@ -75,7 +75,6 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
     {
         return UNSAFE.compareAndSwapInt(this, STATE_OFFSET, IDLE, WORK);
     }
-
     @Override
     public void completed(Integer result, WriteEntry entry)
     {
@@ -125,7 +124,6 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
         }
         rest();
     }
-
     /**
      * 从MPSCQueue中取得IoBuffer，并且执行写操作
      */
@@ -203,10 +201,12 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
         {
             if (queue.isEmpty() == false)
             {
+//                System.out.println(Thread.currentThread().getName()+"准备写出");
                 writeQueuedBuffer();
             }
             else
             {
+//                System.out.println(Thread.currentThread().getName()+"队列没有数据可写");
                 rest();
             }
         }

@@ -79,6 +79,7 @@ public class DefaultReadCompletionHandler extends BindDownAndUpStreamDataProcess
                 }
                 if (continueRead == false)
                 {
+//                    System.out.println(Thread.currentThread().getName()+"下游不可用，中断读取");
                     return;
                 }
             }
@@ -139,25 +140,30 @@ public class DefaultReadCompletionHandler extends BindDownAndUpStreamDataProcess
     @Override
     public void notifyedWriteAvailable()
     {
-        while (downStream.canAccept() && (ignoreNotify.get()) == 1)
+        int now = 0;
+        while (downStream.canAccept() && (now= ignoreNotify.get()) == 1)
         {
             if (ignoreNotify.compareAndSet(1, 0))
             {
                 IoBuffer buffer = entry.getIoBuffer();
                 try
                 {
+//                    System.out.println(Thread.currentThread().getName()+"准备处理读完成器的剩余数据");
                     if (downStream.process(buffer))
                     {
+//                        System.out.println(Thread.currentThread().getName()+"处理剩余数据");
                         if (needCompact(buffer))
                         {
                             buffer.compact();
                         }
+//                        System.out.println(Thread.currentThread().getName()+"恢复读取");
                         entry.setByteBuffer(buffer.writableByteBuffer());
                         socketChannel.read(entry.getByteBuffer(), entry, this);
                         return;
                     }
                     else
                     {
+//                        System.out.println(Thread.currentThread().getName()+"剩余数据处理导致下游阻塞，再次等待唤醒");
                         ignoreNotify.set(1);
                     }
                 } catch (Throwable e)
@@ -176,5 +182,6 @@ public class DefaultReadCompletionHandler extends BindDownAndUpStreamDataProcess
                 }
             }
         }
+//        System.out.println(Thread.currentThread().getName()+"不满足唤醒条件，当前忽略状态："+now+","+downStream.canAccept());
     }
 }

@@ -1,24 +1,23 @@
 package com.jfireframework.jnet.common.processor.worker;
 
-import com.jfireframework.baseutil.concurrent.FastMPSCArrayQueue;
 import com.jfireframework.baseutil.reflect.UNSAFE;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.DataProcessor;
 import com.jfireframework.jnet.common.util.FixArray;
 import com.jfireframework.jnet.common.util.MPSCFixArray;
-import com.jfireframework.jnet.common.util.SPSCFixArray;
 
 import java.util.concurrent.ExecutorService;
 
 public class ChannelAttachWorker implements Runnable
 {
 
-    private static final int                           IDLE           = -1;
-    private static final int                           WORK           = 1;
-    private static final int                           SPIN_THRESHOLD = 128;
-    private static final long                          STATE_OFFSET   = UNSAFE.getFieldOffset("state", ChannelAttachWorker.class);
+    private static final int                           IDLE              = -1;
+    private static final int                           WORK              = 1;
+    private static final int                           blockByDownStream = 4;
+    private static final int                           SPIN_THRESHOLD    = 128;
+    private static final long                          STATE_OFFSET      = UNSAFE.getFieldOffset("state", ChannelAttachWorker.class);
     private final        ExecutorService               executorService;
-    private final        FixArray<ChannelAttachEntity> entities       = new MPSCFixArray<ChannelAttachEntity>(256)
+    private final        FixArray<ChannelAttachEntity> entities          = new MPSCFixArray<ChannelAttachEntity>(128)
     {
 
         @Override
@@ -27,9 +26,9 @@ public class ChannelAttachWorker implements Runnable
             return new ChannelAttachEntity();
         }
     };
-    private volatile     int                           state          = IDLE;
+    private volatile     int                           state             = IDLE;
     private              DataProcessor<?>              upStream;
-    private              DataProcessor<?>              downStream;
+    private              DataProcessor                 downStream;
     private              ChannelContext                channelContext;
 
     public ChannelAttachWorker(ExecutorService executorService)
@@ -40,6 +39,7 @@ public class ChannelAttachWorker implements Runnable
     @Override
     public void run()
     {
+//        System.out.println(Thread.currentThread().getName() + "启动channel");
         try
         {
             int spin = 0;
@@ -62,33 +62,46 @@ public class ChannelAttachWorker implements Runnable
                         else
                         {
                             state = IDLE;
+//                            System.out.println(Thread.currentThread().getName() + "准备通知上游");
                             upStream.notifyedWriteAvailable();
                             if (entities.isEmpty() == false)
                             {
+//                                System.out.println(Thread.currentThread().getName() + "唤醒后有数据了，再次争取");
                                 tryExecute();
+                            }
+                            else
+                            {
+//                                System.out.println(Thread.currentThread().getName() + "没有数据，放弃");
                             }
                             return;
                         }
                     }
                 }
-                ChannelAttachEntity slot           = entities.getSlot(avail);
-                ChannelContext      channelContext = slot.channelContext;
-                DataProcessor       downStream     = slot.downStream;
-                Object              data           = slot.data;
+                ChannelAttachEntity slot = entities.getSlot(avail);
+                Object              data = slot.data;
                 slot.clear();
                 entities.comsumeAvail(avail);
                 if (downStream.process(data) == false)
                 {
-                    state = IDLE;
-                    tryExecute();
+                    state = blockByDownStream;
+                    if (downStream.canAccept())
+                    {
+                        recoverFromBlock();
+                    }
+                    else
+                    {
+//                        System.out.println(Thread.currentThread().getName() + "下游不可用，放弃");
+                    }
                     break;
                 }
+//                System.out.println(Thread.currentThread().getName() + "消费" + avail);
             } while (true);
         } catch (Throwable e)
         {
             e.printStackTrace();
             channelContext.close(e);
         }
+//        System.out.println(Thread.currentThread().getName() + "离开");
     }
 
     public boolean commit(ChannelContext channelContext, DataProcessor<?> downStream, Object data)
@@ -103,13 +116,21 @@ public class ChannelAttachWorker implements Runnable
         slot.downStream = downStream;
         slot.data = data;
         entities.commit(offerIndexAvail);
+//        System.out.println(Thread.currentThread().getName() + "提交数据，准备夺取");
         tryExecute();
         return true;
     }
 
     public boolean canAccept()
     {
-        return entities.canOffer();
+        if (entities.canOffer())
+        {
+            return true;
+        }
+        else{
+//            System.out.println(Thread.currentThread().getName()+"channelworker返回无法接受");
+            return false;
+        }
     }
 
     /**
@@ -117,15 +138,42 @@ public class ChannelAttachWorker implements Runnable
      */
     public void notifyedWriteAvailable()
     {
-        tryExecute();
+//        System.out.println(Thread.currentThread().getName() + "尝试唤醒");
+        if (downStream.canAccept())
+        {
+            recoverFromBlock();
+        }
+        else
+        {
+//            System.out.println(Thread.currentThread().getName() + "唤醒失败，下游不可写");
+        }
+    }
+
+    private void recoverFromBlock()
+    {
+        int now = state;
+        if (now == blockByDownStream && UNSAFE.compareAndSwapInt(this, STATE_OFFSET, blockByDownStream, WORK))
+        {
+//            System.out.println(Thread.currentThread().getName() + "恢复成功");
+            executorService.execute(this);
+        }
+        else
+        {
+//            System.out.println(Thread.currentThread().getName() + "恢复失败");
+        }
     }
 
     private void tryExecute()
     {
         int now;
-        if (downStream.canAccept() && (now = state) == IDLE && UNSAFE.compareAndSwapInt(this, STATE_OFFSET, IDLE, WORK))
+        if ((now = state) == IDLE && UNSAFE.compareAndSwapInt(this, STATE_OFFSET, IDLE, WORK))
         {
             executorService.execute(this);
+//            System.out.println(Thread.currentThread().getName() + "夺取成功");
+        }
+        else
+        {
+//            System.out.println(Thread.currentThread().getName() + "夺取失败，放弃");
         }
     }
 
