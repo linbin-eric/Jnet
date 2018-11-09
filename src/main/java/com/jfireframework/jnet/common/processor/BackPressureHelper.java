@@ -5,13 +5,15 @@ import com.jfireframework.jnet.common.internal.BindDownAndUpStreamDataProcessor;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * 放置在有界容量的直接下游前。且直接下游不会暂存数据。
+ */
 public class BackPressureHelper extends BindDownAndUpStreamDataProcessor<Object>
 {
     static final int            transit  = 0;
-    static final int            locker   = 1;
+    static final int            stock    = 1;
     static final int            notifing = 2;
     protected    ChannelContext channelContext;
-
     Object        reSend;
     AtomicInteger flag = new AtomicInteger(transit);
 
@@ -31,10 +33,10 @@ public class BackPressureHelper extends BindDownAndUpStreamDataProcessor<Object>
         else
         {
             reSend = data;
-            flag.set(locker);
-            while (downStream.canAccept() && flag.get() == locker)
+            flag.set(stock);
+            while (downStream.canAccept() && flag.get() == stock)
             {
-                if (flag.compareAndSet(locker, transit))
+                if (flag.compareAndSet(stock, transit))
                 {
                     if (downStream.process(data))
                     {
@@ -42,7 +44,7 @@ public class BackPressureHelper extends BindDownAndUpStreamDataProcessor<Object>
                     }
                     else
                     {
-                        flag.set(locker);
+                        flag.set(stock);
                     }
                 }
                 else
@@ -57,11 +59,11 @@ public class BackPressureHelper extends BindDownAndUpStreamDataProcessor<Object>
     @Override
     public void notifyedWriteAvailable() throws Throwable
     {
-        int now = flag.get();
-        while (downStream.canAccept() && now == locker)
+        int now;
+        while ((now = flag.get()) == stock)
         {
             Object copy = reSend;
-            if (flag.compareAndSet(locker, notifing))
+            if (flag.compareAndSet(stock, notifing))
             {
 //                System.out.println(Thread.currentThread().getName()+"处理暂存数据");
                 if (downStream.process(copy))
@@ -73,7 +75,11 @@ public class BackPressureHelper extends BindDownAndUpStreamDataProcessor<Object>
                 }
                 else
                 {
-                    flag.set(locker);
+                    flag.set(stock);
+                    if (downStream.canAccept() == false)
+                    {
+                        break;
+                    }
                 }
             }
             else

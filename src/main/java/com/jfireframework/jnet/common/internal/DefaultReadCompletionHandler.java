@@ -6,6 +6,7 @@ import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ReadCompletionHandler;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
+import com.sun.xml.internal.bind.v2.model.core.ID;
 
 import java.io.IOException;
 import java.nio.channels.AsynchronousSocketChannel;
@@ -13,12 +14,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class DefaultReadCompletionHandler extends BindDownAndUpStreamDataProcessor<IoBuffer> implements ReadCompletionHandler<IoBuffer>
 {
-    protected final AsynchronousSocketChannel socketChannel;
-    protected final AioListener               aioListener;
-    protected final BufferAllocator           allocator;
-    protected final ReadEntry                 entry = new ReadEntry();
-    protected       ChannelContext            channelContext;
-    AtomicInteger ignoreNotify = new AtomicInteger(0);
+    protected final      AsynchronousSocketChannel socketChannel;
+    protected final      AioListener               aioListener;
+    protected final      BufferAllocator           allocator;
+    protected final      ReadEntry                 entry = new ReadEntry();
+    protected            ChannelContext            channelContext;
+    private static final int                       IDLE  = 0;
+    private static final int                       WORK  = 1;
+    AtomicInteger state = new AtomicInteger(IDLE);
 
     public DefaultReadCompletionHandler(AioListener aioListener, BufferAllocator allocator, AsynchronousSocketChannel socketChannel)
     {
@@ -33,6 +36,7 @@ public class DefaultReadCompletionHandler extends BindDownAndUpStreamDataProcess
         IoBuffer buffer = allocator.ioBuffer(128);
         entry.setIoBuffer(buffer);
         entry.setByteBuffer(buffer.writableByteBuffer());
+        state.set(WORK);
         socketChannel.read(entry.getByteBuffer(), entry, this);
     }
 
@@ -60,11 +64,11 @@ public class DefaultReadCompletionHandler extends BindDownAndUpStreamDataProcess
         {
             if (downStream.process(buffer) == false)
             {
-                ignoreNotify.set(1);
+                state.set(IDLE);
                 boolean continueRead = false;
-                while (downStream.canAccept() && (ignoreNotify.get()) == 1)
+                while (downStream.canAccept() && (state.get()) == IDLE)
                 {
-                    if (ignoreNotify.compareAndSet(1, 0))
+                    if (state.compareAndSet(IDLE, WORK))
                     {
                         if (downStream.process(buffer))
                         {
@@ -73,7 +77,7 @@ public class DefaultReadCompletionHandler extends BindDownAndUpStreamDataProcess
                         }
                         else
                         {
-                            ignoreNotify.set(1);
+                            state.set(IDLE);
                         }
                     }
                 }
@@ -141,9 +145,9 @@ public class DefaultReadCompletionHandler extends BindDownAndUpStreamDataProcess
     public void notifyedWriteAvailable()
     {
         int now = 0;
-        while (downStream.canAccept() && (now= ignoreNotify.get()) == 1)
+        while (downStream.canAccept() && (now = state.get()) == IDLE)
         {
-            if (ignoreNotify.compareAndSet(1, 0))
+            if (state.compareAndSet(IDLE, WORK))
             {
                 IoBuffer buffer = entry.getIoBuffer();
                 try
@@ -157,6 +161,7 @@ public class DefaultReadCompletionHandler extends BindDownAndUpStreamDataProcess
                             buffer.compact();
                         }
 //                        System.out.println(Thread.currentThread().getName()+"恢复读取");
+                        entry.setIoBuffer(buffer);
                         entry.setByteBuffer(buffer.writableByteBuffer());
                         socketChannel.read(entry.getByteBuffer(), entry, this);
                         return;
@@ -164,7 +169,7 @@ public class DefaultReadCompletionHandler extends BindDownAndUpStreamDataProcess
                     else
                     {
 //                        System.out.println(Thread.currentThread().getName()+"剩余数据处理导致下游阻塞，再次等待唤醒");
-                        ignoreNotify.set(1);
+                        state.set(IDLE);
                     }
                 } catch (Throwable e)
                 {

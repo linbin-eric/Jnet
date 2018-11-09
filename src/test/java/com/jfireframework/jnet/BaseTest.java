@@ -42,8 +42,8 @@ public class BaseTest
     private              AioServer      aioServer;
     private              String         ip           = "127.0.0.1";
     private              int            port         = 7598;
-    private              int            numPerThread = 10000000;
-    private              int            numClients   = 4;
+    private              int            numPerThread = 20000000;
+    private              int            numClients   = 3;
     private              JnetClient[]   clients;
     private              CountDownLatch latch        = new CountDownLatch(numClients);
     private              int[][]        results;
@@ -52,9 +52,9 @@ public class BaseTest
     public static Collection<Object[]> params()
     {
         return Arrays.asList(new Object[][]{ //
-                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(), IoMode.IO}, //
-                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(1024), IoMode.IO}, //
-                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(128), IoMode.Channel}, //
+//                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(), IoMode.IO}, //
+//                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(1024), IoMode.IO}, //
+                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(1024), IoMode.Channel}, //
         });
     }
 

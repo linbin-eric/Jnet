@@ -4,7 +4,7 @@ import com.jfireframework.baseutil.reflect.UNSAFE;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.DataProcessor;
 import com.jfireframework.jnet.common.util.FixArray;
-import com.jfireframework.jnet.common.util.MPSCFixArray;
+import com.jfireframework.jnet.common.util.SPSCFixArray;
 
 import java.util.concurrent.ExecutorService;
 
@@ -17,7 +17,7 @@ public class ChannelAttachWorker implements Runnable
     private static final int                           SPIN_THRESHOLD    = 128;
     private static final long                          STATE_OFFSET      = UNSAFE.getFieldOffset("state", ChannelAttachWorker.class);
     private final        ExecutorService               executorService;
-    private final        FixArray<ChannelAttachEntity> entities          = new MPSCFixArray<ChannelAttachEntity>(128)
+    private final        FixArray<ChannelAttachEntity> entities          = new SPSCFixArray<ChannelAttachEntity>(128)
     {
 
         @Override
@@ -127,7 +127,8 @@ public class ChannelAttachWorker implements Runnable
         {
             return true;
         }
-        else{
+        else
+        {
 //            System.out.println(Thread.currentThread().getName()+"channelworker返回无法接受");
             return false;
         }
@@ -138,15 +139,7 @@ public class ChannelAttachWorker implements Runnable
      */
     public void notifyedWriteAvailable()
     {
-//        System.out.println(Thread.currentThread().getName() + "尝试唤醒");
-        if (downStream.canAccept())
-        {
-            recoverFromBlock();
-        }
-        else
-        {
-//            System.out.println(Thread.currentThread().getName() + "唤醒失败，下游不可写");
-        }
+        recoverFromBlock();
     }
 
     private void recoverFromBlock()
