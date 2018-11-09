@@ -136,7 +136,7 @@ abstract class Core extends Pad3
     {
         int  flag    = (int) (index >>> indexShift);
         long address = ((index & mask) << availableBufferScaleShift) + availableBufferOffset;
-        UNSAFE.putIntVolatile(availableBuffers, address, flag);
+        UNSAFE.putOrderedInt(availableBuffers, address, flag);
     }
 
     /**
