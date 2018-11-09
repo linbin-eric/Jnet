@@ -42,11 +42,22 @@ public class BaseTest
     private              AioServer      aioServer;
     private              String         ip           = "127.0.0.1";
     private              int            port         = 7598;
-    private              int            numPerThread = 100000;
-    private              int            numClients   = 10;
+    private              int            numPerThread = 10000000;
+    private              int            numClients   = 4;
     private              JnetClient[]   clients;
     private              CountDownLatch latch        = new CountDownLatch(numClients);
     private              int[][]        results;
+
+    @Parameters(name = "IO模式:{3}，是否开启背压:{2}")
+    public static Collection<Object[]> params()
+    {
+        return Arrays.asList(new Object[][]{ //
+//                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(), IoMode.IO}, //
+//                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(1024), IoMode.IO}, //
+                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(128), IoMode.Channel}, //
+        });
+    }
+
 
     public BaseTest(final BufferAllocator bufferAllocator, int batchWriteNum, final BackPressureMode backPressureMode, final IoMode ioMode)
     {
@@ -121,7 +132,7 @@ public class BaseTest
             JnetClientBuilder jnetClientBuilder = new JnetClientBuilder();
             jnetClientBuilder.setServerIp(ip);
             jnetClientBuilder.setPort(port);
-            jnetClientBuilder.setBackPressureMode(new BackPressureMode());
+            jnetClientBuilder.setBackPressureMode(new BackPressureMode(128));
             jnetClientBuilder.setChannelContextInitializer(new ChannelContextInitializer()
             {
 
@@ -181,15 +192,7 @@ public class BaseTest
         }
     }
 
-    @Parameters(name = "IO模式:{3}，是否开启背压:{2}")
-    public static Collection<Object[]> params()
-    {
-        return Arrays.asList(new Object[][]{ //
-                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(), IoMode.IO}, //
-                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(1024), IoMode.IO}, //
-                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(1024), IoMode.Channel}, //
-        });
-    }
+
 
     @Test
     public void test() throws InterruptedException
