@@ -9,11 +9,11 @@ import java.util.concurrent.CyclicBarrier;
 
 public class FixArrayTest
 {
-    final int    sendNum = 1000000;
+    final int    sendNum = 100000000;
     final String value   = "";
     int capacity          = 256;
-    int producerThreadNum = 24;
-    final int    total   = sendNum * producerThreadNum;
+    int producerThreadNum = 1;
+    final int total = sendNum * producerThreadNum;
 
     public void testBastUtilArrayQueue() throws InterruptedException
     {
@@ -52,7 +52,7 @@ public class FixArrayTest
                             }
                         }
                         Slot slot = baseUtilArrayQueue.getSlot(index);
-                        slot.value = value;
+                        slot.value = index;
                         baseUtilArrayQueue.commit(index);
                     }
                 }
@@ -83,8 +83,12 @@ public class FixArrayTest
                             Thread.yield();
                         }
                     }
-                     Slot slot = baseUtilArrayQueue.getSlot(avail);
-                     slot.value = null;
+                    Slot slot = baseUtilArrayQueue.getSlot(avail);
+                    if (slot.value != avail)
+                    {
+                        System.err.println("异常");
+                    }
+                    slot.value = 0;
                     baseUtilArrayQueue.comsumeAvail(avail);
                 }
                 timewatch.end();
@@ -107,6 +111,6 @@ public class FixArrayTest
 
     class Slot
     {
-        String value;
+        long value;
     }
 }

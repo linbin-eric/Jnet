@@ -42,8 +42,8 @@ public class BaseTest
     private              AioServer      aioServer;
     private              String         ip           = "127.0.0.1";
     private              int            port         = 7598;
-    private              int            numPerThread = 20000000;
-    private              int            numClients   = 3;
+    private              int            numPerThread = 30000000;
+    private              int            numClients   = 2;
     private              JnetClient[]   clients;
     private              CountDownLatch latch        = new CountDownLatch(numClients);
     private              int[][]        results;

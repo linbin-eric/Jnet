@@ -4,6 +4,7 @@ import com.jfireframework.baseutil.reflect.UNSAFE;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.DataProcessor;
 import com.jfireframework.jnet.common.util.FixArray;
+import com.jfireframework.jnet.common.util.MPSCFixArray;
 import com.jfireframework.jnet.common.util.SPSCFixArray;
 
 import java.util.concurrent.ExecutorService;
@@ -17,7 +18,8 @@ public class ChannelAttachWorker implements Runnable
     private static final int                           SPIN_THRESHOLD    = 128;
     private static final long                          STATE_OFFSET      = UNSAFE.getFieldOffset("state", ChannelAttachWorker.class);
     private final        ExecutorService               executorService;
-    private final        FixArray<ChannelAttachEntity> entities          = new SPSCFixArray<ChannelAttachEntity>(128)
+    //严重警告：在这里只能使用SPSC！使用MPSC在开启背压时会导致JVM崩溃异常。原因仍然未发现。
+    private final        FixArray<ChannelAttachEntity> entities          = new SPSCFixArray<ChannelAttachEntity>(1024)
     {
 
         @Override

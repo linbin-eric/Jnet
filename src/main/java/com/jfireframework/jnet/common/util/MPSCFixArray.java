@@ -86,7 +86,7 @@ abstract class Core extends Pad3
     }
 
     protected final    Object[] buffer;
-    protected final    int      mask;
+    protected final    long      mask;
     protected final    int[]    availableBuffers;
     protected final    int      indexShift;
     protected          long     consumerLimit;
