@@ -6,7 +6,6 @@ import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ReadCompletionHandler;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
-import com.sun.xml.internal.bind.v2.model.core.ID;
 
 import java.io.IOException;
 import java.nio.channels.AsynchronousSocketChannel;

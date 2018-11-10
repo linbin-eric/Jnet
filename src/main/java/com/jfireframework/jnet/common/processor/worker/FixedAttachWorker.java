@@ -1,13 +1,5 @@
 package com.jfireframework.jnet.common.processor.worker;
 
-import com.jfireframework.baseutil.reflect.UNSAFE;
-import com.jfireframework.jnet.common.api.ChannelContext;
-import com.jfireframework.jnet.common.util.FixArray;
-import com.jfireframework.jnet.common.util.SPSCFixArray;
-
-import java.io.IOException;
-import java.util.concurrent.ExecutorService;
-
 public class FixedAttachWorker implements Runnable
 {
     @Override

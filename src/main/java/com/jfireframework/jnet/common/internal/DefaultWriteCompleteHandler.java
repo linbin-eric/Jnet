@@ -1,7 +1,6 @@
 package com.jfireframework.jnet.common.internal;
 
-import com.jfireframework.baseutil.concurrent.FastMPSCArrayQueue;
-import com.jfireframework.baseutil.concurrent.MPSCLinkedQueue;
+import com.jfireframework.baseutil.concurrent.MPSCArrayQueue;
 import com.jfireframework.baseutil.reflect.UNSAFE;
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.BackPressureMode;
@@ -9,6 +8,8 @@ import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.WriteCompletionHandler;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
+import org.jctools.queues.ConcurrentCircularArrayQueue;
+import org.jctools.queues.MpscLinkedQueue7;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -33,6 +34,7 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
     protected volatile     int                       state          = IDLE;
     protected              Queue<IoBuffer>           queue;
     private                ChannelContext            channelContext;
+    private final          boolean                   alwaysAccept;
 
     public DefaultWriteCompleteHandler(AsynchronousSocketChannel socketChannel, AioListener aioListener, BufferAllocator allocator, int maxWriteBytes, BackPressureMode backPressureMode)
     {
@@ -40,7 +42,8 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
         this.allocator = allocator;
         this.aioListener = aioListener;
         this.maxWriteBytes = Math.max(1, maxWriteBytes);
-        queue = backPressureMode.isEnable() ? new FastMPSCArrayQueue<IoBuffer>(backPressureMode.getQueueCapacity()) : new MPSCLinkedQueue<IoBuffer>();
+        queue = backPressureMode.isEnable() ? new MPSCArrayQueue<IoBuffer>(backPressureMode.getQueueCapacity()) : new MpscLinkedQueue7<IoBuffer>();
+        alwaysAccept = backPressureMode.isEnable();
     }
 
     protected void rest()
@@ -75,6 +78,7 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
     {
         return UNSAFE.compareAndSwapInt(this, STATE_OFFSET, IDLE, WORK);
     }
+
     @Override
     public void completed(Integer result, WriteEntry entry)
     {
@@ -124,6 +128,7 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
         }
         rest();
     }
+
     /**
      * 从MPSCQueue中取得IoBuffer，并且执行写操作
      */
@@ -221,10 +226,12 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
     @Override
     public boolean canAccept()
     {
-        if (queue instanceof MPSCLinkedQueue)
+        if (alwaysAccept)
         {
             return true;
         }
-        return ((FastMPSCArrayQueue) queue).canOffer();
+        long producerIndex = ((ConcurrentCircularArrayQueue) queue).currentProducerIndex();
+        long consumerIndex = ((ConcurrentCircularArrayQueue) queue).currentConsumerIndex();
+        return producerIndex != consumerIndex;
     }
 }

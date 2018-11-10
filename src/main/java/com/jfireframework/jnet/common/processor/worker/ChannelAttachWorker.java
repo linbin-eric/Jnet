@@ -3,35 +3,28 @@ package com.jfireframework.jnet.common.processor.worker;
 import com.jfireframework.baseutil.reflect.UNSAFE;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.DataProcessor;
-import com.jfireframework.jnet.common.util.FixArray;
-import com.jfireframework.jnet.common.util.MPSCFixArray;
-import com.jfireframework.jnet.common.util.SPSCFixArray;
+import com.jfireframework.jnet.common.buffer.IoBuffer;
+import org.jctools.queues.ConcurrentCircularArrayQueue;
+import org.jctools.queues.SpscArrayQueue;
 
+import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 
 public class ChannelAttachWorker implements Runnable
 {
 
-    private static final int                           IDLE              = -1;
-    private static final int                           WORK              = 1;
-    private static final int                           blockByDownStream = 4;
-    private static final int                           SPIN_THRESHOLD    = 128;
-    private static final long                          STATE_OFFSET      = UNSAFE.getFieldOffset("state", ChannelAttachWorker.class);
-    private final        ExecutorService               executorService;
-    //严重警告：在这里只能使用SPSC！使用MPSC在开启背压时会导致JVM崩溃异常。原因仍然未发现。
-    private final        FixArray<ChannelAttachEntity> entities          = new SPSCFixArray<ChannelAttachEntity>(1024)
-    {
-
-        @Override
-        protected ChannelAttachEntity newInstance()
-        {
-            return new ChannelAttachEntity();
-        }
-    };
-    private volatile     int                           state             = IDLE;
-    private              DataProcessor<?>              upStream;
-    private              DataProcessor                 downStream;
-    private              ChannelContext                channelContext;
+    private static final int              IDLE              = -1;
+    private static final int              WORK              = 1;
+    private static final int              blockByDownStream = 4;
+    private static final int              SPIN_THRESHOLD    = 128;
+    private static final long             STATE_OFFSET      = UNSAFE.getFieldOffset("state", ChannelAttachWorker.class);
+    private final        ExecutorService  executorService;
+    private static final int              capacity          = 1024;
+    private              Queue<IoBuffer>  queue             = new SpscArrayQueue<>(capacity);
+    private volatile     int              state             = IDLE;
+    private              DataProcessor<?> upStream;
+    private              DataProcessor    downStream;
+    private              ChannelContext   channelContext;
 
     public ChannelAttachWorker(ExecutorService executorService)
     {
@@ -47,13 +40,13 @@ public class ChannelAttachWorker implements Runnable
             int spin = 0;
             do
             {
-                long avail = entities.nextAvail();
-                if (avail == -1)
+                IoBuffer avail = queue.poll();
+                if (avail == null)
                 {
                     spin = 0;
                     for (; ; )
                     {
-                        if ((avail = entities.nextAvail()) != -1)
+                        if ((avail = queue.poll()) != null)
                         {
                             break;
                         }
@@ -66,7 +59,7 @@ public class ChannelAttachWorker implements Runnable
                             state = IDLE;
 //                            System.out.println(Thread.currentThread().getName() + "准备通知上游");
                             upStream.notifyedWriteAvailable();
-                            if (entities.isEmpty() == false)
+                            if (queue.isEmpty() == false)
                             {
 //                                System.out.println(Thread.currentThread().getName() + "唤醒后有数据了，再次争取");
                                 tryExecute();
@@ -79,11 +72,8 @@ public class ChannelAttachWorker implements Runnable
                         }
                     }
                 }
-                ChannelAttachEntity slot = entities.getSlot(avail);
-                Object              data = slot.data;
-                slot.clear();
-                entities.comsumeAvail(avail);
-                if (downStream.process(data) == false)
+//
+                if (downStream.process(avail) == false)
                 {
                     state = blockByDownStream;
                     if (downStream.canAccept())
@@ -108,31 +98,30 @@ public class ChannelAttachWorker implements Runnable
 
     public boolean commit(ChannelContext channelContext, DataProcessor<?> downStream, Object data)
     {
-        long offerIndexAvail = entities.nextOfferIndex();
-        if (offerIndexAvail == -1)
+        if (queue.offer((IoBuffer) data))
         {
-            return false;
-        }
-        ChannelAttachEntity slot = entities.getSlot(offerIndexAvail);
-        slot.channelContext = channelContext;
-        slot.downStream = downStream;
-        slot.data = data;
-        entities.commit(offerIndexAvail);
 //        System.out.println(Thread.currentThread().getName() + "提交数据，准备夺取");
-        tryExecute();
-        return true;
-    }
-
-    public boolean canAccept()
-    {
-        if (entities.canOffer())
-        {
+            tryExecute();
             return true;
         }
         else
         {
+            return false;
+        }
+    }
+
+    public boolean canAccept()
+    {
+        long cIndex = ((ConcurrentCircularArrayQueue) queue).currentConsumerIndex();
+        long pIndex = ((ConcurrentCircularArrayQueue) queue).currentProducerIndex();
+        if (pIndex - capacity == cIndex)
+        {
 //            System.out.println(Thread.currentThread().getName()+"channelworker返回无法接受");
             return false;
+        }
+        else
+        {
+            return true;
         }
     }
 
