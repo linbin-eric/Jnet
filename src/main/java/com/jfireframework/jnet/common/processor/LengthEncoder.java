@@ -7,11 +7,10 @@ import com.jfireframework.jnet.common.internal.BindDownAndUpStreamDataProcessor;
 public class LengthEncoder extends BindDownAndUpStreamDataProcessor<IoBuffer>
 {
     // 代表长度字段开始读取的位置
-    private final    int            lengthFieldOffset;
+    private final int            lengthFieldOffset;
     // 代表长度字段自身的长度。支持1,2,4.如果是1则使用unsignedbyte方式读取。如果是2则使用unsignedshort方式读取,4使用int方式读取。
-    private final    int            lengthFieldLength;
-    private          ChannelContext channelContext;
-    private volatile IoBuffer       reSend;
+    private final int            lengthFieldLength;
+    private       ChannelContext channelContext;
 
     public LengthEncoder(int lengthFieldOffset, int lengthFieldLength)
     {
@@ -43,16 +42,18 @@ public class LengthEncoder extends BindDownAndUpStreamDataProcessor<IoBuffer>
             default:
                 break;
         }
-        reSend = buf;
         return downStream.process(buf);
     }
 
     @Override
-    public void notifyedWriteAvailable() throws Throwable
+    public void notifyedWriterAvailable() throws Throwable
     {
-        if (downStream.process(reSend))
-        {
-            upStream.notifyedWriteAvailable();
-        }
+        upStream.notifyedWriterAvailable();
+    }
+
+    @Override
+    public boolean isBoundary()
+    {
+        return false;
     }
 }

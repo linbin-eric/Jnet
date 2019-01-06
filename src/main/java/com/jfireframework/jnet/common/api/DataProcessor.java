@@ -1,6 +1,6 @@
 package com.jfireframework.jnet.common.api;
 
-public interface DataProcessor<T>
+public interface DataProcessor<T> extends BoundaryBehavior
 {
     /**
      * 通道初始化时被调用
@@ -22,7 +22,7 @@ public interface DataProcessor<T>
     boolean process(T data) throws Throwable;
 
     /**
-     * 返回是否还可以接受数据
+     * 返回是否可以接受上游传递数据
      *
      * @return
      */
@@ -31,5 +31,5 @@ public interface DataProcessor<T>
     /**
      * 写处理器通知当前发送队列有可供写出的容量。
      */
-    void notifyedWriteAvailable() throws Throwable;
+    void notifyedWriterAvailable() throws Throwable;
 }

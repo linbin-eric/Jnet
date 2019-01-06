@@ -31,7 +31,7 @@ public class ChannelAttachProcessor extends BindDownAndUpStreamDataProcessor<Obj
     }
 
     @Override
-    public void notifyedWriteAvailable() throws Throwable
+    public void notifyedWriterAvailable() throws Throwable
     {
         worker.notifyedWriteAvailable();
     }
@@ -53,5 +53,11 @@ public class ChannelAttachProcessor extends BindDownAndUpStreamDataProcessor<Obj
     public boolean canAccept()
     {
         return worker.canAccept();
+    }
+
+    @Override
+    public boolean isBoundary()
+    {
+        return true;
     }
 }

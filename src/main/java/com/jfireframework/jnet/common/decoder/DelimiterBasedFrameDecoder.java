@@ -71,8 +71,14 @@ public class DelimiterBasedFrameDecoder extends BindDownAndUpStreamDataProcessor
     }
 
     @Override
-    public void notifyedWriteAvailable() throws Throwable
+    public void notifyedWriterAvailable() throws Throwable
     {
-        upStream.notifyedWriteAvailable();
+        upStream.notifyedWriterAvailable();
+    }
+
+    @Override
+    public boolean isBoundary()
+    {
+        return false;
     }
 }

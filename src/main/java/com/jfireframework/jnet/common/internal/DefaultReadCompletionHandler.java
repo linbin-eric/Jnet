@@ -141,7 +141,7 @@ public class DefaultReadCompletionHandler extends BindDownAndUpStreamDataProcess
     }
 
     @Override
-    public void notifyedWriteAvailable()
+    public void notifyedWriterAvailable()
     {
         int now = 0;
         while (downStream.canAccept() && (now = state.get()) == IDLE)
@@ -187,5 +187,11 @@ public class DefaultReadCompletionHandler extends BindDownAndUpStreamDataProcess
             }
         }
 //        System.out.println(Thread.currentThread().getName()+"不满足唤醒条件，当前忽略状态："+now+","+downStream.canAccept());
+    }
+
+    @Override
+    public boolean isBoundary()
+    {
+        return false;
     }
 }

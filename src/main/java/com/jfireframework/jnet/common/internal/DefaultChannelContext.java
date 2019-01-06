@@ -2,6 +2,7 @@ package com.jfireframework.jnet.common.internal;
 
 import com.jfireframework.jnet.common.api.*;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
+import com.jfireframework.jnet.common.processor.BackPressureHelper;
 
 import java.io.IOException;
 import java.nio.channels.AsynchronousSocketChannel;
@@ -30,7 +31,7 @@ public class DefaultChannelContext implements ChannelContext
     @Override
     public boolean availableForWrite()
     {
-       return writeCompletionHandler.canAccept();
+        return writeCompletionHandler.canAccept();
     }
 
     @Override
@@ -56,19 +57,31 @@ public class DefaultChannelContext implements ChannelContext
         {
             dataProcessor.bind(this);
         }
+        /**检查是否正确放置了BackPressureHelper**/
+        if (writeCompletionHandler.isBoundary() == false)
+        {
+            return;
+        }
+        for (int i = 1; i < dataProcessors.length; i++)
+        {
+            if (dataProcessors[i].isBoundary())
+            {
+                if (dataProcessors[i - 1] instanceof BackPressureHelper == false)
+                {
+                    throw new IllegalArgumentException("背压模式开启下，在" + dataProcessors[i].getClass().getName() + "之前需要放置BackPressureHelper");
+                }
+            }
+        }
+        if (dataProcessors[dataProcessors.length - 1] instanceof BackPressureHelper == false)
+        {
+            throw new IllegalArgumentException("开启背压模式下，最后一个处理器必须是BackPressureHelper");
+        }
     }
 
     @Override
     public void close()
     {
-        try
-        {
-            socketChannel.close();
-            aioListener.onClose(socketChannel, null);
-        } catch (IOException e)
-        {
-            ;
-        }
+        close(null);
     }
 
     @Override

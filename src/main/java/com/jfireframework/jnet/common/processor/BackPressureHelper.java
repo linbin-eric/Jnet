@@ -57,7 +57,7 @@ public class BackPressureHelper extends BindDownAndUpStreamDataProcessor<Object>
     }
 
     @Override
-    public void notifyedWriteAvailable() throws Throwable
+    public void notifyedWriterAvailable() throws Throwable
     {
         int now;
         while ((now = flag.get()) == stock)
@@ -70,7 +70,7 @@ public class BackPressureHelper extends BindDownAndUpStreamDataProcessor<Object>
                 {
                     flag.set(transit);
 //                    System.out.println(Thread.currentThread().getName()+"继续通知上游");
-                    upStream.notifyedWriteAvailable();
+                    upStream.notifyedWriterAvailable();
                     return;
                 }
                 else
@@ -98,6 +98,12 @@ public class BackPressureHelper extends BindDownAndUpStreamDataProcessor<Object>
             return true;
         }
 //        System.out.println(Thread.currentThread().getName()+"backpressure返回无法接受");
+        return false;
+    }
+
+    @Override
+    public boolean isBoundary()
+    {
         return false;
     }
 }

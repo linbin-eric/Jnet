@@ -94,6 +94,12 @@ public class BaseTest
                                 {
 
                                     @Override
+                                    public boolean isBoundary()
+                                    {
+                                        return false;
+                                    }
+
+                                    @Override
                                     public boolean process(IoBuffer data) throws Throwable
                                     {
                                         data.addReadPosi(-4);
@@ -107,6 +113,12 @@ public class BaseTest
                                 new ChannelAttachProcessor(fixService), //
                                 new BindDownAndUpStreamDataProcessor<IoBuffer>()
                                 {
+
+                                    @Override
+                                    public boolean isBoundary()
+                                    {
+                                        return false;
+                                    }
 
                                     @Override
                                     public boolean process(IoBuffer data) throws Throwable
@@ -142,6 +154,12 @@ public class BaseTest
                     channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1000, bufferAllocator), //
                             new DataProcessor<IoBuffer>()
                             {
+                                @Override
+                                public boolean isBoundary()
+                                {
+                                    return false;
+                                }
+
                                 int count = 0;
 
                                 @Override
@@ -181,7 +199,7 @@ public class BaseTest
                                 }
 
                                 @Override
-                                public void notifyedWriteAvailable() throws Throwable
+                                public void notifyedWriterAvailable() throws Throwable
                                 {
                                 }
                             });

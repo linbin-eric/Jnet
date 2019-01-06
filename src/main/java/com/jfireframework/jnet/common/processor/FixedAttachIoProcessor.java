@@ -28,7 +28,13 @@ public class FixedAttachIoProcessor extends BindDownAndUpStreamDataProcessor<Obj
     }
 
     @Override
-    public void notifyedWriteAvailable() throws Throwable
+    public void notifyedWriterAvailable() throws Throwable
     {
+    }
+
+    @Override
+    public boolean isBoundary()
+    {
+        return true;
     }
 }

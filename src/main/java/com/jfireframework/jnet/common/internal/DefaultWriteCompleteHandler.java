@@ -1,6 +1,5 @@
 package com.jfireframework.jnet.common.internal;
 
-import com.jfireframework.baseutil.concurrent.MPSCArrayQueue;
 import com.jfireframework.baseutil.reflect.UNSAFE;
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.BackPressureMode;
@@ -9,6 +8,7 @@ import com.jfireframework.jnet.common.api.WriteCompletionHandler;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
 import org.jctools.queues.ConcurrentCircularArrayQueue;
+import org.jctools.queues.MpscArrayQueue;
 import org.jctools.queues.MpscLinkedQueue7;
 
 import java.io.IOException;
@@ -34,7 +34,8 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
     protected volatile     int                       state          = IDLE;
     protected              Queue<IoBuffer>           queue;
     private                ChannelContext            channelContext;
-    private final          boolean                   alwaysAccept;
+    private final          boolean                   boundary;
+    private final          int                       boundarySize;
 
     public DefaultWriteCompleteHandler(AsynchronousSocketChannel socketChannel, AioListener aioListener, BufferAllocator allocator, int maxWriteBytes, BackPressureMode backPressureMode)
     {
@@ -42,8 +43,9 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
         this.allocator = allocator;
         this.aioListener = aioListener;
         this.maxWriteBytes = Math.max(1, maxWriteBytes);
-        queue = backPressureMode.isEnable() ? new MPSCArrayQueue<IoBuffer>(backPressureMode.getQueueCapacity()) : new MpscLinkedQueue7<IoBuffer>();
-        alwaysAccept = backPressureMode.isEnable();
+        queue = backPressureMode.isEnable() ? new MpscArrayQueue<IoBuffer>(backPressureMode.getQueueCapacity()) : new MpscLinkedQueue7<IoBuffer>();
+        boundary = backPressureMode.isEnable();
+        boundarySize = backPressureMode.isEnable() ? backPressureMode.getQueueCapacity() : 0;
     }
 
     protected void rest()
@@ -51,7 +53,7 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
         state = IDLE;
         try
         {
-            upStream.notifyedWriteAvailable();
+            upStream.notifyedWriterAvailable();
         } catch (Throwable throwable)
         {
             channelContext.close(throwable);
@@ -107,7 +109,7 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
         }
         try
         {
-            upStream.notifyedWriteAvailable();
+            upStream.notifyedWriterAvailable();
         } catch (Throwable e)
         {
             channelContext.close(e);
@@ -206,12 +208,10 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
         {
             if (queue.isEmpty() == false)
             {
-//                System.out.println(Thread.currentThread().getName()+"准备写出");
                 writeQueuedBuffer();
             }
             else
             {
-//                System.out.println(Thread.currentThread().getName()+"队列没有数据可写");
                 rest();
             }
         }
@@ -219,19 +219,26 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
     }
 
     @Override
-    public void notifyedWriteAvailable()
+    public void notifyedWriterAvailable()
     {
     }
 
     @Override
     public boolean canAccept()
     {
-        if (alwaysAccept)
+        if (boundary == false)
         {
             return true;
         }
-        long producerIndex = ((ConcurrentCircularArrayQueue) queue).currentProducerIndex();
-        long consumerIndex = ((ConcurrentCircularArrayQueue) queue).currentConsumerIndex();
-        return producerIndex != consumerIndex;
+        ConcurrentCircularArrayQueue<?> mpscArrayQuyeue = (ConcurrentCircularArrayQueue<?>) queue;
+        long                            consumerIndex   = mpscArrayQuyeue.currentConsumerIndex();
+        long                            producerIndex   = mpscArrayQuyeue.currentProducerIndex();
+        return producerIndex - consumerIndex > boundarySize;
+    }
+
+    @Override
+    public boolean isBoundary()
+    {
+        return boundary;
     }
 }

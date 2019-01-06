@@ -58,7 +58,7 @@ public class ChannelAttachWorker implements Runnable
                         {
                             state = IDLE;
 //                            System.out.println(Thread.currentThread().getName() + "准备通知上游");
-                            upStream.notifyedWriteAvailable();
+                            upStream.notifyedWriterAvailable();
                             if (queue.isEmpty() == false)
                             {
 //                                System.out.println(Thread.currentThread().getName() + "唤醒后有数据了，再次争取");

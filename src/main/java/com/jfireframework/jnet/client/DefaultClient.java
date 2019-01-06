@@ -57,9 +57,26 @@ public class DefaultClient implements JnetClient
                 AsynchronousSocketChannel asynchronousSocketChannel = channelGroup == null ? AsynchronousSocketChannel.open() : AsynchronousSocketChannel.open(channelGroup);
                 Future<Void>              future                    = asynchronousSocketChannel.connect(new InetSocketAddress(ip, port));
                 future.get();
-                ReadCompletionHandler readCompletionHandler = new DefaultReadCompletionHandler(aioListener, allocator, asynchronousSocketChannel);
-                WriteCompletionHandler writeCompletionHandler = new DefaultWriteCompleteHandler(asynchronousSocketChannel, aioListener, allocator, 1024 * 1024 * 2, backPressureMode);
-                channelContext = new DefaultChannelContext(asynchronousSocketChannel, aioListener, readCompletionHandler,writeCompletionHandler);
+                final ReadCompletionHandler  readCompletionHandler  = new DefaultReadCompletionHandler(aioListener, allocator, asynchronousSocketChannel);
+                final WriteCompletionHandler writeCompletionHandler = new DefaultWriteCompleteHandler(asynchronousSocketChannel, aioListener, allocator, 1024 * 1024 * 2, backPressureMode);
+                channelContext = new DefaultChannelContext(asynchronousSocketChannel, aioListener, readCompletionHandler,writeCompletionHandler){
+                    public void setDataProcessor(DataProcessor<?>... dataProcessors)
+                    {
+                        for (int i = 1; i < dataProcessors.length; i++)
+                        {
+                            dataProcessors[i].bindUpStream(dataProcessors[i - 1]);
+                            dataProcessors[i - 1].bindDownStream(dataProcessors[i]);
+                        }
+                        readCompletionHandler.bindDownStream(dataProcessors[0]);
+                        dataProcessors[0].bindUpStream(readCompletionHandler);
+                        dataProcessors[dataProcessors.length - 1].bindDownStream(writeCompletionHandler);
+                        writeCompletionHandler.bindUpStream(dataProcessors[dataProcessors.length - 1]);
+                        for (DataProcessor dataProcessor : dataProcessors)
+                        {
+                            dataProcessor.bind(this);
+                        }
+                    }
+                };
                 channelContextInitializer.onChannelContextInit(channelContext);
                 readCompletionHandler.start();
                 state = CONNECTED;

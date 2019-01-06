@@ -34,8 +34,8 @@ public abstract class BindDownAndUpStreamDataProcessor<E> implements DataProcess
     }
 
     @Override
-    public void notifyedWriteAvailable() throws Throwable
+    public void notifyedWriterAvailable() throws Throwable
     {
-        upStream.notifyedWriteAvailable();
+        upStream.notifyedWriterAvailable();
     }
 }
