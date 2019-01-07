@@ -13,6 +13,11 @@ import java.util.concurrent.ExecutorService;
 public class ChannelAttachWorker implements Runnable
 {
 
+    /**
+     * 使用三个状态用来进行竞争。通过从IDLE状态到WORK状态，竞争将worker放入线程池执行的权利。
+     * 当worker发送数据到下游被拒绝时，将状态切换到blockByDownStream。此时上游无法再次尝试启动worker。
+     * 这种情况下，worker只能通过自我尝试恢复，或者被下游的可写信号唤醒，尝试从blockByDownStream状态切换到WORK状态，成功后启动worker。
+     */
     private static final int              IDLE              = -1;
     private static final int              WORK              = 1;
     private static final int              blockByDownStream = 4;
@@ -34,7 +39,6 @@ public class ChannelAttachWorker implements Runnable
     @Override
     public void run()
     {
-//        System.out.println(Thread.currentThread().getName() + "启动channel");
         try
         {
             int spin = 0;
@@ -57,22 +61,19 @@ public class ChannelAttachWorker implements Runnable
                         else
                         {
                             state = IDLE;
-//                            System.out.println(Thread.currentThread().getName() + "准备通知上游");
                             upStream.notifyedWriterAvailable();
                             if (queue.isEmpty() == false)
                             {
-//                                System.out.println(Thread.currentThread().getName() + "唤醒后有数据了，再次争取");
                                 tryExecute();
                             }
                             else
                             {
-//                                System.out.println(Thread.currentThread().getName() + "没有数据，放弃");
+                                ;
                             }
                             return;
                         }
                     }
                 }
-//
                 if (downStream.process(avail) == false)
                 {
                     state = blockByDownStream;
@@ -82,25 +83,22 @@ public class ChannelAttachWorker implements Runnable
                     }
                     else
                     {
-//                        System.out.println(Thread.currentThread().getName() + "下游不可用，放弃");
+                        ;
                     }
                     break;
                 }
-//                System.out.println(Thread.currentThread().getName() + "消费" + avail);
             } while (true);
         } catch (Throwable e)
         {
             e.printStackTrace();
             channelContext.close(e);
         }
-//        System.out.println(Thread.currentThread().getName() + "离开");
     }
 
     public boolean commit(ChannelContext channelContext, DataProcessor<?> downStream, Object data)
     {
         if (queue.offer((IoBuffer) data))
         {
-//        System.out.println(Thread.currentThread().getName() + "提交数据，准备夺取");
             tryExecute();
             return true;
         }
@@ -116,7 +114,6 @@ public class ChannelAttachWorker implements Runnable
         long pIndex = ((ConcurrentCircularArrayQueue) queue).currentProducerIndex();
         if (pIndex - capacity == cIndex)
         {
-//            System.out.println(Thread.currentThread().getName()+"channelworker返回无法接受");
             return false;
         }
         else
@@ -138,26 +135,24 @@ public class ChannelAttachWorker implements Runnable
         int now = state;
         if (now == blockByDownStream && UNSAFE.compareAndSwapInt(this, STATE_OFFSET, blockByDownStream, WORK))
         {
-//            System.out.println(Thread.currentThread().getName() + "恢复成功");
             executorService.execute(this);
         }
         else
         {
-//            System.out.println(Thread.currentThread().getName() + "恢复失败");
+            ;
         }
     }
 
     private void tryExecute()
     {
-        int now;
-        if ((now = state) == IDLE && UNSAFE.compareAndSwapInt(this, STATE_OFFSET, IDLE, WORK))
+        int now = state;
+        if (now == IDLE && UNSAFE.compareAndSwapInt(this, STATE_OFFSET, IDLE, WORK))
         {
             executorService.execute(this);
-//            System.out.println(Thread.currentThread().getName() + "夺取成功");
         }
         else
         {
-//            System.out.println(Thread.currentThread().getName() + "夺取失败，放弃");
+            ;
         }
     }
 
@@ -169,20 +164,6 @@ public class ChannelAttachWorker implements Runnable
     public void setDownStream(DataProcessor downStream)
     {
         this.downStream = downStream;
-    }
-
-    class ChannelAttachEntity
-    {
-        ChannelContext   channelContext;
-        DataProcessor<?> downStream;
-        Object           data;
-
-        void clear()
-        {
-            channelContext = null;
-            downStream = null;
-            data = null;
-        }
     }
 
     public void setChannelContext(ChannelContext channelContext)

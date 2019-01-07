@@ -82,7 +82,6 @@ public class DefaultReadCompletionHandler extends BindDownAndUpStreamDataProcess
                 }
                 if (continueRead == false)
                 {
-//                    System.out.println(Thread.currentThread().getName()+"下游不可用，中断读取");
                     return;
                 }
             }
@@ -143,7 +142,7 @@ public class DefaultReadCompletionHandler extends BindDownAndUpStreamDataProcess
     @Override
     public void notifyedWriterAvailable()
     {
-        int now = 0;
+        int now ;
         while (downStream.canAccept() && (now = state.get()) == IDLE)
         {
             if (state.compareAndSet(IDLE, WORK))
@@ -151,15 +150,12 @@ public class DefaultReadCompletionHandler extends BindDownAndUpStreamDataProcess
                 IoBuffer buffer = entry.getIoBuffer();
                 try
                 {
-//                    System.out.println(Thread.currentThread().getName()+"准备处理读完成器的剩余数据");
                     if (downStream.process(buffer))
                     {
-//                        System.out.println(Thread.currentThread().getName()+"处理剩余数据");
                         if (needCompact(buffer))
                         {
                             buffer.compact();
                         }
-//                        System.out.println(Thread.currentThread().getName()+"恢复读取");
                         entry.setIoBuffer(buffer);
                         entry.setByteBuffer(buffer.writableByteBuffer());
                         socketChannel.read(entry.getByteBuffer(), entry, this);
@@ -167,7 +163,6 @@ public class DefaultReadCompletionHandler extends BindDownAndUpStreamDataProcess
                     }
                     else
                     {
-//                        System.out.println(Thread.currentThread().getName()+"剩余数据处理导致下游阻塞，再次等待唤醒");
                         state.set(IDLE);
                     }
                 } catch (Throwable e)
@@ -186,7 +181,6 @@ public class DefaultReadCompletionHandler extends BindDownAndUpStreamDataProcess
                 }
             }
         }
-//        System.out.println(Thread.currentThread().getName()+"不满足唤醒条件，当前忽略状态："+now+","+downStream.canAccept());
     }
 
     @Override
