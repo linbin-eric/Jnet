@@ -87,7 +87,7 @@ public class PooledBufferAllocator implements BufferAllocator
             }
             else
             {
-                ThreadCache cache = new ThreadCache(leastUseHeapArena, leastUseDirectArena, 0, 0, 0, 0, pagesizeShift);
+                ThreadCache cache = new ThreadCache(leastUseHeapArena, leastUseDirectArena);
                 return cache;
             }
         }

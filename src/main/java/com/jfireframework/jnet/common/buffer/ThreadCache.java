@@ -17,6 +17,19 @@ public class ThreadCache
     final MemoryRegionCache<ByteBuffer>[] normalDirectCaches;
     final int                             pagesizeShift;
 
+    public ThreadCache(HeapArena heapArena, DirectArena directArena)
+    {
+        this.heapArena = heapArena;
+        this.directArena = directArena;
+        pagesizeShift = 0;
+        tinySubPagesHeapCaches = null;
+        smallSubPageHeapCaches = null;
+        tinySubPagesDirectCaches = null;
+        smallSubPagesDirectCaches = null;
+        normalHeapCaches = null;
+        normalDirectCaches = null;
+    }
+
     public ThreadCache(HeapArena heapArena, DirectArena directArena, int tinyCacheNum, int smallCacheNum, int normalCacheNum, int maxCachedBufferCapacity, int pagesizeShift)
     {
         this.pagesizeShift = pagesizeShift;
@@ -81,6 +94,10 @@ public class ThreadCache
     @SuppressWarnings({"unchecked", "rawtypes"})
     public boolean allocate(PooledBuffer<?> buffer, int normalizeCapacity, SizeType sizeType, Arena<?> arena)
     {
+        if (pagesizeShift == 0)
+        {
+            return false;
+        }
         MemoryRegionCache<?> cache = findCache(normalizeCapacity, sizeType, arena);
         if (cache == null)
         {
