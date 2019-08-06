@@ -71,7 +71,7 @@ public class MemoryRegionCacheNormalTest
         thread.join();
         assertEquals(freeBytes, chunk.freeBytes);
         ThreadCache threadCache = allocator.threadCache();
-        @SuppressWarnings("rawtypes") MemoryRegionCache memoryRegionCache = threadCache.findCache(size, SizeType.NORMAL, threadCache.arena(preferDirect));
+        @SuppressWarnings("rawtypes") MemoryRegionCache memoryRegionCache = threadCache.findCache(size, SizeType.NORMAL, threadCache.arena(preferDirect).isDirect());
         assertEquals(normalCacheSize, memoryRegionCache.size());
         assertFalse(memoryRegionCache.offer(chunk, -1L));
         for (int i = 0; i < normalCacheSize; i++)

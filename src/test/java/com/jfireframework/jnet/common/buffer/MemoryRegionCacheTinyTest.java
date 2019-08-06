@@ -71,7 +71,7 @@ public class MemoryRegionCacheTinyTest
         thread.join();
         assertEquals(freeBytes, chunk.freeBytes);
         ThreadCache threadCache = allocator.threadCache();
-        @SuppressWarnings("rawtypes") MemoryRegionCache memoryRegionCache = threadCache.findCache(size, SizeType.TINY, threadCache.arena(preferDirect));
+        @SuppressWarnings("rawtypes") MemoryRegionCache memoryRegionCache = threadCache.findCache(size, SizeType.TINY, threadCache.arena(preferDirect).isDirect());
         assertEquals(tinyCacheSize, memoryRegionCache.size());
         assertFalse(memoryRegionCache.offer(chunk, -1L));
         for (int i = 0; i < tinyCacheSize; i++)

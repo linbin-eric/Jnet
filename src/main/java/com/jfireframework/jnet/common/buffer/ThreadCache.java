@@ -92,13 +92,13 @@ public class ThreadCache
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public boolean allocate(PooledBuffer<?> buffer, int normalizeCapacity, SizeType sizeType, Arena<?> arena)
+    public boolean allocate(PooledBuffer<?> buffer, int normalizeCapacity, SizeType sizeType, boolean isDirect)
     {
         if (pagesizeShift == 0)
         {
             return false;
         }
-        MemoryRegionCache<?> cache = findCache(normalizeCapacity, sizeType, arena);
+        MemoryRegionCache<?> cache = findCache(normalizeCapacity, sizeType, isDirect);
         if (cache == null)
         {
             return false;
@@ -106,19 +106,19 @@ public class ThreadCache
         return ((MemoryRegionCache) cache).tryFindAndInitBuffer(buffer, this);
     }
 
-    MemoryRegionCache<?> findCache(int normalizeCapacity, SizeType sizeType, Arena<?> arena)
+    MemoryRegionCache<?> findCache(int normalizeCapacity, SizeType sizeType, boolean isDirect)
     {
         MemoryRegionCache<?> cache = null;
         switch (sizeType)
         {
             case TINY:
-                cache = cacheForTiny(normalizeCapacity, arena);
+                cache = cacheForTiny(normalizeCapacity, isDirect);
                 break;
             case SMALL:
-                cache = cacheForSmall(normalizeCapacity, arena);
+                cache = cacheForSmall(normalizeCapacity, isDirect);
                 break;
             case NORMAL:
-                cache = cacheForNormal(normalizeCapacity, arena);
+                cache = cacheForNormal(normalizeCapacity, isDirect);
                 break;
             default:
                 ReflectUtil.throwException(new NullPointerException());
@@ -126,10 +126,10 @@ public class ThreadCache
         return cache;
     }
 
-    MemoryRegionCache<?> cacheForTiny(int normalizeCapacity, Arena<?> arena)
+    MemoryRegionCache<?> cacheForTiny(int normalizeCapacity, boolean isDirect)
     {
         int tinyIdx = Arena.tinyIdx(normalizeCapacity);
-        if (arena.isDirect())
+        if (isDirect)
         {
             if (tinySubPagesDirectCaches == null || tinySubPagesDirectCaches.length <= tinyIdx)
             {
@@ -159,10 +159,10 @@ public class ThreadCache
         }
     }
 
-    MemoryRegionCache<?> cacheForSmall(int normalizeCapacity, Arena<?> arena)
+    MemoryRegionCache<?> cacheForSmall(int normalizeCapacity, boolean isDirect)
     {
         int smallIdx = Arena.smallIdx(normalizeCapacity);
-        if (arena.isDirect())
+        if (isDirect)
         {
             if (smallSubPagesDirectCaches == null || smallSubPagesDirectCaches.length <= smallIdx)
             {
@@ -180,11 +180,11 @@ public class ThreadCache
         }
     }
 
-    MemoryRegionCache<?> cacheForNormal(int normalizeCapacity, Arena<?> arena)
+    MemoryRegionCache<?> cacheForNormal(int normalizeCapacity, boolean isDirect)
     {
         int shift = MathUtil.log2(normalizeCapacity);
         int idx   = shift - pagesizeShift;
-        if (arena.isDirect())
+        if (isDirect)
         {
             if (normalDirectCaches == null || normalDirectCaches.length <= idx)
             {
@@ -203,9 +203,13 @@ public class ThreadCache
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public boolean add(int normalizeCapacity, SizeType sizeType, Arena<?> arena, Chunk<?> chunk, long handle)
+    public boolean add(int normalizeCapacity, SizeType sizeType, boolean isDirect, Chunk<?> chunk, long handle)
     {
-        MemoryRegionCache<?> cache = findCache(normalizeCapacity, sizeType, arena);
+        if (pagesizeShift == 0)
+        {
+            return false;
+        }
+        MemoryRegionCache<?> cache = findCache(normalizeCapacity, sizeType, isDirect);
         if (cache == null)
         {
             return false;

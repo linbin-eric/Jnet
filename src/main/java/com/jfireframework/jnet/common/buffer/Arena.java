@@ -115,7 +115,7 @@ public abstract class Arena<T>
             SubPage<T> head;
             if (isTiny(normalizeCapacity))
             {
-                if (cache.allocate(buffer, normalizeCapacity, SizeType.TINY, this))
+                if (cache.allocate(buffer, normalizeCapacity, SizeType.TINY, isDirect()))
                 {
                     return;
                 }
@@ -123,7 +123,7 @@ public abstract class Arena<T>
             }
             else
             {
-                if (cache.allocate(buffer, normalizeCapacity, SizeType.SMALL, this))
+                if (cache.allocate(buffer, normalizeCapacity, SizeType.SMALL, isDirect()))
                 {
                     return;
                 }
@@ -143,7 +143,7 @@ public abstract class Arena<T>
         }
         else if (normalizeCapacity <= chunkSize)
         {
-            if (cache.allocate(buffer, normalizeCapacity, SizeType.NORMAL, this))
+            if (cache.allocate(buffer, normalizeCapacity, SizeType.NORMAL, isDirect()))
             {
                 return;
             }
@@ -227,7 +227,7 @@ public abstract class Arena<T>
         }
         else
         {
-            if (cache.add(normalizeCapacity, sizeType(normalizeCapacity), this, chunk, handle))
+            if (cache.add(normalizeCapacity, sizeType(normalizeCapacity), isDirect(), chunk, handle))
             {
                 return;
             }
