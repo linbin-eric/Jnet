@@ -77,7 +77,7 @@ public class DelimiterBasedFrameDecoder extends BindDownAndUpStreamDataProcessor
     }
 
     @Override
-    public boolean isBoundary()
+    public boolean catStoreData()
     {
         return false;
     }

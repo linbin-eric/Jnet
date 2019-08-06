@@ -83,7 +83,7 @@ public class HeartBeatProcessor extends BindDownAndUpStreamDataProcessor<Object>
     }
 
     @Override
-    public boolean isBoundary()
+    public boolean catStoreData()
     {
         return false;
     }

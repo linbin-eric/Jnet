@@ -237,7 +237,7 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
     }
 
     @Override
-    public boolean isBoundary()
+    public boolean catStoreData()
     {
         return boundary;
     }

@@ -42,7 +42,7 @@ public class BaseTest
     private              AioServer      aioServer;
     private              String         ip           = "127.0.0.1";
     private              int            port         = 7598;
-    private              int            numPerThread = 3000000;
+    private              int            numPerThread = 1000000;
     private              int            numClients   = 4;
     private              JnetClient[]   clients;
     private              CountDownLatch latch        = new CountDownLatch(numClients);
@@ -94,7 +94,7 @@ public class BaseTest
                                 {
 
                                     @Override
-                                    public boolean isBoundary()
+                                    public boolean catStoreData()
                                     {
                                         return false;
                                     }
@@ -105,17 +105,16 @@ public class BaseTest
                                         data.addReadPosi(-4);
                                         return downStream.process(data);
                                     }
-                                }, new BackPressureHelper());
+                                });
                         break;
                     case Channel:
                         channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 100, bufferAllocator), //
-                               new BackPressureHelper(),//
                                 new ChannelAttachProcessor(fixService), //
                                 new BindDownAndUpStreamDataProcessor<IoBuffer>()
                                 {
 
                                     @Override
-                                    public boolean isBoundary()
+                                    public boolean catStoreData()
                                     {
                                         return false;
                                     }
@@ -126,7 +125,7 @@ public class BaseTest
                                         data.addReadPosi(-4);
                                         return downStream.process(data);
                                     }
-                                }, new BackPressureHelper());
+                                });
                         break;
                     default:
                         break;
@@ -155,7 +154,7 @@ public class BaseTest
                             new DataProcessor<IoBuffer>()
                             {
                                 @Override
-                                public boolean isBoundary()
+                                public boolean catStoreData()
                                 {
                                     return false;
                                 }

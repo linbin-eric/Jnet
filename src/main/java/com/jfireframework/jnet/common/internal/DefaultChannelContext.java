@@ -6,6 +6,8 @@ import com.jfireframework.jnet.common.processor.BackPressureHelper;
 
 import java.io.IOException;
 import java.nio.channels.AsynchronousSocketChannel;
+import java.util.ArrayList;
+import java.util.List;
 
 public class DefaultChannelContext implements ChannelContext
 {
@@ -44,6 +46,20 @@ public class DefaultChannelContext implements ChannelContext
     @SuppressWarnings({"unchecked", "rawtypes"})
     public void setDataProcessor(DataProcessor<?>... dataProcessors)
     {
+        List<DataProcessor> list = new ArrayList<>();
+        for (DataProcessor<?> dataProcessor : dataProcessors)
+        {
+            if (dataProcessor.catStoreData())
+            {
+                list.add(new BackPressureHelper());
+            }
+            list.add(dataProcessor);
+        }
+        if (writeCompletionHandler.catStoreData())
+        {
+            list.add(new BackPressureHelper());
+        }
+        dataProcessors = list.toArray(new DataProcessor[0]);
         for (int i = 1; i < dataProcessors.length; i++)
         {
             dataProcessors[i].bindUpStream(dataProcessors[i - 1]);
@@ -56,25 +72,6 @@ public class DefaultChannelContext implements ChannelContext
         for (DataProcessor dataProcessor : dataProcessors)
         {
             dataProcessor.bind(this);
-        }
-        /**检查是否正确放置了BackPressureHelper**/
-        if (writeCompletionHandler.isBoundary() == false)
-        {
-            return;
-        }
-        for (int i = 1; i < dataProcessors.length; i++)
-        {
-            if (dataProcessors[i].isBoundary())
-            {
-                if (dataProcessors[i - 1] instanceof BackPressureHelper == false)
-                {
-                    throw new IllegalArgumentException("背压模式开启下，在" + dataProcessors[i].getClass().getName() + "之前需要放置BackPressureHelper");
-                }
-            }
-        }
-        if (dataProcessors[dataProcessors.length - 1] instanceof BackPressureHelper == false)
-        {
-            throw new IllegalArgumentException("开启背压模式下，最后一个处理器必须是BackPressureHelper");
         }
     }
 
@@ -91,7 +88,8 @@ public class DefaultChannelContext implements ChannelContext
         {
             socketChannel.close();
             aioListener.onClose(socketChannel, e);
-        } catch (IOException e1)
+        }
+        catch (IOException e1)
         {
             ;
         }

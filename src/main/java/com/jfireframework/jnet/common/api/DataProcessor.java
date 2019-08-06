@@ -1,6 +1,6 @@
 package com.jfireframework.jnet.common.api;
 
-public interface DataProcessor<T> extends BoundaryBehavior
+public interface DataProcessor<T>
 {
     /**
      * 通道初始化时被调用
@@ -32,4 +32,11 @@ public interface DataProcessor<T> extends BoundaryBehavior
      * 写处理器通知当前发送队列有可供写出的容量。
      */
     void notifyedWriterAvailable() throws Throwable;
+
+    /**
+     * 当前对象是否能存储数据，如果可以，则在调用链路中其之前均需要放置BackPressureHelper。
+     *
+     * @return
+     */
+    boolean catStoreData();
 }

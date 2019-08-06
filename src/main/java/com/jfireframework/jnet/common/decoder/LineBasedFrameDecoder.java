@@ -100,7 +100,7 @@ public class LineBasedFrameDecoder extends BindDownAndUpStreamDataProcessor<IoBu
     }
 
     @Override
-    public boolean isBoundary()
+    public boolean catStoreData()
     {
         return false;
     }

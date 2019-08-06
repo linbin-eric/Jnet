@@ -52,7 +52,7 @@ public class LengthEncoder extends BindDownAndUpStreamDataProcessor<IoBuffer>
     }
 
     @Override
-    public boolean isBoundary()
+    public boolean catStoreData()
     {
         return false;
     }

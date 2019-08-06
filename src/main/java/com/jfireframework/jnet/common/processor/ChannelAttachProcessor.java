@@ -56,7 +56,7 @@ public class ChannelAttachProcessor extends BindDownAndUpStreamDataProcessor<Obj
     }
 
     @Override
-    public boolean isBoundary()
+    public boolean catStoreData()
     {
         return true;
     }

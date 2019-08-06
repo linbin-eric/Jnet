@@ -53,7 +53,7 @@ public class FixLengthDecoder extends BindDownAndUpStreamDataProcessor<IoBuffer>
     }
 
     @Override
-    public boolean isBoundary()
+    public boolean catStoreData()
     {
         return false;
     }

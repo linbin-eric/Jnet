@@ -116,7 +116,7 @@ public class TotalLengthFieldBasedFrameDecoder extends BindDownAndUpStreamDataPr
     }
 
     @Override
-    public boolean isBoundary()
+    public boolean catStoreData()
     {
         return false;
     }

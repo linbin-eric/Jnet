@@ -184,7 +184,7 @@ public class DefaultReadCompletionHandler extends BindDownAndUpStreamDataProcess
     }
 
     @Override
-    public boolean isBoundary()
+    public boolean catStoreData()
     {
         return false;
     }
