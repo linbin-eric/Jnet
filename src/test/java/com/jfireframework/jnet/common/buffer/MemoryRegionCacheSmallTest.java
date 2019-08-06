@@ -43,7 +43,7 @@ public class MemoryRegionCacheSmallTest
     @SuppressWarnings("unchecked")
     private void test0(boolean preferDirect, int size) throws InterruptedException
     {
-        int                   smallCacheSize = allocator.smallCacheSize;
+        int                   smallCacheSize = allocator.smallCacheNum;
         final Queue<IoBuffer> buffers        = new LinkedList<>();
         Set<Chunk<?>>         chunks         = new HashSet<>();
         for (int i = 0; i < smallCacheSize; i++)

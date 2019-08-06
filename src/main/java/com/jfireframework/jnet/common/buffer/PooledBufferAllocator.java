@@ -10,9 +10,9 @@ import com.jfireframework.jnet.common.util.SystemPropertyUtil;
 public class PooledBufferAllocator implements BufferAllocator
 {
     public static final boolean               USE_CACHE_FOR_ALL_THREAD;
-    public static final int                   TINY_CACHE_SIZE;
-    public static final int                   SMALL_CACHE_SIZE;
-    public static final int                   NORMAL_CACHE_SIZE;
+    public static final int                   TINY_CACHE_NUM;
+    public static final int                   SMALL_CACHE_NUM;
+    public static final int                   NORMAL_CACHE_NUM;
     public static final int                   MAX_CACHEED_BUFFER_CAPACITY;
     public static final int                   PAGESIZE;
     public static final int                   PAGESIZE_SHIFT;
@@ -25,9 +25,9 @@ public class PooledBufferAllocator implements BufferAllocator
     static
     {
         USE_CACHE_FOR_ALL_THREAD = SystemPropertyUtil.getBoolean("io.jnet.PooledBufferAllocator.useCacheForAllThread", true);
-        TINY_CACHE_SIZE = SystemPropertyUtil.getInt("io.jnet.PooledBufferAllocator.tinyCacheSize", 256);
-        SMALL_CACHE_SIZE = SystemPropertyUtil.getInt("io.jnet.PooledBufferAllocator.smallCacheSize", 128);
-        NORMAL_CACHE_SIZE = SystemPropertyUtil.getInt("io.jnet.PooledBufferAllocator.normalCacheSize", 64);
+        TINY_CACHE_NUM = SystemPropertyUtil.getInt("io.jnet.PooledBufferAllocator.tinyCacheNum", 256);
+        SMALL_CACHE_NUM = SystemPropertyUtil.getInt("io.jnet.PooledBufferAllocator.smallCacheNum", 128);
+        NORMAL_CACHE_NUM = SystemPropertyUtil.getInt("io.jnet.PooledBufferAllocator.normalCacheNum", 64);
         PAGESIZE = SystemPropertyUtil.getInt("io.jnet.PooledBufferAllocator.pageSize", 8192);
         PAGESIZE_SHIFT = MathUtil.log2(PAGESIZE);
         MAXLEVEL = SystemPropertyUtil.getInt("io.jnet.PooledBufferAllocator.maxLevel", 11);
@@ -35,7 +35,7 @@ public class PooledBufferAllocator implements BufferAllocator
         NUM_DIRECT_ARENA = SystemPropertyUtil.getInt("io.jnet.PooledBufferAllocator.numDirectArena", Runtime.getRuntime().availableProcessors());
         MAX_CACHEED_BUFFER_CAPACITY = SystemPropertyUtil.getInt("io.jnet.PooledBufferAllocator.maxCachedBufferCapacity", 32 * 1024);
         PREFER_DIRECT = SystemPropertyUtil.getBoolean("io.jnet.PooledBufferAllocator.preferDirect", true);
-        DEFAULT = new PooledBufferAllocator(PAGESIZE, MAXLEVEL, NUM_HEAP_ARENA, NUM_DIRECT_ARENA, MAX_CACHEED_BUFFER_CAPACITY, TINY_CACHE_SIZE, SMALL_CACHE_SIZE, NORMAL_CACHE_SIZE, USE_CACHE_FOR_ALL_THREAD, PREFER_DIRECT, "PooledBufferAllocator_Default");
+        DEFAULT = new PooledBufferAllocator(PAGESIZE, MAXLEVEL, NUM_HEAP_ARENA, NUM_DIRECT_ARENA, MAX_CACHEED_BUFFER_CAPACITY, TINY_CACHE_NUM, SMALL_CACHE_NUM, NORMAL_CACHE_NUM, USE_CACHE_FOR_ALL_THREAD, PREFER_DIRECT, "PooledBufferAllocator_Default");
     }
 
     private final Recycler<PooledDirectBuffer> directBuffers = new Recycler<PooledDirectBuffer>()
@@ -63,9 +63,9 @@ public class PooledBufferAllocator implements BufferAllocator
     boolean       useCacheForAllThread = true;
     boolean       preferDirect;
     int           maxCachedBufferCapacity;
-    int           tinyCacheSize;
-    int           smallCacheSize;
-    int           normalCacheSize;
+    int           tinyCacheNum;
+    int           smallCacheNum;
+    int           normalCacheNum;
     int           pagesize;
     int           pagesizeShift;
     int           maxLevel;
@@ -82,7 +82,7 @@ public class PooledBufferAllocator implements BufferAllocator
             Thread      currentThread       = Thread.currentThread();
             if (useCacheForAllThread || currentThread instanceof FastThreadLocalThread)
             {
-                ThreadCache cache = new ThreadCache(leastUseHeapArena, leastUseDirectArena, tinyCacheSize, smallCacheSize, normalCacheSize, maxCachedBufferCapacity, pagesizeShift);
+                ThreadCache cache = new ThreadCache(leastUseHeapArena, leastUseDirectArena, tinyCacheNum, smallCacheNum, normalCacheNum, maxCachedBufferCapacity, pagesizeShift);
                 return cache;
             }
             else
@@ -97,7 +97,7 @@ public class PooledBufferAllocator implements BufferAllocator
 
     public PooledBufferAllocator(String name)
     {
-        this(PAGESIZE, MAXLEVEL, NUM_HEAP_ARENA, NUM_DIRECT_ARENA, MAX_CACHEED_BUFFER_CAPACITY, TINY_CACHE_SIZE, SMALL_CACHE_SIZE, NORMAL_CACHE_SIZE, USE_CACHE_FOR_ALL_THREAD, PREFER_DIRECT, name);
+        this(PAGESIZE, MAXLEVEL, NUM_HEAP_ARENA, NUM_DIRECT_ARENA, MAX_CACHEED_BUFFER_CAPACITY, TINY_CACHE_NUM, SMALL_CACHE_NUM, NORMAL_CACHE_NUM, USE_CACHE_FOR_ALL_THREAD, PREFER_DIRECT, name);
     }
 
     public PooledBufferAllocator(int pagesize, int maxLevel, int numHeapArenas, int numDirectArenas, //
@@ -112,9 +112,9 @@ public class PooledBufferAllocator implements BufferAllocator
                                  boolean useCacheForAllThread, boolean preferDirect, String name)
     {
         this.maxCachedBufferCapacity = maxCachedBufferCapacity;
-        this.tinyCacheSize = tinyCacheSize;
-        this.smallCacheSize = smallCacheSize;
-        this.normalCacheSize = normalCacheSize;
+        this.tinyCacheNum = tinyCacheSize;
+        this.smallCacheNum = smallCacheSize;
+        this.normalCacheNum = normalCacheSize;
         this.useCacheForAllThread = useCacheForAllThread;
         this.pagesize = pagesize;
         this.maxLevel = maxLevel;

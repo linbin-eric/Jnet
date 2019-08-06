@@ -43,7 +43,7 @@ public class MemoryRegionCacheNormalTest
     @SuppressWarnings("unchecked")
     private void test0(boolean preferDirect, int size) throws InterruptedException
     {
-        int                   normalCacheSize = allocator.normalCacheSize;
+        int                   normalCacheSize = allocator.normalCacheNum;
         final Queue<IoBuffer> buffers         = new LinkedList<>();
         Set<Chunk<?>>         chunks          = new HashSet<>();
         for (int i = 0; i < normalCacheSize; i++)

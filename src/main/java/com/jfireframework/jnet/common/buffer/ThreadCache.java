@@ -17,17 +17,17 @@ public class ThreadCache
     final MemoryRegionCache<ByteBuffer>[] normalDirectCaches;
     final int                             pagesizeShift;
 
-    public ThreadCache(HeapArena heapArena, DirectArena directArena, int tinyCacheSize, int smallCacheSize, int normalCacheSize, int maxCachedBufferCapacity, int pagesizeShift)
+    public ThreadCache(HeapArena heapArena, DirectArena directArena, int tinyCacheNum, int smallCacheNum, int normalCacheNum, int maxCachedBufferCapacity, int pagesizeShift)
     {
         this.pagesizeShift = pagesizeShift;
         this.heapArena = heapArena;
-        tinySubPagesHeapCaches = createSubPageMemoryRegionCache(tinyCacheSize);
-        smallSubPageHeapCaches = createSubPageMemoryRegionCache(smallCacheSize);
-        normalHeapCaches = createNormalSizeMemoryRegionCache(normalCacheSize, pagesizeShift, maxCachedBufferCapacity);
+        tinySubPagesHeapCaches = createSubPageMemoryRegionCache(tinyCacheNum, heapArena.tinySubPages.length);
+        smallSubPageHeapCaches = createSubPageMemoryRegionCache(smallCacheNum, heapArena.smallSubPages.length);
+        normalHeapCaches = createNormalSizeMemoryRegionCache(normalCacheNum, pagesizeShift, maxCachedBufferCapacity);
         this.directArena = directArena;
-        tinySubPagesDirectCaches = createSubPageMemoryRegionCache(tinyCacheSize);
-        smallSubPagesDirectCaches = createSubPageMemoryRegionCache(smallCacheSize);
-        normalDirectCaches = createNormalSizeMemoryRegionCache(normalCacheSize, pagesizeShift, maxCachedBufferCapacity);
+        tinySubPagesDirectCaches = createSubPageMemoryRegionCache(tinyCacheNum, directArena.tinySubPages.length);
+        smallSubPagesDirectCaches = createSubPageMemoryRegionCache(smallCacheNum, directArena.tinySubPages.length);
+        normalDirectCaches = createNormalSizeMemoryRegionCache(normalCacheNum, pagesizeShift, maxCachedBufferCapacity);
         if (heapArena != null)
         {
             heapArena.numThreadCaches.incrementAndGet();
@@ -40,11 +40,11 @@ public class ThreadCache
     }
 
     @SuppressWarnings("unchecked")
-    private <T> MemoryRegionCache<T>[] createSubPageMemoryRegionCache(int cacheSize)
+    private <T> MemoryRegionCache<T>[] createSubPageMemoryRegionCache(int cacheSize, int len)
     {
         if (cacheSize > 0)
         {
-            MemoryRegionCache<T>[] array = new MemoryRegionCache[cacheSize];
+            MemoryRegionCache<T>[] array = new MemoryRegionCache[len];
             for (int i = 0; i < array.length; i++)
             {
                 array[i] = new MemoryRegionCache<>(cacheSize);
@@ -58,17 +58,17 @@ public class ThreadCache
     }
 
     @SuppressWarnings("unchecked")
-    private <T> MemoryRegionCache<T>[] createNormalSizeMemoryRegionCache(int cacheSize, int pagesizeShift, int maxCachedBufferCapacity)
+    private <T> MemoryRegionCache<T>[] createNormalSizeMemoryRegionCache(int cacheNum, int pagesizeShift, int maxCachedBufferCapacity)
     {
         int normalizeSize = MathUtil.normalizeSize(maxCachedBufferCapacity);
         int shift         = MathUtil.log2(normalizeSize);
         int length        = shift - pagesizeShift + 1;
-        if (length > 0 && cacheSize > 0)
+        if (length > 0 && cacheNum > 0)
         {
             MemoryRegionCache<T>[] array = new MemoryRegionCache[length];
             for (int i = 0; i < array.length; i++)
             {
-                array[i] = new MemoryRegionCache<>(cacheSize);
+                array[i] = new MemoryRegionCache<>(cacheNum);
             }
             return array;
         }

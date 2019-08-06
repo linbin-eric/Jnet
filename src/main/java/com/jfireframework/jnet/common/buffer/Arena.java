@@ -12,14 +12,14 @@ public abstract class Arena<T>
     final int maxLevel;
     final int subpageOverflowMask;
     final int chunkSize;
-    ChunkList<T> c000;
-    ChunkList<T> c025;
-    ChunkList<T> c050;
-    ChunkList<T> c075;
-    ChunkList<T> c100;
-    ChunkList<T> cInt;
-    SubPage<T>[] tinySubPages;
-    SubPage<T>[] smallSubPages;
+    ChunkList<T>          c000;
+    ChunkList<T>          c025;
+    ChunkList<T>          c050;
+    ChunkList<T>          c075;
+    ChunkList<T>          c100;
+    ChunkList<T>          cInt;
+    SubPage<T>[]          tinySubPages;
+    SubPage<T>[]          smallSubPages;
     // 有多少ThreadCache持有了该Arena
     AtomicInteger         numThreadCaches = new AtomicInteger(0);
     PooledBufferAllocator parent;
@@ -66,6 +66,16 @@ public abstract class Arena<T>
         {
             smallSubPages[i] = new SubPage<T>(pageSize);
         }
+    }
+
+    public int tinySubPageNum()
+    {
+        return tinySubPages.length;
+    }
+
+    public int smallSubPageNum()
+    {
+        return smallSubPages.length;
     }
 
     static int tinyIdx(int normalizeCapacity)
