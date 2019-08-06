@@ -233,7 +233,7 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
         ConcurrentCircularArrayQueue<?> mpscArrayQuyeue = (ConcurrentCircularArrayQueue<?>) queue;
         long                            consumerIndex   = mpscArrayQuyeue.currentConsumerIndex();
         long                            producerIndex   = mpscArrayQuyeue.currentProducerIndex();
-        return producerIndex - consumerIndex > boundarySize;
+        return producerIndex - consumerIndex < boundarySize;
     }
 
     @Override
