@@ -1,13 +1,11 @@
 package com.jfireframework.jnet.common.internal;
 
-import com.jfireframework.baseutil.reflect.ReflectUtil;
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ReadCompletionHandler;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
 
-import java.io.IOException;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -44,58 +42,19 @@ public class DefaultReadCompletionHandler extends BindDownAndUpStreamDataProcess
     {
         if (read == -1)
         {
-            try
-            {
-                socketChannel.close();
-            } catch (Throwable e)
-            {
-                catchException(e);
-                ReflectUtil.throwException(e);
-            } finally
-            {
-                entry.getIoBuffer().free();
-            }
+            entry.clean();
+            channelContext.close();
             return;
         }
         IoBuffer buffer = entry.getIoBuffer();
         buffer.addWritePosi(read);
         try
         {
-            if (downStream.process(buffer) == false)
-            {
-                state.set(IDLE);
-                boolean continueRead = false;
-                while (downStream.canAccept() && (state.get()) == IDLE)
-                {
-                    if (state.compareAndSet(IDLE, WORK))
-                    {
-                        if (downStream.process(buffer))
-                        {
-                            continueRead = true;
-                            break;
-                        }
-                        else
-                        {
-                            state.set(IDLE);
-                        }
-                    }
-                }
-                if (continueRead == false)
-                {
-                    return;
-                }
-            }
-        } catch (Throwable e)
+            downStream.process(buffer);
+        }
+        catch (Throwable e)
         {
-            catchException(e);
-            buffer.free();
-            try
-            {
-                socketChannel.close();
-            } catch (IOException e1)
-            {
-                ;
-            }
+            failed(e, entry);
             return;
         }
         if (needCompact(buffer))
@@ -112,19 +71,10 @@ public class DefaultReadCompletionHandler extends BindDownAndUpStreamDataProcess
         return buffer.getReadPosi() > 1024 * 1024 && buffer.remainRead() < 1024;
     }
 
-    private void catchException(Throwable e)
-    {
-        if (aioListener != null)
-        {
-            aioListener.catchException(e, socketChannel);
-        }
-    }
-
     @Override
     public void failed(Throwable exc, ReadEntry entry)
     {
         entry.getIoBuffer().free();
-        catchException(exc);
     }
 
     @Override
@@ -134,58 +84,8 @@ public class DefaultReadCompletionHandler extends BindDownAndUpStreamDataProcess
     }
 
     @Override
-    public boolean process(IoBuffer data) throws Throwable
+    public void process(IoBuffer data) throws Throwable
     {
         throw new UnsupportedOperationException("读完成器不应该执行该方法");
-    }
-
-    @Override
-    public void notifyedWriterAvailable()
-    {
-        int now ;
-        while (downStream.canAccept() && (now = state.get()) == IDLE)
-        {
-            if (state.compareAndSet(IDLE, WORK))
-            {
-                IoBuffer buffer = entry.getIoBuffer();
-                try
-                {
-                    if (downStream.process(buffer))
-                    {
-                        if (needCompact(buffer))
-                        {
-                            buffer.compact();
-                        }
-                        entry.setIoBuffer(buffer);
-                        entry.setByteBuffer(buffer.writableByteBuffer());
-                        socketChannel.read(entry.getByteBuffer(), entry, this);
-                        return;
-                    }
-                    else
-                    {
-                        state.set(IDLE);
-                    }
-                } catch (Throwable e)
-                {
-                    e.printStackTrace();
-                    catchException(e);
-                    buffer.free();
-                    try
-                    {
-                        socketChannel.close();
-                    } catch (IOException e1)
-                    {
-                        ;
-                    }
-                    return;
-                }
-            }
-        }
-    }
-
-    @Override
-    public boolean catStoreData()
-    {
-        return false;
     }
 }

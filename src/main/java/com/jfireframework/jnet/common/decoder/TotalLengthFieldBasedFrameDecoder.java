@@ -46,7 +46,7 @@ public class TotalLengthFieldBasedFrameDecoder extends BindDownAndUpStreamDataPr
     }
 
     @Override
-    public boolean process(IoBuffer ioBuffer) throws Throwable
+    public void process(IoBuffer ioBuffer) throws Throwable
     {
         do
         {
@@ -58,7 +58,7 @@ public class TotalLengthFieldBasedFrameDecoder extends BindDownAndUpStreamDataPr
                 {
                     ioBuffer.capacityReadyFor(ioBuffer.getWritePosi() + lengthFieldEndOffset);
                 }
-                return true;
+                break;
             }
             // iobuffer中可能包含好几个报文，所以这里应该是增加的方式而不是直接设置的方式
             ioBuffer.addReadPosi(lengthFieldOffset);
@@ -90,7 +90,7 @@ public class TotalLengthFieldBasedFrameDecoder extends BindDownAndUpStreamDataPr
                 {
                     ioBuffer.capacityReadyFor(ioBuffer.getWritePosi() + length);
                 }
-                return true;
+                break;
             }
             else
             {
@@ -101,23 +101,8 @@ public class TotalLengthFieldBasedFrameDecoder extends BindDownAndUpStreamDataPr
                 {
                     packet.addReadPosi(skipBytes);
                 }
-                if (downStream.process(packet) == false)
-                {
-                    return false;
-                }
+                downStream.process(packet);
             }
         } while (true);
-    }
-
-    @Override
-    public void notifyedWriterAvailable() throws Throwable
-    {
-        upStream.notifyedWriterAvailable();
-    }
-
-    @Override
-    public boolean catStoreData()
-    {
-        return false;
     }
 }

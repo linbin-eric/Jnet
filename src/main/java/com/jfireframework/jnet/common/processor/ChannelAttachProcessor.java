@@ -21,43 +21,19 @@ public class ChannelAttachProcessor extends BindDownAndUpStreamDataProcessor<Obj
     public void bind(ChannelContext channelContext)
     {
         this.channelContext = channelContext;
-        worker.setChannelContext( channelContext);
+        worker.setChannelContext(channelContext);
     }
 
     @Override
-    public boolean process(Object data) throws Throwable
+    public void process(Object data) throws Throwable
     {
-        return worker.commit(channelContext, downStream, data);
+        worker.commit(channelContext, downStream, data);
     }
 
-    @Override
-    public void notifyedWriterAvailable() throws Throwable
-    {
-        worker.notifyedWriteAvailable();
-    }
-
-    @Override
-    public void bindUpStream(DataProcessor<?> upStream)
-    {
-        this.upStream = upStream;
-        worker.setUpStream(upStream);
-    }
     @Override
     public void bindDownStream(DataProcessor<?> downStream)
     {
         this.downStream = downStream;
-    worker.setDownStream(downStream);
-    }
-
-    @Override
-    public boolean canAccept()
-    {
-        return worker.canAccept();
-    }
-
-    @Override
-    public boolean catStoreData()
-    {
-        return true;
+        worker.setDownStream(downStream);
     }
 }

@@ -13,34 +13,30 @@ public class DefaultAcceptHandler implements AcceptHandler
     protected final BufferAllocator           allocator;
     protected final int                       maxWriteBytes;
     protected final ChannelContextInitializer channelContextInitializer;
-    protected final BackPressureMode          backPressureMode;
 
     /**
      * @param aioListener
      * @param allocator
      * @param maxWriteBytes             单次最大写字节数，写完成器默认会不断聚合数据，直到达到最大写字节数或者聚合完毕，才会真正执行写操作
      * @param channelContextInitializer
-     * @param backPressure
-     * @param queueCapacity             背压模式时，写完成器的队列长度。
      */
-    public DefaultAcceptHandler(AioListener aioListener, BufferAllocator allocator, int maxWriteBytes, ChannelContextInitializer channelContextInitializer, BackPressureMode backPressureMode)
+    public DefaultAcceptHandler(AioListener aioListener, BufferAllocator allocator, int maxWriteBytes, ChannelContextInitializer channelContextInitializer)
     {
         this.allocator = allocator;
-        this.aioListener = aioListener;
+        this.aioListener = aioListener == null ? new DefaultAioListener() : aioListener;
         this.maxWriteBytes = maxWriteBytes;
         this.channelContextInitializer = channelContextInitializer;
-        this.backPressureMode = backPressureMode;
     }
 
     public DefaultAcceptHandler(AioListener aioListener, BufferAllocator allocator, ChannelContextInitializer channelContextInitializer)
     {
-        this(aioListener, allocator, 1, channelContextInitializer, new BackPressureMode());
+        this(aioListener, allocator, 1, channelContextInitializer);
     }
 
     @Override
     public void completed(AsynchronousSocketChannel socketChannel, AsynchronousServerSocketChannel serverChannel)
     {
-        WriteCompletionHandler writeCompletionHandler = new DefaultWriteCompleteHandler(socketChannel, aioListener, allocator, maxWriteBytes, backPressureMode);
+        WriteCompletionHandler writeCompletionHandler = new DefaultWriteCompleteHandler(socketChannel, aioListener, allocator, maxWriteBytes);
         ReadCompletionHandler  readCompletionHandler  = new DefaultReadCompletionHandler(aioListener, allocator, socketChannel);
         ChannelContext         channelContext         = new DefaultChannelContext(socketChannel, aioListener, readCompletionHandler, writeCompletionHandler);
         if (aioListener != null)
@@ -58,7 +54,8 @@ public class DefaultAcceptHandler implements AcceptHandler
         try
         {
             serverChannel.close();
-        } catch (IOException e)
+        }
+        catch (IOException e)
         {
             e.printStackTrace();
         }

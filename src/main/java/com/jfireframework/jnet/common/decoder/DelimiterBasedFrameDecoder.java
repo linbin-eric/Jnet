@@ -35,7 +35,7 @@ public class DelimiterBasedFrameDecoder extends BindDownAndUpStreamDataProcessor
     }
 
     @Override
-    public boolean process(IoBuffer ioBuf) throws Throwable
+    public void process(IoBuffer ioBuf) throws Throwable
     {
         do
         {
@@ -54,7 +54,7 @@ public class DelimiterBasedFrameDecoder extends BindDownAndUpStreamDataProcessor
                 {
                     ioBuf.compact();
                 }
-                return true;
+                break;
             }
             else
             {
@@ -62,23 +62,9 @@ public class DelimiterBasedFrameDecoder extends BindDownAndUpStreamDataProcessor
                 IoBuffer packet        = allocator.ioBuffer(contentLength);
                 packet.put(ioBuf, contentLength);
                 ioBuf.setReadPosi(index + delimiter.length);
-                if (downStream.process(packet) == false)
-                {
-                    return false;
-                }
+                downStream.process(packet);
             }
         } while (true);
     }
 
-    @Override
-    public void notifyedWriterAvailable() throws Throwable
-    {
-        upStream.notifyedWriterAvailable();
-    }
-
-    @Override
-    public boolean catStoreData()
-    {
-        return false;
-    }
 }

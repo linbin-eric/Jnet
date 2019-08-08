@@ -54,7 +54,7 @@ public class LineBasedFrameDecoder extends BindDownAndUpStreamDataProcessor<IoBu
     }
 
     @Override
-    public boolean process(IoBuffer ioBuffer) throws Throwable
+    public void process(IoBuffer ioBuffer) throws Throwable
     {
         do
         {
@@ -68,7 +68,7 @@ public class LineBasedFrameDecoder extends BindDownAndUpStreamDataProcessor<IoBu
                 else
                 {
                     ioBuffer.compact().capacityReadyFor(ioBuffer.capacity() * 2);
-                    return true;
+                    break;
                 }
             }
             else
@@ -85,23 +85,9 @@ public class LineBasedFrameDecoder extends BindDownAndUpStreamDataProcessor<IoBu
                 IoBuffer packet = allocator.ioBuffer(length);
                 packet.put(ioBuffer, length);
                 ioBuffer.setReadPosi(eol + 1);
-                if (downStream.process(packet) == false)
-                {
-                    return false;
-                }
+                downStream.process(packet);
             }
         } while (true);
     }
 
-    @Override
-    public void notifyedWriterAvailable() throws Throwable
-    {
-        upStream.notifyedWriterAvailable();
-    }
-
-    @Override
-    public boolean catStoreData()
-    {
-        return false;
-    }
 }

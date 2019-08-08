@@ -39,8 +39,12 @@ public interface ReadCompletionHandler<E> extends CompletionHandler<Integer, Rea
             this.byteBuffer = byteBuffer;
         }
 
-        public void clear()
+        public void clean()
         {
+            if (ioBuffer != null)
+            {
+                ioBuffer.free();
+            }
             ioBuffer = null;
             byteBuffer = null;
         }

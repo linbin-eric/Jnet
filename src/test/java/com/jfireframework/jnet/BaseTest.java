@@ -2,7 +2,6 @@ package com.jfireframework.jnet;
 
 import com.jfireframework.jnet.client.JnetClient;
 import com.jfireframework.jnet.client.JnetClientBuilder;
-import com.jfireframework.jnet.common.api.BackPressureMode;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ChannelContextInitializer;
 import com.jfireframework.jnet.common.api.DataProcessor;
@@ -12,7 +11,6 @@ import com.jfireframework.jnet.common.buffer.PooledBufferAllocator;
 import com.jfireframework.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
 import com.jfireframework.jnet.common.internal.BindDownAndUpStreamDataProcessor;
 import com.jfireframework.jnet.common.internal.DefaultAcceptHandler;
-import com.jfireframework.jnet.common.processor.BackPressureHelper;
 import com.jfireframework.jnet.common.processor.ChannelAttachProcessor;
 import com.jfireframework.jnet.server.AioServer;
 import com.jfireframework.jnet.server.AioServerBuilder;
@@ -48,18 +46,16 @@ public class BaseTest
     private              CountDownLatch latch        = new CountDownLatch(numClients);
     private              int[][]        results;
 
-    @Parameters(name = "IO模式:{3}，是否开启背压:{2}")
+    @Parameters(name = "IO模式:{2}")
     public static Collection<Object[]> params()
     {
         return Arrays.asList(new Object[][]{ //
-                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(), IoMode.IO}, //
-                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(1024), IoMode.IO}, //
-                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, new BackPressureMode(1024), IoMode.Channel}, //
+                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, IoMode.IO}, //
+                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, IoMode.Channel}, //
         });
     }
 
-
-    public BaseTest(final BufferAllocator bufferAllocator, int batchWriteNum, final BackPressureMode backPressureMode, final IoMode ioMode)
+    public BaseTest(final BufferAllocator bufferAllocator, int batchWriteNum, final IoMode ioMode)
     {
         clients = new JnetClient[numClients];
         results = new int[numClients][numPerThread];
@@ -92,18 +88,11 @@ public class BaseTest
                         channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 100, bufferAllocator), //
                                 new BindDownAndUpStreamDataProcessor<IoBuffer>()
                                 {
-
                                     @Override
-                                    public boolean catStoreData()
-                                    {
-                                        return false;
-                                    }
-
-                                    @Override
-                                    public boolean process(IoBuffer data) throws Throwable
+                                    public void process(IoBuffer data) throws Throwable
                                     {
                                         data.addReadPosi(-4);
-                                        return downStream.process(data);
+                                        downStream.process(data);
                                     }
                                 });
                         break;
@@ -114,16 +103,10 @@ public class BaseTest
                                 {
 
                                     @Override
-                                    public boolean catStoreData()
-                                    {
-                                        return false;
-                                    }
-
-                                    @Override
-                                    public boolean process(IoBuffer data) throws Throwable
+                                    public void process(IoBuffer data) throws Throwable
                                     {
                                         data.addReadPosi(-4);
-                                        return downStream.process(data);
+                                        downStream.process(data);
                                     }
                                 });
                         break;
@@ -131,7 +114,7 @@ public class BaseTest
                         break;
                 }
             }
-        }, backPressureMode));
+        }));
         builder.setBindIp(ip);
         builder.setPort(port);
         aioServer = builder.build();
@@ -143,7 +126,6 @@ public class BaseTest
             JnetClientBuilder jnetClientBuilder = new JnetClientBuilder();
             jnetClientBuilder.setServerIp(ip);
             jnetClientBuilder.setPort(port);
-            jnetClientBuilder.setBackPressureMode(new BackPressureMode(128));
             jnetClientBuilder.setChannelContextInitializer(new ChannelContextInitializer()
             {
 
@@ -153,11 +135,6 @@ public class BaseTest
                     channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1000, bufferAllocator), //
                             new DataProcessor<IoBuffer>()
                             {
-                                @Override
-                                public boolean catStoreData()
-                                {
-                                    return false;
-                                }
 
                                 int count = 0;
 
@@ -173,12 +150,7 @@ public class BaseTest
                                 }
 
                                 @Override
-                                public void bindUpStream(DataProcessor<?> upStream)
-                                {
-                                }
-
-                                @Override
-                                public boolean process(IoBuffer buffer) throws Throwable
+                                public void process(IoBuffer buffer) throws Throwable
                                 {
                                     int j = buffer.getInt();
                                     result[j] = j;
@@ -188,19 +160,8 @@ public class BaseTest
                                     {
                                         latch.countDown();
                                     }
-                                    return true;
                                 }
 
-                                @Override
-                                public boolean canAccept()
-                                {
-                                    return false;
-                                }
-
-                                @Override
-                                public void notifyedWriterAvailable() throws Throwable
-                                {
-                                }
                             });
                 }
             });
@@ -208,8 +169,6 @@ public class BaseTest
             clients[i] = jnetClientBuilder.build();
         }
     }
-
-
 
     @Test
     public void test() throws InterruptedException
@@ -229,7 +188,8 @@ public class BaseTest
                     try
                     {
                         barrier.await();
-                    } catch (InterruptedException | BrokenBarrierException e1)
+                    }
+                    catch (InterruptedException | BrokenBarrierException e1)
                     {
                         e1.printStackTrace();
                     }
@@ -241,7 +201,8 @@ public class BaseTest
                         try
                         {
                             client.write(buffer);
-                        } catch (Exception e)
+                        }
+                        catch (Exception e)
                         {
                             ;
                         }
@@ -255,7 +216,8 @@ public class BaseTest
             finish.await();
             logger.debug("写出完毕");
             latch.await(10000, TimeUnit.SECONDS);
-        } catch (InterruptedException e)
+        }
+        catch (InterruptedException e)
         {
             e.printStackTrace();
         }

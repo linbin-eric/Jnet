@@ -25,7 +25,7 @@ public class LengthEncoder extends BindDownAndUpStreamDataProcessor<IoBuffer>
     }
 
     @Override
-    public boolean process(IoBuffer buf) throws Throwable
+    public void process(IoBuffer buf) throws Throwable
     {
         int length = buf.remainRead();
         switch (lengthFieldLength)
@@ -42,18 +42,6 @@ public class LengthEncoder extends BindDownAndUpStreamDataProcessor<IoBuffer>
             default:
                 break;
         }
-        return downStream.process(buf);
-    }
-
-    @Override
-    public void notifyedWriterAvailable() throws Throwable
-    {
-        upStream.notifyedWriterAvailable();
-    }
-
-    @Override
-    public boolean catStoreData()
-    {
-        return false;
+        downStream.process(buf);
     }
 }

@@ -15,14 +15,14 @@ public class DefaultAioListener implements AioListener
     {
         if (e instanceof AsynchronousCloseException == false)
         {
-            e.printStackTrace();
-        }
-        try
-        {
-            socketChannel.close();
-        } catch (IOException e1)
-        {
-            e1.printStackTrace();
+            try
+            {
+                socketChannel.close();
+            }
+            catch (IOException e1)
+            {
+                e1.printStackTrace();
+            }
         }
     }
 

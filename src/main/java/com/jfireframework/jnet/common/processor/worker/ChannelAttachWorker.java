@@ -5,7 +5,7 @@ import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.DataProcessor;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
 import org.jctools.queues.ConcurrentCircularArrayQueue;
-import org.jctools.queues.SpscArrayQueue;
+import org.jctools.queues.SpscLinkedQueue;
 
 import java.util.Queue;
 import java.util.concurrent.ExecutorService;
@@ -18,18 +18,17 @@ public class ChannelAttachWorker implements Runnable
      * 当worker发送数据到下游被拒绝时，将状态切换到blockByDownStream。此时上游无法再次尝试启动worker。
      * 这种情况下，worker只能通过自我尝试恢复，或者被下游的可写信号唤醒，尝试从blockByDownStream状态切换到WORK状态，成功后启动worker。
      */
-    private static final int              IDLE              = -1;
-    private static final int              WORK              = 1;
-    private static final int              blockByDownStream = 4;
-    private static final int              SPIN_THRESHOLD    = 128;
-    private static final long             STATE_OFFSET      = UNSAFE.getFieldOffset("state", ChannelAttachWorker.class);
-    private final        ExecutorService  executorService;
-    private static final int              capacity          = 1024;
-    private              Queue<IoBuffer>  queue             = new SpscArrayQueue<>(capacity);
-    private volatile     int              state             = IDLE;
-    private              DataProcessor<?> upStream;
-    private              DataProcessor    downStream;
-    private              ChannelContext   channelContext;
+    private static final int             IDLE              = -1;
+    private static final int             WORK              = 1;
+    private static final int             blockByDownStream = 4;
+    private static final int             SPIN_THRESHOLD    = 128;
+    private static final long            STATE_OFFSET      = UNSAFE.getFieldOffset("state", ChannelAttachWorker.class);
+    private final        ExecutorService executorService;
+    private static final int             capacity          = 1024;
+    private              Queue<IoBuffer> queue             = new SpscLinkedQueue<>();
+    private volatile     int             state             = IDLE;
+    private              DataProcessor   downStream;
+    private              ChannelContext  channelContext;
 
     public ChannelAttachWorker(ExecutorService executorService)
     {
@@ -61,7 +60,6 @@ public class ChannelAttachWorker implements Runnable
                         else
                         {
                             state = IDLE;
-                            upStream.notifyedWriterAvailable();
                             if (queue.isEmpty() == false)
                             {
                                 tryExecute();
@@ -74,74 +72,22 @@ public class ChannelAttachWorker implements Runnable
                         }
                     }
                 }
-                if (downStream.process(avail) == false)
-                {
-                    state = blockByDownStream;
-                    if (downStream.canAccept())
-                    {
-                        recoverFromBlock();
-                    }
-                    else
-                    {
-                        ;
-                    }
-                    break;
-                }
+                downStream.process(avail);
             } while (true);
-        } catch (Throwable e)
+        }
+        catch (Throwable e)
         {
-            e.printStackTrace();
             channelContext.close(e);
         }
     }
 
-    public boolean commit(ChannelContext channelContext, DataProcessor<?> downStream, Object data)
+    public void commit(ChannelContext channelContext, DataProcessor<?> downStream, Object data)
     {
-        if (queue.offer((IoBuffer) data))
-        {
-            tryExecute();
-            return true;
-        }
-        else
-        {
-            return false;
-        }
+        queue.offer((IoBuffer) data);
+        tryExecute();
     }
 
-    public boolean canAccept()
-    {
-        long cIndex = ((ConcurrentCircularArrayQueue) queue).currentConsumerIndex();
-        long pIndex = ((ConcurrentCircularArrayQueue) queue).currentProducerIndex();
-        if (pIndex - capacity == cIndex)
-        {
-            return false;
-        }
-        else
-        {
-            return true;
-        }
-    }
 
-    /**
-     * 写处理器通知当前发送队列有可供写出的容量。
-     */
-    public void notifyedWriteAvailable()
-    {
-        recoverFromBlock();
-    }
-
-    private void recoverFromBlock()
-    {
-        int now = state;
-        if (now == blockByDownStream && UNSAFE.compareAndSwapInt(this, STATE_OFFSET, blockByDownStream, WORK))
-        {
-            executorService.execute(this);
-        }
-        else
-        {
-            ;
-        }
-    }
 
     private void tryExecute()
     {
@@ -154,11 +100,6 @@ public class ChannelAttachWorker implements Runnable
         {
             ;
         }
-    }
-
-    public void setUpStream(DataProcessor<?> upStream)
-    {
-        this.upStream = upStream;
     }
 
     public void setDownStream(DataProcessor downStream)

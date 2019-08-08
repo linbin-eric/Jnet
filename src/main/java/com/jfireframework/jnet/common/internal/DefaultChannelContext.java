@@ -2,7 +2,6 @@ package com.jfireframework.jnet.common.internal;
 
 import com.jfireframework.jnet.common.api.*;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
-import com.jfireframework.jnet.common.processor.BackPressureHelper;
 
 import java.io.IOException;
 import java.nio.channels.AsynchronousSocketChannel;
@@ -25,16 +24,11 @@ public class DefaultChannelContext implements ChannelContext
     }
 
     @Override
-    public boolean writeIfAvailable(IoBuffer buffer)
+    public void write(IoBuffer buffer)
     {
-        return writeCompletionHandler.process(buffer);
+         writeCompletionHandler.process(buffer);
     }
 
-    @Override
-    public boolean availableForWrite()
-    {
-        return writeCompletionHandler.canAccept();
-    }
 
     @Override
     public AsynchronousSocketChannel socketChannel()
@@ -50,25 +44,13 @@ public class DefaultChannelContext implements ChannelContext
         list.add(readCompletionHandler);
         for (DataProcessor<?> dataProcessor : dataProcessors)
         {
-            if (dataProcessor.catStoreData())
-            {
-                list.add(new BackPressureHelper());
-            }
             list.add(dataProcessor);
-        }
-        if (writeCompletionHandler.catStoreData())
-        {
-            list.add(new BackPressureHelper());
         }
         list.add(writeCompletionHandler);
         dataProcessors = list.toArray(new DataProcessor[0]);
         for (int i = 0; i + 1 < dataProcessors.length; i++)
         {
             dataProcessors[i].bindDownStream(dataProcessors[i + 1]);
-        }
-        for (int i = dataProcessors.length - 1; i > 0; i--)
-        {
-            dataProcessors[i].bindUpStream(dataProcessors[i - 1]);
         }
         for (DataProcessor dataProcessor : dataProcessors)
         {

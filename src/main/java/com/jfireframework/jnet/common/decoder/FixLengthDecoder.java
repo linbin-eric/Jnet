@@ -27,34 +27,20 @@ public class FixLengthDecoder extends BindDownAndUpStreamDataProcessor<IoBuffer>
     }
 
     @Override
-    public boolean process(IoBuffer ioBuf) throws Throwable
+    public void process(IoBuffer ioBuf) throws Throwable
     {
         do
         {
             if (ioBuf.remainRead() < frameLength)
             {
                 ioBuf.compact().capacityReadyFor(frameLength);
-                return true;
+                break;
             }
             IoBuffer packet = allocator.ioBuffer(frameLength);
             packet.put(ioBuf, frameLength);
             ioBuf.addReadPosi(frameLength);
-            if (downStream.process(packet) == false)
-            {
-                return false;
-            }
+            downStream.process(packet);
+            break;
         } while (true);
-    }
-
-    @Override
-    public void notifyedWriterAvailable() throws Throwable
-    {
-        upStream.notifyedWriterAvailable();
-    }
-
-    @Override
-    public boolean catStoreData()
-    {
-        return false;
     }
 }

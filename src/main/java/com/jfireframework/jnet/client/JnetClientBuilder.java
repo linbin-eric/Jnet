@@ -2,7 +2,6 @@ package com.jfireframework.jnet.client;
 
 import com.jfireframework.baseutil.reflect.ReflectUtil;
 import com.jfireframework.jnet.common.api.AioListener;
-import com.jfireframework.jnet.common.api.BackPressureMode;
 import com.jfireframework.jnet.common.api.ChannelContextInitializer;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.internal.DefaultAioListener;
@@ -22,7 +21,6 @@ public class JnetClientBuilder
     private AioListener               aioListener;
     private ChannelContextInitializer channelContextInitializer;
     private BufferAllocator           allocator;
-    private BackPressureMode          backPressureMode;
 
     public JnetClient build()
     {
@@ -32,7 +30,6 @@ public class JnetClientBuilder
             {
                 throw new NullPointerException();
             }
-            backPressureMode = backPressureMode == null ? new BackPressureMode() : backPressureMode;
             if (aioListener == null)
             {
                 aioListener = new DefaultAioListener();
@@ -41,8 +38,9 @@ public class JnetClientBuilder
             {
                 throw new NullPointerException();
             }
-            return new DefaultClient(channelContextInitializer, serverIp, port, aioListener, allocator, channelGroup, backPressureMode);
-        } catch (Throwable e)
+            return new DefaultClient(channelContextInitializer, serverIp, port, aioListener, allocator, channelGroup);
+        }
+        catch (Throwable e)
         {
             ReflectUtil.throwException(e);
             return null;
@@ -77,10 +75,5 @@ public class JnetClientBuilder
     public void setAllocator(BufferAllocator allocator)
     {
         this.allocator = allocator;
-    }
-
-    public void setBackPressureMode(BackPressureMode backPressureMode)
-    {
-        this.backPressureMode = backPressureMode;
     }
 }

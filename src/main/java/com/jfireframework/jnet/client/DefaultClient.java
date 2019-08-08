@@ -29,9 +29,8 @@ public class DefaultClient implements JnetClient
     private              ChannelContextInitializer channelContextInitializer;
     private              ChannelContext            channelContext;
     private              int                       state        = NOT_INIT;
-    private              BackPressureMode          backPressureMode;
 
-    public DefaultClient(ChannelContextInitializer channelContextInitializer, String ip, int port, AioListener aioListener, BufferAllocator allocator, AsynchronousChannelGroup channelGroup, BackPressureMode backPressureMode)
+    public DefaultClient(ChannelContextInitializer channelContextInitializer, String ip, int port, AioListener aioListener, BufferAllocator allocator, AsynchronousChannelGroup channelGroup)
     {
         this.channelContextInitializer = channelContextInitializer;
         this.ip = ip;
@@ -39,7 +38,6 @@ public class DefaultClient implements JnetClient
         this.aioListener = aioListener;
         this.allocator = allocator;
         this.channelGroup = channelGroup;
-        this.backPressureMode = backPressureMode;
     }
 
     @Override
@@ -58,29 +56,31 @@ public class DefaultClient implements JnetClient
                 Future<Void>              future                    = asynchronousSocketChannel.connect(new InetSocketAddress(ip, port));
                 future.get();
                 final ReadCompletionHandler  readCompletionHandler  = new DefaultReadCompletionHandler(aioListener, allocator, asynchronousSocketChannel);
-                final WriteCompletionHandler writeCompletionHandler = new DefaultWriteCompleteHandler(asynchronousSocketChannel, aioListener, allocator, 1024 * 1024 * 2, backPressureMode);
-                channelContext = new DefaultChannelContext(asynchronousSocketChannel, aioListener, readCompletionHandler,writeCompletionHandler){
-                    public void setDataProcessor(DataProcessor<?>... dataProcessors)
-                    {
-                        for (int i = 1; i < dataProcessors.length; i++)
-                        {
-                            dataProcessors[i].bindUpStream(dataProcessors[i - 1]);
-                            dataProcessors[i - 1].bindDownStream(dataProcessors[i]);
-                        }
-                        readCompletionHandler.bindDownStream(dataProcessors[0]);
-                        dataProcessors[0].bindUpStream(readCompletionHandler);
-                        dataProcessors[dataProcessors.length - 1].bindDownStream(writeCompletionHandler);
-                        writeCompletionHandler.bindUpStream(dataProcessors[dataProcessors.length - 1]);
-                        for (DataProcessor dataProcessor : dataProcessors)
-                        {
-                            dataProcessor.bind(this);
-                        }
-                    }
+                final WriteCompletionHandler writeCompletionHandler = new DefaultWriteCompleteHandler(asynchronousSocketChannel, aioListener, allocator, 1024 * 1024 * 2);
+                channelContext = new DefaultChannelContext(asynchronousSocketChannel, aioListener, readCompletionHandler, writeCompletionHandler)
+                {
+//                    public void setDataProcessor(DataProcessor<?>... dataProcessors)
+//                    {
+//                        for (int i = 1; i < dataProcessors.length; i++)
+//                        {
+//                            dataProcessors[i].bindUpStream(dataProcessors[i - 1]);
+//                            dataProcessors[i - 1].bindDownStream(dataProcessors[i]);
+//                        }
+//                        readCompletionHandler.bindDownStream(dataProcessors[0]);
+//                        dataProcessors[0].bindUpStream(readCompletionHandler);
+//                        dataProcessors[dataProcessors.length - 1].bindDownStream(writeCompletionHandler);
+//                        writeCompletionHandler.bindUpStream(dataProcessors[dataProcessors.length - 1]);
+//                        for (DataProcessor dataProcessor : dataProcessors)
+//                        {
+//                            dataProcessor.bind(this);
+//                        }
+//                    }
                 };
                 channelContextInitializer.onChannelContextInit(channelContext);
                 readCompletionHandler.start();
                 state = CONNECTED;
-            } catch (Exception e)
+            }
+            catch (Exception e)
             {
                 ReflectUtil.throwException(e);
                 return;
@@ -96,7 +96,8 @@ public class DefaultClient implements JnetClient
             try
             {
                 channelContext.socketChannel().write(readableByteBuffer).get();
-            } catch (Throwable e)
+            }
+            catch (Throwable e)
             {
                 close();
                 ReflectUtil.throwException(e);
@@ -107,10 +108,7 @@ public class DefaultClient implements JnetClient
 
     void nonBlockWrite(IoBuffer buffer)
     {
-        while (channelContext.writeIfAvailable(buffer) == false)
-        {
-            Thread.yield();
-        }
+        channelContext.write(buffer);
     }
 
     @Override
@@ -126,7 +124,8 @@ public class DefaultClient implements JnetClient
             try
             {
                 channelContext.socketChannel().close();
-            } catch (IOException e)
+            }
+            catch (IOException e)
             {
                 ReflectUtil.throwException(e);
             }

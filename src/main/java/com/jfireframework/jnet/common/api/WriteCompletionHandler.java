@@ -9,14 +9,15 @@ import java.nio.channels.CompletionHandler;
 public interface WriteCompletionHandler extends CompletionHandler<Integer, WriteEntry>, DataProcessor
 {
     /**
-     * 提供数据写出。如果数据放入待发送队列，则返回true。如果队列已满，则返回false<br/>
+     * 提供数据写出。
      * 如果当前写完成器已经处于停止状态，则抛出非法状态异常。
      *
      * @param data
      * @throws IllegalStateException
      */
     @Override
-    boolean process(Object data) throws IllegalStateException;
+    void process(Object data) throws IllegalStateException;
+
 
     class WriteEntry
     {
@@ -43,8 +44,12 @@ public interface WriteCompletionHandler extends CompletionHandler<Integer, Write
             this.ioBuffer = ioBuffer;
         }
 
-        public void clear()
+        public void clean()
         {
+            if (ioBuffer != null)
+            {
+                ioBuffer.free();
+            }
             ioBuffer = null;
             byteBuffer = null;
         }

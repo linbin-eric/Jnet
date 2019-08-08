@@ -70,21 +70,10 @@ public class HeartBeatProcessor extends BindDownAndUpStreamDataProcessor<Object>
     }
 
     @Override
-    public boolean process(Object data) throws Throwable
+    public void process(Object data) throws Throwable
     {
         UNSAFE.putOrderedLong(this, OFFSET, System.currentTimeMillis());
-        return downStream.process(data);
+         downStream.process(data);
     }
 
-    @Override
-    public void notifyedWriterAvailable() throws Throwable
-    {
-        upStream.notifyedWriterAvailable();
-    }
-
-    @Override
-    public boolean catStoreData()
-    {
-        return false;
-    }
 }
