@@ -47,6 +47,7 @@ public class DefaultChannelContext implements ChannelContext
     public void setDataProcessor(DataProcessor<?>... dataProcessors)
     {
         List<DataProcessor> list = new ArrayList<>();
+        list.add(readCompletionHandler);
         for (DataProcessor<?> dataProcessor : dataProcessors)
         {
             if (dataProcessor.catStoreData())
@@ -59,16 +60,16 @@ public class DefaultChannelContext implements ChannelContext
         {
             list.add(new BackPressureHelper());
         }
+        list.add(writeCompletionHandler);
         dataProcessors = list.toArray(new DataProcessor[0]);
-        for (int i = 1; i < dataProcessors.length; i++)
+        for (int i = 0; i + 1 < dataProcessors.length; i++)
+        {
+            dataProcessors[i].bindDownStream(dataProcessors[i + 1]);
+        }
+        for (int i = dataProcessors.length - 1; i > 0; i--)
         {
             dataProcessors[i].bindUpStream(dataProcessors[i - 1]);
-            dataProcessors[i - 1].bindDownStream(dataProcessors[i]);
         }
-        readCompletionHandler.bindDownStream(dataProcessors[0]);
-        dataProcessors[0].bindUpStream(readCompletionHandler);
-        dataProcessors[dataProcessors.length - 1].bindDownStream(writeCompletionHandler);
-        writeCompletionHandler.bindUpStream(dataProcessors[dataProcessors.length - 1]);
         for (DataProcessor dataProcessor : dataProcessors)
         {
             dataProcessor.bind(this);
