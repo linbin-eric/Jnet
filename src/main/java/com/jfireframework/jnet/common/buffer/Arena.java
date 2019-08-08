@@ -1,6 +1,7 @@
 package com.jfireframework.jnet.common.buffer;
 
 import com.jfireframework.baseutil.reflect.ReflectUtil;
+import com.jfireframework.jnet.common.util.CapacityStat;
 import com.jfireframework.jnet.common.util.MathUtil;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -274,4 +275,13 @@ public abstract class Arena<T>
     }
 
     public abstract boolean isDirect();
+
+    public void capacityStat(CapacityStat capacityStat)
+    {
+        cInt.stat(capacityStat);
+        c025.stat(capacityStat);
+        c050.stat(capacityStat);
+        c075.stat(capacityStat);
+        c100.stat(capacityStat);
+    }
 }

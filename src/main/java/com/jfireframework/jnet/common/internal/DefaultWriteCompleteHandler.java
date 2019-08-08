@@ -30,7 +30,6 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
     ////////////////////////////////////////////////////////////
     protected volatile     int                       state               = IDLE;
     protected              Queue<IoBuffer>           queue;
-    private                ChannelContext            channelContext;
 
     public DefaultWriteCompleteHandler(AsynchronousSocketChannel socketChannel, AioListener aioListener, BufferAllocator allocator, int maxWriteBytes)
     {
@@ -71,7 +70,7 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
     {
         try
         {
-            aioListener.afterWrited(socketChannel, result);
+            aioListener.afterWrited(channelContext, result);
             ByteBuffer byteBuffer = entry.getByteBuffer();
             if (byteBuffer.hasRemaining())
             {

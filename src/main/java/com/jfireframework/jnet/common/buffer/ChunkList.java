@@ -1,5 +1,7 @@
 package com.jfireframework.jnet.common.buffer;
 
+import com.jfireframework.jnet.common.util.CapacityStat;
+
 public class ChunkList<T>
 {
     final int maxUsage;
@@ -184,5 +186,19 @@ public class ChunkList<T>
             count++;
         }
         return count;
+    }
+
+    public void stat(CapacityStat stat)
+    {
+        Chunk<T> cursor = head;
+        if (cursor == null)
+        {
+            return;
+        }
+        stat.add(cursor);
+        while ((cursor = cursor.next) != null)
+        {
+            stat.add(cursor);
+        }
     }
 }

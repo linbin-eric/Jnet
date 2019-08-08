@@ -5,19 +5,21 @@ import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ReadCompletionHandler;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
+import com.jfireframework.jnet.common.buffer.PooledBufferAllocator;
 
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class DefaultReadCompletionHandler extends BindDownAndUpStreamDataProcessor<IoBuffer> implements ReadCompletionHandler<IoBuffer>
 {
+    public static        int                       initializeCapacity = PooledBufferAllocator.PAGESIZE;
     protected final      AsynchronousSocketChannel socketChannel;
     protected final      AioListener               aioListener;
     protected final      BufferAllocator           allocator;
-    protected final      ReadEntry                 entry = new ReadEntry();
+    protected final      ReadEntry                 entry              = new ReadEntry();
     protected            ChannelContext            channelContext;
-    private static final int                       IDLE  = 0;
-    private static final int                       WORK  = 1;
+    private static final int                       IDLE               = 0;
+    private static final int                       WORK               = 1;
     AtomicInteger state = new AtomicInteger(IDLE);
 
     public DefaultReadCompletionHandler(AioListener aioListener, BufferAllocator allocator, AsynchronousSocketChannel socketChannel)
@@ -30,7 +32,7 @@ public class DefaultReadCompletionHandler extends BindDownAndUpStreamDataProcess
     @Override
     public void start()
     {
-        IoBuffer buffer = allocator.ioBuffer(128);
+        IoBuffer buffer = allocator.ioBuffer(initializeCapacity);
         entry.setIoBuffer(buffer);
         entry.setByteBuffer(buffer.writableByteBuffer());
         state.set(WORK);
@@ -51,19 +53,19 @@ public class DefaultReadCompletionHandler extends BindDownAndUpStreamDataProcess
         try
         {
             downStream.process(buffer);
+            if (needCompact(buffer))
+            {
+                buffer.compact();
+            }
+            entry.setIoBuffer(buffer);
+            entry.setByteBuffer(buffer.writableByteBuffer());
+            socketChannel.read(entry.getByteBuffer(), entry, this);
         }
         catch (Throwable e)
         {
             failed(e, entry);
             return;
         }
-        if (needCompact(buffer))
-        {
-            buffer.compact();
-        }
-        entry.setIoBuffer(buffer);
-        entry.setByteBuffer(buffer.writableByteBuffer());
-        socketChannel.read(entry.getByteBuffer(), entry, this);
     }
 
     private boolean needCompact(IoBuffer buffer)
@@ -74,7 +76,8 @@ public class DefaultReadCompletionHandler extends BindDownAndUpStreamDataProcess
     @Override
     public void failed(Throwable exc, ReadEntry entry)
     {
-        entry.getIoBuffer().free();
+        entry.clean();
+        channelContext.close(exc);
     }
 
     @Override

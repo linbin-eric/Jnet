@@ -10,7 +10,7 @@ public interface AioListener
      * @param channelContext
      * @param writes
      */
-    void afterWrited(AsynchronousSocketChannel socketChannel, Integer writes);
+    void afterWrited(ChannelContext channelContext, Integer writes);
 
     /**
      * 当ChannelContext实例被创建时触发
@@ -26,14 +26,14 @@ public interface AioListener
      * @param e
      * @param channelContext
      */
-    void catchException(Throwable e, AsynchronousSocketChannel socketChannel);
+    void catchException(Throwable e, ChannelContext channelContext);
 
     /**
      * 通道收到消息后触发
      *
      * @param context
      */
-    void afterReceived(AsynchronousSocketChannel socketChannel);
+    void afterReceived(ChannelContext channelContext);
 
     /**
      * 在通道关闭时被触发
@@ -41,5 +41,5 @@ public interface AioListener
      * @param socketChannel
      * @param e
      */
-    void onClose(AsynchronousSocketChannel socketChannel, Throwable e);
+    void onClose(ChannelContext socketChannel, Throwable e);
 }

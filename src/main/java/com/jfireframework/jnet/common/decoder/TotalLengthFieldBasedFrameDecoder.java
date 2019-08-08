@@ -52,6 +52,11 @@ public class TotalLengthFieldBasedFrameDecoder extends BindDownAndUpStreamDataPr
         {
             int maskReadPosi = ioBuffer.getReadPosi();
             int left         = ioBuffer.remainRead();
+            if (left==0)
+            {
+                ioBuffer.clear();
+                break;
+            }
             if (lengthFieldEndOffset > left)
             {
                 if (ioBuffer.remainWrite() < lengthFieldEndOffset)

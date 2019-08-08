@@ -307,4 +307,14 @@ public abstract class Chunk<T>
     {
         return (normCapacity & subpageOverflowMask) == 0;
     }
+
+    public int getChunkSize()
+    {
+        return chunkSize;
+    }
+
+    public int getFreeBytes()
+    {
+        return freeBytes;
+    }
 }

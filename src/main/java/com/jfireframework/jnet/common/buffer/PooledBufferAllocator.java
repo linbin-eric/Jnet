@@ -203,4 +203,14 @@ public class PooledBufferAllocator implements BufferAllocator
     {
         return name;
     }
+
+    public HeapArena[] getHeapArenas()
+    {
+        return heapArenas;
+    }
+
+    public DirectArena[] getDirectArenas()
+    {
+        return directArenas;
+    }
 }

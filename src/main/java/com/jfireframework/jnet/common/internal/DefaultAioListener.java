@@ -2,51 +2,21 @@ package com.jfireframework.jnet.common.internal;
 
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
+import com.jfireframework.jnet.common.util.AioListenerAdapter;
 
 import java.io.IOException;
 import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.AsynchronousSocketChannel;
 
-public class DefaultAioListener implements AioListener
+public class DefaultAioListener extends AioListenerAdapter
 {
 
     @Override
-    public void catchException(Throwable e, AsynchronousSocketChannel socketChannel)
+    public void catchException(Throwable e, ChannelContext channelContext)
     {
         if (e instanceof AsynchronousCloseException == false)
         {
-            try
-            {
-                socketChannel.close();
-            }
-            catch (IOException e1)
-            {
-                e1.printStackTrace();
-            }
+            channelContext.close(e);
         }
-    }
-
-    @Override
-    public void afterWrited(AsynchronousSocketChannel socketChannel, Integer writes)
-    {
-        // TODO Auto-generated method stub
-    }
-
-    @Override
-    public void onAccept(AsynchronousSocketChannel socketChannel, ChannelContext channelContext)
-    {
-        // TODO Auto-generated method stub
-    }
-
-    @Override
-    public void afterReceived(AsynchronousSocketChannel socketChannel)
-    {
-        // TODO Auto-generated method stub
-    }
-
-    @Override
-    public void onClose(AsynchronousSocketChannel socketChannel, Throwable e)
-    {
-        // TODO Auto-generated method stub
     }
 }

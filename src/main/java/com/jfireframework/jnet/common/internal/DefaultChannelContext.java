@@ -70,7 +70,7 @@ public class DefaultChannelContext implements ChannelContext
         try
         {
             socketChannel.close();
-            aioListener.onClose(socketChannel, e);
+            aioListener.onClose(this, e);
         }
         catch (IOException e1)
         {
