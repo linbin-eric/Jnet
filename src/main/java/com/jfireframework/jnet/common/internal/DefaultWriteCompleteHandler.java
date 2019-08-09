@@ -18,9 +18,6 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
     protected static final int                       SPIN_THRESHOLD      = 128;
     protected static final int                       IDLE                = 1;
     protected static final int                       WORK                = 2;
-    // 终止状态位，也就是负数标识位
-    protected static final int                       PREPARE_TERMINATION = 3;
-    protected static final int                       TERMINATION         = 4;
     protected final        WriteEntry                entry               = new WriteEntry();
     protected final        AsynchronousSocketChannel socketChannel;
     protected final        BufferAllocator           allocator;
@@ -150,18 +147,18 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
         }
         queue.offer(buf);
         int now = state;
-        if (now == TERMINATION)
-        {
-            if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, TERMINATION, PREPARE_TERMINATION))
-            {
-                prepareTermination();
-            }
-            else
-            {
-                ;
-            }
-            return;
-        }
+//        if (now == TERMINATION)
+//        {
+//            if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, TERMINATION, PREPARE_TERMINATION))
+//            {
+//                prepareTermination();
+//            }
+//            else
+//            {
+//                ;
+//            }
+//            return;
+//        }
         if (now == IDLE && changeToWork())
         {
             if (queue.isEmpty() == false)
@@ -184,12 +181,12 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
             {
                 tmp.free();
             }
-            state = TERMINATION;
+            state = IDLE;
             if (queue.isEmpty())
             {
                 break;
             }
-            else if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, TERMINATION, PREPARE_TERMINATION))
+            else if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, IDLE, WORK))
             {
                 ;
             }
