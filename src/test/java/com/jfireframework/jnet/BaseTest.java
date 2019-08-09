@@ -12,6 +12,7 @@ import com.jfireframework.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
 import com.jfireframework.jnet.common.internal.BindDownAndUpStreamDataProcessor;
 import com.jfireframework.jnet.common.internal.DefaultAcceptHandler;
 import com.jfireframework.jnet.common.processor.ChannelAttachProcessor;
+import com.jfireframework.jnet.common.processor.ThreadAttachProcessor;
 import com.jfireframework.jnet.server.AioServer;
 import com.jfireframework.jnet.server.AioServerBuilder;
 import org.junit.Test;
@@ -36,27 +37,30 @@ import static org.junit.Assert.assertEquals;
 @RunWith(Parameterized.class)
 public class BaseTest
 {
-    private static final Logger         logger       = LoggerFactory.getLogger(BaseTest.class);
-    private              AioServer      aioServer;
-    private              String         ip           = "127.0.0.1";
-    private              int            port         = 7598;
-    private              int            numPerThread = 1000000;
-    private              int            numClients   = 4;
-    private              JnetClient[]   clients;
-    private              CountDownLatch latch        = new CountDownLatch(numClients);
-    private              int[][]        results;
+    private static final Logger          logger       = LoggerFactory.getLogger(BaseTest.class);
+    private              AioServer       aioServer;
+    private              String          ip           = "127.0.0.1";
+    private              int             port         = 7598;
+    private              int             numPerThread = 5000000;
+    private              int             numClients   = 4;
+    private              JnetClient[]    clients;
+    private              CountDownLatch  latch        = new CountDownLatch(numClients);
+    private              int[][]         results;
+    private              BufferAllocator bufferAllocator;
 
     @Parameters(name = "IO模式:{2}")
     public static Collection<Object[]> params()
     {
         return Arrays.asList(new Object[][]{ //
-                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, IoMode.IO}, //
-                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 2, IoMode.Channel}, //
+                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.IO}, //
+                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.Channel}, //
+                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.THREAD}, //
         });
     }
 
     public BaseTest(final BufferAllocator bufferAllocator, int batchWriteNum, final IoMode ioMode)
     {
+        this.bufferAllocator = bufferAllocator;
         clients = new JnetClient[numClients];
         results = new int[numClients][numPerThread];
         for (int i = 0; i < numClients; i++)
@@ -65,7 +69,7 @@ public class BaseTest
             Arrays.fill(results[i], -1);
         }
         AioServerBuilder builder = new AioServerBuilder();
-        final ExecutorService fixService = Executors.newFixedThreadPool(4, new ThreadFactory()
+        final ExecutorService fixService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors(), new ThreadFactory()
         {
             AtomicInteger atomicInteger = new AtomicInteger(0);
 
@@ -85,7 +89,7 @@ public class BaseTest
                 switch (ioMode)
                 {
                     case IO:
-                        channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 100, bufferAllocator), //
+                        channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024, bufferAllocator), //
                                 new BindDownAndUpStreamDataProcessor<IoBuffer>()
                                 {
                                     @Override
@@ -97,8 +101,22 @@ public class BaseTest
                                 });
                         break;
                     case Channel:
-                        channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 100, bufferAllocator), //
+                        channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024, bufferAllocator), //
                                 new ChannelAttachProcessor(fixService), //
+                                new BindDownAndUpStreamDataProcessor<IoBuffer>()
+                                {
+
+                                    @Override
+                                    public void process(IoBuffer data) throws Throwable
+                                    {
+                                        data.addReadPosi(-4);
+                                        downStream.process(data);
+                                    }
+                                });
+                        break;
+                    case THREAD:
+                        channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024, bufferAllocator), //
+                                new ThreadAttachProcessor(fixService), //
                                 new BindDownAndUpStreamDataProcessor<IoBuffer>()
                                 {
 
@@ -161,7 +179,6 @@ public class BaseTest
                                         latch.countDown();
                                     }
                                 }
-
                             });
                 }
             });
@@ -193,11 +210,18 @@ public class BaseTest
                     {
                         e1.printStackTrace();
                     }
-                    for (int j = 0; j < numPerThread; j++)
+                    int batch=1000;
+                    for (int j = 0; j < numPerThread; )
                     {
-                        IoBuffer buffer = PooledBufferAllocator.DEFAULT.ioBuffer(8);
-                        buffer.putInt(8);
-                        buffer.putInt(j);
+                        IoBuffer buffer = bufferAllocator.ioBuffer(8);
+                        int      num    = j;
+                        int      max    = num + batch > numPerThread ? numPerThread : num + batch;
+                        for (; num < max; num++)
+                        {
+                            buffer.putInt(8);
+                            buffer.putInt(num);
+                        }
+                        j = num;
                         try
                         {
                             client.write(buffer);
@@ -240,6 +264,6 @@ public class BaseTest
 
     static enum IoMode
     {
-        IO, Channel
+        IO, Channel, THREAD
     }
 }

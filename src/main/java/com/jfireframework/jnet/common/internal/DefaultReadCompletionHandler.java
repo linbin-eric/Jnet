@@ -18,9 +18,6 @@ public class DefaultReadCompletionHandler extends BindDownAndUpStreamDataProcess
     protected final      BufferAllocator           allocator;
     protected final      ReadEntry                 entry              = new ReadEntry();
     protected            ChannelContext            channelContext;
-    private static final int                       IDLE               = 0;
-    private static final int                       WORK               = 1;
-    AtomicInteger state = new AtomicInteger(IDLE);
 
     public DefaultReadCompletionHandler(AioListener aioListener, BufferAllocator allocator, AsynchronousSocketChannel socketChannel)
     {
@@ -35,7 +32,6 @@ public class DefaultReadCompletionHandler extends BindDownAndUpStreamDataProcess
         IoBuffer buffer = allocator.ioBuffer(initializeCapacity);
         entry.setIoBuffer(buffer);
         entry.setByteBuffer(buffer.writableByteBuffer());
-        state.set(WORK);
         socketChannel.read(entry.getByteBuffer(), entry, this);
     }
 

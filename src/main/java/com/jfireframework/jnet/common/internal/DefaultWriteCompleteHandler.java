@@ -147,18 +147,6 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
         }
         queue.offer(buf);
         int now = state;
-//        if (now == TERMINATION)
-//        {
-//            if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, TERMINATION, PREPARE_TERMINATION))
-//            {
-//                prepareTermination();
-//            }
-//            else
-//            {
-//                ;
-//            }
-//            return;
-//        }
         if (now == IDLE && changeToWork())
         {
             if (queue.isEmpty() == false)
