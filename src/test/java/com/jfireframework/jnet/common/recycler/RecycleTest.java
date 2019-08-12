@@ -149,6 +149,9 @@ public class RecycleTest
         latch.await();
         Entry entry2 = recycler.get();
         assertTrue(entry == entry2);
+        entry2.handler.recycle(entry2);
+        Entry entry3 = recycler.get();
+        assertTrue(entry2==entry3);
     }
 
     /**

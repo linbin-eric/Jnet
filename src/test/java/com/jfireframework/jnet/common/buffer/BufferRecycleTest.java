@@ -1,7 +1,12 @@
 package com.jfireframework.jnet.common.buffer;
 
+import com.jfireframework.jnet.common.recycler.RecycleTest;
+import com.jfireframework.jnet.common.thread.FastThreadLocalThread;
 import org.junit.Test;
 
+import java.util.concurrent.CountDownLatch;
+
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class BufferRecycleTest
@@ -37,4 +42,28 @@ public class BufferRecycleTest
         assertTrue(buffer2 == buffer);
         buffer2.free();
     }
+
+    @Test
+    public void test3() throws InterruptedException
+    {
+        final IoBuffer       buffer = allocator.ioBuffer(128);
+        final CountDownLatch latch  = new CountDownLatch(1);
+        new FastThreadLocalThread(new Runnable()
+        {
+            @Override
+            public void run()
+            {
+                buffer.free();
+                latch.countDown();
+            }
+        }).start();
+        latch.await();
+        IoBuffer buffer2 = allocator.ioBuffer(128);
+        assertEquals(System.identityHashCode(buffer),System.identityHashCode(buffer2));
+        buffer2.free();
+        IoBuffer buffer3 = allocator.ioBuffer(128);
+        assertEquals(System.identityHashCode(buffer2),System.identityHashCode(buffer3));
+
+    }
+
 }
