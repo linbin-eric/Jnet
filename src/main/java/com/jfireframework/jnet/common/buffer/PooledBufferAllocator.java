@@ -72,7 +72,7 @@ public class PooledBufferAllocator implements BufferAllocator
     String        name;
     HeapArena[]   heapArenas;
     DirectArena[] directArenas;
-    final         FastThreadLocal<ThreadCache> localCache    = new FastThreadLocal<ThreadCache>()
+    protected final FastThreadLocal<ThreadCache> localCache = new FastThreadLocal<ThreadCache>()
     {
         @Override
         protected ThreadCache initializeValue()
