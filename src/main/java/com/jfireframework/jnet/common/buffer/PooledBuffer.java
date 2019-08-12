@@ -426,9 +426,7 @@ public abstract class PooledBuffer<T> implements IoBuffer
         chunk = null;
         if (recycleHandler != null)
         {
-            RecycleHandler tmp = recycleHandler;
-            recycleHandler = null;
-            tmp.recycle(this);
+            recycleHandler.recycle(this);
         }
     }
 }
