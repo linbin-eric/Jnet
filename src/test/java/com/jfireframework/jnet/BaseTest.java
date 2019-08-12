@@ -5,14 +5,13 @@ import com.jfireframework.jnet.client.JnetClientBuilder;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ChannelContextInitializer;
 import com.jfireframework.jnet.common.api.DataProcessor;
-import com.jfireframework.jnet.common.buffer.BufferAllocator;
-import com.jfireframework.jnet.common.buffer.IoBuffer;
-import com.jfireframework.jnet.common.buffer.PooledBufferAllocator;
+import com.jfireframework.jnet.common.buffer.*;
 import com.jfireframework.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
 import com.jfireframework.jnet.common.internal.BindDownAndUpStreamDataProcessor;
 import com.jfireframework.jnet.common.internal.DefaultAcceptHandler;
 import com.jfireframework.jnet.common.processor.ChannelAttachProcessor;
 import com.jfireframework.jnet.common.processor.ThreadAttachProcessor;
+import com.jfireframework.jnet.common.thread.FastThreadLocalThread;
 import com.jfireframework.jnet.server.AioServer;
 import com.jfireframework.jnet.server.AioServerBuilder;
 import org.junit.Test;
@@ -25,7 +24,6 @@ import org.slf4j.LoggerFactory;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 
@@ -52,8 +50,12 @@ public class BaseTest
     public static Collection<Object[]> params()
     {
         return Arrays.asList(new Object[][]{ //
+                {PooledUnRecycleBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.IO}, //
                 {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.IO}, //
-                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.Channel}, //
+//                {PooledUnThreadCacheBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.IO}, //
+//                {UnPooledRecycledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.IO}, //
+//                {UnPooledUnRecycledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.IO}, //
+//                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.Channel}, //
                 {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.THREAD}, //
         });
     }
@@ -69,15 +71,14 @@ public class BaseTest
             Arrays.fill(results[i], -1);
         }
         AioServerBuilder builder = new AioServerBuilder();
-        final ExecutorService fixService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors(), new ThreadFactory()
+        final ExecutorService fixService = Executors.newCachedThreadPool(new ThreadFactory()
         {
-            AtomicInteger atomicInteger = new AtomicInteger(0);
+            int count = 0;
 
             @Override
             public Thread newThread(Runnable r)
             {
-                int count = atomicInteger.getAndIncrement();
-                return new Thread(r, "channelWorker-" + (count));
+                return new FastThreadLocalThread(r, "business-worker-" + (count++));
             }
         });
         builder.setAcceptHandler(new DefaultAcceptHandler(null, bufferAllocator, batchWriteNum, new ChannelContextInitializer()
@@ -150,7 +151,7 @@ public class BaseTest
                 @Override
                 public void onChannelContextInit(ChannelContext channelContext)
                 {
-                    channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1000, bufferAllocator), //
+                    channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024 * 4, bufferAllocator), //
                             new DataProcessor<IoBuffer>()
                             {
 
@@ -210,7 +211,7 @@ public class BaseTest
                     {
                         e1.printStackTrace();
                     }
-                    int batch=1000;
+                    int batch = 1000;
                     for (int j = 0; j < numPerThread; )
                     {
                         IoBuffer buffer = bufferAllocator.ioBuffer(8);
