@@ -12,16 +12,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class Recycler<T>
 {
-    public static final AtomicInteger IDGENERATOR                 = new AtomicInteger(0);
-    public static final int           recyclerId                  = IDGENERATOR.getAndIncrement();
+    public static final AtomicInteger                               IDGENERATOR                 = new AtomicInteger(0);
+    public static final int                                         recyclerId                  = IDGENERATOR.getAndIncrement();
     // Stack最大可以存储的缓存对象个数
-    public static final int           MAX_CACHE_INSTANCE_CAPACITY = Math.max(MathUtil.normalizeSize(SystemPropertyUtil.getInt("io.jnet.recycler.maxCacheInstanceCapacity", 0)), 32 * 1024);
+    public static final int                                         MAX_CACHE_INSTANCE_CAPACITY = Math.max(MathUtil.normalizeSize(SystemPropertyUtil.getInt("io.jnet.recycler.maxCacheInstanceCapacity", 0)), 32 * 1024);
     // 一个线程最多持有的延迟队列个数
-    public static final int           MAX_DELAY_QUEUE_NUM         = Math.max(SystemPropertyUtil.getInt("io.jnet.recycler.maxDelayQueueNum", 0), 256);
+    public static final int                                         MAX_DELAY_QUEUE_NUM         = Math.max(SystemPropertyUtil.getInt("io.jnet.recycler.maxDelayQueueNum", 0), 256);
     // Stack最多可以在延迟队列中存放的个数
-    public static final int           MAX_SHARED_CAPACITY         = Math.max(SystemPropertyUtil.getInt("io.jnet.recycler.maxSharedCapacity", 0), MAX_CACHE_INSTANCE_CAPACITY);
-    public static final int           LINK_SIZE                   = Math.max(SystemPropertyUtil.getInt("io.jnet.recycler.linSize", 0), 1024);
-    final FastThreadLocal<Map<Stack, WeakOrderQueue>> delayQueues  = new FastThreadLocal<Map<Stack, WeakOrderQueue>>()
+    public static final int                                         MAX_SHARED_CAPACITY         = Math.max(SystemPropertyUtil.getInt("io.jnet.recycler.maxSharedCapacity", 0), MAX_CACHE_INSTANCE_CAPACITY);
+    public static final int                                         LINK_SIZE                   = Math.max(SystemPropertyUtil.getInt("io.jnet.recycler.linSize", 0), 1024);
+    final               FastThreadLocal<Map<Stack, WeakOrderQueue>> delayQueues                 = new FastThreadLocal<Map<Stack, WeakOrderQueue>>()
     {
         @Override
         protected java.util.Map<Stack, WeakOrderQueue> initializeValue()
@@ -31,7 +31,7 @@ public abstract class Recycler<T>
 
         ;
     };
-    final FastThreadLocal<Stack>                      currentStack = new FastThreadLocal<Stack>()
+    final               FastThreadLocal<Stack>                      currentStack                = new FastThreadLocal<Stack>()
     {
         @Override
         protected Stack initializeValue()
@@ -41,9 +41,9 @@ public abstract class Recycler<T>
 
         ;
     };
-    final long LINK_NEXT_OFFSET = UNSAFE.getFieldOffset("next", Link.class);
-    private final WeakOrderQueue DUMMY = new WeakOrderQueue();
-    private final RecycleHandler NO_OP = new RecycleHandler()
+    final               long                                        LINK_NEXT_OFFSET            = UNSAFE.getFieldOffset("next", Link.class);
+    private final       WeakOrderQueue                              DUMMY                       = new WeakOrderQueue();
+    private final       RecycleHandler                              NO_OP                       = new RecycleHandler()
     {
 
         @Override
@@ -52,11 +52,11 @@ public abstract class Recycler<T>
         }
     };
     /////////////////////////////////
-    private             int           maxCachedInstanceCapacity;
-    private             int           stackInitSize               = 2048;
-    private             int           maxDelayQueueNum;
-    private             int           linkSize;
-    private             int           maxSharedCapacity;
+    private             int                                         maxCachedInstanceCapacity;
+    private             int                                         stackInitSize               = 2048;
+    private             int                                         maxDelayQueueNum;
+    private             int                                         linkSize;
+    private             int                                         maxSharedCapacity;
 
     public Recycler()
     {
@@ -120,10 +120,10 @@ public abstract class Recycler<T>
         if (pop == null)
         {
             pop = new DefaultHandler();
-            pop.stack = stack;
             T instance = newObject(pop);
             pop.value = instance;
         }
+        pop.stack = stack;
         return (T) pop.value;
     }
 
