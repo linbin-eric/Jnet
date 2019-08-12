@@ -30,7 +30,8 @@ public abstract class UnPooledBuffer<T> implements IoBuffer
         int newWritePosi = writePosi + length;
         if (newWritePosi > capacity)
         {
-            reallocate(newWritePosi);
+            int newSize = capacity*2>newWritePosi?capacity*2:newWritePosi;
+            reallocate(newSize);
         }
         this.writePosi = newWritePosi;
         return writePosi;
@@ -365,9 +366,7 @@ public abstract class UnPooledBuffer<T> implements IoBuffer
     {
         if (recycleHandler != null)
         {
-            RecycleHandler tmp = recycleHandler;
-            recycleHandler = null;
-            tmp.recycle(this);
+            recycleHandler.recycle(this);
         }
     }
 
