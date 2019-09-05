@@ -1,11 +1,11 @@
 package com.jfireframework.jnet.common.internal;
 
-import com.jfireframework.baseutil.reflect.UNSAFE;
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.WriteCompletionHandler;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
+import com.jfireframework.jnet.common.util.UNSAFE;
 import org.jctools.queues.MpscLinkedQueue7;
 
 import java.nio.ByteBuffer;

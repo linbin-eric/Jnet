@@ -1,10 +1,9 @@
 package com.jfireframework.jnet.common.processor.worker;
 
-import com.jfireframework.baseutil.reflect.UNSAFE;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.DataProcessor;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
-import org.jctools.queues.ConcurrentCircularArrayQueue;
+import com.jfireframework.jnet.common.util.UNSAFE;
 import org.jctools.queues.SpscLinkedQueue;
 
 import java.util.Queue;

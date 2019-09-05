@@ -1,6 +1,6 @@
 package com.jfireframework.jnet.common.buffer;
 
-import com.jfireframework.baseutil.reflect.ReflectUtil;
+import com.jfireframework.jnet.common.util.ReflectUtil;
 
 public class SubPage<T>
 {

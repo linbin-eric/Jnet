@@ -1,7 +1,8 @@
 package com.jfireframework.jnet.common.buffer;
 
-import com.jfireframework.baseutil.reflect.ReflectUtil;
-import com.jfireframework.baseutil.reflect.UNSAFE;
+
+import com.jfireframework.jnet.common.util.ReflectUtil;
+import com.jfireframework.jnet.common.util.UNSAFE;
 
 import java.lang.reflect.Method;
 import java.nio.ByteOrder;

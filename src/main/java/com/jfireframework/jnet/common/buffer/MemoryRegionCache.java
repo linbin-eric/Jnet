@@ -1,6 +1,7 @@
 package com.jfireframework.jnet.common.buffer;
 
-import com.jfireframework.baseutil.reflect.UNSAFE;
+
+import com.jfireframework.jnet.common.util.UNSAFE;
 
 import java.util.Arrays;
 

@@ -1,6 +1,5 @@
 package com.jfireframework.jnet.common.buffer;
 
-import com.jfireframework.baseutil.StringUtil;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -68,7 +67,7 @@ public class SmallAllocateTest
                 }
                 if (elementIdx != elementNum - 1)
                 {
-                    assertTrue(StringUtil.format("当前elementIdx:{},i：{}", elementIdx, i), head.next == chunk.subPages[i]);
+                    assertTrue( head.next == chunk.subPages[i]);
                 }
                 else
                 {

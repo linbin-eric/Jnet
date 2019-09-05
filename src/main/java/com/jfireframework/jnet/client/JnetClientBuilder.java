@@ -1,10 +1,10 @@
 package com.jfireframework.jnet.client;
 
-import com.jfireframework.baseutil.reflect.ReflectUtil;
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContextInitializer;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.internal.DefaultAioListener;
+import com.jfireframework.jnet.common.util.ReflectUtil;
 
 import java.nio.channels.AsynchronousChannelGroup;
 

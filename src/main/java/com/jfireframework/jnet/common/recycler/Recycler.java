@@ -1,9 +1,9 @@
 package com.jfireframework.jnet.common.recycler;
 
-import com.jfireframework.baseutil.reflect.UNSAFE;
 import com.jfireframework.jnet.common.thread.FastThreadLocal;
 import com.jfireframework.jnet.common.util.MathUtil;
 import com.jfireframework.jnet.common.util.SystemPropertyUtil;
+import com.jfireframework.jnet.common.util.UNSAFE;
 
 import java.lang.ref.WeakReference;
 import java.util.Map;

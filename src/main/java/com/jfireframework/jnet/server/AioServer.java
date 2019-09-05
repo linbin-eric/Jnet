@@ -1,7 +1,7 @@
 package com.jfireframework.jnet.server;
 
-import com.jfireframework.baseutil.reflect.ReflectUtil;
 import com.jfireframework.jnet.common.api.AcceptHandler;
+import com.jfireframework.jnet.common.util.ReflectUtil;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;

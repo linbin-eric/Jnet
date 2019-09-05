@@ -1,12 +1,12 @@
 package com.jfireframework.jnet.client;
 
-import com.jfireframework.baseutil.reflect.ReflectUtil;
 import com.jfireframework.jnet.common.api.*;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
 import com.jfireframework.jnet.common.internal.DefaultChannelContext;
 import com.jfireframework.jnet.common.internal.DefaultReadCompletionHandler;
 import com.jfireframework.jnet.common.internal.DefaultWriteCompleteHandler;
+import com.jfireframework.jnet.common.util.ReflectUtil;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;

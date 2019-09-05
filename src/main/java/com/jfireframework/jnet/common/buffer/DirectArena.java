@@ -1,7 +1,7 @@
 package com.jfireframework.jnet.common.buffer;
 
-import com.jfireframework.baseutil.reflect.ReflectUtil;
 import com.jfireframework.jnet.common.util.PlatFormFunction;
+import com.jfireframework.jnet.common.util.ReflectUtil;
 
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
