@@ -387,4 +387,10 @@ public abstract class UnPooledBuffer<T> implements IoBuffer
     abstract short getShort0(int posi);
 
     abstract long getLong0(int posi);
+
+    @Override
+    public IoBuffer slice(int length)
+    {
+        return null;
+    }
 }

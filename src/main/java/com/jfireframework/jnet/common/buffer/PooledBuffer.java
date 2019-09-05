@@ -8,28 +8,33 @@ public abstract class PooledBuffer<T> extends AbstractBuffer<T>
     long           handle;
     ThreadCache    cache;
     Chunk<T>       chunk;
-    RecycleHandler recycleHandler;
+
 
     public void init(Chunk<T> chunk, int capacity, int offset, long handle, ThreadCache cache)
     {
-        this.chunk = chunk;
-        memory = chunk.memory;
-        this.offset = offset;
-        this.capacity = capacity;
         this.handle = handle;
         this.cache = cache;
-        readPosi = writePosi = 0;
+        this.chunk = chunk;
+        init(chunk.memory, capacity, 0, 0, offset);
+//        memory = chunk.memory;
+//        this.offset = offset;
+//        this.capacity = capacity;
+//        readPosi = writePosi = 0;
+//        refCount = 1;
+
     }
 
     public void initUnPooled(Chunk<T> chunk, ThreadCache cache)
     {
         this.chunk = chunk;
         this.cache = cache;
-        memory = chunk.memory;
-        offset = 0;
-        readPosi = writePosi = 0;
-        capacity = chunk.chunkSize;
         handle = -1;
+        init(chunk.memory, chunk.chunkSize,0,0,0);
+//        memory = chunk.memory;
+//        offset = 0;
+//        readPosi = writePosi = 0;
+//        capacity = chunk.chunkSize;
+//        refCount = 1;
     }
 
     @Override
@@ -66,6 +71,10 @@ public abstract class PooledBuffer<T> extends AbstractBuffer<T>
     @Override
     public void free()
     {
+        if (descRef() > 0)
+        {
+            return;
+        }
         chunk.arena.free(chunk, handle, capacity, cache);
         handle = offset = capacity = readPosi = writePosi = 0;
         memory = null;
@@ -75,5 +84,12 @@ public abstract class PooledBuffer<T> extends AbstractBuffer<T>
         {
             recycleHandler.recycle(this);
         }
+
+    }
+
+    @Override
+    public IoBuffer slice(int length)
+    {
+        return null;
     }
 }

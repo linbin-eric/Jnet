@@ -112,7 +112,7 @@ public class PooledHeapBuffer extends PooledBuffer<byte[]>
         else
         {
             int posi = nextWritePosi(len);
-            Bits.copyToArray(((PooledDirectBuffer) buffer).addressPlusOffsetCache + buffer.readPosi, memory, realPosi(posi), len);
+            Bits.copyToArray(((PooledDirectBuffer) buffer).address + buffer.readPosi, memory, realPosi(posi), len);
         }
     }
 }

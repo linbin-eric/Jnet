@@ -1,12 +1,37 @@
 package com.jfireframework.jnet.common.buffer;
 
-public abstract class AbstractBuffer<T> implements  IoBuffer
+import com.jfireframework.jnet.common.recycler.RecycleHandler;
+import com.jfireframework.jnet.common.util.PlatFormFunction;
+import com.jfireframework.jnet.common.util.UNSAFE;
+
+import java.nio.ByteBuffer;
+
+public abstract class AbstractBuffer<T> implements IoBuffer
 {
-    T              memory;
-    int            capacity;
-    int            readPosi;
-    int            writePosi;
-    int            offset;
+    T    memory;
+    int  capacity;
+    int  readPosi;
+    int  writePosi;
+    int  offset;
+    //当direct时才有值
+    long address;
+    volatile int refCount;
+    RecycleHandler recycleHandler;
+    static final long REF_COUNT_OFFSET = UNSAFE.getFieldOffset("refCount", AbstractBuffer.class);
+
+    void init(T memory, int capacity, int readPosi, int writePosi, int offset)
+    {
+        this.memory = memory;
+        this.capacity = capacity;
+        this.readPosi = readPosi;
+        this.writePosi = writePosi;
+        this.offset = offset;
+        refCount = 1;
+        if (isDirect())
+        {
+            address = PlatFormFunction.bytebufferOffsetAddress((ByteBuffer) memory) + offset;
+        }
+    }
 
     @Override
     public int capacity()
@@ -352,4 +377,30 @@ public abstract class AbstractBuffer<T> implements  IoBuffer
     }
 
     abstract long getLong0(int posi);
+
+    int incrRef()
+    {
+        return add(1);
+    }
+
+    int descRef()
+    {
+        return add(-1);
+    }
+
+    int add(int add)
+    {
+        int current = refCount;
+        int update  = current + add;
+        if (UNSAFE.compareAndSwapInt(this, REF_COUNT_OFFSET, current, update))
+        {
+            return update;
+        }
+        do
+        {
+            current = refCount;
+            update = current + add;
+        } while (UNSAFE.compareAndSwapInt(this, REF_COUNT_OFFSET, current, update) == false);
+        return update;
+    }
 }

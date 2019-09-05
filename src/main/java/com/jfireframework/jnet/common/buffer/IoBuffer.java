@@ -307,4 +307,13 @@ public interface IoBuffer
      * @param newCapacity
      */
     IoBuffer capacityReadyFor(int newCapacity);
+
+    /**
+     * 从当前buffer的读取下标开始，切分出一个长度为length的新的IoBuffer。自身读取下标增加length。
+     * 新的IoBuffer的容量为length，读取下标为0，写入下标为length。
+     * 新的IoBuffer和原先的IoBuffer共享同一个底层存储
+     * @param length
+     * @return
+     */
+    IoBuffer slice(int length);
 }

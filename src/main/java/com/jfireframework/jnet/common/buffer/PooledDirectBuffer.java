@@ -6,17 +6,6 @@ import java.nio.ByteBuffer;
 
 public class PooledDirectBuffer extends PooledBuffer<ByteBuffer>
 {
-    long address;
-    long addressPlusOffsetCache;
-
-    @Override
-    public void init(Chunk<ByteBuffer> chunk, int capacity, int offset, long handle, ThreadCache cache)
-    {
-        super.init(chunk, capacity, offset, handle, cache);
-        address = PlatFormFunction.bytebufferOffsetAddress(memory);
-        addressPlusOffsetCache = address + offset;
-    }
-
     @Override
     protected void put0(PooledBuffer buffer, int len)
     {
@@ -28,7 +17,7 @@ public class PooledDirectBuffer extends PooledBuffer<ByteBuffer>
         else
         {
             int posi = nextWritePosi(len);
-            Bits.copyDirectMemory(((PooledDirectBuffer) buffer).addressPlusOffsetCache + buffer.readPosi, realAddress(posi), len);
+            Bits.copyDirectMemory(((PooledDirectBuffer) buffer).address + buffer.readPosi, realAddress(posi), len);
         }
     }
 
@@ -46,7 +35,7 @@ public class PooledDirectBuffer extends PooledBuffer<ByteBuffer>
         }
         else
         {
-            Bits.copyDirectMemory(addressPlusOffsetCache + readPosi, addressPlusOffsetCache, length);
+            Bits.copyDirectMemory(address + readPosi, address, length);
             writePosi = length;
             readPosi = 0;
         }
@@ -77,7 +66,7 @@ public class PooledDirectBuffer extends PooledBuffer<ByteBuffer>
 
     long realAddress(int posi)
     {
-        return addressPlusOffsetCache + posi;
+        return address + posi;
     }
 
     @Override
@@ -139,5 +128,4 @@ public class PooledDirectBuffer extends PooledBuffer<ByteBuffer>
     {
         return Bits.getLong(realAddress(posi));
     }
-
 }
