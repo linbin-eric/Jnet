@@ -102,16 +102,17 @@ public class PooledHeapBuffer extends PooledBuffer<byte[]>
     }
 
     @Override
-    void put1(PooledHeapBuffer buffer, int len)
+    protected void put0(PooledBuffer buffer, int len)
     {
-        int posi = nextWritePosi(len);
-        System.arraycopy(buffer.memory, buffer.getReadPosi() + buffer.offset, memory, realPosi(posi), len);
-    }
-
-    @Override
-    void put2(PooledDirectBuffer buffer, int len)
-    {
-        int posi = nextWritePosi(len);
-        Bits.copyToArray(buffer.addressPlusOffsetCache + buffer.readPosi, memory, realPosi(posi), len);
+        if (buffer instanceof PooledHeapBuffer)
+        {
+            int posi = nextWritePosi(len);
+            System.arraycopy(buffer.memory, buffer.readPosi + buffer.offset, memory, realPosi(posi), len);
+        }
+        else
+        {
+            int posi = nextWritePosi(len);
+            Bits.copyToArray(((PooledDirectBuffer) buffer).addressPlusOffsetCache + buffer.readPosi, memory, realPosi(posi), len);
+        }
     }
 }

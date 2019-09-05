@@ -18,6 +18,21 @@ public class PooledDirectBuffer extends PooledBuffer<ByteBuffer>
     }
 
     @Override
+    protected void put0(PooledBuffer buffer, int len)
+    {
+        if (buffer instanceof PooledHeapBuffer)
+        {
+            int posi = nextWritePosi(len);
+            Bits.copyFromByteArray(((PooledHeapBuffer) buffer).memory, buffer.offset + buffer.readPosi, realAddress(posi), len);
+        }
+        else
+        {
+            int posi = nextWritePosi(len);
+            Bits.copyDirectMemory(((PooledDirectBuffer) buffer).addressPlusOffsetCache + buffer.readPosi, realAddress(posi), len);
+        }
+    }
+
+    @Override
     public IoBuffer compact()
     {
         if (readPosi == 0)
@@ -125,17 +140,4 @@ public class PooledDirectBuffer extends PooledBuffer<ByteBuffer>
         return Bits.getLong(realAddress(posi));
     }
 
-    @Override
-    void put1(PooledHeapBuffer buffer, int len)
-    {
-        int posi = nextWritePosi(len);
-        Bits.copyFromByteArray(buffer.memory, buffer.offset + buffer.readPosi, realAddress(posi), len);
-    }
-
-    @Override
-    void put2(PooledDirectBuffer buffer, int len)
-    {
-        int posi = nextWritePosi(len);
-        Bits.copyDirectMemory(buffer.addressPlusOffsetCache + buffer.readPosi, realAddress(posi), len);
-    }
 }
