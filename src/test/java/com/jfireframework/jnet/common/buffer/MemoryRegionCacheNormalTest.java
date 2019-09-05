@@ -49,8 +49,8 @@ public class MemoryRegionCacheNormalTest
         for (int i = 0; i < normalCacheSize; i++)
         {
             PooledBuffer<?> buffer = (PooledBuffer<?>) allocator.ioBuffer(size, preferDirect);
-            buffers.add(buffer);
-            chunks.add(buffer.chunk);
+            buffers.add((IoBuffer) buffer);
+            chunks.add(buffer.chunk());
         }
         assertEquals(1, chunks.size());
         Chunk<?> chunk     = chunks.iterator().next();
@@ -77,7 +77,7 @@ public class MemoryRegionCacheNormalTest
         for (int i = 0; i < normalCacheSize; i++)
         {
             PooledBuffer<?> buffer = (PooledBuffer<?>) allocator.ioBuffer(size, preferDirect);
-            buffers.add(buffer);
+            buffers.add((IoBuffer) buffer);
         }
         assertEquals("当前分配大小是:" + size, freeBytes, chunk.freeBytes);
         assertTrue(memoryRegionCache.isEmpty());

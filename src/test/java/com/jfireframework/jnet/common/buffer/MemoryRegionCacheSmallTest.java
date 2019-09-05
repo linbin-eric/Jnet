@@ -50,7 +50,7 @@ public class MemoryRegionCacheSmallTest
         {
             PooledBuffer<?> buffer = (PooledBuffer<?>) allocator.ioBuffer(size, preferDirect);
             buffers.add(buffer);
-            chunks.add(buffer.chunk);
+            chunks.add(buffer.chunk());
         }
         assertEquals(1, chunks.size());
         Chunk<?> chunk     = chunks.iterator().next();

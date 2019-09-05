@@ -23,10 +23,10 @@ public class HugeAllocateTest
 
     private void test0(int allocateCapacity, PooledBuffer<?> buffer, Arena<?> arena)
     {
-        assertTrue(buffer.chunk.unpooled);
-        assertEquals(0, buffer.offset);
-        assertEquals(allocateCapacity, buffer.capacity);
-        buffer.free();
+        assertTrue(buffer.chunk().unpooled);
+        assertEquals(0, ((AbstractBuffer) buffer).offset);
+        assertEquals(allocateCapacity, ((AbstractBuffer) buffer).capacity);
+        ((AbstractBuffer) buffer).free();
     }
 
     @Test

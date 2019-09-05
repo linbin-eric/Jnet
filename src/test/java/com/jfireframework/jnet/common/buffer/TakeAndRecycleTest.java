@@ -19,20 +19,20 @@ public class TakeAndRecycleTest
     private void test0(boolean preferDirect)
     {
         PooledBuffer<?> buffer = (PooledBuffer<?>) allocator.ioBuffer(pagesize, preferDirect);
-        assertEquals(16, buffer.handle);
+        assertEquals(16, buffer.handle());
         PooledBuffer<?> buffer2 = (PooledBuffer<?>) allocator.ioBuffer(pagesize << 1, preferDirect);
-        assertEquals(9, buffer2.handle);
-        buffer.free();
+        assertEquals(9, buffer2.handle());
+        ((AbstractBuffer) buffer).free();
         PooledBuffer<?> buffer3 = (PooledBuffer<?>) allocator.ioBuffer(pagesize << 1, preferDirect);
-        assertEquals(8, buffer3.handle);
+        assertEquals(8, buffer3.handle());
         PooledBuffer<?> buffer4 = (PooledBuffer<?>) allocator.ioBuffer(pagesize, preferDirect);
-        assertEquals(20, buffer4.handle);
+        assertEquals(20, buffer4.handle());
         PooledBuffer<?> buffer5 = (PooledBuffer<?>) allocator.ioBuffer(pagesize << 1, preferDirect);
-        assertEquals(11, buffer5.handle);
+        assertEquals(11, buffer5.handle());
         PooledBuffer<?> buffer6 = (PooledBuffer<?>) allocator.ioBuffer(pagesize, preferDirect);
-        assertEquals(21, buffer6.handle);
-        buffer2.free();
+        assertEquals(21, buffer6.handle());
+        ((AbstractBuffer) buffer2).free();
         PooledBuffer<?> buffer7 = (PooledBuffer<?>) allocator.ioBuffer(pagesize << 1, preferDirect);
-        assertEquals(9, buffer7.handle);
+        assertEquals(9, buffer7.handle());
     }
 }

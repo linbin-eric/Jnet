@@ -56,8 +56,8 @@ public class TinyAllocateTest
         {
             for (int elementIdx = 0; elementIdx < elementNum; elementIdx++)
             {
-                PooledBuffer<?> buffer = (PooledBuffer<?>) allocator.ioBuffer(reqCapacity, direct);
-                buffers.add(buffer);
+                AbstractBuffer<?> buffer = (AbstractBuffer<?>) allocator.ioBuffer(reqCapacity, direct);
+                buffers.add((IoBuffer) buffer);
                 int offset = i * pagesize + elementIdx * reqCapacity;
                 assertEquals(reqCapacity, buffer.capacity);
                 assertEquals(offset, buffer.offset);

@@ -31,9 +31,9 @@ public class NormalAllocateTest
             for (int j = 0; j < 1 << i; j++)
             {
                 PooledBuffer<?> buffer = (PooledBuffer<?>) allocator.ioBuffer(levelSize, direct);
-                long            handle = buffer.handle;
+                long            handle = buffer.handle();
                 assertEquals(base + j, handle);
-                buffers.add(buffer);
+                buffers.add((IoBuffer) buffer);
             }
             for (IoBuffer each : buffers)
             {
@@ -63,11 +63,11 @@ public class NormalAllocateTest
             PooledBuffer<?> buffer = (PooledBuffer<?>) allocator.ioBuffer(size, preferDirect);
             if (i == maxLevel)
             {
-                assertEquals(1 << i, buffer.handle);
+                assertEquals(1 << i, buffer.handle());
             }
             else
             {
-                assertEquals((1 << i) + 1, buffer.handle);
+                assertEquals((1 << i) + 1, buffer.handle());
             }
         }
     }

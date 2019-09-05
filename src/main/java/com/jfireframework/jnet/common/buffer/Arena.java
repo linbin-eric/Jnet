@@ -176,17 +176,18 @@ public abstract class Arena<T>
         newChunkCount++;
     }
 
-    public void reAllocate(PooledBuffer<T> buffer, int newReqCapacity)
+    public void reAllocate(PooledBuffer<T> buf, int newReqCapacity)
     {
-        Chunk<T>    oldChunk     = buffer.chunk;
-        long        oldHandle    = buffer.handle;
+        AbstractBuffer<T> buffer = (AbstractBuffer) buf;
+        Chunk<T>    oldChunk     = buf.getPoolInfoHolder().chunk;
+        long        oldHandle    = buf.getPoolInfoHolder().handle;
         int         oldReadPosi  = buffer.readPosi;
         int         oldWritePosi = buffer.writePosi;
         int         oldCapacity  = buffer.capacity;
         int         oldOffset    = buffer.offset;
         T           oldMemory    = buffer.memory;
-        ThreadCache oldCache     = buffer.cache;
-        allocate(newReqCapacity, Integer.MAX_VALUE, buffer, parent.threadCache());
+        ThreadCache oldCache     = buf.getPoolInfoHolder().cache;
+        allocate(newReqCapacity, Integer.MAX_VALUE, buf, parent.threadCache());
         if (newReqCapacity > oldCapacity)
         {
             buffer.setReadPosi(oldReadPosi).setWritePosi(oldWritePosi);

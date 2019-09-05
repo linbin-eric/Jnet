@@ -2,134 +2,56 @@ package com.jfireframework.jnet.common.buffer;
 
 import java.nio.ByteBuffer;
 
-public class PooledDirectBuffer extends PooledBuffer<ByteBuffer>
+public class PooledDirectBuffer extends AbstractDirectBuffer implements PooledBuffer<ByteBuffer>
 {
-    @Override
-    public IoBuffer put(IoBuffer buf, int len)
+
+    final PoolInfoHolder poolInfoHolder = new PoolInfoHolder();
+
+    public void init(Chunk<ByteBuffer> chunk, int capacity, int offset, long handle, ThreadCache cache)
     {
-        if (buf.remainRead() < len)
-        {
-            throw new IllegalArgumentException("剩余读取长度不足");
-        }
-        AbstractBuffer buffer = (AbstractBuffer) buf;
-        if (buffer.isDirect())
-        {
-            int posi = nextWritePosi(len);
-            Bits.copyDirectMemory(buffer.address + buffer.readPosi, realAddress(posi), len);
-        }
-        else
-        {
-            int posi = nextWritePosi(len);
-            Bits.copyFromByteArray((byte[]) buffer.memory, buffer.offset + buffer.readPosi, realAddress(posi), len);
-        }
-        return this;
+        poolInfoHolder.init(handle, cache, chunk);
+        init(chunk.memory, capacity, 0, 0, offset);
+    }
+
+    public void initUnPooled(Chunk<ByteBuffer> chunk, ThreadCache cache)
+    {
+        poolInfoHolder.init(-1, cache, chunk);
+        init(chunk.memory, chunk.chunkSize, 0, 0, 0);
     }
 
     @Override
-    public IoBuffer compact()
+    public PoolInfoHolder getPoolInfoHolder()
     {
-        if (readPosi == 0)
-        {
-            return this;
-        }
-        int length = remainRead();
-        if (length == 0)
-        {
-            writePosi = readPosi = 0;
-        }
-        else
-        {
-            Bits.copyDirectMemory(address + readPosi, address, length);
-            writePosi = length;
-            readPosi = 0;
-        }
-        return this;
+        return poolInfoHolder;
     }
 
     @Override
-    public ByteBuffer readableByteBuffer()
+    public Chunk<ByteBuffer> chunk()
     {
-        ByteBuffer duplicate = memory.duplicate();
-        duplicate.limit(offset + writePosi).position(offset + readPosi);
-        return duplicate;
+        return poolInfoHolder.chunk;
     }
 
     @Override
-    public ByteBuffer writableByteBuffer()
+    public long handle()
     {
-        ByteBuffer duplicate = memory.duplicate();
-        duplicate.limit(offset + capacity).position(offset + writePosi);
-        return duplicate;
+        return poolInfoHolder.handle;
     }
 
     @Override
-    public boolean isDirect()
+    protected void reAllocate(int reqCapacity)
     {
-        return true;
-    }
-
-    long realAddress(int posi)
-    {
-        return address + posi;
+        poolInfoHolder.chunk.arena.reAllocate(this, reqCapacity);
     }
 
     @Override
-    void put0(int posi, byte value)
+    protected void free0()
     {
-        Bits.put(realAddress(posi), value);
+        poolInfoHolder.free(capacity);
     }
 
     @Override
-    void put0(byte[] content, int off, int len, int posi)
+    public IoBuffer slice(int length)
     {
-        Bits.copyFromByteArray(content, off, realAddress(posi), len);
-    }
-
-    @Override
-    void putInt0(int posi, int value)
-    {
-        Bits.putInt(realAddress(posi), value);
-    }
-
-    @Override
-    void putShort0(int posi, short value)
-    {
-        Bits.putShort(realAddress(posi), value);
-    }
-
-    @Override
-    void putLong0(int posi, long value)
-    {
-        Bits.putLong(realAddress(posi), value);
-    }
-
-    @Override
-    byte get0(int posi)
-    {
-        return Bits.get(realAddress(posi));
-    }
-
-    @Override
-    void get0(byte[] content, int off, int len, int posi)
-    {
-        Bits.copyToArray(realAddress(posi), content, off, len);
-    }
-
-    @Override
-    int getInt0(int posi)
-    {
-        return Bits.getInt(realAddress(posi));
-    }
-
-    @Override
-    short getShort0(int posi)
-    {
-        return Bits.getShort(realAddress(posi));
-    }
-
-    @Override
-    long getLong0(int posi)
-    {
-        return Bits.getLong(realAddress(posi));
+        return null;
     }
 }
