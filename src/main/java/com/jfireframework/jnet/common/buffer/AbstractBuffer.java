@@ -403,4 +403,22 @@ public abstract class AbstractBuffer<T> implements IoBuffer
         } while (UNSAFE.compareAndSwapInt(this, REF_COUNT_OFFSET, current, update) == false);
         return update;
     }
+
+    @Override
+    public void free()
+    {
+        if (descRef() > 0)
+        {
+            return;
+        }
+        free0();
+        address = offset = capacity = readPosi = writePosi = 0;
+        memory = null;
+        if (recycleHandler != null)
+        {
+            recycleHandler.recycle(this);
+        }
+    }
+
+    protected abstract void free0();
 }

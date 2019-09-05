@@ -8,12 +8,14 @@ public abstract class PooledBuffer<T> extends AbstractBuffer<T>
     long        handle;
     ThreadCache cache;
     Chunk<T>    chunk;
+    final PoolInfoHolder poolInfoHolder = new PoolInfoHolder();
 
     public void init(Chunk<T> chunk, int capacity, int offset, long handle, ThreadCache cache)
     {
         this.handle = handle;
         this.cache = cache;
         this.chunk = chunk;
+//        poolInfoHolder.init(handle, cache, chunk);
         init(chunk.memory, capacity, 0, 0, offset);
     }
 
@@ -22,6 +24,7 @@ public abstract class PooledBuffer<T> extends AbstractBuffer<T>
         this.chunk = chunk;
         this.cache = cache;
         handle = -1;
+//        poolInfoHolder.init(-1, cache, chunk);
         init(chunk.memory, chunk.chunkSize, 0, 0, 0);
     }
 
@@ -32,21 +35,12 @@ public abstract class PooledBuffer<T> extends AbstractBuffer<T>
     }
 
     @Override
-    public void free()
+    protected void free0()
     {
-        if (descRef() > 0)
-        {
-            return;
-        }
         chunk.arena.free(chunk, handle, capacity, cache);
-        handle = offset = capacity = readPosi = writePosi = 0;
-        memory = null;
+        handle = 0;
         cache = null;
         chunk = null;
-        if (recycleHandler != null)
-        {
-            recycleHandler.recycle(this);
-        }
     }
 
     @Override
