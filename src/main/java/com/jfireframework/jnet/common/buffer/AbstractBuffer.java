@@ -19,7 +19,7 @@ public abstract class AbstractBuffer<T> implements IoBuffer
     RecycleHandler recycleHandler;
     static final long REF_COUNT_OFFSET = UNSAFE.getFieldOffset("refCount", AbstractBuffer.class);
 
-    void init(T memory, int capacity, int readPosi, int writePosi, int offset)
+    public void init(T memory, int capacity, int readPosi, int writePosi, int offset)
     {
         this.memory = memory;
         this.capacity = capacity;

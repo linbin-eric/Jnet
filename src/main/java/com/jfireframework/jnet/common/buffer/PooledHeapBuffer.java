@@ -52,6 +52,10 @@ public class PooledHeapBuffer extends AbstractHeapBuffer implements PooledBuffer
     @Override
     public IoBuffer slice(int length)
     {
-        return null;
+        incrRef();
+        IoBuffer slice = SliceHeapBuffer.slice(this, length);
+        addReadPosi(length);
+        return slice;
     }
+
 }
