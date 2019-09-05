@@ -1,24 +1,28 @@
 package com.jfireframework.jnet.common.buffer;
 
-import com.jfireframework.jnet.common.util.PlatFormFunction;
-
 import java.nio.ByteBuffer;
 
 public class PooledDirectBuffer extends PooledBuffer<ByteBuffer>
 {
     @Override
-    protected void put0(PooledBuffer buffer, int len)
+    public IoBuffer put(IoBuffer buf, int len)
     {
-        if (buffer instanceof PooledHeapBuffer)
+        if (buf.remainRead() < len)
+        {
+            throw new IllegalArgumentException("剩余读取长度不足");
+        }
+        AbstractBuffer buffer = (AbstractBuffer) buf;
+        if (buffer.isDirect())
         {
             int posi = nextWritePosi(len);
-            Bits.copyFromByteArray(((PooledHeapBuffer) buffer).memory, buffer.offset + buffer.readPosi, realAddress(posi), len);
+            Bits.copyDirectMemory(buffer.address + buffer.readPosi, realAddress(posi), len);
         }
         else
         {
             int posi = nextWritePosi(len);
-            Bits.copyDirectMemory(((PooledDirectBuffer) buffer).address + buffer.readPosi, realAddress(posi), len);
+            Bits.copyFromByteArray((byte[]) buffer.memory, buffer.offset + buffer.readPosi, realAddress(posi), len);
         }
+        return this;
     }
 
     @Override

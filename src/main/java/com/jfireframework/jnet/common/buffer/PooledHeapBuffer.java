@@ -102,17 +102,23 @@ public class PooledHeapBuffer extends PooledBuffer<byte[]>
     }
 
     @Override
-    protected void put0(PooledBuffer buffer, int len)
+    public IoBuffer put(IoBuffer buf, int len)
     {
-        if (buffer instanceof PooledHeapBuffer)
+        if (buf.remainRead() < len)
         {
-            int posi = nextWritePosi(len);
-            System.arraycopy(buffer.memory, buffer.readPosi + buffer.offset, memory, realPosi(posi), len);
+            throw new IllegalArgumentException("剩余读取长度不足");
         }
-        else
+        AbstractBuffer buffer = (AbstractBuffer) buf;
+        if (buffer.isDirect())
         {
             int posi = nextWritePosi(len);
             Bits.copyToArray(((PooledDirectBuffer) buffer).address + buffer.readPosi, memory, realPosi(posi), len);
         }
+        else
+        {
+            int posi = nextWritePosi(len);
+            System.arraycopy(buffer.memory, buffer.readPosi + buffer.offset, memory, realPosi(posi), len);
+        }
+        return this;
     }
 }
