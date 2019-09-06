@@ -1,6 +1,7 @@
 package com.jfireframework.jnet.common.buffer;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -28,14 +29,14 @@ public class UnPooledBufferRWTest
     public static Collection<?> data()
     {
         return Arrays.asList(new Object[][]{ //
-                {UnPooledUnRecycledBufferAllocator.DEFAULT.heapBuffer(128), UnPooledUnRecycledBufferAllocator.DEFAULT.heapBuffer(30)}, //
-                {UnPooledUnRecycledBufferAllocator.DEFAULT.heapBuffer(128), UnPooledUnRecycledBufferAllocator.DEFAULT.directBuffer(30)}, //
+//                {UnPooledUnRecycledBufferAllocator.DEFAULT.heapBuffer(128), UnPooledUnRecycledBufferAllocator.DEFAULT.heapBuffer(30)}, //
+//                {UnPooledUnRecycledBufferAllocator.DEFAULT.heapBuffer(128), UnPooledUnRecycledBufferAllocator.DEFAULT.directBuffer(30)}, //
                 {UnPooledUnRecycledBufferAllocator.DEFAULT.directBuffer(128), UnPooledUnRecycledBufferAllocator.DEFAULT.heapBuffer(30)}, //
-                {UnPooledUnRecycledBufferAllocator.DEFAULT.directBuffer(128), UnPooledUnRecycledBufferAllocator.DEFAULT.directBuffer(30)}, //
-                {UnPooledRecycledBufferAllocator.DEFAULT.heapBuffer(128), UnPooledRecycledBufferAllocator.DEFAULT.heapBuffer(30)}, //
-                {UnPooledRecycledBufferAllocator.DEFAULT.heapBuffer(128), UnPooledRecycledBufferAllocator.DEFAULT.directBuffer(30)}, //
-                {UnPooledRecycledBufferAllocator.DEFAULT.directBuffer(128), UnPooledRecycledBufferAllocator.DEFAULT.heapBuffer(30)}, //
-                {UnPooledRecycledBufferAllocator.DEFAULT.directBuffer(128), UnPooledRecycledBufferAllocator.DEFAULT.directBuffer(30)},//
+//                {UnPooledUnRecycledBufferAllocator.DEFAULT.directBuffer(128), UnPooledUnRecycledBufferAllocator.DEFAULT.directBuffer(30)}, //
+//                {UnPooledRecycledBufferAllocator.DEFAULT.heapBuffer(128), UnPooledRecycledBufferAllocator.DEFAULT.heapBuffer(30)}, //
+//                {UnPooledRecycledBufferAllocator.DEFAULT.heapBuffer(128), UnPooledRecycledBufferAllocator.DEFAULT.directBuffer(30)}, //
+//                {UnPooledRecycledBufferAllocator.DEFAULT.directBuffer(128), UnPooledRecycledBufferAllocator.DEFAULT.heapBuffer(30)}, //
+//                {UnPooledRecycledBufferAllocator.DEFAULT.directBuffer(128), UnPooledRecycledBufferAllocator.DEFAULT.directBuffer(30)},//
         });
     }
 
@@ -144,7 +145,6 @@ public class UnPooledBufferRWTest
         assertEquals(3, buffer.getInt());
         assertEquals((short) 100, buffer.getShort());
         assertEquals(1000L, buffer.getLong());
-        buffer.free();
     }
 
     /**
@@ -165,7 +165,8 @@ public class UnPooledBufferRWTest
         try
         {
             buffer.getInt();
-        } catch (Exception e)
+        }
+        catch (Exception e)
         {
             assertTrue(e instanceof IllegalArgumentException);
         }
@@ -173,14 +174,16 @@ public class UnPooledBufferRWTest
         try
         {
             buffer.putInt(10, 125);
-        } catch (Exception e)
+        }
+        catch (Exception e)
         {
             assertTrue(e instanceof IllegalArgumentException);
         }
         try
         {
             buffer.clear().getInt(123);
-        } catch (Exception e)
+        }
+        catch (Exception e)
         {
             assertTrue(e instanceof IllegalArgumentException);
         }
@@ -220,10 +223,25 @@ public class UnPooledBufferRWTest
     @Test
     public void test5()
     {
+        for (int i = 0; i < buffer.getWritePosi(); i++)
+        {
+            System.out.println(buffer.get());
+        }
         buffer.putInt(4);
         buffer.putShort((short) 2);
         buffer.putLong(23L);
+        for (int i = 0; i < buffer.getWritePosi(); i++)
+        {
+            System.out.println(buffer.get());
+        }
+        buffer.addReadPosi(-14);
         ByteBuffer nioBuffer = buffer.readableByteBuffer();
+        System.out.println(nioBuffer.position());
+        System.out.println(nioBuffer.limit());
+//        for (int i = 0; i < nioBuffer.limit(); i++)
+//        {
+//            System.out.println(nioBuffer.get());
+//        }
         assertEquals(4, nioBuffer.getInt());
         assertEquals(2, nioBuffer.getShort());
         assertEquals(23L, nioBuffer.getLong());

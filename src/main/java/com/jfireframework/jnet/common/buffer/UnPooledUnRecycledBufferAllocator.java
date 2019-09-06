@@ -22,16 +22,16 @@ public class UnPooledUnRecycledBufferAllocator implements BufferAllocator
     @Override
     public IoBuffer heapBuffer(int initializeCapacity)
     {
-        UnPooledBuffer<byte[]> buffer = new UnPooledHeapBuffer();
-        buffer.init(new byte[initializeCapacity], initializeCapacity);
+        AbstractBuffer buffer = new UnPooledHeapBuffer();
+        buffer.init(new byte[initializeCapacity], initializeCapacity, 0, 0, 0);
         return buffer;
     }
 
     @Override
     public IoBuffer directBuffer(int initializeCapacity)
     {
-        UnPooledBuffer<ByteBuffer> buffer = new UnPooledDirectBuffer();
-        buffer.init(ByteBuffer.allocateDirect(initializeCapacity), initializeCapacity);
+        AbstractBuffer buffer = new UnPooledDirectBuffer();
+        buffer.init(ByteBuffer.allocateDirect(initializeCapacity), initializeCapacity, 0, 0, 0);
         return buffer;
     }
 

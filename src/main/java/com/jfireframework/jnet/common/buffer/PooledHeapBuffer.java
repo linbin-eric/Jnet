@@ -1,7 +1,5 @@
 package com.jfireframework.jnet.common.buffer;
 
-import java.nio.ByteBuffer;
-
 public class PooledHeapBuffer extends AbstractHeapBuffer implements PooledBuffer<byte[]>
 {
 
@@ -16,7 +14,7 @@ public class PooledHeapBuffer extends AbstractHeapBuffer implements PooledBuffer
     public void initUnPooled(Chunk<byte[]> chunk, ThreadCache cache)
     {
         poolInfoHolder.init(-1, cache, chunk);
-        init( chunk.memory, chunk.chunkSize, 0, 0, 0);
+        init(chunk.memory, chunk.chunkSize, 0, 0, 0);
     }
 
     @Override
@@ -52,10 +50,6 @@ public class PooledHeapBuffer extends AbstractHeapBuffer implements PooledBuffer
     @Override
     public IoBuffer slice(int length)
     {
-        incrRef();
-        IoBuffer slice = SliceHeapBuffer.slice(this, length);
-        addReadPosi(length);
-        return slice;
+        return SliceHeapBuffer.slice(this, length);
     }
-
 }

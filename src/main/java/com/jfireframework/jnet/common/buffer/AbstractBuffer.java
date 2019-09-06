@@ -30,7 +30,11 @@ public abstract class AbstractBuffer<T> implements IoBuffer
         if (isDirect())
         {
             address = PlatFormFunction.bytebufferOffsetAddress((ByteBuffer) memory) + offset;
+            //！！注意，因为扩容的时候仍然是使用memory计算基础地址再加上offset，因此这里虽然计算了最终的address，但是
+            //不能将offset的值修改为其他的值，必须保持其原始值！
         }
+
+
     }
 
     @Override

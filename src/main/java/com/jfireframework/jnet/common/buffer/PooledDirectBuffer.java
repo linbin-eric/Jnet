@@ -52,6 +52,6 @@ public class PooledDirectBuffer extends AbstractDirectBuffer implements PooledBu
     @Override
     public IoBuffer slice(int length)
     {
-        return null;
+        return SliceDirectBuffer.slice(this, length);
     }
 }
