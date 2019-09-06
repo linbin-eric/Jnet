@@ -1,0 +1,190 @@
+package com.jfireframework.jnet.common.internal;
+
+import com.jfireframework.jnet.common.api.AioListener;
+import com.jfireframework.jnet.common.api.ChannelContext;
+import com.jfireframework.jnet.common.api.ReadCompletionHandler;
+import com.jfireframework.jnet.common.buffer.BufferAllocator;
+import com.jfireframework.jnet.common.buffer.IoBuffer;
+import com.jfireframework.jnet.common.buffer.PooledBufferAllocator;
+import com.jfireframework.jnet.common.util.MathUtil;
+
+import java.nio.channels.AsynchronousSocketChannel;
+import java.util.ArrayList;
+import java.util.List;
+
+public class AdaptiveReadCompletionHandler extends BindDownAndUpStreamDataProcessor<IoBuffer> implements ReadCompletionHandler<IoBuffer>
+{
+    public static   int                       initializeCapacity = PooledBufferAllocator.PAGESIZE;
+    protected final AsynchronousSocketChannel socketChannel;
+    protected final AioListener               aioListener;
+    protected final BufferAllocator           allocator;
+    protected final ReadEntry                 entry              = new ReadEntry();
+    protected       ChannelContext            channelContext;
+    static final    int[]                     sizeTable;
+    private         int                       minIndex;
+    private         int                       maxIndex;
+    private         int                       index;
+    private         boolean                   shouldDecr         = false;
+
+    static
+    {
+        List<Integer> list = new ArrayList<>();
+        for (int i = 16; i < 512; i += 16)
+        {
+            list.add(i);
+        }
+        for (int i = 512; i < Integer.MAX_VALUE && i > 0; i <<= 1)
+        {
+            list.add(i);
+        }
+        sizeTable = new int[list.size()];
+        for (int i = 0; i < list.size(); i++)
+        {
+            sizeTable[i] = list.get(i);
+        }
+    }
+
+    static int indexOf(int num)
+    {
+        if (num < 512)
+        {
+            int base = (num >> 4) - 1;
+            if ((num & 0x0f) != 0)
+            {
+                base += 1;
+            }
+            return base;
+        }
+        else
+        {
+            int i = MathUtil.log2(MathUtil.normalizeSize(num)) + 22;
+            return i;
+        }
+    }
+
+    public static void main(String[] args)
+    {
+        for (int i = 0; i < sizeTable.length; i++)
+        {
+            if (sizeTable[i] == sizeTable[indexOf(sizeTable[i])])
+            {
+                ;
+            }
+            else
+            {
+                System.out.println(sizeTable[i]);
+            }
+        }
+        System.out.println(indexOf(1024*1024*32));
+    }
+
+    public AdaptiveReadCompletionHandler(AioListener aioListener, BufferAllocator allocator, AsynchronousSocketChannel socketChannel)
+    {
+        this.aioListener = aioListener;
+        this.allocator = allocator;
+        this.socketChannel = socketChannel;
+        minIndex = indexOf(16);
+        maxIndex = indexOf(1024 * 1024*32);
+    }
+
+    @Override
+    public void start()
+    {
+        index =indexOf(1024);
+        IoBuffer buffer = allocator.ioBuffer(sizeTable[index]);
+        entry.setIoBuffer(buffer);
+        entry.setByteBuffer(buffer.writableByteBuffer());
+        socketChannel.read(entry.getByteBuffer(), entry, this);
+    }
+
+    @Override
+    public void completed(Integer length, ReadEntry entry)
+    {
+        int read = length;
+        if (read == -1)
+        {
+            entry.clean();
+            channelContext.close();
+            return;
+        }
+        IoBuffer buffer = entry.getIoBuffer();
+        buffer.addWritePosi(read);
+        int except = buffer.capacity();
+        try
+        {
+            downStream.process(buffer);
+        }
+        catch (Throwable e)
+        {
+            failed(e, entry);
+            return;
+        }
+        try
+        {
+            IoBuffer nextReadBuffer = nextReadBuffer(except, read);
+            entry.setIoBuffer(nextReadBuffer);
+            entry.setByteBuffer(nextReadBuffer.writableByteBuffer());
+            socketChannel.read(entry.getByteBuffer(), entry, this);
+        }
+        catch (Throwable e)
+        {
+            failed(e, entry);
+            return;
+        }
+    }
+
+    IoBuffer nextReadBuffer(int expect, int real)
+    {
+        if (expect == real)
+        {
+            if (index != maxIndex)
+            {
+                index += 1;
+//                System.out.println(index);
+            }
+            shouldDecr = false;
+        }
+        else
+        {
+            int needIndex = indexOf(real);
+            if (index > needIndex && index != minIndex)
+            {
+                if (shouldDecr == false)
+                {
+                    shouldDecr = true;
+                }
+                else
+                {
+                    index -= 1;
+                    shouldDecr = false;
+                }
+            }
+        }
+        System.out.println(index);
+        return allocator.ioBuffer(sizeTable[index]);
+    }
+
+    private boolean needCompact(IoBuffer buffer)
+    {
+        return buffer.getReadPosi() > 1024 * 1024 && buffer.remainRead() < 1024;
+    }
+
+    @Override
+    public void failed(Throwable exc, ReadEntry entry)
+    {
+        entry.clean();
+        channelContext.close(exc);
+    }
+
+    @Override
+    public void bind(ChannelContext channelContext)
+    {
+        this.channelContext = channelContext;
+    }
+
+    @Override
+    public void process(IoBuffer data) throws Throwable
+    {
+        throw new UnsupportedOperationException("读完成器不应该执行该方法");
+    }
+}

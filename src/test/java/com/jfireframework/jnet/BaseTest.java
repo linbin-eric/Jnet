@@ -6,7 +6,9 @@ import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ChannelContextInitializer;
 import com.jfireframework.jnet.common.api.DataProcessor;
 import com.jfireframework.jnet.common.buffer.*;
+import com.jfireframework.jnet.common.decoder.AdaptiveTotalLengthFieldBasedFrameDecoder;
 import com.jfireframework.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
+import com.jfireframework.jnet.common.internal.AdaptiveAcceptHandler;
 import com.jfireframework.jnet.common.internal.BindDownAndUpStreamDataProcessor;
 import com.jfireframework.jnet.common.internal.DefaultAcceptHandler;
 import com.jfireframework.jnet.common.processor.ChannelAttachProcessor;
@@ -56,7 +58,7 @@ public class BaseTest
 //                {UnPooledRecycledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.IO}, //
 //                {UnPooledUnRecycledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.IO}, //
 //                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.Channel}, //
-                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.THREAD}, //
+//                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.THREAD}, //
         });
     }
 
@@ -81,7 +83,7 @@ public class BaseTest
                 return new FastThreadLocalThread(r, "business-worker-" + (count++));
             }
         });
-        builder.setAcceptHandler(new DefaultAcceptHandler(null, bufferAllocator, batchWriteNum, new ChannelContextInitializer()
+        builder.setAcceptHandler(new AdaptiveAcceptHandler(null, bufferAllocator, batchWriteNum, new ChannelContextInitializer()
         {
 
             @Override
@@ -90,7 +92,7 @@ public class BaseTest
                 switch (ioMode)
                 {
                     case IO:
-                        channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024, bufferAllocator), //
+                        channelContext.setDataProcessor(new AdaptiveTotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024, bufferAllocator), //
                                 new BindDownAndUpStreamDataProcessor<IoBuffer>()
                                 {
                                     @Override
@@ -116,7 +118,7 @@ public class BaseTest
                                 });
                         break;
                     case THREAD:
-                        channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024, bufferAllocator), //
+                        channelContext.setDataProcessor(new AdaptiveTotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024, bufferAllocator), //
                                 new ThreadAttachProcessor(fixService), //
                                 new BindDownAndUpStreamDataProcessor<IoBuffer>()
                                 {

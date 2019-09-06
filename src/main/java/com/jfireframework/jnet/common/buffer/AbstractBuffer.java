@@ -428,4 +428,10 @@ public abstract class AbstractBuffer<T> implements IoBuffer
     }
 
     protected abstract void free0();
+
+    @Override
+    public int refCount()
+    {
+        return refCount;
+    }
 }
