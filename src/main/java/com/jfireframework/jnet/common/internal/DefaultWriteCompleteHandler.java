@@ -14,19 +14,21 @@ import java.util.Queue;
 
 public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcessor implements WriteCompletionHandler
 {
-    protected static final long                      STATE_OFFSET        = UNSAFE.getFieldOffset("state", DefaultWriteCompleteHandler.class);
-    protected static final int                       SPIN_THRESHOLD      = 128;
-    protected static final int                       IDLE                = 1;
-    protected static final int                       WORK                = 2;
-    protected final        WriteEntry                entry               = new WriteEntry();
+    protected static final long                      STATE_OFFSET               = UNSAFE.getFieldOffset("state", DefaultWriteCompleteHandler.class);
+    protected static final int                       SPIN_THRESHOLD             = 128;
+    protected static final int                       IDLE                       = 1;
+    protected static final int                       WORK                       = 2;
+    protected final        WriteEntry                entry                      = new WriteEntry();
     protected final        AsynchronousSocketChannel socketChannel;
     protected final        BufferAllocator           allocator;
     protected final        AioListener               aioListener;
     protected final        int                       maxWriteBytes;
     // 终止状态。进入该状态后，不再继续使用
     ////////////////////////////////////////////////////////////
-    protected volatile     int                       state               = IDLE;
+    protected volatile     int                       state                      = IDLE;
     protected              Queue<IoBuffer>           queue;
+    protected volatile     int                       pendingWriteBytes;
+    static final           long                      PENDING_WRITE_BYTES_OFFSET = UNSAFE.getFieldOffset("pendingWriteBytes");
 
     public DefaultWriteCompleteHandler(AsynchronousSocketChannel socketChannel, AioListener aioListener, BufferAllocator allocator, int maxWriteBytes)
     {
@@ -101,25 +103,35 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
      */
     private void writeQueuedBuffer()
     {
-        IoBuffer head                = null;
         int      maxBufferedCapacity = this.maxWriteBytes;
         int      count               = 0;
         IoBuffer buffer;
+        IoBuffer accumulation        = null;
+        boolean  create              = false;
         while (count < maxBufferedCapacity && (buffer = queue.poll()) != null)
         {
             count += buffer.remainRead();
-            if (head == null)
+            if (accumulation == null)
             {
-                head = buffer;
+                accumulation = buffer;
             }
             else
             {
-                head.put(buffer);
+                if (create == false)
+                {
+                    create = true;
+                    IoBuffer newAcc = allocator.ioBuffer(pendingWriteBytes);
+                    newAcc.put(accumulation);
+                    accumulation.free();
+                    accumulation = newAcc;
+                }
+                accumulation.put(buffer);
                 buffer.free();
             }
         }
-        entry.setIoBuffer(head);
-        entry.setByteBuffer(head.readableByteBuffer());
+        addPendingWriteBytes(0-accumulation.remainRead());
+        entry.setIoBuffer(accumulation);
+        entry.setByteBuffer(accumulation.readableByteBuffer());
         socketChannel.write(entry.getByteBuffer(), entry, this);
     }
 
@@ -145,6 +157,7 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
         {
             throw new NullPointerException();
         }
+        addPendingWriteBytes(buf.remainRead());
         queue.offer(buf);
         int now = state;
         if (now == IDLE && changeToWork())
@@ -183,5 +196,21 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
                 break;
             }
         }
+    }
+
+    int addPendingWriteBytes(int add)
+    {
+        int current = pendingWriteBytes;
+        int update  = current + add;
+        if (UNSAFE.compareAndSwapInt(this, PENDING_WRITE_BYTES_OFFSET, current, update))
+        {
+            return update;
+        }
+        do
+        {
+            current = pendingWriteBytes;
+            update = current + add;
+        } while (UNSAFE.compareAndSwapInt(this, PENDING_WRITE_BYTES_OFFSET, current, update) == false);
+        return update;
     }
 }
