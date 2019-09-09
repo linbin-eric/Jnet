@@ -108,7 +108,9 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
         IoBuffer buffer;
         IoBuffer accumulation        = null;
         boolean  create              = false;
-        while (count < maxBufferedCapacity && (buffer = queue.poll()) != null)
+        int      pending             = pendingWriteBytes;
+        int      total               = pending > maxBufferedCapacity ? maxBufferedCapacity : pending;
+        while (count < total && (buffer = queue.poll()) != null)
         {
             count += buffer.remainRead();
             if (accumulation == null)
@@ -120,7 +122,7 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
                 if (create == false)
                 {
                     create = true;
-                    IoBuffer newAcc = allocator.ioBuffer(pendingWriteBytes);
+                    IoBuffer newAcc = allocator.ioBuffer(total);
                     newAcc.put(accumulation);
                     accumulation.free();
                     accumulation = newAcc;
@@ -129,7 +131,7 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
                 buffer.free();
             }
         }
-        addPendingWriteBytes(0-accumulation.remainRead());
+        addPendingWriteBytes(0 - accumulation.remainRead());
         entry.setIoBuffer(accumulation);
         entry.setByteBuffer(accumulation.readableByteBuffer());
         socketChannel.write(entry.getByteBuffer(), entry, this);
