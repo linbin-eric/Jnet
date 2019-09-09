@@ -155,7 +155,7 @@ public class BaseTest
                 @Override
                 public void onChannelContextInit(ChannelContext channelContext)
                 {
-                    channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024 * 4, bufferAllocator), //
+                    channelContext.setDataProcessor(new AdaptiveTotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024 * 4, bufferAllocator), //
                             new DataProcessor<IoBuffer>()
                             {
 

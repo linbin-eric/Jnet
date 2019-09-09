@@ -3,6 +3,7 @@ package com.jfireframework.jnet.client;
 import com.jfireframework.jnet.common.api.*;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
+import com.jfireframework.jnet.common.internal.AdaptiveReadCompletionHandler;
 import com.jfireframework.jnet.common.internal.DefaultChannelContext;
 import com.jfireframework.jnet.common.internal.DefaultReadCompletionHandler;
 import com.jfireframework.jnet.common.internal.DefaultWriteCompleteHandler;
@@ -55,7 +56,7 @@ public class DefaultClient implements JnetClient
                 AsynchronousSocketChannel asynchronousSocketChannel = channelGroup == null ? AsynchronousSocketChannel.open() : AsynchronousSocketChannel.open(channelGroup);
                 Future<Void>              future                    = asynchronousSocketChannel.connect(new InetSocketAddress(ip, port));
                 future.get();
-                final ReadCompletionHandler  readCompletionHandler  = new DefaultReadCompletionHandler(aioListener, allocator, asynchronousSocketChannel);
+                final ReadCompletionHandler  readCompletionHandler  = new AdaptiveReadCompletionHandler(aioListener, allocator, asynchronousSocketChannel);
                 final WriteCompletionHandler writeCompletionHandler = new DefaultWriteCompleteHandler(asynchronousSocketChannel, aioListener, allocator, 1024 * 1024 * 2);
                 channelContext = new DefaultChannelContext(asynchronousSocketChannel, aioListener, readCompletionHandler, writeCompletionHandler)
                 {
