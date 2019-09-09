@@ -3,6 +3,7 @@ package com.jfireframework.jnet.common.processor.worker;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.DataProcessor;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
+import com.jfireframework.jnet.common.util.SpscLinkQueue;
 import com.jfireframework.jnet.common.util.UNSAFE;
 import org.jctools.queues.SpscLinkedQueue;
 
@@ -24,7 +25,7 @@ public class ChannelAttachWorker implements Runnable
     private static final long            STATE_OFFSET      = UNSAFE.getFieldOffset("state", ChannelAttachWorker.class);
     private final        ExecutorService executorService;
     private static final int             capacity          = 1024;
-    private              Queue<IoBuffer> queue             = new SpscLinkedQueue<>();
+    private              Queue<IoBuffer> queue             = new SpscLinkQueue<>();
     private volatile     int             state             = IDLE;
     private              DataProcessor   downStream;
     private              ChannelContext  channelContext;

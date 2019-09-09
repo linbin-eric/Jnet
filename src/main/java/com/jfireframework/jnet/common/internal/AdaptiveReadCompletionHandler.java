@@ -140,7 +140,6 @@ public class AdaptiveReadCompletionHandler extends BindDownAndUpStreamDataProces
             if (index != maxIndex)
             {
                 index += 1;
-//                System.out.println(index);
             }
             shouldDecr = false;
         }
@@ -160,7 +159,6 @@ public class AdaptiveReadCompletionHandler extends BindDownAndUpStreamDataProces
                 }
             }
         }
-        System.out.println(index);
         return allocator.ioBuffer(sizeTable[index]);
     }
 

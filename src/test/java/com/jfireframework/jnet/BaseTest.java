@@ -54,6 +54,8 @@ public class BaseTest
         return Arrays.asList(new Object[][]{ //
 //                {PooledUnRecycleBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.IO}, //
                 {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.IO}, //
+                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.Channel}, //
+                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.THREAD}, //
 //                {PooledUnThreadCacheBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.IO}, //
 //                {UnPooledRecycledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.IO}, //
 //                {UnPooledUnRecycledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.IO}, //
@@ -104,7 +106,7 @@ public class BaseTest
                                 });
                         break;
                     case Channel:
-                        channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024, bufferAllocator), //
+                        channelContext.setDataProcessor(new AdaptiveTotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024, bufferAllocator), //
                                 new ChannelAttachProcessor(fixService), //
                                 new BindDownAndUpStreamDataProcessor<IoBuffer>()
                                 {
