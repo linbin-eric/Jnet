@@ -3,12 +3,10 @@ package com.jfireframework.jnet.common.decoder;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
-import com.jfireframework.jnet.common.internal.BindDownAndUpStreamDataProcessor;
 
-public class FixLengthDecoder extends BindDownAndUpStreamDataProcessor<IoBuffer>
+public class FixLengthDecoder extends AbstractDecoder
 {
-    private final int             frameLength;
-    private       BufferAllocator allocator;
+    private final int frameLength;
 
     /**
      * 固定长度解码器
@@ -17,8 +15,8 @@ public class FixLengthDecoder extends BindDownAndUpStreamDataProcessor<IoBuffer>
      */
     public FixLengthDecoder(int frameLength, BufferAllocator allocator)
     {
+        super(allocator);
         this.frameLength = frameLength;
-        this.allocator = allocator;
     }
 
     @Override
@@ -27,20 +25,24 @@ public class FixLengthDecoder extends BindDownAndUpStreamDataProcessor<IoBuffer>
     }
 
     @Override
-    public void process(IoBuffer ioBuf) throws Throwable
+    public void process0() throws Throwable
     {
         do
         {
-            if (ioBuf.remainRead() < frameLength)
+            int remainRead = accumulation.remainRead();
+            if (remainRead == 0)
             {
-                ioBuf.compact().capacityReadyFor(frameLength);
+                accumulation.free();
+                accumulation = null;
+                return;
+            }
+            if (remainRead < frameLength)
+            {
                 break;
             }
-            IoBuffer packet = allocator.ioBuffer(frameLength);
-            packet.put(ioBuf, frameLength);
-            ioBuf.addReadPosi(frameLength);
+            IoBuffer packet = accumulation.slice(frameLength);
             downStream.process(packet);
-            break;
         } while (true);
+        compactIfNeed();
     }
 }
