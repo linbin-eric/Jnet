@@ -1,43 +1,44 @@
 package com.jfireframework.jnet.server;
 
-import com.jfireframework.jnet.common.api.AcceptHandler;
+import com.jfireframework.jnet.common.api.ChannelContextInitializer;
+import com.jfireframework.jnet.common.internal.DefaultAcceptHandler;
+import com.jfireframework.jnet.common.util.ChannelConfig;
 import com.jfireframework.jnet.common.util.ReflectUtil;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.util.concurrent.TimeUnit;
 
 public class AioServer
 {
-    private AsynchronousChannelGroup        channelGroup;
+    private ChannelConfig                   channelConfig;
     private AsynchronousServerSocketChannel serverSocketChannel;
-    private String                          ip;
-    private int                             port;
-    private AcceptHandler                   acceptHandler;
+    private ChannelContextInitializer       initializer;
 
-    public AioServer(String ip, int port, AsynchronousChannelGroup channelGroup, AcceptHandler acceptHandler)
+    public AioServer(ChannelConfig channelConfig, ChannelContextInitializer initializer)
     {
-        this.ip = ip;
-        this.port = port;
-        this.channelGroup = channelGroup;
-        this.acceptHandler = acceptHandler;
+        this.channelConfig = channelConfig;
+        this.initializer = initializer;
+    }
+
+    public static AioServer newAioServer(ChannelConfig channelConfig, ChannelContextInitializer initializer)
+    {
+        return new AioServer(channelConfig, initializer);
     }
 
     /**
      * 以端口初始化server服务器。
-     *
-     * @param port
      */
     public void start()
     {
         try
         {
-            serverSocketChannel = AsynchronousServerSocketChannel.open(channelGroup);
-            serverSocketChannel.bind(new InetSocketAddress(ip, port), 0);
-            serverSocketChannel.accept(serverSocketChannel, acceptHandler);
-        } catch (IOException e)
+            serverSocketChannel = AsynchronousServerSocketChannel.open(channelConfig.getChannelGroup());
+            serverSocketChannel.bind(new InetSocketAddress(channelConfig.getIp(), channelConfig.getPort()), channelConfig.getBackLog());
+            serverSocketChannel.accept(serverSocketChannel, new DefaultAcceptHandler(channelConfig, initializer));
+        }
+        catch (IOException e)
         {
             ReflectUtil.throwException(e);
         }
@@ -48,8 +49,9 @@ public class AioServer
         try
         {
             serverSocketChannel.close();
-            channelGroup.shutdownNow();
-        } catch (Exception e)
+            channelConfig.getChannelGroup().shutdown();
+        }
+        catch (Exception e)
         {
             ReflectUtil.throwException(e);
         }
@@ -60,9 +62,10 @@ public class AioServer
         try
         {
             serverSocketChannel.close();
-            channelGroup.shutdownNow();
-            channelGroup.awaitTermination(10, TimeUnit.SECONDS);
-        } catch (Throwable e)
+            channelConfig.getChannelGroup().shutdownNow();
+            channelConfig.getChannelGroup().awaitTermination(10, TimeUnit.SECONDS);
+        }
+        catch (Throwable e)
         {
             ReflectUtil.throwException(e);
         }

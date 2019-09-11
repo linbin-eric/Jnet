@@ -5,6 +5,7 @@ import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.WriteCompletionHandler;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
+import com.jfireframework.jnet.common.util.ChannelConfig;
 import com.jfireframework.jnet.common.util.UNSAFE;
 import org.jctools.queues.MpscLinkedQueue7;
 
@@ -15,7 +16,7 @@ import java.util.Queue;
 public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcessor implements WriteCompletionHandler
 {
     protected static final long                      STATE_OFFSET               = UNSAFE.getFieldOffset("state", DefaultWriteCompleteHandler.class);
-    protected static final int                       SPIN_THRESHOLD             = 128;
+    protected static final int                       SPIN_THRESHOLD             = 16;
     protected static final int                       IDLE                       = 1;
     protected static final int                       WORK                       = 2;
     protected final        WriteEntry                entry                      = new WriteEntry();
@@ -30,12 +31,12 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
     protected volatile     int                       pendingWriteBytes;
     static final           long                      PENDING_WRITE_BYTES_OFFSET = UNSAFE.getFieldOffset("pendingWriteBytes");
 
-    public DefaultWriteCompleteHandler(AsynchronousSocketChannel socketChannel, AioListener aioListener, BufferAllocator allocator, int maxWriteBytes)
+    public DefaultWriteCompleteHandler(ChannelConfig channelConfig, AsynchronousSocketChannel socketChannel)
     {
         this.socketChannel = socketChannel;
-        this.allocator = allocator;
-        this.aioListener = aioListener;
-        this.maxWriteBytes = Math.max(1, maxWriteBytes);
+        this.allocator = channelConfig.getAllocator();
+        this.aioListener = channelConfig.getAioListener();
+        this.maxWriteBytes = Math.max(1, channelConfig.getMaxBatchWrite());
         queue = new MpscLinkedQueue7<>();
     }
 

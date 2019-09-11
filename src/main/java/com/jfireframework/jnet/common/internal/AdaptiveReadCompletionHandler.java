@@ -5,26 +5,27 @@ import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ReadCompletionHandler;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
-import com.jfireframework.jnet.common.buffer.PooledBufferAllocator;
+import com.jfireframework.jnet.common.util.ChannelConfig;
 import com.jfireframework.jnet.common.util.MathUtil;
 
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class AdaptiveReadCompletionHandler extends BindDownAndUpStreamDataProcessor<IoBuffer> implements ReadCompletionHandler<IoBuffer>
 {
-    public static   int                       initializeCapacity = PooledBufferAllocator.PAGESIZE;
     protected final AsynchronousSocketChannel socketChannel;
     protected final AioListener               aioListener;
     protected final BufferAllocator           allocator;
-    protected final ReadEntry                 entry              = new ReadEntry();
+    protected final ReadEntry                 entry      = new ReadEntry();
     protected       ChannelContext            channelContext;
     static final    int[]                     sizeTable;
     private         int                       minIndex;
     private         int                       maxIndex;
     private         int                       index;
-    private         boolean                   shouldDecr         = false;
+    private         boolean                   shouldDecr = false;
+    private         long                      readTimeoutMills;
 
     static
     {
@@ -46,6 +47,10 @@ public class AdaptiveReadCompletionHandler extends BindDownAndUpStreamDataProces
 
     static int indexOf(int num)
     {
+        if (num == 0)
+        {
+            return 0;
+        }
         if (num < 512)
         {
             int base = (num >> 4) - 1;
@@ -64,37 +69,32 @@ public class AdaptiveReadCompletionHandler extends BindDownAndUpStreamDataProces
 
     public static void main(String[] args)
     {
-        for (int i = 0; i < sizeTable.length; i++)
-        {
-            if (sizeTable[i] == sizeTable[indexOf(sizeTable[i])])
-            {
-                ;
-            }
-            else
-            {
-                System.out.println(sizeTable[i]);
-            }
-        }
-        System.out.println(indexOf(1024*1024*32));
+        System.out.println(indexOf(16));
     }
 
-    public AdaptiveReadCompletionHandler(AioListener aioListener, BufferAllocator allocator, AsynchronousSocketChannel socketChannel)
+    public AdaptiveReadCompletionHandler(ChannelConfig config, AsynchronousSocketChannel socketChannel)
     {
-        this.aioListener = aioListener;
-        this.allocator = allocator;
+        this.aioListener = config.getAioListener();
+        this.allocator = config.getAllocator();
         this.socketChannel = socketChannel;
-        minIndex = indexOf(16);
-        maxIndex = indexOf(1024 * 1024*32);
+        minIndex = indexOf(config.getMinReceiveSize());
+        maxIndex = indexOf(config.getMaxReceiveSize());
+        index = indexOf(config.getInitReceiveSize());
+        readTimeoutMills = config.getReadTimeoutMills();
     }
 
     @Override
     public void start()
     {
-        index =indexOf(1024);
         IoBuffer buffer = allocator.ioBuffer(sizeTable[index]);
+        read(buffer, entry);
+    }
+
+    private void read(IoBuffer buffer, ReadEntry entry)
+    {
         entry.setIoBuffer(buffer);
         entry.setByteBuffer(buffer.writableByteBuffer());
-        socketChannel.read(entry.getByteBuffer(), entry, this);
+        socketChannel.read(entry.getByteBuffer(), readTimeoutMills, TimeUnit.MILLISECONDS, entry, this);
     }
 
     @Override
@@ -108,23 +108,24 @@ public class AdaptiveReadCompletionHandler extends BindDownAndUpStreamDataProces
             return;
         }
         IoBuffer buffer = entry.getIoBuffer();
-        buffer.addWritePosi(read);
-        int except = buffer.capacity();
-        try
+        int      except = buffer.capacity();
+        if (read != 0)
         {
-            downStream.process(buffer);
-        }
-        catch (Throwable e)
-        {
-            failed(e, entry);
-            return;
+            buffer.addWritePosi(read);
+            try
+            {
+                downStream.process(buffer);
+            }
+            catch (Throwable e)
+            {
+                failed(e, entry);
+                return;
+            }
         }
         try
         {
             IoBuffer nextReadBuffer = nextReadBuffer(except, read);
-            entry.setIoBuffer(nextReadBuffer);
-            entry.setByteBuffer(nextReadBuffer.writableByteBuffer());
-            socketChannel.read(entry.getByteBuffer(), entry, this);
+            read(nextReadBuffer, entry);
         }
         catch (Throwable e)
         {
@@ -160,11 +161,6 @@ public class AdaptiveReadCompletionHandler extends BindDownAndUpStreamDataProces
             }
         }
         return allocator.ioBuffer(sizeTable[index]);
-    }
-
-    private boolean needCompact(IoBuffer buffer)
-    {
-        return buffer.getReadPosi() > 1024 * 1024 && buffer.remainRead() < 1024;
     }
 
     @Override

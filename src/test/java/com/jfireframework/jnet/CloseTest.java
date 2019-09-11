@@ -8,12 +8,11 @@ import com.jfireframework.jnet.common.buffer.*;
 import com.jfireframework.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
 import com.jfireframework.jnet.common.internal.BindDownAndUpStreamDataProcessor;
 import com.jfireframework.jnet.common.internal.DefaultAcceptHandler;
-import com.jfireframework.jnet.common.internal.DefaultReadCompletionHandler;
 import com.jfireframework.jnet.common.processor.ChannelAttachProcessor;
 import com.jfireframework.jnet.common.util.AioListenerAdapter;
 import com.jfireframework.jnet.common.util.CapacityStat;
+import com.jfireframework.jnet.common.util.ChannelConfig;
 import com.jfireframework.jnet.server.AioServer;
-import com.jfireframework.jnet.server.AioServerBuilder;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -44,7 +43,6 @@ public class CloseTest
     @Parameters(name = "IO模式:{2}")
     public static Collection<Object[]> params()
     {
-        DefaultReadCompletionHandler.initializeCapacity = PooledBufferAllocator.PAGESIZE;
         return Arrays.asList(new Object[][]{ //
                 {PooledUnThreadCacheBufferAllocator.DEFAULT, 1024 * 1024 * 2, IoMode.IO}, //
                 {PooledUnThreadCacheBufferAllocator.DEFAULT, 1024 * 1024 * 2, IoMode.Channel}, //
@@ -65,7 +63,7 @@ public class CloseTest
     @Test
     public void test() throws Throwable
     {
-        AioServerBuilder builder = new AioServerBuilder();
+        ChannelConfig channelConfig = new ChannelConfig();
         final ExecutorService fixService = Executors.newFixedThreadPool(4, new ThreadFactory()
         {
             AtomicInteger atomicInteger = new AtomicInteger(0);
@@ -108,7 +106,7 @@ public class CloseTest
                 }
             }
         };
-        builder.setAcceptHandler(new DefaultAcceptHandler(aioListener, bufferAllocator, batchWriteNum, new ChannelContextInitializer()
+        ChannelContextInitializer initializer = new ChannelContextInitializer()
         {
 
             @Override
@@ -129,10 +127,10 @@ public class CloseTest
                         break;
                 }
             }
-        }));
-        builder.setBindIp(ip);
-        builder.setPort(port);
-        AioServer aioServer = builder.build();
+        };
+        channelConfig.setIp(ip);
+        channelConfig.setPort(port);
+        AioServer aioServer = AioServer.newAioServer(channelConfig,initializer);
         aioServer.start();
         Socket socket  = new Socket(ip, port);
         byte[] content = new byte[PooledBufferAllocator.PAGESIZE];

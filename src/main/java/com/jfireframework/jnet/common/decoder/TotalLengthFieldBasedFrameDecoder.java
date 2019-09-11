@@ -23,6 +23,7 @@ public class TotalLengthFieldBasedFrameDecoder extends BindDownAndUpStreamDataPr
     private final int             skipBytes;
     private final int             maxLegnth;
     private       BufferAllocator allocator;
+    private       IoBuffer        accumulation;
 
     /**
      * @param lengthFieldOffset 长度字段在报文中的偏移量
@@ -46,62 +47,64 @@ public class TotalLengthFieldBasedFrameDecoder extends BindDownAndUpStreamDataPr
     }
 
     @Override
-    public void process(IoBuffer ioBuffer) throws Throwable
+    public void process(IoBuffer buffer) throws Throwable
     {
+        if (accumulation == null)
+        {
+            accumulation = buffer;
+        }
+        else
+        {
+            accumulation.put(buffer);
+            buffer.free();
+        }
         do
         {
-            int maskReadPosi = ioBuffer.getReadPosi();
-            int left         = ioBuffer.remainRead();
-            if (left==0)
+            int maskReadPosi = accumulation.getReadPosi();
+            int left         = accumulation.remainRead();
+            if (left == 0)
             {
-                ioBuffer.clear();
+                accumulation.free();
+                accumulation = null;
                 break;
             }
             if (lengthFieldEndOffset > left)
             {
-                if (ioBuffer.remainWrite() < lengthFieldEndOffset)
-                {
-                    ioBuffer.capacityReadyFor(ioBuffer.getWritePosi() + lengthFieldEndOffset);
-                }
+                compactIfNeed();
                 break;
             }
             // iobuffer中可能包含好几个报文，所以这里应该是增加的方式而不是直接设置的方式
-            ioBuffer.addReadPosi(lengthFieldOffset);
+            accumulation.addReadPosi(lengthFieldOffset);
             // 获取到整体报文的长度
             int length = 0;
             switch (lengthFieldLength)
             {
                 case 1:
-                    length = ioBuffer.get() & 0xff;
+                    length = accumulation.get() & 0xff;
                     break;
                 case 2:
-                    length = ioBuffer.getShort() & 0xff;
+                    length = accumulation.getShort() & 0xff;
                     break;
                 case 4:
-                    length = ioBuffer.getInt();
+                    length = accumulation.getInt();
                     break;
                 default:
                     throw new IllegalArgumentException();
             }
             // 得到整体长度后，开始从头读取这个长度的内容
-            ioBuffer.setReadPosi(maskReadPosi);
+            accumulation.setReadPosi(maskReadPosi);
             if (length >= maxLegnth)
             {
                 throw new TooLongException();
             }
-            if (length > ioBuffer.remainRead())
+            if (length > accumulation.remainRead())
             {
-                if (ioBuffer.remainWrite() < length)
-                {
-                    ioBuffer.capacityReadyFor(ioBuffer.getWritePosi() + length);
-                }
+                compactIfNeed();
                 break;
             }
             else
             {
-                IoBuffer packet = allocator.ioBuffer(length);
-                packet.put(ioBuffer, length);
-                ioBuffer.addReadPosi(length);
+                IoBuffer packet = accumulation.slice(length);
                 if (skipBytes != 0)
                 {
                     packet.addReadPosi(skipBytes);
@@ -109,5 +112,20 @@ public class TotalLengthFieldBasedFrameDecoder extends BindDownAndUpStreamDataPr
                 downStream.process(packet);
             }
         } while (true);
+    }
+
+    private void compactIfNeed()
+    {
+        if (accumulation.refCount() > 1)
+        {
+            IoBuffer newAcc = allocator.ioBuffer(accumulation.capacity());
+            newAcc.put(accumulation);
+            accumulation.free();
+            accumulation = newAcc;
+        }
+        else
+        {
+            accumulation.compact();
+        }
     }
 }

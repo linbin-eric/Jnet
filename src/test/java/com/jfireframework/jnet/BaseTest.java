@@ -1,21 +1,20 @@
 package com.jfireframework.jnet;
 
+import com.jfireframework.jnet.client.DefaultClient;
 import com.jfireframework.jnet.client.JnetClient;
-import com.jfireframework.jnet.client.JnetClientBuilder;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ChannelContextInitializer;
 import com.jfireframework.jnet.common.api.DataProcessor;
-import com.jfireframework.jnet.common.buffer.*;
-import com.jfireframework.jnet.common.decoder.AdaptiveTotalLengthFieldBasedFrameDecoder;
+import com.jfireframework.jnet.common.buffer.BufferAllocator;
+import com.jfireframework.jnet.common.buffer.IoBuffer;
+import com.jfireframework.jnet.common.buffer.PooledBufferAllocator;
 import com.jfireframework.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
-import com.jfireframework.jnet.common.internal.AdaptiveAcceptHandler;
 import com.jfireframework.jnet.common.internal.BindDownAndUpStreamDataProcessor;
-import com.jfireframework.jnet.common.internal.DefaultAcceptHandler;
 import com.jfireframework.jnet.common.processor.ChannelAttachProcessor;
 import com.jfireframework.jnet.common.processor.ThreadAttachProcessor;
 import com.jfireframework.jnet.common.thread.FastThreadLocalThread;
+import com.jfireframework.jnet.common.util.ChannelConfig;
 import com.jfireframework.jnet.server.AioServer;
-import com.jfireframework.jnet.server.AioServerBuilder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -66,6 +65,9 @@ public class BaseTest
 
     public BaseTest(final BufferAllocator bufferAllocator, int batchWriteNum, final IoMode ioMode)
     {
+        ChannelConfig channelConfig = new ChannelConfig();
+        channelConfig.setAllocator(bufferAllocator);
+        channelConfig.setMaxBatchWrite(batchWriteNum);
         this.bufferAllocator = bufferAllocator;
         clients = new JnetClient[numClients];
         results = new int[numClients][numPerThread];
@@ -74,7 +76,6 @@ public class BaseTest
             results[i] = new int[numPerThread];
             Arrays.fill(results[i], -1);
         }
-        AioServerBuilder builder = new AioServerBuilder();
         final ExecutorService fixService = Executors.newCachedThreadPool(new ThreadFactory()
         {
             int count = 0;
@@ -85,7 +86,7 @@ public class BaseTest
                 return new FastThreadLocalThread(r, "business-worker-" + (count++));
             }
         });
-        builder.setAcceptHandler(new AdaptiveAcceptHandler(null, bufferAllocator, batchWriteNum, new ChannelContextInitializer()
+        ChannelContextInitializer initializer = new ChannelContextInitializer()
         {
 
             @Override
@@ -94,7 +95,7 @@ public class BaseTest
                 switch (ioMode)
                 {
                     case IO:
-                        channelContext.setDataProcessor(new AdaptiveTotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024, bufferAllocator), //
+                        channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024, bufferAllocator), //
                                 new BindDownAndUpStreamDataProcessor<IoBuffer>()
                                 {
                                     @Override
@@ -106,7 +107,7 @@ public class BaseTest
                                 });
                         break;
                     case Channel:
-                        channelContext.setDataProcessor(new AdaptiveTotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024, bufferAllocator), //
+                        channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024, bufferAllocator), //
                                 new ChannelAttachProcessor(fixService), //
                                 new BindDownAndUpStreamDataProcessor<IoBuffer>()
                                 {
@@ -120,7 +121,7 @@ public class BaseTest
                                 });
                         break;
                     case THREAD:
-                        channelContext.setDataProcessor(new AdaptiveTotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024, bufferAllocator), //
+                        channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024, bufferAllocator), //
                                 new ThreadAttachProcessor(fixService), //
                                 new BindDownAndUpStreamDataProcessor<IoBuffer>()
                                 {
@@ -137,25 +138,22 @@ public class BaseTest
                         break;
                 }
             }
-        }));
-        builder.setBindIp(ip);
-        builder.setPort(port);
-        aioServer = builder.build();
+        };
+        channelConfig.setIp(ip);
+        channelConfig.setPort(port);
+        aioServer = AioServer.newAioServer(channelConfig, initializer);
         aioServer.start();
         for (int i = 0; i < numClients; i++)
         {
-            final int         index             = i;
-            final int[]       result            = results[index];
-            JnetClientBuilder jnetClientBuilder = new JnetClientBuilder();
-            jnetClientBuilder.setServerIp(ip);
-            jnetClientBuilder.setPort(port);
-            jnetClientBuilder.setChannelContextInitializer(new ChannelContextInitializer()
+            final int   index  = i;
+            final int[] result = results[index];
+            ChannelContextInitializer childIniter = new ChannelContextInitializer()
             {
 
                 @Override
                 public void onChannelContextInit(ChannelContext channelContext)
                 {
-                    channelContext.setDataProcessor(new AdaptiveTotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024 * 4, bufferAllocator), //
+                    channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024 * 4, bufferAllocator), //
                             new DataProcessor<IoBuffer>()
                             {
 
@@ -186,9 +184,8 @@ public class BaseTest
                                 }
                             });
                 }
-            });
-            jnetClientBuilder.setAllocator(bufferAllocator);
-            clients[i] = jnetClientBuilder.build();
+            };
+            clients[i] = new DefaultClient(channelConfig, childIniter);
         }
     }
 
