@@ -164,10 +164,10 @@ public class AdaptiveReadCompletionHandler extends BindDownAndUpStreamDataProces
     }
 
     @Override
-    public void failed(Throwable exc, ReadEntry entry)
+    public void failed(Throwable e, ReadEntry entry)
     {
         entry.clean();
-        channelContext.close(exc);
+        channelContext.close(e);
     }
 
     @Override

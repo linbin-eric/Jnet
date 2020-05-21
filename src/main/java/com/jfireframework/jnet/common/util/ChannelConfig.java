@@ -12,7 +12,7 @@ import java.util.concurrent.ThreadFactory;
 
 public class ChannelConfig
 {
-    private BufferAllocator          allocator;
+    private BufferAllocator          allocator        = PooledBufferAllocator.DEFAULT;
     private AioListener              aioListener;
     private int                      minReceiveSize   = 16;
     private int                      maxReceiveSize   = 1024 * 1024 * 8;

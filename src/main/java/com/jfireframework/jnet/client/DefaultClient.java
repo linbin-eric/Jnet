@@ -40,7 +40,7 @@ public class DefaultClient implements JnetClient
         write(packet, preferBlock);
     }
 
-    private void connectIfNecessary()
+    public void connectIfNecessary()
     {
         if (state == NOT_INIT)
         {

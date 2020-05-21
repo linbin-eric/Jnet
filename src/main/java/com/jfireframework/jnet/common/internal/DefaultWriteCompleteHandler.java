@@ -7,7 +7,7 @@ import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
 import com.jfireframework.jnet.common.util.ChannelConfig;
 import com.jfireframework.jnet.common.util.UNSAFE;
-import org.jctools.queues.MpscLinkedQueue7;
+import org.jctools.queues.MpscLinkedQueue8;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
@@ -37,7 +37,7 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
         this.allocator = channelConfig.getAllocator();
         this.aioListener = channelConfig.getAioListener();
         this.maxWriteBytes = Math.max(1, channelConfig.getMaxBatchWrite());
-        queue = new MpscLinkedQueue7<>();
+        queue = new MpscLinkedQueue8<>();
     }
 
     protected void rest()
