@@ -141,9 +141,9 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
     @Override
     public void failed(Throwable exc, WriteEntry entry)
     {
+        channelContext.close(exc);
         entry.clean();
         prepareTermination();
-        channelContext.close(exc);
     }
 
     @Override

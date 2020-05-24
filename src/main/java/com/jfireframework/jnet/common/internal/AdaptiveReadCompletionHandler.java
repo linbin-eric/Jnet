@@ -25,7 +25,6 @@ public class AdaptiveReadCompletionHandler extends BindDownAndUpStreamDataProces
     private         int                       maxIndex;
     private         int                       index;
     private         boolean                   shouldDecr = false;
-    private         long                      readTimeoutMills;
 
     static
     {
@@ -80,7 +79,6 @@ public class AdaptiveReadCompletionHandler extends BindDownAndUpStreamDataProces
         minIndex = indexOf(config.getMinReceiveSize());
         maxIndex = indexOf(config.getMaxReceiveSize());
         index = indexOf(config.getInitReceiveSize());
-        readTimeoutMills = config.getReadTimeoutMills();
     }
 
     @Override
@@ -94,7 +92,7 @@ public class AdaptiveReadCompletionHandler extends BindDownAndUpStreamDataProces
     {
         entry.setIoBuffer(buffer);
         entry.setByteBuffer(buffer.writableByteBuffer());
-        socketChannel.read(entry.getByteBuffer(), readTimeoutMills, TimeUnit.MILLISECONDS, entry, this);
+        socketChannel.read(entry.getByteBuffer(), entry, this);
     }
 
     @Override
@@ -166,8 +164,8 @@ public class AdaptiveReadCompletionHandler extends BindDownAndUpStreamDataProces
     @Override
     public void failed(Throwable e, ReadEntry entry)
     {
-        entry.clean();
         channelContext.close(e);
+        entry.clean();
     }
 
     @Override
