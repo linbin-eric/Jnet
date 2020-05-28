@@ -2,6 +2,7 @@ package com.jfireframework.jnet.common.internal;
 
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
+import com.jfireframework.jnet.common.api.Pipeline;
 import com.jfireframework.jnet.common.api.ReadCompletionHandler;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
@@ -11,9 +12,8 @@ import com.jfireframework.jnet.common.util.MathUtil;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
-public class AdaptiveReadCompletionHandler extends BindDownAndUpStreamDataProcessor<IoBuffer> implements ReadCompletionHandler<IoBuffer>
+public class AdaptiveReadCompletionHandler implements ReadCompletionHandler<IoBuffer>
 {
     protected final AsynchronousSocketChannel socketChannel;
     protected final AioListener               aioListener;
@@ -25,6 +25,7 @@ public class AdaptiveReadCompletionHandler extends BindDownAndUpStreamDataProces
     private         int                       maxIndex;
     private         int                       index;
     private         boolean                   shouldDecr = false;
+    private         Pipeline                  pipeline;
 
     static
     {
@@ -66,19 +67,17 @@ public class AdaptiveReadCompletionHandler extends BindDownAndUpStreamDataProces
         }
     }
 
-    public static void main(String[] args)
+    public AdaptiveReadCompletionHandler(ChannelContext channelContext, Pipeline pipeline)
     {
-        System.out.println(indexOf(16));
-    }
-
-    public AdaptiveReadCompletionHandler(ChannelConfig config, AsynchronousSocketChannel socketChannel)
-    {
+        this.channelContext=channelContext;
+        ChannelConfig config = channelContext.channelConfig();
         this.aioListener = config.getAioListener();
         this.allocator = config.getAllocator();
-        this.socketChannel = socketChannel;
+        this.socketChannel = channelContext.socketChannel();
         minIndex = indexOf(config.getMinReceiveSize());
         maxIndex = indexOf(config.getMaxReceiveSize());
         index = indexOf(config.getInitReceiveSize());
+        this.pipeline = pipeline;
     }
 
     @Override
@@ -112,7 +111,7 @@ public class AdaptiveReadCompletionHandler extends BindDownAndUpStreamDataProces
             buffer.addWritePosi(read);
             try
             {
-                downStream.process(buffer);
+                pipeline.read(buffer);
             }
             catch (Throwable e)
             {
@@ -166,17 +165,5 @@ public class AdaptiveReadCompletionHandler extends BindDownAndUpStreamDataProces
     {
         channelContext.close(e);
         entry.clean();
-    }
-
-    @Override
-    public void bind(ChannelContext channelContext)
-    {
-        this.channelContext = channelContext;
-    }
-
-    @Override
-    public void process(IoBuffer data) throws Throwable
-    {
-        throw new UnsupportedOperationException("读完成器不应该执行该方法");
     }
 }

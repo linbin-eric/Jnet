@@ -2,17 +2,11 @@ package com.jfireframework.jnet;
 
 import com.jfireframework.jnet.client.DefaultClient;
 import com.jfireframework.jnet.client.JnetClient;
-import com.jfireframework.jnet.common.api.ChannelContext;
-import com.jfireframework.jnet.common.api.ChannelContextInitializer;
-import com.jfireframework.jnet.common.api.DataProcessor;
+import com.jfireframework.jnet.common.api.*;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
 import com.jfireframework.jnet.common.buffer.PooledBufferAllocator;
 import com.jfireframework.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
-import com.jfireframework.jnet.common.internal.BindDownAndUpStreamDataProcessor;
-import com.jfireframework.jnet.common.processor.ChannelAttachProcessor;
-import com.jfireframework.jnet.common.processor.ThreadAttachProcessor;
-import com.jfireframework.jnet.common.thread.FastThreadLocalThread;
 import com.jfireframework.jnet.common.util.ChannelConfig;
 import com.jfireframework.jnet.server.AioServer;
 import org.junit.Test;
@@ -25,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 
@@ -40,7 +35,7 @@ public class BaseTest
     private              AioServer       aioServer;
     private              String          ip           = "127.0.0.1";
     private              int             port         = 7598;
-    private              int             numPerThread = 4000000;
+    private              int             numPerThread = 1000000;
     private              int             numClients   = 4;
     private              JnetClient[]    clients;
     private              CountDownLatch  latch        = new CountDownLatch(numClients);
@@ -53,8 +48,8 @@ public class BaseTest
         return Arrays.asList(new Object[][]{ //
 //                {PooledUnRecycleBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.IO}, //
                 {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.IO}, //
-                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.Channel}, //
-                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.THREAD}, //
+//                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.Channel}, //
+//                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.THREAD}, //
 //                {PooledUnThreadCacheBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.IO}, //
 //                {UnPooledRecycledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.IO}, //
 //                {UnPooledUnRecycledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.IO}, //
@@ -62,6 +57,8 @@ public class BaseTest
 //                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.THREAD}, //
         });
     }
+
+    AtomicInteger count = new AtomicInteger(0);
 
     public BaseTest(final BufferAllocator bufferAllocator, int batchWriteNum, final IoMode ioMode)
     {
@@ -76,67 +73,18 @@ public class BaseTest
             results[i] = new int[numPerThread];
             Arrays.fill(results[i], -1);
         }
-        final ExecutorService fixService = Executors.newCachedThreadPool(new ThreadFactory()
-        {
-            int count = 0;
-
-            @Override
-            public Thread newThread(Runnable r)
-            {
-                return new FastThreadLocalThread(r, "business-worker-" + (count++));
-            }
-        });
         ChannelContextInitializer initializer = new ChannelContextInitializer()
         {
 
             @Override
-            public void onChannelContextInit(final ChannelContext channelContext)
+            public void onChannelContextInit(final Pipeline pipeline)
             {
-                switch (ioMode)
-                {
-                    case IO:
-                        channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024, bufferAllocator), //
-                                new BindDownAndUpStreamDataProcessor<IoBuffer>()
-                                {
-                                    @Override
-                                    public void process(IoBuffer data) throws Throwable
-                                    {
-                                        data.addReadPosi(-4);
-                                        downStream.process(data);
-                                    }
-                                });
-                        break;
-                    case Channel:
-                        channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024, bufferAllocator), //
-                                new ChannelAttachProcessor(fixService), //
-                                new BindDownAndUpStreamDataProcessor<IoBuffer>()
-                                {
-
-                                    @Override
-                                    public void process(IoBuffer data) throws Throwable
-                                    {
-                                        data.addReadPosi(-4);
-                                        downStream.process(data);
-                                    }
-                                });
-                        break;
-                    case THREAD:
-                        channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024, bufferAllocator), //
-                                new ThreadAttachProcessor(fixService), //
-                                new BindDownAndUpStreamDataProcessor<IoBuffer>()
-                                {
-
-                                    @Override
-                                    public void process(IoBuffer data) throws Throwable
-                                    {
-                                        data.addReadPosi(-4);
-                                        downStream.process(data);
-                                    }
-                                });
-                        break;
-                    default:
-                        break;
-                }
+                pipeline.add(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024, bufferAllocator));
+                pipeline.add((ReadProcessor) (data, ctx) -> {
+                    count.incrementAndGet();
+                    ((IoBuffer) data).addReadPosi(-4);
+                    ctx.fireWrite(data);
+                });
             }
         };
         channelConfig.setIp(ip);
@@ -147,43 +95,31 @@ public class BaseTest
         {
             final int   index  = i;
             final int[] result = results[index];
-            ChannelContextInitializer childIniter = new ChannelContextInitializer()
-            {
-
-                @Override
-                public void onChannelContextInit(ChannelContext channelContext)
+            ChannelContextInitializer childIniter = pipeline -> {
+                pipeline.add(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024 * 4, bufferAllocator));
+                pipeline.add(new ReadProcessor()
                 {
-                    channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024 * 4, bufferAllocator), //
-                            new DataProcessor<IoBuffer>()
-                            {
+                    int count = 0;
 
-                                int count = 0;
+                    @Override
+                    public void read(Object data, ProcessorContext ctx)
+                    {
+                        try{
 
-                                @Override
-                                public void bind(ChannelContext channelContext)
-                                {
-                                    ;
-                                }
-
-                                @Override
-                                public void bindDownStream(DataProcessor<?> downStream)
-                                {
-                                }
-
-                                @Override
-                                public void process(IoBuffer buffer) throws Throwable
-                                {
-                                    int j = buffer.getInt();
-                                    result[j] = j;
-                                    buffer.free();
-                                    count++;
-                                    if (count == numPerThread)
-                                    {
-                                        latch.countDown();
-                                    }
-                                }
-                            });
-                }
+                        IoBuffer buffer = (IoBuffer) data;
+                        int      j      = buffer.getInt();
+                        result[j] = j;
+                        buffer.free();
+                        count++;
+                        if (count == numPerThread)
+                        {
+                            latch.countDown();
+                        }
+                        }catch (Throwable e){
+                            e.printStackTrace();
+                        }
+                    }
+                });
             };
             clients[i] = new DefaultClient(channelConfig, childIniter);
         }
@@ -230,6 +166,7 @@ public class BaseTest
                         }
                         catch (Exception e)
                         {
+                            e.printStackTrace();
                             ;
                         }
                     }

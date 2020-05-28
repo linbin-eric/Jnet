@@ -1,20 +1,20 @@
 package com.jfireframework.jnet.client;
 
-import com.jfireframework.jnet.common.api.ChannelContext;
-import com.jfireframework.jnet.common.api.ChannelContextInitializer;
-import com.jfireframework.jnet.common.api.ReadCompletionHandler;
-import com.jfireframework.jnet.common.api.WriteCompletionHandler;
+import com.jfireframework.jnet.common.api.*;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
 import com.jfireframework.jnet.common.internal.AdaptiveReadCompletionHandler;
 import com.jfireframework.jnet.common.internal.DefaultChannelContext;
+import com.jfireframework.jnet.common.internal.DefaultPipeline;
 import com.jfireframework.jnet.common.internal.DefaultWriteCompleteHandler;
 import com.jfireframework.jnet.common.util.ChannelConfig;
 import com.jfireframework.jnet.common.util.ReflectUtil;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
+import java.nio.channels.Pipe;
 import java.util.concurrent.Future;
 
 public class DefaultClient implements JnetClient
@@ -27,6 +27,7 @@ public class DefaultClient implements JnetClient
     private              ChannelConfig             channelConfig;
     private              ChannelContext            channelContext;
     private              int                       state        = NOT_INIT;
+    private              Pipeline                  pipeline;
 
     public DefaultClient(ChannelConfig channelConfig, ChannelContextInitializer initializer)
     {
@@ -49,10 +50,11 @@ public class DefaultClient implements JnetClient
                 AsynchronousSocketChannel asynchronousSocketChannel = AsynchronousSocketChannel.open(channelConfig.getChannelGroup());
                 Future<Void>              future                    = asynchronousSocketChannel.connect(new InetSocketAddress(channelConfig.getIp(), channelConfig.getPort()));
                 future.get();
-                final ReadCompletionHandler  readCompletionHandler  = new AdaptiveReadCompletionHandler(channelConfig, asynchronousSocketChannel);
-                final WriteCompletionHandler writeCompletionHandler = new DefaultWriteCompleteHandler(channelConfig, asynchronousSocketChannel);
-                channelContext = new DefaultChannelContext(asynchronousSocketChannel, channelConfig.getAioListener(), readCompletionHandler, writeCompletionHandler);
-                initializer.onChannelContextInit(channelContext);
+                channelContext = new DefaultChannelContext(asynchronousSocketChannel, channelConfig.getAioListener(), channelConfig);
+                pipeline = new DefaultPipeline(channelConfig.getWorkerGroup(), channelContext);
+                initializer.onChannelContextInit(pipeline);
+                ((DefaultPipeline) pipeline).buildPipeline();
+                ReadCompletionHandler readCompletionHandler = new AdaptiveReadCompletionHandler(channelContext, pipeline);
                 readCompletionHandler.start();
                 state = CONNECTED;
             }
@@ -88,7 +90,7 @@ public class DefaultClient implements JnetClient
 
     void nonBlockWrite(IoBuffer buffer)
     {
-        channelContext.write(buffer);
+        pipeline.write(buffer);
     }
 
     @Override

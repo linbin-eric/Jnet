@@ -1,9 +1,12 @@
 package com.jfireframework.jnet.common.util;
 
 import com.jfireframework.jnet.common.api.AioListener;
+import com.jfireframework.jnet.common.api.WorkerGroup;
+import com.jfireframework.jnet.common.api.WriteProcessor;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.buffer.PooledBufferAllocator;
 import com.jfireframework.jnet.common.internal.DefaultAioListener;
+import com.jfireframework.jnet.common.internal.DefaultWorkerGroup;
 import com.jfireframework.jnet.common.thread.FastThreadLocalThread;
 
 import java.io.IOException;
@@ -12,18 +15,20 @@ import java.util.concurrent.ThreadFactory;
 
 public class ChannelConfig
 {
-    private BufferAllocator          allocator        = PooledBufferAllocator.DEFAULT;
-    private AioListener              aioListener;
-    private int                      minReceiveSize   = 16;
-    private int                      maxReceiveSize   = 1024 * 1024 * 8;
-    private int                      initReceiveSize  = 1024;
+    private        BufferAllocator          allocator        = PooledBufferAllocator.DEFAULT;
+    private        AioListener              aioListener;
+    private        int                      minReceiveSize   = 16;
+    private        int                      maxReceiveSize   = 1024 * 1024 * 8;
+    private        int                      initReceiveSize  = 1024;
     //单位是毫秒
-    private long                     readTimeoutMills = 5000;
-    private int                      maxBatchWrite    = 1024 * 1024 * 8;
-    private String                   ip               = "0.0.0.0";
-    private int                      port             = -1;
-    private int                      backLog          = 50;
-    private AsynchronousChannelGroup channelGroup;
+    private        long                     readTimeoutMills = 5000;
+    private        int                      maxBatchWrite    = 1024 * 1024 * 8;
+    private        String                   ip               = "0.0.0.0";
+    private        int                      port             = -1;
+    private        int                      backLog          = 50;
+    private        AsynchronousChannelGroup channelGroup;
+    private        WorkerGroup              workerGroup;
+    private volatile static WorkerGroup              defaultGroup;
 
     public AsynchronousChannelGroup getChannelGroup()
     {
@@ -161,5 +166,27 @@ public class ChannelConfig
     public void setInitReceiveSize(int initReceiveSize)
     {
         this.initReceiveSize = initReceiveSize;
+    }
+
+    public synchronized WorkerGroup getWorkerGroup()
+    {
+        if (workerGroup == null)
+        {
+            if (defaultGroup == null)
+            {
+                workerGroup = defaultGroup = new DefaultWorkerGroup();
+                System.out.println(defaultGroup);
+            }
+            else
+            {
+                workerGroup = defaultGroup;
+            }
+        }
+        return workerGroup;
+    }
+
+    public void setWorkerGroup(WorkerGroup workerGroup)
+    {
+        this.workerGroup = workerGroup;
     }
 }

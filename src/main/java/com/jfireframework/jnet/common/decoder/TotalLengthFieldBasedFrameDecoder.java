@@ -1,6 +1,6 @@
 package com.jfireframework.jnet.common.decoder;
 
-import com.jfireframework.jnet.common.api.ChannelContext;
+import com.jfireframework.jnet.common.api.ProcessorContext;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
 import com.jfireframework.jnet.common.exception.TooLongException;
@@ -38,13 +38,9 @@ public class TotalLengthFieldBasedFrameDecoder extends AbstractDecoder
         lengthFieldEndOffset = lengthFieldOffset + lengthFieldLength;
     }
 
-    @Override
-    public void bind(ChannelContext channelContext)
-    {
-    }
 
     @Override
-    public void process0() throws Throwable
+    public void process0(ProcessorContext ctx)
     {
         do
         {
@@ -97,7 +93,7 @@ public class TotalLengthFieldBasedFrameDecoder extends AbstractDecoder
                 {
                     packet.addReadPosi(skipBytes);
                 }
-                downStream.process(packet);
+                ctx.fireRead(packet);
             }
         } while (true);
     }

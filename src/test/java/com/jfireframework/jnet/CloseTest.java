@@ -1,14 +1,8 @@
 package com.jfireframework.jnet;
 
-import com.jfireframework.jnet.common.api.AioListener;
-import com.jfireframework.jnet.common.api.ChannelContext;
-import com.jfireframework.jnet.common.api.ChannelContextInitializer;
-import com.jfireframework.jnet.common.api.DataProcessor;
+import com.jfireframework.jnet.common.api.*;
 import com.jfireframework.jnet.common.buffer.*;
 import com.jfireframework.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
-import com.jfireframework.jnet.common.internal.BindDownAndUpStreamDataProcessor;
-import com.jfireframework.jnet.common.internal.DefaultAcceptHandler;
-import com.jfireframework.jnet.common.processor.ChannelAttachProcessor;
 import com.jfireframework.jnet.common.util.AioListenerAdapter;
 import com.jfireframework.jnet.common.util.CapacityStat;
 import com.jfireframework.jnet.common.util.ChannelConfig;
@@ -85,13 +79,15 @@ public class CloseTest
             }
         };
         final Queue<IoBuffer> queue = new ConcurrentLinkedQueue<>();
-        final DataProcessor dataProcessor = new BindDownAndUpStreamDataProcessor<IoBuffer>()
+        final ReadProcessor dataProcessor = new ReadProcessor<IoBuffer>()
         {
+            ProcessorContext ctx;
             @Override
-            public void process(IoBuffer data) throws Throwable
+            public void read(IoBuffer data, ProcessorContext ctx)
             {
                 if (data != null)
                 {
+                    this.ctx = ctx;
                     data.addReadPosi(-4);
                     queue.add(data);
                     countDownLatch.countDown();
@@ -100,32 +96,21 @@ public class CloseTest
                 {
                     for (IoBuffer each : queue)
                     {
-                        downStream.process(each);
+                        ctx.fireRead(each);
                     }
                     queue.clear();
                 }
             }
+
         };
         ChannelContextInitializer initializer = new ChannelContextInitializer()
         {
 
             @Override
-            public void onChannelContextInit(final ChannelContext channelContext)
+            public void onChannelContextInit(final Pipeline pipeline)
             {
-                switch (ioMode)
-                {
-                    case IO:
-                        channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024 * 5, bufferAllocator), //
-                                dataProcessor);
-                        break;
-                    case Channel:
-                        channelContext.setDataProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024 * 5, bufferAllocator), //
-                                new ChannelAttachProcessor(fixService), //
-                                dataProcessor);
-                        break;
-                    default:
-                        break;
-                }
+                pipeline.add(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024 * 5, bufferAllocator));
+                pipeline.add(dataProcessor);
             }
         };
         channelConfig.setIp(ip);
@@ -148,7 +133,7 @@ public class CloseTest
         CapacityStat internalStat = getStat((PooledBufferAllocator) bufferAllocator);
         Assert.assertTrue(internalStat.getChunkCapacity() - internalStat.getFreeBytes() >= PooledBufferAllocator.PAGESIZE * (writeNum + 1));
         outputStream.close();
-        dataProcessor.process(null);
+        dataProcessor.read(null,null);
         socket.close();
         aioServer.termination();
         Thread.sleep(2000);

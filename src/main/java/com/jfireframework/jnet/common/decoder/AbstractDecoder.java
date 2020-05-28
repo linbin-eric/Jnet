@@ -1,10 +1,11 @@
 package com.jfireframework.jnet.common.decoder;
 
+import com.jfireframework.jnet.common.api.ProcessorContext;
+import com.jfireframework.jnet.common.api.ReadProcessor;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
-import com.jfireframework.jnet.common.internal.BindDownAndUpStreamDataProcessor;
 
-public abstract class AbstractDecoder extends BindDownAndUpStreamDataProcessor<IoBuffer>
+public abstract class AbstractDecoder implements ReadProcessor
 {
     protected BufferAllocator allocator;
     protected IoBuffer        accumulation;
@@ -14,21 +15,21 @@ public abstract class AbstractDecoder extends BindDownAndUpStreamDataProcessor<I
         this.allocator = allocator;
     }
 
-    public void process(IoBuffer buffer) throws Throwable
+    public void read(Object data, ProcessorContext ctx)
     {
         if (accumulation == null)
         {
-            accumulation = buffer;
+            accumulation = (IoBuffer) data;
         }
         else
         {
-            accumulation.put(buffer);
-            buffer.free();
+            accumulation.put((IoBuffer) data);
+            ((IoBuffer) data).free();
         }
-        process0();
+        process0(ctx);
     }
 
-    protected abstract void process0() throws Throwable;
+    protected abstract void process0(ProcessorContext ctx);
 
     protected void compactIfNeed()
     {

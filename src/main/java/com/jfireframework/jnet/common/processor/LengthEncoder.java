@@ -1,10 +1,11 @@
 package com.jfireframework.jnet.common.processor;
 
 import com.jfireframework.jnet.common.api.ChannelContext;
+import com.jfireframework.jnet.common.api.ProcessorContext;
+import com.jfireframework.jnet.common.api.WriteProcessor;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
-import com.jfireframework.jnet.common.internal.BindDownAndUpStreamDataProcessor;
 
-public class LengthEncoder extends BindDownAndUpStreamDataProcessor<IoBuffer>
+public class LengthEncoder implements WriteProcessor
 {
     // 代表长度字段开始读取的位置
     private final int            lengthFieldOffset;
@@ -18,15 +19,11 @@ public class LengthEncoder extends BindDownAndUpStreamDataProcessor<IoBuffer>
         this.lengthFieldOffset = lengthFieldOffset;
     }
 
-    @Override
-    public void bind(ChannelContext channelContext)
-    {
-        this.channelContext = channelContext;
-    }
 
     @Override
-    public void process(IoBuffer buf) throws Throwable
+    public void write(Object data, ProcessorContext ctx)
     {
+        IoBuffer buf = (IoBuffer) data;
         int length = buf.remainRead();
         switch (lengthFieldLength)
         {
@@ -42,6 +39,6 @@ public class LengthEncoder extends BindDownAndUpStreamDataProcessor<IoBuffer>
             default:
                 break;
         }
-        downStream.process(buf);
+        ctx.fireWrite(buf);
     }
 }

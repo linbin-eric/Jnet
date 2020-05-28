@@ -1,6 +1,6 @@
 package com.jfireframework.jnet.common.decoder;
 
-import com.jfireframework.jnet.common.api.ChannelContext;
+import com.jfireframework.jnet.common.api.ProcessorContext;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
 
@@ -20,12 +20,7 @@ public class FixLengthDecoder extends AbstractDecoder
     }
 
     @Override
-    public void bind(ChannelContext channelContext)
-    {
-    }
-
-    @Override
-    public void process0() throws Throwable
+    protected void process0(ProcessorContext ctx)
     {
         do
         {
@@ -41,7 +36,7 @@ public class FixLengthDecoder extends AbstractDecoder
                 break;
             }
             IoBuffer packet = accumulation.slice(frameLength);
-            downStream.process(packet);
+            ctx.fireRead(packet);
         } while (true);
         compactIfNeed();
     }

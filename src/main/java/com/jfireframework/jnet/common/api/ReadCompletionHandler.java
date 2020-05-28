@@ -6,7 +6,7 @@ import com.jfireframework.jnet.common.buffer.IoBuffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.CompletionHandler;
 
-public interface ReadCompletionHandler<E> extends CompletionHandler<Integer, ReadEntry>, DataProcessor<E>
+public interface ReadCompletionHandler<E> extends CompletionHandler<Integer, ReadEntry>
 {
 
     /**

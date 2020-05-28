@@ -4,6 +4,7 @@ import com.jfireframework.jnet.client.DefaultClient;
 import com.jfireframework.jnet.client.JnetClient;
 import com.jfireframework.jnet.common.api.ChannelContext;
 import com.jfireframework.jnet.common.api.ChannelContextInitializer;
+import com.jfireframework.jnet.common.api.Pipeline;
 import com.jfireframework.jnet.common.util.ChannelConfig;
 import com.jfireframework.jnet.server.AioServer;
 import org.junit.Test;
@@ -22,7 +23,7 @@ public class TimeoutTest
         AioServer aioServer  = new AioServer(channelConfig, new ChannelContextInitializer()
         {
             @Override
-            public void onChannelContextInit(ChannelContext channelContext)
+            public void onChannelContextInit(Pipeline channelContext)
             {
             }
         });
@@ -34,7 +35,7 @@ public class TimeoutTest
         DefaultClient client  = new DefaultClient(channelConfig, new ChannelContextInitializer()
         {
             @Override
-            public void onChannelContextInit(ChannelContext channelContext)
+            public void onChannelContextInit(Pipeline channelContext)
             {
             }
         });

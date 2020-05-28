@@ -2,18 +2,21 @@ package com.jfireframework.jnet.common.internal;
 
 import com.jfireframework.jnet.common.api.AioListener;
 import com.jfireframework.jnet.common.api.ChannelContext;
+import com.jfireframework.jnet.common.api.ProcessorContext;
 import com.jfireframework.jnet.common.api.WriteCompletionHandler;
 import com.jfireframework.jnet.common.buffer.BufferAllocator;
 import com.jfireframework.jnet.common.buffer.IoBuffer;
 import com.jfireframework.jnet.common.util.ChannelConfig;
+import com.jfireframework.jnet.common.util.SpscLinkedQueue;
 import com.jfireframework.jnet.common.util.UNSAFE;
-import org.jctools.queues.MpscLinkedQueue8;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.Queue;
+import java.util.concurrent.LinkedTransferQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
-public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcessor implements WriteCompletionHandler
+public class DefaultWriteCompleteHandler implements WriteCompletionHandler
 {
     protected static final long                      STATE_OFFSET               = UNSAFE.getFieldOffset("state", DefaultWriteCompleteHandler.class);
     protected static final int                       SPIN_THRESHOLD             = 16;
@@ -21,23 +24,35 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
     protected static final int                       WORK                       = 2;
     protected final        WriteEntry                entry                      = new WriteEntry();
     protected final        AsynchronousSocketChannel socketChannel;
+    protected final        ChannelContext            channelContext;
     protected final        BufferAllocator           allocator;
     protected final        AioListener               aioListener;
     protected final        int                       maxWriteBytes;
     // 终止状态。进入该状态后，不再继续使用
     ////////////////////////////////////////////////////////////
     protected volatile     int                       state                      = IDLE;
-    protected              Queue<IoBuffer>           queue;
-    protected volatile     int                       pendingWriteBytes;
+    protected              Queue<IoBuffer>           queue                      = new SpscLinkedQueue<>();
+    protected              AtomicInteger             pendingWriteBytes          = new AtomicInteger();
     static final           long                      PENDING_WRITE_BYTES_OFFSET = UNSAFE.getFieldOffset("pendingWriteBytes");
+    private final          Thread                    thread;
 
-    public DefaultWriteCompleteHandler(ChannelConfig channelConfig, AsynchronousSocketChannel socketChannel)
+    public DefaultWriteCompleteHandler(ChannelContext channelContext, Thread thread)
     {
-        this.socketChannel = socketChannel;
+        this.thread = thread;
+        this.socketChannel = channelContext.socketChannel();
+        ChannelConfig channelConfig = channelContext.channelConfig();
         this.allocator = channelConfig.getAllocator();
         this.aioListener = channelConfig.getAioListener();
         this.maxWriteBytes = Math.max(1, channelConfig.getMaxBatchWrite());
-        queue = new MpscLinkedQueue8<>();
+        this.channelContext = channelContext;
+        System.out.println("创建写出完成器");
+    }
+
+    @Override
+    protected void finalize() throws Throwable
+    {
+        System.out.println("被回收");
+        super.finalize();
     }
 
     protected void rest()
@@ -70,7 +85,6 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
     {
         try
         {
-            aioListener.afterWrited(channelContext, result);
             ByteBuffer byteBuffer = entry.getByteBuffer();
             if (byteBuffer.hasRemaining())
             {
@@ -80,6 +94,17 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
             entry.clean();
             if (queue.isEmpty() == false)
             {
+//                if (pendingWriteBytes.get() == 0)
+//                {
+//                    System.err.println("异常情况,queue:" + queue.size());
+//                    System.err.println("异常,buffer:" + queue.peek());
+//                    int pe = 0;
+//                    while (queue.peek() == null || (pe = pendingWriteBytes.get()) == 0)
+//                    {
+//                        System.err.println("奇怪：" + queue.peek() + ",pending:" + pe);
+//                    }
+//                    System.out.println("pe:" + pe);
+//                }
                 writeQueuedBuffer();
                 return;
             }
@@ -104,76 +129,68 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
      */
     private void writeQueuedBuffer()
     {
-        int      maxBufferedCapacity = this.maxWriteBytes;
-        int      count               = 0;
-        IoBuffer buffer;
-        IoBuffer accumulation        = null;
-        boolean  create              = false;
-        int      pending             = pendingWriteBytes;
-        int      total               = pending > maxBufferedCapacity ? maxBufferedCapacity : pending;
-        while (count < total && (buffer = queue.poll()) != null)
+        try
         {
-            count += buffer.remainRead();
-            if (accumulation == null)
+            int      maxBufferedCapacity = this.maxWriteBytes;
+            int      count               = 0;
+            IoBuffer buffer              = null;
+            IoBuffer accumulation        = null;
+            boolean  create              = false;
+            int      pending             = pendingWriteBytes.get();
+            int      total               = pending > maxBufferedCapacity ? maxBufferedCapacity : pending;
+//            if (pending <= 0)
+//            {
+//                System.err.println("pending:" + pending + ",max:" + maxBufferedCapacity + ",p:" + pendingWriteBytes.get());
+//            }
+            if (total == 0)
             {
-                accumulation = buffer;
+                System.out.println("触发");
+                total = 1024;
             }
-            else
+            while (count < total && (buffer = queue.poll()) != null)
             {
-                if (create == false)
+                sum2.incrementAndGet();
+                count += buffer.remainRead();
+                if (accumulation == null)
                 {
-                    create = true;
-                    IoBuffer newAcc = allocator.ioBuffer(total);
-                    newAcc.put(accumulation);
-                    accumulation.free();
-                    accumulation = newAcc;
+                    accumulation = buffer;
                 }
-                accumulation.put(buffer);
-                buffer.free();
+                else
+                {
+                    if (create == false)
+                    {
+                        create = true;
+                        IoBuffer newAcc = allocator.ioBuffer(total);
+                        newAcc.put(accumulation);
+                        accumulation.free();
+                        accumulation = newAcc;
+                    }
+                    accumulation.put(buffer);
+                    buffer.free();
+                }
             }
+            int addAndGet = pendingWriteBytes.addAndGet(0 - accumulation.remainRead());
+            if (addAndGet < 0)
+            {
+                System.err.println("小于0：" + addAndGet);
+            }
+            entry.setIoBuffer(accumulation);
+            entry.setByteBuffer(accumulation.readableByteBuffer());
+            socketChannel.write(entry.getByteBuffer(), entry, this);
         }
-        addPendingWriteBytes(0 - accumulation.remainRead());
-        entry.setIoBuffer(accumulation);
-        entry.setByteBuffer(accumulation.readableByteBuffer());
-        socketChannel.write(entry.getByteBuffer(), entry, this);
+        catch (Throwable e)
+        {
+            e.printStackTrace();
+        }
     }
 
     @Override
-    public void failed(Throwable exc, WriteEntry entry)
+    public void failed(Throwable e, WriteEntry entry)
     {
-        channelContext.close(exc);
+        e.printStackTrace();
+        channelContext.close(e);
         entry.clean();
         prepareTermination();
-    }
-
-    @Override
-    public void bind(ChannelContext channelContext)
-    {
-        this.channelContext = channelContext;
-    }
-
-    @Override
-    public void process(Object data) throws IllegalStateException
-    {
-        IoBuffer buf = (IoBuffer) data;
-        if (buf == null)
-        {
-            throw new NullPointerException();
-        }
-        addPendingWriteBytes(buf.remainRead());
-        queue.offer(buf);
-        int now = state;
-        if (now == IDLE && changeToWork())
-        {
-            if (queue.isEmpty() == false)
-            {
-                writeQueuedBuffer();
-            }
-            else
-            {
-                rest();
-            }
-        }
     }
 
     protected void prepareTermination()
@@ -201,19 +218,43 @@ public class DefaultWriteCompleteHandler extends BindDownAndUpStreamDataProcesso
         }
     }
 
-    int addPendingWriteBytes(int add)
+    private AtomicInteger sum  = new AtomicInteger();
+    private AtomicInteger sum2 = new AtomicInteger();
+    private int           sum3 = 0;
+
+    @Override
+    public void write(Object data, ProcessorContext ctx)
     {
-        int current = pendingWriteBytes;
-        int update  = current + add;
-        if (UNSAFE.compareAndSwapInt(this, PENDING_WRITE_BYTES_OFFSET, current, update))
+        sum3++;
+        sum.incrementAndGet();
+        if (thread != Thread.currentThread())
         {
-            return update;
+            System.err.println("线程异常");
         }
-        do
+        IoBuffer buf = (IoBuffer) data;
+        if (buf == null)
         {
-            current = pendingWriteBytes;
-            update = current + add;
-        } while (UNSAFE.compareAndSwapInt(this, PENDING_WRITE_BYTES_OFFSET, current, update) == false);
-        return update;
+            System.err.println("有空数据");
+            throw new NullPointerException();
+        }
+        int size = buf.remainRead();
+        int get  = pendingWriteBytes.addAndGet(size);
+        if (get <= 0)
+        {
+            System.err.println("出现了空间为0的buffer");
+        }
+        queue.offer(buf);
+        int now = state;
+        if (now == IDLE && changeToWork())
+        {
+            if (queue.isEmpty() == false)
+            {
+                writeQueuedBuffer();
+            }
+            else
+            {
+                rest();
+            }
+        }
     }
 }
