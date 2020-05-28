@@ -175,7 +175,6 @@ public class ChannelConfig
             if (defaultGroup == null)
             {
                 workerGroup = defaultGroup = new DefaultWorkerGroup();
-                System.out.println(defaultGroup);
             }
             else
             {

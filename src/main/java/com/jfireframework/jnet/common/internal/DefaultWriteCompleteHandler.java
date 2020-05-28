@@ -18,11 +18,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class DefaultWriteCompleteHandler implements WriteCompletionHandler
 {
-    protected static final long                      STATE_OFFSET               = UNSAFE.getFieldOffset("state", DefaultWriteCompleteHandler.class);
-    protected static final int                       SPIN_THRESHOLD             = 16;
-    protected static final int                       IDLE                       = 1;
-    protected static final int                       WORK                       = 2;
-    protected final        WriteEntry                entry                      = new WriteEntry();
+    protected static final long                      STATE_OFFSET      = UNSAFE.getFieldOffset("state", DefaultWriteCompleteHandler.class);
+    protected static final int                       SPIN_THRESHOLD    = 16;
+    protected static final int                       IDLE              = 1;
+    protected static final int                       WORK              = 2;
+    protected final        WriteEntry                entry             = new WriteEntry();
     protected final        AsynchronousSocketChannel socketChannel;
     protected final        ChannelContext            channelContext;
     protected final        BufferAllocator           allocator;
@@ -30,10 +30,11 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
     protected final        int                       maxWriteBytes;
     // 终止状态。进入该状态后，不再继续使用
     ////////////////////////////////////////////////////////////
-    protected volatile     int                       state                      = IDLE;
-    protected              Queue<IoBuffer>           queue                      = new SpscLinkedQueue<>();
-    protected              AtomicInteger             pendingWriteBytes          = new AtomicInteger();
-    static final           long                      PENDING_WRITE_BYTES_OFFSET = UNSAFE.getFieldOffset("pendingWriteBytes");
+    protected volatile     int                       state             = IDLE;
+    //注意，不能使用JcTools下面的SpscQueue，其实现会出现当queue.isEmpty()==false时，queue.poll()返回null，导致程序异常
+    //MpscQueue则是可以的。JDK的并发queue也是可以的
+    protected              Queue<IoBuffer>           queue             = new SpscLinkedQueue<>();
+    protected              AtomicInteger             pendingWriteBytes = new AtomicInteger();
     private final          Thread                    thread;
 
     public DefaultWriteCompleteHandler(ChannelContext channelContext, Thread thread)
@@ -45,14 +46,6 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
         this.aioListener = channelConfig.getAioListener();
         this.maxWriteBytes = Math.max(1, channelConfig.getMaxBatchWrite());
         this.channelContext = channelContext;
-        System.out.println("创建写出完成器");
-    }
-
-    @Override
-    protected void finalize() throws Throwable
-    {
-        System.out.println("被回收");
-        super.finalize();
     }
 
     protected void rest()
@@ -94,17 +87,6 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
             entry.clean();
             if (queue.isEmpty() == false)
             {
-//                if (pendingWriteBytes.get() == 0)
-//                {
-//                    System.err.println("异常情况,queue:" + queue.size());
-//                    System.err.println("异常,buffer:" + queue.peek());
-//                    int pe = 0;
-//                    while (queue.peek() == null || (pe = pendingWriteBytes.get()) == 0)
-//                    {
-//                        System.err.println("奇怪：" + queue.peek() + ",pending:" + pe);
-//                    }
-//                    System.out.println("pe:" + pe);
-//                }
                 writeQueuedBuffer();
                 return;
             }
@@ -138,18 +120,8 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
             boolean  create              = false;
             int      pending             = pendingWriteBytes.get();
             int      total               = pending > maxBufferedCapacity ? maxBufferedCapacity : pending;
-//            if (pending <= 0)
-//            {
-//                System.err.println("pending:" + pending + ",max:" + maxBufferedCapacity + ",p:" + pendingWriteBytes.get());
-//            }
-            if (total == 0)
-            {
-                System.out.println("触发");
-                total = 1024;
-            }
             while (count < total && (buffer = queue.poll()) != null)
             {
-                sum2.incrementAndGet();
                 count += buffer.remainRead();
                 if (accumulation == null)
                 {
@@ -187,7 +159,6 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
     @Override
     public void failed(Throwable e, WriteEntry entry)
     {
-        e.printStackTrace();
         channelContext.close(e);
         entry.clean();
         prepareTermination();
@@ -218,31 +189,16 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
         }
     }
 
-    private AtomicInteger sum  = new AtomicInteger();
-    private AtomicInteger sum2 = new AtomicInteger();
-    private int           sum3 = 0;
-
     @Override
     public void write(Object data, ProcessorContext ctx)
     {
-        sum3++;
-        sum.incrementAndGet();
-        if (thread != Thread.currentThread())
-        {
-            System.err.println("线程异常");
-        }
         IoBuffer buf = (IoBuffer) data;
         if (buf == null)
         {
-            System.err.println("有空数据");
             throw new NullPointerException();
         }
         int size = buf.remainRead();
-        int get  = pendingWriteBytes.addAndGet(size);
-        if (get <= 0)
-        {
-            System.err.println("出现了空间为0的buffer");
-        }
+        pendingWriteBytes.addAndGet(size);
         queue.offer(buf);
         int now = state;
         if (now == IDLE && changeToWork())

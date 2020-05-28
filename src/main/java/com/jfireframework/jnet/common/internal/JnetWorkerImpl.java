@@ -19,12 +19,10 @@ public class JnetWorkerImpl extends Thread implements JnetWorker
     private              Queue<Runnable> queue    = new MpscLinkedQueue<>();
     private volatile     int             state    = IDLE;
     private volatile     boolean         shutdown = false;
-    private              Thread          thread;
 
     @Override
     public void run()
     {
-        this.thread = Thread.currentThread();
         try
         {
             do
