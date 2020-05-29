@@ -2,10 +2,7 @@ package com.jfirer.jnet;
 
 import com.jfirer.jnet.client.DefaultClient;
 import com.jfirer.jnet.client.JnetClient;
-import com.jfirer.jnet.common.api.ChannelContextInitializer;
-import com.jfirer.jnet.common.api.Pipeline;
-import com.jfirer.jnet.common.api.ProcessorContext;
-import com.jfirer.jnet.common.api.ReadProcessor;
+import com.jfirer.jnet.common.api.*;
 import com.jfirer.jnet.common.buffer.BufferAllocator;
 import com.jfirer.jnet.common.buffer.IoBuffer;
 import com.jfirer.jnet.common.buffer.PooledBufferAllocator;
@@ -80,8 +77,9 @@ public class BaseTest
         {
 
             @Override
-            public void onChannelContextInit(final Pipeline pipeline)
+            public void onChannelContextInit(final ChannelContext channelContext)
             {
+                Pipeline pipeline = channelContext.pipeline();
                 pipeline.add(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024, bufferAllocator));
                 pipeline.add((ReadProcessor) (data, ctx) -> {
                     count.incrementAndGet();
@@ -98,7 +96,8 @@ public class BaseTest
         {
             final int   index  = i;
             final int[] result = results[index];
-            ChannelContextInitializer childIniter = pipeline -> {
+            ChannelContextInitializer childIniter = channelContext -> {
+                Pipeline pipeline = channelContext.pipeline();
                 pipeline.add(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024 * 4, bufferAllocator));
                 pipeline.add(new ReadProcessor()
                 {

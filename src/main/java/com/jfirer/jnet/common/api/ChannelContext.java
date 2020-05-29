@@ -8,6 +8,8 @@ public interface ChannelContext
 {
     ChannelConfig channelConfig();
 
+    Pipeline pipeline();
+
     AsynchronousSocketChannel socketChannel();
 
     void close();

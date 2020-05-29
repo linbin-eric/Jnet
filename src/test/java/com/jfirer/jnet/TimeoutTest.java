@@ -1,6 +1,7 @@
 package com.jfirer.jnet;
 
 import com.jfirer.jnet.client.DefaultClient;
+import com.jfirer.jnet.common.api.ChannelContext;
 import com.jfirer.jnet.common.api.ChannelContextInitializer;
 import com.jfirer.jnet.common.api.Pipeline;
 import com.jfirer.jnet.common.util.ChannelConfig;
@@ -15,11 +16,10 @@ public class TimeoutTest
         ChannelConfig channelConfig = new ChannelConfig();
         channelConfig.setIp("127.0.0.1");
         channelConfig.setPort(8080);
-        channelConfig.setReadTimeoutMills(10);
-        AioServer aioServer  = new AioServer(channelConfig, new ChannelContextInitializer()
+        AioServer aioServer = new AioServer(channelConfig, new ChannelContextInitializer()
         {
             @Override
-            public void onChannelContextInit(Pipeline channelContext)
+            public void onChannelContextInit(ChannelContext channelContext)
             {
             }
         });
@@ -27,11 +27,10 @@ public class TimeoutTest
         ChannelConfig config = new ChannelConfig();
         config.setIp("127.0.0.1");
         config.setPort(8080);
-        config.setReadTimeoutMills(5000);
-        DefaultClient client  = new DefaultClient(channelConfig, new ChannelContextInitializer()
+        DefaultClient client = new DefaultClient(channelConfig, new ChannelContextInitializer()
         {
             @Override
-            public void onChannelContextInit(Pipeline channelContext)
+            public void onChannelContextInit(ChannelContext channelContext)
             {
             }
         });

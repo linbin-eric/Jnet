@@ -1,6 +1,5 @@
 package com.jfirer.jnet.common.internal;
 
-import com.jfirer.jnet.common.api.AioListener;
 import com.jfirer.jnet.common.api.ChannelContext;
 import com.jfirer.jnet.common.api.ProcessorContext;
 import com.jfirer.jnet.common.api.WriteCompletionHandler;
@@ -25,7 +24,6 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
     protected final        AsynchronousSocketChannel socketChannel;
     protected final        ChannelContext            channelContext;
     protected final        BufferAllocator           allocator;
-    protected final        AioListener               aioListener;
     protected final        int                       maxWriteBytes;
     // 终止状态。进入该状态后，不再继续使用
     ////////////////////////////////////////////////////////////
@@ -34,15 +32,12 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
     //MpscQueue则是可以的。JDK的并发queue也是可以的
     protected              Queue<IoBuffer>           queue             = new SpscLinkedQueue<>();
     protected              AtomicInteger             pendingWriteBytes = new AtomicInteger();
-    private final          Thread                    thread;
 
-    public DefaultWriteCompleteHandler(ChannelContext channelContext, Thread thread)
+    public DefaultWriteCompleteHandler(ChannelContext channelContext)
     {
-        this.thread = thread;
         this.socketChannel = channelContext.socketChannel();
         ChannelConfig channelConfig = channelContext.channelConfig();
         this.allocator = channelConfig.getAllocator();
-        this.aioListener = channelConfig.getAioListener();
         this.maxWriteBytes = Math.max(1, channelConfig.getMaxBatchWrite());
         this.channelContext = channelContext;
     }

@@ -22,12 +22,12 @@ public class DefaultClient implements JnetClient
     private static final int                       NOT_INIT     = 1;
     private static final int                       CONNECTED    = 2;
     private static final int                       DISCONNECTED = 3;
-    private final boolean                   preferBlock  = false;
-    private       ChannelContextInitializer initializer;
-    private       ChannelConfig             channelConfig;
-    private       ChannelContext            channelContext;
-    private       int                       state        = NOT_INIT;
-    private       Pipeline                  pipeline;
+    private final        boolean                   preferBlock  = false;
+    private              ChannelContextInitializer initializer;
+    private              ChannelConfig             channelConfig;
+    private              ChannelContext            channelContext;
+    private              int                       state        = NOT_INIT;
+    private              Pipeline                  pipeline;
 
     public DefaultClient(ChannelConfig channelConfig, ChannelContextInitializer initializer)
     {
@@ -50,11 +50,12 @@ public class DefaultClient implements JnetClient
                 AsynchronousSocketChannel asynchronousSocketChannel = AsynchronousSocketChannel.open(channelConfig.getChannelGroup());
                 Future<Void>              future                    = asynchronousSocketChannel.connect(new InetSocketAddress(channelConfig.getIp(), channelConfig.getPort()));
                 future.get();
-                channelContext = new DefaultChannelContext(asynchronousSocketChannel, channelConfig.getAioListener(), channelConfig);
+                channelContext = new DefaultChannelContext(asynchronousSocketChannel, channelConfig);
                 pipeline = new DefaultPipeline(channelConfig.getWorkerGroup(), channelContext);
-                initializer.onChannelContextInit(pipeline);
-                ((DefaultPipeline) pipeline).buildPipeline();
-                ReadCompletionHandler readCompletionHandler = new AdaptiveReadCompletionHandler(channelContext, pipeline);
+                ((DefaultChannelContext) channelContext).setPipeline(pipeline);
+                ((DefaultPipeline) pipeline).setChannelContext(channelContext);
+                initializer.onChannelContextInit(channelContext);
+                ReadCompletionHandler readCompletionHandler = new AdaptiveReadCompletionHandler(channelContext);
                 readCompletionHandler.start();
                 state = CONNECTED;
             }

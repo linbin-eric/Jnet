@@ -1,7 +1,7 @@
 package com.jfirer.jnet.common.internal;
 
+import com.jfirer.jnet.common.api.Pipeline;
 import com.jfirer.jnet.common.util.ChannelConfig;
-import com.jfirer.jnet.common.api.AioListener;
 import com.jfirer.jnet.common.api.ChannelContext;
 
 import java.io.IOException;
@@ -10,13 +10,12 @@ import java.nio.channels.AsynchronousSocketChannel;
 public class DefaultChannelContext implements ChannelContext
 {
     private AsynchronousSocketChannel socketChannel;
-    private AioListener               aioListener;
     private ChannelConfig             channelConfig;
+    private Pipeline                  pipeline;
 
-    public DefaultChannelContext(AsynchronousSocketChannel socketChannel, AioListener aioListener, ChannelConfig channelConfig)
+    public DefaultChannelContext(AsynchronousSocketChannel socketChannel, ChannelConfig channelConfig)
     {
         this.socketChannel = socketChannel;
-        this.aioListener = aioListener;
         this.channelConfig = channelConfig;
     }
 
@@ -24,6 +23,12 @@ public class DefaultChannelContext implements ChannelContext
     public ChannelConfig channelConfig()
     {
         return channelConfig;
+    }
+
+    @Override
+    public Pipeline pipeline()
+    {
+        return pipeline;
     }
 
     @Override
@@ -44,11 +49,15 @@ public class DefaultChannelContext implements ChannelContext
         try
         {
             socketChannel.close();
-            aioListener.onClose(this, e);
         }
         catch (IOException e1)
         {
             ;
         }
+    }
+
+    public void setPipeline(Pipeline pipeline)
+    {
+        this.pipeline = pipeline;
     }
 }

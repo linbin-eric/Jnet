@@ -3,7 +3,6 @@ package com.jfirer.jnet;
 import com.jfirer.jnet.common.api.*;
 import com.jfirer.jnet.common.buffer.*;
 import com.jfirer.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
-import com.jfirer.jnet.common.util.AioListenerAdapter;
 import com.jfirer.jnet.common.util.CapacityStat;
 import com.jfirer.jnet.common.util.ChannelConfig;
 import com.jfirer.jnet.server.AioServer;
@@ -70,14 +69,6 @@ public class CloseTest
             }
         });
         final CountDownLatch countDownLatch = new CountDownLatch(writeNum);
-        AioListener aioListener = new AioListenerAdapter()
-        {
-            @Override
-            public void onClose(ChannelContext channelContext, Throwable e)
-            {
-//                countDownLatch.countDown();
-            }
-        };
         final Queue<IoBuffer> queue = new ConcurrentLinkedQueue<>();
         final ReadProcessor dataProcessor = new ReadProcessor<IoBuffer>()
         {
@@ -107,8 +98,9 @@ public class CloseTest
         {
 
             @Override
-            public void onChannelContextInit(final Pipeline pipeline)
+            public void onChannelContextInit(final ChannelContext channelContext)
             {
+                Pipeline pipeline = channelContext.pipeline();
                 pipeline.add(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024 * 5, bufferAllocator));
                 pipeline.add(dataProcessor);
             }

@@ -7,5 +7,5 @@ public interface ChannelContextInitializer
      *
      * @param channelContext
      */
-    void onChannelContextInit(Pipeline pipeline);
+    void onChannelContextInit(ChannelContext channelContext);
 }

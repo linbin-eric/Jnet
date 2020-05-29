@@ -6,29 +6,28 @@ import com.jfirer.jnet.common.util.ChannelConfig;
 import java.io.IOException;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
+import java.nio.channels.CompletionHandler;
 
-public class DefaultAcceptHandler implements AcceptHandler
+public class DefaultAcceptHandler implements CompletionHandler<AsynchronousSocketChannel, AsynchronousServerSocketChannel>
 {
     protected final ChannelConfig             channelConfig;
     protected final ChannelContextInitializer channelContextInitializer;
-    protected final AioListener               aioListener;
 
     public DefaultAcceptHandler(ChannelConfig channelConfig, ChannelContextInitializer channelContextInitializer)
     {
         this.channelConfig = channelConfig;
         this.channelContextInitializer = channelContextInitializer;
-        aioListener = channelConfig.getAioListener();
     }
 
     @Override
     public void completed(AsynchronousSocketChannel socketChannel, AsynchronousServerSocketChannel serverChannel)
     {
-        ChannelContext  channelContext = new DefaultChannelContext(socketChannel, aioListener, channelConfig);
-        DefaultPipeline pipeline       = new DefaultPipeline(channelConfig.getWorkerGroup(), channelContext);
-        aioListener.onAccept(socketChannel, channelContext);
-        channelContextInitializer.onChannelContextInit(pipeline);
-        pipeline.buildPipeline();
-        ReadCompletionHandler readCompletionHandler = new AdaptiveReadCompletionHandler(channelContext, pipeline);
+        DefaultChannelContext channelContext = new DefaultChannelContext(socketChannel, channelConfig);
+        DefaultPipeline       pipeline       = new DefaultPipeline(channelConfig.getWorkerGroup(), channelContext);
+        pipeline.setChannelContext(channelContext);
+        channelContext.setPipeline(pipeline);
+        channelContextInitializer.onChannelContextInit(channelContext);
+        ReadCompletionHandler readCompletionHandler = new AdaptiveReadCompletionHandler(channelContext);
         readCompletionHandler.start();
         serverChannel.accept(serverChannel, this);
     }

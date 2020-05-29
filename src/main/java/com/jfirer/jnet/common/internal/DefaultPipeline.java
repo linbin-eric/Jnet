@@ -31,22 +31,28 @@ public class DefaultPipeline implements Pipeline
 
     private void setTail(Object processor, JnetWorker worker)
     {
-        DefaultProcessorContext prev = tail;
+        DefaultProcessorContext prev = tail.getPrev();
         DefaultProcessorContext ctx  = new DefaultProcessorContext(worker, channelContext, this);
         ctx.setProcessor(processor);
         prev.setNext(ctx);
         ctx.setPrev(prev);
-        tail = ctx;
+        ctx.setNext(tail);
+        tail.setPrev(ctx);
     }
 
     private void setHead(Object processor, JnetWorker jnetWorker)
     {
         head = new DefaultProcessorContext(jnetWorker, channelContext, this);
-        head.setProcessor(new DefaultWriteCompleteHandler(channelContext,jnetWorker.thread()));
+        head.setProcessor(new DefaultWriteCompleteHandler(channelContext));
+        DefaultProcessorContext second = new DefaultProcessorContext(jnetWorker, channelContext, this);
+        second.setProcessor(processor);
+        head.setNext(second);
+        second.setPrev(head);
         tail = new DefaultProcessorContext(jnetWorker, channelContext, this);
-        tail.setProcessor(processor);
-        head.setNext(tail);
-        tail.setPrev(head);
+        tail.setProcessor((ReadProcessor) (data, ctx) -> {
+        });
+        second.setNext(tail);
+        tail.setPrev(second);
     }
 
     @Override
@@ -62,16 +68,6 @@ public class DefaultPipeline implements Pipeline
         }
     }
 
-    public void buildPipeline()
-    {
-        DefaultProcessorContext last = new DefaultProcessorContext(tail.worker(), channelContext, this);
-        last.setProcessor((ReadProcessor) (data, ctx) -> {
-        });
-        tail.setNext(last);
-        last.setPrev(tail);
-        tail = last;
-    }
-
     @Override
     public void read(Object data)
     {
@@ -82,5 +78,10 @@ public class DefaultPipeline implements Pipeline
     public void write(Object data)
     {
         tail.fireWrite(data);
+    }
+
+    public void setChannelContext(ChannelContext channelContext)
+    {
+        this.channelContext = channelContext;
     }
 }

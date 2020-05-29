@@ -1,6 +1,5 @@
 package com.jfirer.jnet.common.internal;
 
-import com.jfirer.jnet.common.api.AioListener;
 import com.jfirer.jnet.common.api.ChannelContext;
 import com.jfirer.jnet.common.api.Pipeline;
 import com.jfirer.jnet.common.api.ReadCompletionHandler;
@@ -16,7 +15,6 @@ import java.util.List;
 public class AdaptiveReadCompletionHandler implements ReadCompletionHandler<IoBuffer>
 {
     protected final AsynchronousSocketChannel socketChannel;
-    protected final AioListener               aioListener;
     protected final BufferAllocator           allocator;
     protected final ReadEntry                 entry      = new ReadEntry();
     protected       ChannelContext            channelContext;
@@ -67,17 +65,16 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler<IoBu
         }
     }
 
-    public AdaptiveReadCompletionHandler(ChannelContext channelContext, Pipeline pipeline)
+    public AdaptiveReadCompletionHandler(ChannelContext channelContext)
     {
-        this.channelContext=channelContext;
+        this.channelContext = channelContext;
+        pipeline = channelContext.pipeline();
+        socketChannel = channelContext.socketChannel();
         ChannelConfig config = channelContext.channelConfig();
-        this.aioListener = config.getAioListener();
-        this.allocator = config.getAllocator();
-        this.socketChannel = channelContext.socketChannel();
+        allocator = config.getAllocator();
         minIndex = indexOf(config.getMinReceiveSize());
         maxIndex = indexOf(config.getMaxReceiveSize());
         index = indexOf(config.getInitReceiveSize());
-        this.pipeline = pipeline;
     }
 
     @Override

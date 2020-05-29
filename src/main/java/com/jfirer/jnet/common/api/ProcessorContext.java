@@ -6,7 +6,5 @@ public interface ProcessorContext
 
     void fireWrite(Object data);
 
-    JnetWorker worker();
-
-    Pipeline pipeline();
+    ChannelContext channelContext();
 }

@@ -8,21 +8,17 @@ public class DefaultProcessorContext implements ProcessorContext
 {
     private       DefaultProcessorContext next;
     private       DefaultProcessorContext prev;
-    private final Thread                  thread;
     private final JnetWorker              jnetWorker;
     private final ChannelContext          channelContext;
     private       Consumer                read;
     private       Consumer                write;
-    private       Pipeline                pipeline;
     private       ReadProcessor           readProcessor;
     private       WriteProcessor          writeProcessor;
 
     public DefaultProcessorContext(JnetWorker jnetWorker, ChannelContext channelContext, Pipeline pipeline)
     {
-        this.thread = jnetWorker.thread();
         this.jnetWorker = jnetWorker;
         this.channelContext = channelContext;
-        this.pipeline = pipeline;
     }
 
     @Override
@@ -38,15 +34,9 @@ public class DefaultProcessorContext implements ProcessorContext
     }
 
     @Override
-    public JnetWorker worker()
+    public ChannelContext channelContext()
     {
-        return jnetWorker;
-    }
-
-    @Override
-    public Pipeline pipeline()
-    {
-        return pipeline;
+        return channelContext;
     }
 
     public void setProcessor(Object processor)
@@ -55,7 +45,7 @@ public class DefaultProcessorContext implements ProcessorContext
         {
             readProcessor = (ReadProcessor) processor;
             read = (data) -> {
-                if (Thread.currentThread() == worker().thread())
+                if (Thread.currentThread() == jnetWorker.thread())
                 {
                     try
                     {
@@ -63,7 +53,6 @@ public class DefaultProcessorContext implements ProcessorContext
                     }
                     catch (Throwable e)
                     {
-                        e.printStackTrace();
                         channelContext.close(e);
                     }
                 }
@@ -76,7 +65,6 @@ public class DefaultProcessorContext implements ProcessorContext
                         }
                         catch (Throwable e)
                         {
-                            e.printStackTrace();
                             channelContext.close(e);
                         }
                     });
@@ -86,11 +74,13 @@ public class DefaultProcessorContext implements ProcessorContext
         else
         {
             read = data -> {
-                try{
-
-                next.fireRead(data);
-                }catch (Throwable e){
-                    e.printStackTrace();
+                try
+                {
+                    next.fireRead(data);
+                }
+                catch (Throwable e)
+                {
+                    channelContext.close(e);
                 }
             };
         }
@@ -98,7 +88,7 @@ public class DefaultProcessorContext implements ProcessorContext
         {
             writeProcessor = (WriteProcessor) processor;
             write = data -> {
-                if (Thread.currentThread() == worker().thread())
+                if (Thread.currentThread() == jnetWorker.thread())
                 {
                     try
                     {
@@ -106,7 +96,6 @@ public class DefaultProcessorContext implements ProcessorContext
                     }
                     catch (Throwable e)
                     {
-                        e.printStackTrace();
                         channelContext.close(e);
                     }
                 }
@@ -119,7 +108,6 @@ public class DefaultProcessorContext implements ProcessorContext
                         }
                         catch (Throwable e)
                         {
-                            e.printStackTrace();
                             channelContext.close(e);
                         }
                     });
@@ -129,11 +117,13 @@ public class DefaultProcessorContext implements ProcessorContext
         else
         {
             write = data -> {
-                try{
-
-                prev.fireWrite(data);
-                }catch (Throwable e){
-                    e.printStackTrace();
+                try
+                {
+                    prev.fireWrite(data);
+                }
+                catch (Throwable e)
+                {
+                    channelContext.close(e);
                 }
             };
         }
@@ -149,13 +139,23 @@ public class DefaultProcessorContext implements ProcessorContext
         this.prev = (DefaultProcessorContext) prev;
     }
 
-    public void invokeRead(Object data)
+    private void invokeRead(Object data)
     {
         readProcessor.read(data, next);
     }
 
-    public void invokeWrite(Object data)
+    private void invokeWrite(Object data)
     {
         writeProcessor.write(data, prev);
+    }
+
+    public JnetWorker worker()
+    {
+        return jnetWorker;
+    }
+
+    public DefaultProcessorContext getPrev()
+    {
+        return prev;
     }
 }

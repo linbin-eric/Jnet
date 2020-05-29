@@ -1,10 +1,8 @@
 package com.jfirer.jnet.common.util;
 
-import com.jfirer.jnet.common.api.AioListener;
 import com.jfirer.jnet.common.api.WorkerGroup;
 import com.jfirer.jnet.common.buffer.BufferAllocator;
 import com.jfirer.jnet.common.buffer.PooledBufferAllocator;
-import com.jfirer.jnet.common.internal.DefaultAioListener;
 import com.jfirer.jnet.common.internal.DefaultWorkerGroup;
 import com.jfirer.jnet.common.thread.FastThreadLocalThread;
 
@@ -14,19 +12,17 @@ import java.util.concurrent.ThreadFactory;
 
 public class ChannelConfig
 {
-    private BufferAllocator allocator = PooledBufferAllocator.DEFAULT;
-    private AioListener     aioListener;
-    private        int                      minReceiveSize   = 16;
-    private        int                      maxReceiveSize   = 1024 * 1024 * 8;
-    private        int                      initReceiveSize  = 1024;
+    private                 BufferAllocator          allocator       = PooledBufferAllocator.DEFAULT;
+    private                 int                      minReceiveSize  = 16;
+    private                 int                      maxReceiveSize  = 1024 * 1024 * 8;
+    private                 int                      initReceiveSize = 1024;
     //单位是毫秒
-    private        long                     readTimeoutMills = 5000;
-    private        int                      maxBatchWrite    = 1024 * 1024 * 8;
-    private        String                   ip               = "0.0.0.0";
-    private        int                      port             = -1;
-    private        int                      backLog          = 50;
-    private        AsynchronousChannelGroup channelGroup;
-    private        WorkerGroup              workerGroup;
+    private                 int                      maxBatchWrite   = 1024 * 1024 * 8;
+    private                 String                   ip              = "0.0.0.0";
+    private                 int                      port            = -1;
+    private                 int                      backLog         = 50;
+    private                 AsynchronousChannelGroup channelGroup;
+    private                 WorkerGroup              workerGroup;
     private volatile static WorkerGroup              defaultGroup;
 
     public AsynchronousChannelGroup getChannelGroup()
@@ -97,30 +93,6 @@ public class ChannelConfig
     public void setMaxBatchWrite(int maxBatchWrite)
     {
         this.maxBatchWrite = maxBatchWrite;
-    }
-
-    public long getReadTimeoutMills()
-    {
-        return readTimeoutMills;
-    }
-
-    public void setReadTimeoutMills(long readTimeoutMills)
-    {
-        this.readTimeoutMills = readTimeoutMills;
-    }
-
-    public AioListener getAioListener()
-    {
-        if (aioListener == null)
-        {
-            aioListener = new DefaultAioListener();
-        }
-        return aioListener;
-    }
-
-    public void setAioListener(AioListener aioListener)
-    {
-        this.aioListener = aioListener;
     }
 
     public BufferAllocator getAllocator()
