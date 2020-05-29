@@ -44,88 +44,24 @@ public class DefaultProcessorContext implements ProcessorContext
         if (processor instanceof ReadProcessor)
         {
             readProcessor = (ReadProcessor) processor;
-            read = (data) -> {
-                if (Thread.currentThread() == jnetWorker.thread())
-                {
-                    try
-                    {
-                        invokeRead(data);
-                    }
-                    catch (Throwable e)
-                    {
-                        channelContext.close(e);
-                    }
-                }
-                else
-                {
-                    jnetWorker.submit(() -> {
-                        try
-                        {
-                            invokeRead(data);
-                        }
-                        catch (Throwable e)
-                        {
-                            channelContext.close(e);
-                        }
-                    });
-                }
-            };
+            read = new DataOperator(data -> {
+                invokeRead(data);
+            });
         }
         else
         {
-            read = data -> {
-                try
-                {
-                    next.fireRead(data);
-                }
-                catch (Throwable e)
-                {
-                    channelContext.close(e);
-                }
-            };
+            read = new NoOp(data -> next.fireRead(data));
         }
         if (processor instanceof WriteProcessor)
         {
             writeProcessor = (WriteProcessor) processor;
-            write = data -> {
-                if (Thread.currentThread() == jnetWorker.thread())
-                {
-                    try
-                    {
-                        invokeWrite(data);
-                    }
-                    catch (Throwable e)
-                    {
-                        channelContext.close(e);
-                    }
-                }
-                else
-                {
-                    jnetWorker.submit(() -> {
-                        try
-                        {
-                            invokeWrite(data);
-                        }
-                        catch (Throwable e)
-                        {
-                            channelContext.close(e);
-                        }
-                    });
-                }
-            };
+            write = new DataOperator(data -> {
+                invokeWrite(data);
+            });
         }
         else
         {
-            write = data -> {
-                try
-                {
-                    prev.fireWrite(data);
-                }
-                catch (Throwable e)
-                {
-                    channelContext.close(e);
-                }
-            };
+            write = new NoOp(data -> prev.fireWrite(data));
         }
     }
 
@@ -157,5 +93,67 @@ public class DefaultProcessorContext implements ProcessorContext
     public DefaultProcessorContext getPrev()
     {
         return prev;
+    }
+
+    class DataOperator implements Consumer<Object>
+    {
+        Consumer<Object> handler;
+
+        DataOperator(Consumer<Object> handler)
+        {
+            this.handler = handler;
+        }
+
+        @Override
+        public void accept(Object o)
+        {
+            if (Thread.currentThread() == jnetWorker.thread())
+            {
+                try
+                {
+                    handler.accept(o);
+                }
+                catch (Throwable e)
+                {
+                    channelContext.close(e);
+                }
+            }
+            else
+            {
+                jnetWorker.submit(() -> {
+                    try
+                    {
+                        handler.accept(o);
+                    }
+                    catch (Throwable e)
+                    {
+                        channelContext.close(e);
+                    }
+                });
+            }
+        }
+    }
+
+    class NoOp implements Consumer<Object>
+    {
+        Consumer handler;
+
+        public NoOp(Consumer handler)
+        {
+            this.handler = handler;
+        }
+
+        @Override
+        public void accept(Object o)
+        {
+            try
+            {
+                handler.accept(o);
+            }
+            catch (Throwable e)
+            {
+                channelContext.close(e);
+            }
+        }
     }
 }

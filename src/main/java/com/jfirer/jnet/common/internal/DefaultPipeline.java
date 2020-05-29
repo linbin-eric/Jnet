@@ -35,6 +35,12 @@ public class DefaultPipeline implements Pipeline
         DefaultProcessorContext ctx  = new DefaultProcessorContext(worker, channelContext, this);
         ctx.setProcessor(processor);
         prev.setNext(ctx);
+        if (worker != tail.worker())
+        {
+            tail = new DefaultProcessorContext(worker, channelContext, this);
+            tail.setProcessor((ReadProcessor) (data, ctx0) -> {
+            });
+        }
         ctx.setPrev(prev);
         ctx.setNext(tail);
         tail.setPrev(ctx);
