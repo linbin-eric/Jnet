@@ -6,5 +6,11 @@ public interface ProcessorContext
 
     void fireWrite(Object data);
 
+    void firePrepareFirstRead();
+
+    void fireChannelClose();
+
+    void fireExceptionCatch(Throwable e);
+
     ChannelContext channelContext();
 }

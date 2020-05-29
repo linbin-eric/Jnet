@@ -24,10 +24,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 @RunWith(Parameterized.class)
 public class CloseTest
 {
-    static enum IoMode
-    {
-        IO, Channel
-    }
 
     private String ip       = "127.0.0.1";
     private int    port     = 4586;
@@ -37,42 +33,28 @@ public class CloseTest
     public static Collection<Object[]> params()
     {
         return Arrays.asList(new Object[][]{ //
-                {PooledUnThreadCacheBufferAllocator.DEFAULT, 1024 * 1024 * 2, IoMode.IO}, //
-                {PooledUnThreadCacheBufferAllocator.DEFAULT, 1024 * 1024 * 2, IoMode.Channel}, //
+                {PooledUnThreadCacheBufferAllocator.DEFAULT}, //
+                {PooledUnThreadCacheBufferAllocator.DEFAULT}, //
         });
     }
 
     private BufferAllocator bufferAllocator;
-    private int             batchWriteNum;
-    private IoMode          ioMode;
 
-    public CloseTest(final BufferAllocator bufferAllocator, int batchWriteNum, final IoMode ioMode) throws IOException, InterruptedException
+    public CloseTest(final BufferAllocator bufferAllocator) throws IOException, InterruptedException
     {
         this.bufferAllocator = bufferAllocator;
-        this.batchWriteNum = batchWriteNum;
-        this.ioMode = ioMode;
     }
 
     @Test
     public void test() throws Throwable
     {
         ChannelConfig channelConfig = new ChannelConfig();
-        final ExecutorService fixService = Executors.newFixedThreadPool(4, new ThreadFactory()
-        {
-            AtomicInteger atomicInteger = new AtomicInteger(0);
-
-            @Override
-            public Thread newThread(Runnable r)
-            {
-                int count = atomicInteger.getAndIncrement();
-                return new Thread(r, "channelWorker-" + (count));
-            }
-        });
-        final CountDownLatch countDownLatch = new CountDownLatch(writeNum);
-        final Queue<IoBuffer> queue = new ConcurrentLinkedQueue<>();
+        final CountDownLatch  countDownLatch = new CountDownLatch(writeNum);
+        final Queue<IoBuffer> queue          = new ConcurrentLinkedQueue<>();
         final ReadProcessor dataProcessor = new ReadProcessor<IoBuffer>()
         {
             ProcessorContext ctx;
+
             @Override
             public void read(IoBuffer data, ProcessorContext ctx)
             {
@@ -87,12 +69,11 @@ public class CloseTest
                 {
                     for (IoBuffer each : queue)
                     {
-                        ctx.fireRead(each);
+                        this.ctx.fireRead(each);
                     }
                     queue.clear();
                 }
             }
-
         };
         ChannelContextInitializer initializer = new ChannelContextInitializer()
         {
@@ -107,7 +88,7 @@ public class CloseTest
         };
         channelConfig.setIp(ip);
         channelConfig.setPort(port);
-        AioServer aioServer = AioServer.newAioServer(channelConfig,initializer);
+        AioServer aioServer = AioServer.newAioServer(channelConfig, initializer);
         aioServer.start();
         Socket socket  = new Socket(ip, port);
         byte[] content = new byte[PooledBufferAllocator.PAGESIZE];
@@ -125,7 +106,7 @@ public class CloseTest
         CapacityStat internalStat = getStat((PooledBufferAllocator) bufferAllocator);
         Assert.assertTrue(internalStat.getChunkCapacity() - internalStat.getFreeBytes() >= PooledBufferAllocator.PAGESIZE * (writeNum + 1));
         outputStream.close();
-        dataProcessor.read(null,null);
+        dataProcessor.read(null, null);
         socket.close();
         aioServer.termination();
         Thread.sleep(2000);

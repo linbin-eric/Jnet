@@ -28,7 +28,6 @@ import static org.junit.Assert.assertEquals;
  *
  * @author linbin
  */
-@RunWith(Parameterized.class)
 public class BaseTest
 {
     private static final Logger          logger       = LoggerFactory.getLogger(BaseTest.class);
@@ -42,30 +41,12 @@ public class BaseTest
     private              int[][]         results;
     private              BufferAllocator bufferAllocator;
 
-    @Parameters(name = "IO模式:{2}")
-    public static Collection<Object[]> params()
-    {
-        return Arrays.asList(new Object[][]{ //
-//                {PooledUnRecycleBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.IO}, //
-                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.IO}, //
-//                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.Channel}, //
-//                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.THREAD}, //
-//                {PooledUnThreadCacheBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.IO}, //
-//                {UnPooledRecycledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.IO}, //
-//                {UnPooledUnRecycledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.IO}, //
-//                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.Channel}, //
-//                {PooledBufferAllocator.DEFAULT, 1024 * 1024 * 8, IoMode.THREAD}, //
-        });
-    }
-
     AtomicInteger count = new AtomicInteger(0);
 
-    public BaseTest(final BufferAllocator bufferAllocator, int batchWriteNum, final IoMode ioMode)
+    public BaseTest()
     {
         ChannelConfig channelConfig = new ChannelConfig();
-        channelConfig.setAllocator(bufferAllocator);
-        channelConfig.setMaxBatchWrite(batchWriteNum);
-        this.bufferAllocator = bufferAllocator;
+        this.bufferAllocator = channelConfig.getAllocator();
         clients = new JnetClient[numClients];
         results = new int[numClients][numPerThread];
         for (int i = 0; i < numClients; i++)

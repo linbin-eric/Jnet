@@ -37,13 +37,39 @@ public class DefaultPipeline implements Pipeline
         prev.setNext(ctx);
         if (worker != tail.worker())
         {
-            tail = new DefaultProcessorContext(worker, channelContext, this);
-            tail.setProcessor((ReadProcessor) (data, ctx0) -> {
-            });
+            newTail(worker);
         }
         ctx.setPrev(prev);
         ctx.setNext(tail);
         tail.setPrev(ctx);
+    }
+
+    private void newTail(JnetWorker worker)
+    {
+        tail = new DefaultProcessorContext(worker, channelContext, this);
+        tail.setProcessor(new ReadProcessor<Object>()
+        {
+            @Override
+            public void read(Object data, ProcessorContext ctx)
+            {
+            }
+
+            @Override
+            public void prepareFirstRead(ProcessorContext ctx)
+            {
+            }
+
+            @Override
+            public void channelClose(ProcessorContext ctx)
+            {
+            }
+
+            @Override
+            public void exceptionCatch(Throwable e, ProcessorContext ctx)
+            {
+                channelContext.close(e);
+            }
+        });
     }
 
     private void setHead(Object processor, JnetWorker jnetWorker)
@@ -54,9 +80,7 @@ public class DefaultPipeline implements Pipeline
         second.setProcessor(processor);
         head.setNext(second);
         second.setPrev(head);
-        tail = new DefaultProcessorContext(jnetWorker, channelContext, this);
-        tail.setProcessor((ReadProcessor) (data, ctx) -> {
-        });
+        newTail(jnetWorker);
         second.setNext(tail);
         tail.setPrev(second);
     }
@@ -75,15 +99,27 @@ public class DefaultPipeline implements Pipeline
     }
 
     @Override
-    public void read(Object data)
+    public void fireRead(Object data)
     {
         head.fireRead(data);
     }
 
     @Override
-    public void write(Object data)
+    public void fireWrite(Object data)
     {
         tail.fireWrite(data);
+    }
+
+    @Override
+    public void fireChannelClose()
+    {
+        head.fireChannelClose();
+    }
+
+    @Override
+    public void fireExceptionCatch(Throwable e)
+    {
+        head.fireExceptionCatch(e);
     }
 
     public void setChannelContext(ChannelContext channelContext)

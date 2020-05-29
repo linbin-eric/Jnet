@@ -2,7 +2,9 @@ package com.jfirer.jnet.common.internal;
 
 import com.jfirer.jnet.common.api.*;
 
+import javax.xml.crypto.Data;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class DefaultProcessorContext implements ProcessorContext
 {
@@ -12,6 +14,9 @@ public class DefaultProcessorContext implements ProcessorContext
     private final ChannelContext          channelContext;
     private       Consumer                read;
     private       Consumer                write;
+    private       Consumer                prepareFirstRead;
+    private       Consumer                channelClose;
+    private       Consumer                exceptionCatch;
     private       ReadProcessor           readProcessor;
     private       WriteProcessor          writeProcessor;
 
@@ -34,6 +39,24 @@ public class DefaultProcessorContext implements ProcessorContext
     }
 
     @Override
+    public void firePrepareFirstRead()
+    {
+        prepareFirstRead.accept(null);
+    }
+
+    @Override
+    public void fireChannelClose()
+    {
+        channelClose.accept(null);
+    }
+
+    @Override
+    public void fireExceptionCatch(Throwable e)
+    {
+        exceptionCatch.accept(e);
+    }
+
+    @Override
     public ChannelContext channelContext()
     {
         return channelContext;
@@ -44,20 +67,22 @@ public class DefaultProcessorContext implements ProcessorContext
         if (processor instanceof ReadProcessor)
         {
             readProcessor = (ReadProcessor) processor;
-            read = new DataOperator(data -> {
-                invokeRead(data);
-            });
+            read = new DataOperator(data -> readProcessor.read(data, next));
+            prepareFirstRead = new DataOperator(data -> readProcessor.prepareFirstRead(next));
+            channelClose = new DataOperator(data -> readProcessor.channelClose(next));
+            exceptionCatch = new DataOperator(e -> readProcessor.exceptionCatch((Throwable) e, next));
         }
         else
         {
             read = new NoOp(data -> next.fireRead(data));
+            prepareFirstRead = new NoOp(data -> next.firePrepareFirstRead());
+            channelClose = new NoOp(data -> next.fireChannelClose());
+            exceptionCatch = new NoOp(e -> next.fireExceptionCatch((Throwable) e));
         }
         if (processor instanceof WriteProcessor)
         {
             writeProcessor = (WriteProcessor) processor;
-            write = new DataOperator(data -> {
-                invokeWrite(data);
-            });
+            write = new DataOperator(data -> {writeProcessor.write(data, prev); });
         }
         else
         {
@@ -73,16 +98,6 @@ public class DefaultProcessorContext implements ProcessorContext
     public void setPrev(ProcessorContext prev)
     {
         this.prev = (DefaultProcessorContext) prev;
-    }
-
-    private void invokeRead(Object data)
-    {
-        readProcessor.read(data, next);
-    }
-
-    private void invokeWrite(Object data)
-    {
-        writeProcessor.write(data, prev);
     }
 
     public JnetWorker worker()

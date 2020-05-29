@@ -6,7 +6,11 @@ public interface Pipeline
 
     void add(Object readProcessor, WorkerGroup workerGroup);
 
-    void read(Object data);
+    void fireRead(Object data);
 
-    void write(Object data);
+    void fireWrite(Object data);
+
+    void fireChannelClose();
+
+    void fireExceptionCatch(Throwable e);
 }

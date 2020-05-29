@@ -6,17 +6,21 @@ import com.jfirer.jnet.common.api.ChannelContext;
 
 import java.io.IOException;
 import java.nio.channels.AsynchronousSocketChannel;
+import java.util.concurrent.atomic.AtomicInteger;
 
-public class DefaultChannelContext implements ChannelContext
+public class DefaultChannelContext extends AtomicInteger implements ChannelContext
 {
-    private AsynchronousSocketChannel socketChannel;
-    private ChannelConfig             channelConfig;
-    private Pipeline                  pipeline;
+    private static final int                       OPEN  = 1;
+    private static final int                       CLOSE = 0;
+    private              AsynchronousSocketChannel socketChannel;
+    private              ChannelConfig             channelConfig;
+    private              Pipeline                  pipeline;
 
     public DefaultChannelContext(AsynchronousSocketChannel socketChannel, ChannelConfig channelConfig)
     {
         this.socketChannel = socketChannel;
         this.channelConfig = channelConfig;
+        set(OPEN);
     }
 
     @Override
@@ -46,6 +50,10 @@ public class DefaultChannelContext implements ChannelContext
     @Override
     public void close(Throwable e)
     {
+        if (compareAndSet(OPEN,CLOSE)==false)
+        {
+            return;
+        }
         try
         {
             socketChannel.close();
@@ -54,6 +62,7 @@ public class DefaultChannelContext implements ChannelContext
         {
             ;
         }
+        pipeline.fireChannelClose();
     }
 
     public void setPipeline(Pipeline pipeline)

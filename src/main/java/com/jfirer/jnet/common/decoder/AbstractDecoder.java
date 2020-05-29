@@ -49,4 +49,14 @@ public abstract class AbstractDecoder implements ReadProcessor
             accumulation.compact();
         }
     }
+
+    @Override
+    public void channelClose(ProcessorContext ctx)
+    {
+        if (accumulation != null)
+        {
+            accumulation.free();
+            accumulation = null;
+        }
+    }
 }

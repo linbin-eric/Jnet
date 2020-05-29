@@ -8,12 +8,12 @@ import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 
-public class DefaultAcceptHandler implements CompletionHandler<AsynchronousSocketChannel, AsynchronousServerSocketChannel>
+public class AcceptHandler implements CompletionHandler<AsynchronousSocketChannel, AsynchronousServerSocketChannel>
 {
     protected final ChannelConfig             channelConfig;
     protected final ChannelContextInitializer channelContextInitializer;
 
-    public DefaultAcceptHandler(ChannelConfig channelConfig, ChannelContextInitializer channelContextInitializer)
+    public AcceptHandler(ChannelConfig channelConfig, ChannelContextInitializer channelContextInitializer)
     {
         this.channelConfig = channelConfig;
         this.channelContextInitializer = channelContextInitializer;

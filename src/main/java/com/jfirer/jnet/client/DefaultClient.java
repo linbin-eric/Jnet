@@ -91,7 +91,7 @@ public class DefaultClient implements JnetClient
 
     void nonBlockWrite(IoBuffer buffer)
     {
-        pipeline.write(buffer);
+        pipeline.fireWrite(buffer);
     }
 
     @Override

@@ -1,7 +1,7 @@
 package com.jfirer.jnet.server;
 
 import com.jfirer.jnet.common.api.ChannelContextInitializer;
-import com.jfirer.jnet.common.internal.DefaultAcceptHandler;
+import com.jfirer.jnet.common.internal.AcceptHandler;
 import com.jfirer.jnet.common.util.ChannelConfig;
 import com.jfirer.jnet.common.util.ReflectUtil;
 
@@ -36,7 +36,7 @@ public class AioServer
         {
             serverSocketChannel = AsynchronousServerSocketChannel.open(channelConfig.getChannelGroup());
             serverSocketChannel.bind(new InetSocketAddress(channelConfig.getIp(), channelConfig.getPort()), channelConfig.getBackLog());
-            serverSocketChannel.accept(serverSocketChannel, new DefaultAcceptHandler(channelConfig, initializer));
+            serverSocketChannel.accept(serverSocketChannel, new AcceptHandler(channelConfig, initializer));
         }
         catch (IOException e)
         {

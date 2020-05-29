@@ -108,7 +108,7 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler<IoBu
             buffer.addWritePosi(read);
             try
             {
-                pipeline.read(buffer);
+                pipeline.fireRead(buffer);
             }
             catch (Throwable e)
             {
@@ -160,7 +160,15 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler<IoBu
     @Override
     public void failed(Throwable e, ReadEntry entry)
     {
-        channelContext.close(e);
-        entry.clean();
+        try
+        {
+            pipeline.fireExceptionCatch(e);
+            channelContext.close(e);
+            pipeline.fireChannelClose();
+        }
+        finally
+        {
+            entry.clean();
+        }
     }
 }
