@@ -164,7 +164,6 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler<IoBu
         {
             pipeline.fireExceptionCatch(e);
             channelContext.close(e);
-            pipeline.fireChannelClose();
         }
         finally
         {

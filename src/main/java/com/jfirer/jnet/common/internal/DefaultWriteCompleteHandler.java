@@ -1,6 +1,7 @@
 package com.jfirer.jnet.common.internal;
 
 import com.jfirer.jnet.common.api.ChannelContext;
+import com.jfirer.jnet.common.api.Pipeline;
 import com.jfirer.jnet.common.api.ProcessorContext;
 import com.jfirer.jnet.common.api.WriteCompletionHandler;
 import com.jfirer.jnet.common.buffer.BufferAllocator;
@@ -153,9 +154,17 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
     @Override
     public void failed(Throwable e, WriteEntry entry)
     {
-        channelContext.close(e);
-        entry.clean();
-        prepareTermination();
+        try
+        {
+            Pipeline pipeline = channelContext.pipeline();
+            pipeline.fireExceptionCatch(e);
+            channelContext.close(e);
+        }
+        finally
+        {
+            entry.clean();
+            prepareTermination();
+        }
     }
 
     protected void prepareTermination()
