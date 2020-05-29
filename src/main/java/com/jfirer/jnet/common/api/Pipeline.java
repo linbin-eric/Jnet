@@ -13,4 +13,6 @@ public interface Pipeline
     void fireChannelClose();
 
     void fireExceptionCatch(Throwable e);
+
+    void firePrepareFirstRead();
 }

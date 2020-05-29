@@ -130,6 +130,12 @@ public class DefaultPipeline implements Pipeline
         head.fireExceptionCatch(e);
     }
 
+    @Override
+    public void firePrepareFirstRead()
+    {
+        head.firePrepareFirstRead();
+    }
+
     public void setChannelContext(ChannelContext channelContext)
     {
         this.channelContext = channelContext;
