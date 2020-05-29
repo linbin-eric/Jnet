@@ -44,32 +44,40 @@ public class DefaultPipeline implements Pipeline
         tail.setPrev(ctx);
     }
 
+    class TailProcessor implements ReadProcessor, WriteProcessor
+    {
+        @Override
+        public void read(Object data, ProcessorContext ctx)
+        {
+        }
+
+        @Override
+        public void prepareFirstRead(ProcessorContext ctx)
+        {
+        }
+
+        @Override
+        public void channelClose(ProcessorContext ctx)
+        {
+        }
+
+        @Override
+        public void exceptionCatch(Throwable e, ProcessorContext ctx)
+        {
+            channelContext.close(e);
+        }
+
+        @Override
+        public void write(Object data, ProcessorContext ctx)
+        {
+            ctx.fireWrite(data);
+        }
+    }
+
     private void newTail(JnetWorker worker)
     {
         tail = new DefaultProcessorContext(worker, channelContext, this);
-        tail.setProcessor(new ReadProcessor<Object>()
-        {
-            @Override
-            public void read(Object data, ProcessorContext ctx)
-            {
-            }
-
-            @Override
-            public void prepareFirstRead(ProcessorContext ctx)
-            {
-            }
-
-            @Override
-            public void channelClose(ProcessorContext ctx)
-            {
-            }
-
-            @Override
-            public void exceptionCatch(Throwable e, ProcessorContext ctx)
-            {
-                channelContext.close(e);
-            }
-        });
+        tail.setProcessor(new TailProcessor());
     }
 
     private void setHead(Object processor, JnetWorker jnetWorker)
