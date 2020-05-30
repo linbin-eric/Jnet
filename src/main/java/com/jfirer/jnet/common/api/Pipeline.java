@@ -15,4 +15,6 @@ public interface Pipeline
     void fireExceptionCatch(Throwable e);
 
     void firePrepareFirstRead();
+
+    void fireEndOfLife();
 }

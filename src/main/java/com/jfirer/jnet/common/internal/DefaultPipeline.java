@@ -32,7 +32,7 @@ public class DefaultPipeline implements Pipeline
     private void setTail(Object processor, JnetWorker worker)
     {
         DefaultProcessorContext prev = tail.getPrev();
-        DefaultProcessorContext ctx  = new DefaultProcessorContext(worker, channelContext, this);
+        DefaultProcessorContext ctx  = new DefaultProcessorContext(worker, channelContext);
         ctx.setProcessor(processor);
         prev.setNext(ctx);
         if (worker != tail.worker())
@@ -72,19 +72,24 @@ public class DefaultPipeline implements Pipeline
         {
             ctx.fireWrite(data);
         }
+
+        @Override
+        public void endOfLife(ProcessorContext next)
+        {
+        }
     }
 
     private void newTail(JnetWorker worker)
     {
-        tail = new DefaultProcessorContext(worker, channelContext, this);
+        tail = new DefaultProcessorContext(worker, channelContext);
         tail.setProcessor(new TailProcessor());
     }
 
     private void setHead(Object processor, JnetWorker jnetWorker)
     {
-        head = new DefaultProcessorContext(jnetWorker, channelContext, this);
+        head = new DefaultProcessorContext(jnetWorker, channelContext);
         head.setProcessor(new DefaultWriteCompleteHandler(channelContext));
-        DefaultProcessorContext second = new DefaultProcessorContext(jnetWorker, channelContext, this);
+        DefaultProcessorContext second = new DefaultProcessorContext(jnetWorker, channelContext);
         second.setProcessor(processor);
         head.setNext(second);
         second.setPrev(head);
@@ -134,6 +139,12 @@ public class DefaultPipeline implements Pipeline
     public void firePrepareFirstRead()
     {
         head.firePrepareFirstRead();
+    }
+
+    @Override
+    public void fireEndOfLife()
+    {
+        head.fireEndOfLife();
     }
 
     public void setChannelContext(ChannelContext channelContext)

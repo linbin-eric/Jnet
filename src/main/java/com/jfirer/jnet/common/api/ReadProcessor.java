@@ -2,20 +2,25 @@ package com.jfirer.jnet.common.api;
 
 public interface ReadProcessor<T>
 {
-    void read(T data, ProcessorContext ctx);
+    void read(T data, ProcessorContext next);
 
-    default void prepareFirstRead(ProcessorContext ctx)
+    default void prepareFirstRead(ProcessorContext next)
     {
-        ctx.firePrepareFirstRead();
+        next.firePrepareFirstRead();
     }
 
-    default void channelClose(ProcessorContext ctx)
+    default void channelClose(ProcessorContext next)
     {
-        ctx.fireChannelClose();
+        next.fireChannelClose();
     }
 
-    default void exceptionCatch(Throwable e,ProcessorContext ctx)
+    default void exceptionCatch(Throwable e, ProcessorContext next)
     {
-        ctx.fireExceptionCatch(e);
+        next.fireExceptionCatch(e);
+    }
+
+    default void endOfLife(ProcessorContext next)
+    {
+        next.fireEndOfLife();
     }
 }

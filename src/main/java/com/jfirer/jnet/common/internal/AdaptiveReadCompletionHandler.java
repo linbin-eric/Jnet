@@ -103,21 +103,13 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler<IoBu
         }
         IoBuffer buffer = entry.getIoBuffer();
         int      except = buffer.capacity();
-        if (read != 0)
-        {
-            buffer.addWritePosi(read);
-            try
-            {
-                pipeline.fireRead(buffer);
-            }
-            catch (Throwable e)
-            {
-                failed(e, entry);
-                return;
-            }
-        }
         try
         {
+            if (read != 0)
+            {
+                buffer.addWritePosi(read);
+                pipeline.fireRead(buffer);
+            }
             IoBuffer nextReadBuffer = nextReadBuffer(except, read);
             read(nextReadBuffer, entry);
         }
@@ -168,6 +160,14 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler<IoBu
         finally
         {
             entry.clean();
+            try
+            {
+                pipeline.fireEndOfLife();
+            }
+            finally
+            {
+                ;
+            }
         }
     }
 }

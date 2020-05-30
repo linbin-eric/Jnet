@@ -2,9 +2,7 @@ package com.jfirer.jnet.common.internal;
 
 import com.jfirer.jnet.common.api.*;
 
-import javax.xml.crypto.Data;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 public class DefaultProcessorContext implements ProcessorContext
 {
@@ -17,10 +15,11 @@ public class DefaultProcessorContext implements ProcessorContext
     private       Consumer                prepareFirstRead;
     private       Consumer                channelClose;
     private       Consumer                exceptionCatch;
+    private       Consumer                endOfLife;
     private       ReadProcessor           readProcessor;
     private       WriteProcessor          writeProcessor;
 
-    public DefaultProcessorContext(JnetWorker jnetWorker, ChannelContext channelContext, Pipeline pipeline)
+    public DefaultProcessorContext(JnetWorker jnetWorker, ChannelContext channelContext)
     {
         this.jnetWorker = jnetWorker;
         this.channelContext = channelContext;
@@ -57,6 +56,12 @@ public class DefaultProcessorContext implements ProcessorContext
     }
 
     @Override
+    public void fireEndOfLife()
+    {
+        endOfLife.accept(null);
+    }
+
+    @Override
     public ChannelContext channelContext()
     {
         return channelContext;
@@ -71,6 +76,7 @@ public class DefaultProcessorContext implements ProcessorContext
             prepareFirstRead = new DataOperator(data -> readProcessor.prepareFirstRead(next));
             channelClose = new DataOperator(data -> readProcessor.channelClose(next));
             exceptionCatch = new DataOperator(e -> readProcessor.exceptionCatch((Throwable) e, next));
+            endOfLife = new DataOperator(data -> readProcessor.endOfLife(next));
         }
         else
         {
@@ -78,6 +84,7 @@ public class DefaultProcessorContext implements ProcessorContext
             prepareFirstRead = new NoOp(data -> next.firePrepareFirstRead());
             channelClose = new NoOp(data -> next.fireChannelClose());
             exceptionCatch = new NoOp(e -> next.fireExceptionCatch((Throwable) e));
+            endOfLife = new NoOp(data -> next.fireEndOfLife());
         }
         if (processor instanceof WriteProcessor)
         {
@@ -130,7 +137,7 @@ public class DefaultProcessorContext implements ProcessorContext
                 }
                 catch (Throwable e)
                 {
-                    channelContext.close(e);
+                    channelContext.pipeline().fireExceptionCatch(e);
                 }
             }
             else
@@ -142,7 +149,7 @@ public class DefaultProcessorContext implements ProcessorContext
                     }
                     catch (Throwable e)
                     {
-                        channelContext.close(e);
+                        channelContext.pipeline().fireExceptionCatch(e);
                     }
                 });
             }
@@ -167,7 +174,7 @@ public class DefaultProcessorContext implements ProcessorContext
             }
             catch (Throwable e)
             {
-                channelContext.close(e);
+                channelContext.pipeline().fireExceptionCatch(e);
             }
         }
     }

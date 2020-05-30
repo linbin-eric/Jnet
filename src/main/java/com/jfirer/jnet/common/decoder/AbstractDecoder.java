@@ -51,7 +51,7 @@ public abstract class AbstractDecoder implements ReadProcessor
     }
 
     @Override
-    public void channelClose(ProcessorContext ctx)
+    public void endOfLife(ProcessorContext next)
     {
         if (accumulation != null)
         {

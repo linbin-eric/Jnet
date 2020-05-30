@@ -12,5 +12,7 @@ public interface ProcessorContext
 
     void fireExceptionCatch(Throwable e);
 
+    void fireEndOfLife();
+
     ChannelContext channelContext();
 }
