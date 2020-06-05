@@ -154,9 +154,9 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
     @Override
     public void failed(Throwable e, WriteEntry entry)
     {
+        Pipeline pipeline = channelContext.pipeline();
         try
         {
-            Pipeline pipeline = channelContext.pipeline();
             pipeline.fireExceptionCatch(e);
             channelContext.close(e);
         }
@@ -164,6 +164,7 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
         {
             entry.clean();
             prepareTermination();
+            pipeline.fireEndOfWriteLife();
         }
     }
 
@@ -215,5 +216,10 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
                 rest();
             }
         }
+    }
+
+    @Override
+    public void endOfWriteLife(ProcessorContext prev)
+    {
     }
 }

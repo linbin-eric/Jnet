@@ -162,7 +162,7 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler<IoBu
             entry.clean();
             try
             {
-                pipeline.fireEndOfLife();
+                pipeline.fireEndOfReadLife();
             }
             finally
             {

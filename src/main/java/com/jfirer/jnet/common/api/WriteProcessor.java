@@ -2,5 +2,13 @@ package com.jfirer.jnet.common.api;
 
 public interface WriteProcessor<T>
 {
-    void write(T data, ProcessorContext prev);
+    default void write(T data, ProcessorContext prev)
+    {
+        prev.fireWrite(data);
+    }
+
+    default void endOfWriteLife(ProcessorContext prev)
+    {
+        prev.fireEndOfWriteLife();
+    }
 }

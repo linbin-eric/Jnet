@@ -68,14 +68,15 @@ public class DefaultPipeline implements Pipeline
         }
 
         @Override
-        public void write(Object data, ProcessorContext ctx)
+        public void write(Object data, ProcessorContext prev)
         {
-            ctx.fireWrite(data);
+            prev.fireWrite(data);
         }
 
         @Override
-        public void endOfLife(ProcessorContext next)
+        public void endOfReadLife(ProcessorContext next)
         {
+
         }
     }
 
@@ -142,9 +143,15 @@ public class DefaultPipeline implements Pipeline
     }
 
     @Override
-    public void fireEndOfLife()
+    public void fireEndOfReadLife()
     {
-        head.fireEndOfLife();
+        head.fireEndOfReadLife();
+    }
+
+    @Override
+    public void fireEndOfWriteLife()
+    {
+        tail.fireEndOfWriteLife();
     }
 
     public void setChannelContext(ChannelContext channelContext)

@@ -16,5 +16,7 @@ public interface Pipeline
 
     void firePrepareFirstRead();
 
-    void fireEndOfLife();
+    void fireEndOfReadLife();
+
+    void fireEndOfWriteLife();
 }

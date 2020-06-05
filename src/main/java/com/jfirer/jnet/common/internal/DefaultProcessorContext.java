@@ -2,22 +2,26 @@ package com.jfirer.jnet.common.internal;
 
 import com.jfirer.jnet.common.api.*;
 
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class DefaultProcessorContext implements ProcessorContext
 {
-    private       DefaultProcessorContext next;
-    private       DefaultProcessorContext prev;
-    private final JnetWorker              jnetWorker;
-    private final ChannelContext          channelContext;
-    private       Consumer                read;
-    private       Consumer                write;
-    private       Consumer                prepareFirstRead;
-    private       Consumer                channelClose;
-    private       Consumer                exceptionCatch;
-    private       Consumer                endOfLife;
-    private       ReadProcessor           readProcessor;
-    private       WriteProcessor          writeProcessor;
+    private       DefaultProcessorContext      next;
+    private       DefaultProcessorContext      prev;
+    private final JnetWorker                   jnetWorker;
+    private final ChannelContext               channelContext;
+    private       Consumer                     read;
+    private       Consumer                     write;
+    private       Consumer                     prepareFirstRead;
+    private       Consumer                     channelClose;
+    private       Consumer                     exceptionCatch;
+    private       Consumer                     endOfReadLife;
+    private       Consumer                     endOfWriteLife;
+    private       ReadProcessor                readProcessor;
+    private       BiConsumer<Object, Consumer> readHandler;
+    private       WriteProcessor               writeProcessor;
+    private       BiConsumer<Object, Consumer> writeHandler;
 
     public DefaultProcessorContext(JnetWorker jnetWorker, ChannelContext channelContext)
     {
@@ -28,37 +32,43 @@ public class DefaultProcessorContext implements ProcessorContext
     @Override
     public void fireRead(Object data)
     {
-        read.accept(data);
+        readHandler.accept(data, read);
     }
 
     @Override
     public void fireWrite(Object data)
     {
-        write.accept(data);
+        writeHandler.accept(data, write);
     }
 
     @Override
     public void firePrepareFirstRead()
     {
-        prepareFirstRead.accept(null);
+        readHandler.accept(null,prepareFirstRead);
     }
 
     @Override
     public void fireChannelClose()
     {
-        channelClose.accept(null);
+        readHandler.accept(null,channelClose);
     }
 
     @Override
     public void fireExceptionCatch(Throwable e)
     {
-        exceptionCatch.accept(e);
+        readHandler.accept(e,exceptionCatch);
     }
 
     @Override
-    public void fireEndOfLife()
+    public void fireEndOfReadLife()
     {
-        endOfLife.accept(null);
+        readHandler.accept(null,endOfReadLife);
+    }
+
+    @Override
+    public void fireEndOfWriteLife()
+    {
+        writeHandler.accept(null,endOfWriteLife);
     }
 
     @Override
@@ -72,28 +82,34 @@ public class DefaultProcessorContext implements ProcessorContext
         if (processor instanceof ReadProcessor)
         {
             readProcessor = (ReadProcessor) processor;
-            read = new DataOperator(data -> readProcessor.read(data, next));
-            prepareFirstRead = new DataOperator(data -> readProcessor.prepareFirstRead(next));
-            channelClose = new DataOperator(data -> readProcessor.channelClose(next));
-            exceptionCatch = new DataOperator(e -> readProcessor.exceptionCatch((Throwable) e, next));
-            endOfLife = new DataOperator(data -> readProcessor.endOfLife(next));
+            readHandler = new WorkOperator();
+            read = data -> readProcessor.read(data, next);
+            prepareFirstRead = data -> readProcessor.prepareFirstRead(next);
+            channelClose = data -> readProcessor.channelClose(next);
+            exceptionCatch = e -> readProcessor.exceptionCatch((Throwable) e, next);
+            endOfReadLife = data -> readProcessor.endOfReadLife(next);
         }
         else
         {
-            read = new NoOp(data -> next.fireRead(data));
-            prepareFirstRead = new NoOp(data -> next.firePrepareFirstRead());
-            channelClose = new NoOp(data -> next.fireChannelClose());
-            exceptionCatch = new NoOp(e -> next.fireExceptionCatch((Throwable) e));
-            endOfLife = new NoOp(data -> next.fireEndOfLife());
+            readHandler = new NoOp();
+            read = data -> next.fireRead(data);
+            prepareFirstRead = data -> next.firePrepareFirstRead();
+            channelClose = data -> next.fireChannelClose();
+            exceptionCatch = e -> next.fireExceptionCatch((Throwable) e);
+            endOfReadLife = data -> next.fireEndOfReadLife();
         }
         if (processor instanceof WriteProcessor)
         {
             writeProcessor = (WriteProcessor) processor;
-            write = new DataOperator(data -> {writeProcessor.write(data, prev); });
+            writeHandler = new WorkOperator();
+            write = data -> writeProcessor.write(data, prev);
+            endOfWriteLife = data->writeProcessor.endOfWriteLife(prev);
         }
         else
         {
-            write = new NoOp(data -> prev.fireWrite(data));
+            writeHandler = new NoOp();
+            write = data -> prev.fireWrite(data);
+            endOfWriteLife = data->prev.fireEndOfWriteLife();
         }
     }
 
@@ -117,17 +133,11 @@ public class DefaultProcessorContext implements ProcessorContext
         return prev;
     }
 
-    class DataOperator implements Consumer<Object>
+    class WorkOperator implements BiConsumer<Object, Consumer>
     {
-        Consumer<Object> handler;
-
-        DataOperator(Consumer<Object> handler)
-        {
-            this.handler = handler;
-        }
 
         @Override
-        public void accept(Object o)
+        public void accept(Object o, Consumer handler)
         {
             if (Thread.currentThread() == jnetWorker.thread())
             {
@@ -156,17 +166,11 @@ public class DefaultProcessorContext implements ProcessorContext
         }
     }
 
-    class NoOp implements Consumer<Object>
+    class NoOp implements BiConsumer<Object, Consumer>
     {
-        Consumer handler;
-
-        public NoOp(Consumer handler)
-        {
-            this.handler = handler;
-        }
 
         @Override
-        public void accept(Object o)
+        public void accept(Object o, Consumer handler)
         {
             try
             {

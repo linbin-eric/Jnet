@@ -12,7 +12,9 @@ public interface ProcessorContext
 
     void fireExceptionCatch(Throwable e);
 
-    void fireEndOfLife();
+    void fireEndOfReadLife();
+
+    void fireEndOfWriteLife();
 
     ChannelContext channelContext();
 }
