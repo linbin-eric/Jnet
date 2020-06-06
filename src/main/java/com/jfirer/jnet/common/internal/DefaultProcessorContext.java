@@ -2,26 +2,23 @@ package com.jfirer.jnet.common.internal;
 
 import com.jfirer.jnet.common.api.*;
 
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class DefaultProcessorContext implements ProcessorContext
 {
-    private       DefaultProcessorContext      next;
-    private       DefaultProcessorContext      prev;
-    private final JnetWorker                   jnetWorker;
-    private final ChannelContext               channelContext;
-    private       Consumer                     read;
-    private       Consumer                     write;
-    private       Consumer                     prepareFirstRead;
-    private       Consumer                     channelClose;
-    private       Consumer                     exceptionCatch;
-    private       Consumer                     endOfReadLife;
-    private       Consumer                     endOfWriteLife;
-    private       ReadProcessor                readProcessor;
-    private       BiConsumer<Object, Consumer> readHandler;
-    private       WriteProcessor               writeProcessor;
-    private       BiConsumer<Object, Consumer> writeHandler;
+    private       DefaultProcessorContext next;
+    private       DefaultProcessorContext prev;
+    private final JnetWorker              jnetWorker;
+    private final ChannelContext          channelContext;
+    private       Consumer                read;
+    private       Consumer                write;
+    private       Consumer                prepareFirstRead;
+    private       Consumer                channelClose;
+    private       Consumer                exceptionCatch;
+    private       Consumer                endOfReadLife;
+    private       Consumer                endOfWriteLife;
+    private       Operator                readHandler;
+    private       Operator                writeHandler;
 
     public DefaultProcessorContext(JnetWorker jnetWorker, ChannelContext channelContext)
     {
@@ -32,43 +29,43 @@ public class DefaultProcessorContext implements ProcessorContext
     @Override
     public void fireRead(Object data)
     {
-        readHandler.accept(data, read);
+        readHandler.accept(read, jnetWorker, channelContext, data);
     }
 
     @Override
     public void fireWrite(Object data)
     {
-        writeHandler.accept(data, write);
+        writeHandler.accept(write, jnetWorker, channelContext, data);
     }
 
     @Override
     public void firePrepareFirstRead()
     {
-        readHandler.accept(null,prepareFirstRead);
+        readHandler.accept(prepareFirstRead, jnetWorker, channelContext, null);
     }
 
     @Override
     public void fireChannelClose()
     {
-        readHandler.accept(null,channelClose);
+        readHandler.accept(channelClose, jnetWorker, channelContext, null);
     }
 
     @Override
     public void fireExceptionCatch(Throwable e)
     {
-        readHandler.accept(e,exceptionCatch);
+        readHandler.accept(exceptionCatch, jnetWorker, channelContext, e);
     }
 
     @Override
     public void fireEndOfReadLife()
     {
-        readHandler.accept(null,endOfReadLife);
+        readHandler.accept(endOfReadLife, jnetWorker, channelContext, null);
     }
 
     @Override
     public void fireEndOfWriteLife()
     {
-        writeHandler.accept(null,endOfWriteLife);
+        writeHandler.accept(endOfWriteLife, jnetWorker, channelContext, null);
     }
 
     @Override
@@ -81,8 +78,8 @@ public class DefaultProcessorContext implements ProcessorContext
     {
         if (processor instanceof ReadProcessor)
         {
-            readProcessor = (ReadProcessor) processor;
-            readHandler = new WorkOperator();
+            readHandler = WorkOperator.INSTANCE;
+            ReadProcessor readProcessor = (ReadProcessor) processor;
             read = data -> readProcessor.read(data, next);
             prepareFirstRead = data -> readProcessor.prepareFirstRead(next);
             channelClose = data -> readProcessor.channelClose(next);
@@ -91,7 +88,7 @@ public class DefaultProcessorContext implements ProcessorContext
         }
         else
         {
-            readHandler = new NoOp();
+            readHandler = NoOp.INSTANCE;
             read = data -> next.fireRead(data);
             prepareFirstRead = data -> next.firePrepareFirstRead();
             channelClose = data -> next.fireChannelClose();
@@ -100,16 +97,16 @@ public class DefaultProcessorContext implements ProcessorContext
         }
         if (processor instanceof WriteProcessor)
         {
-            writeProcessor = (WriteProcessor) processor;
-            writeHandler = new WorkOperator();
+            writeHandler = WorkOperator.INSTANCE;
+            WriteProcessor writeProcessor = (WriteProcessor) processor;
             write = data -> writeProcessor.write(data, prev);
-            endOfWriteLife = data->writeProcessor.endOfWriteLife(prev);
+            endOfWriteLife = data -> writeProcessor.endOfWriteLife(prev);
         }
         else
         {
-            writeHandler = new NoOp();
+            writeHandler = NoOp.INSTANCE;
             write = data -> prev.fireWrite(data);
-            endOfWriteLife = data->prev.fireEndOfWriteLife();
+            endOfWriteLife = data -> prev.fireEndOfWriteLife();
         }
     }
 
@@ -133,17 +130,29 @@ public class DefaultProcessorContext implements ProcessorContext
         return prev;
     }
 
-    class WorkOperator implements BiConsumer<Object, Consumer>
+    @FunctionalInterface
+    interface Operator
+    {
+        void accept(Consumer consumer, JnetWorker jnetWorker, ChannelContext channelContext, Object data);
+    }
+
+    static class WorkOperator implements Operator
     {
 
+        public static final WorkOperator INSTANCE = new WorkOperator();
+
+        private WorkOperator()
+        {
+        }
+
         @Override
-        public void accept(Object o, Consumer handler)
+        public void accept(Consumer consumer, JnetWorker jnetWorker, ChannelContext channelContext, Object data)
         {
             if (Thread.currentThread() == jnetWorker.thread())
             {
                 try
                 {
-                    handler.accept(o);
+                    consumer.accept(data);
                 }
                 catch (Throwable e)
                 {
@@ -155,7 +164,7 @@ public class DefaultProcessorContext implements ProcessorContext
                 jnetWorker.submit(() -> {
                     try
                     {
-                        handler.accept(o);
+                        consumer.accept(data);
                     }
                     catch (Throwable e)
                     {
@@ -166,15 +175,17 @@ public class DefaultProcessorContext implements ProcessorContext
         }
     }
 
-    class NoOp implements BiConsumer<Object, Consumer>
+    static class NoOp implements Operator
     {
 
+        public static final NoOp INSTANCE = new NoOp();
+
         @Override
-        public void accept(Object o, Consumer handler)
+        public void accept(Consumer consumer, JnetWorker jnetWorker, ChannelContext channelContext, Object data)
         {
             try
             {
-                handler.accept(o);
+                consumer.accept(data);
             }
             catch (Throwable e)
             {
