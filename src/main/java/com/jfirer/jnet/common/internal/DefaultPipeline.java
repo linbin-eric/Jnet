@@ -68,15 +68,8 @@ public class DefaultPipeline implements Pipeline
         }
 
         @Override
-        public void write(Object data, ProcessorContext prev)
-        {
-            prev.fireWrite(data);
-        }
-
-        @Override
         public void endOfReadLife(ProcessorContext next)
         {
-
         }
     }
 

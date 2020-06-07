@@ -22,7 +22,7 @@ public class DefaultWorkerGroup implements WorkerGroup
         workers = new JnetWorker[numOfWorker];
         for (int i = 0; i < workers.length; i++)
         {
-            workers[i] = new JnetWorkerImpl();
+            workers[i] = new JnetWorkerImpl("JnetWorker_" + i);
             ((JnetWorkerImpl) workers[i]).start();
         }
     }

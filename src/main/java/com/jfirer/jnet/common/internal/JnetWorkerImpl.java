@@ -17,6 +17,11 @@ public class JnetWorkerImpl extends Thread implements JnetWorker
     private volatile     int             state    = IDLE;
     private volatile     boolean         shutdown = false;
 
+    public JnetWorkerImpl(String threadName)
+    {
+        super(threadName);
+    }
+
     @Override
     public void run()
     {

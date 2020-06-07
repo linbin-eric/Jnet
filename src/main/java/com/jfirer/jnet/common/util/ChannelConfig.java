@@ -12,18 +12,16 @@ import java.util.concurrent.ThreadFactory;
 
 public class ChannelConfig
 {
-    private                 BufferAllocator          allocator       = PooledBufferAllocator.DEFAULT;
-    private                 int                      minReceiveSize  = 16;
-    private                 int                      maxReceiveSize  = 1024 * 1024 * 8;
-    private                 int                      initReceiveSize = 1024;
-    //单位是毫秒
-    private                 int                      maxBatchWrite   = 1024 * 1024 * 8;
-    private                 String                   ip              = "0.0.0.0";
-    private                 int                      port            = -1;
-    private                 int                      backLog         = 50;
-    private                 AsynchronousChannelGroup channelGroup;
-    private                 WorkerGroup              workerGroup;
-    private volatile static WorkerGroup              defaultGroup;
+    private BufferAllocator          allocator       = PooledBufferAllocator.DEFAULT;
+    private int                      minReceiveSize  = 16;
+    private int                      maxReceiveSize  = 1024 * 1024 * 8;
+    private int                      initReceiveSize = 1024;
+    private int                      maxBatchWrite   = 1024 * 1024 * 8;
+    private String                   ip              = "0.0.0.0";
+    private int                      port            = -1;
+    private int                      backLog         = 50;
+    private AsynchronousChannelGroup channelGroup;
+    private WorkerGroup              workerGroup;
 
     public AsynchronousChannelGroup getChannelGroup()
     {
@@ -31,7 +29,7 @@ public class ChannelConfig
         {
             try
             {
-                channelGroup = AsynchronousChannelGroup.withFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2 + 1, new ThreadFactory()
+                channelGroup = AsynchronousChannelGroup.withFixedThreadPool(Runtime.getRuntime().availableProcessors(), new ThreadFactory()
                 {
                     int i = 1;
 
@@ -143,14 +141,7 @@ public class ChannelConfig
     {
         if (workerGroup == null)
         {
-            if (defaultGroup == null)
-            {
-                workerGroup = defaultGroup = new DefaultWorkerGroup();
-            }
-            else
-            {
-                workerGroup = defaultGroup;
-            }
+            workerGroup = new DefaultWorkerGroup();
         }
         return workerGroup;
     }
