@@ -1,37 +1,20 @@
 package com.jfirer.jnet.common.util;
 
-import sun.misc.Unsafe;
+import io.github.karlatemp.unsafeaccessor.Unsafe;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.nio.ByteBuffer;
 
 public class UNSAFE
 {
     private static final Unsafe  unsafe;
     private static final boolean hasUnsafe;
-
     static
     {
-        Unsafe  un;
-        boolean hasUnsafe1 = false;
-        try
-        {
-            // 由反编译Unsafe类获得的信息
-            Field field = Unsafe.class.getDeclaredField("theUnsafe");
-            field.setAccessible(true);
-            // 获取静态属性,Unsafe在启动JVM时随rt.jar装载
-            un = (Unsafe) field.get(null);
-            hasUnsafe1 = true;
-        }
-        catch (Exception e)
-        {
-            un = null;
-            hasUnsafe1 = false;
-        }
-        unsafe = un;
-        hasUnsafe = hasUnsafe1;
+        hasUnsafe = true;
+        unsafe = Unsafe.getUnsafe();
     }
-
     public static boolean isAvailable()
     {
         return hasUnsafe;
@@ -54,7 +37,7 @@ public class UNSAFE
         try
         {
             Field field = type.getDeclaredField(fieldName);
-            field.setAccessible(true);
+//            field.setAccessible(true);
             if (Modifier.isStatic(field.getModifiers()))
             {
                 throw new IllegalArgumentException();
@@ -74,7 +57,7 @@ public class UNSAFE
         {
             String className = Thread.currentThread().getStackTrace()[2].getClassName();
             Field  field     = Class.forName(className).getDeclaredField(fieldName);
-            field.setAccessible(true);
+//            field.setAccessible(true);
             if (Modifier.isStatic(field.getModifiers()))
             {
                 throw new IllegalArgumentException();
@@ -88,6 +71,11 @@ public class UNSAFE
         }
     }
 
+    public static void freeMemory(ByteBuffer buffer)
+    {
+        unsafe.invokeCleaner(buffer);
+    }
+
     public static long objectFieldOffset(Field field)
     {
         return unsafe.objectFieldOffset(field);
@@ -95,27 +83,27 @@ public class UNSAFE
 
     public static boolean compareAndSwapInt(Object src, long offset, int except, int newValue)
     {
-        return unsafe.compareAndSwapInt(src, offset, except, newValue);
+        return unsafe.compareAndSetInt(src, offset, except, newValue);
     }
 
     public static boolean compareAndSwapLong(Object src, long offset, long except, long newValue)
     {
-        return unsafe.compareAndSwapLong(src, offset, except, newValue);
+        return unsafe.compareAndSetLong(src, offset, except, newValue);
     }
 
     public static boolean compareAndSwapObject(Object src, long offset, Object except, Object newValue)
     {
-        return unsafe.compareAndSwapObject(src, offset, except, newValue);
+        return unsafe.compareAndSetReference(src, offset, except, newValue);
     }
 
     public static void putOrderedLong(Object src, long offset, long value)
     {
-        unsafe.putOrderedLong(src, offset, value);
+        unsafe.putLongRelease(src, offset, value);
     }
 
     public static void putOrderedInt(Object src, long offset, int value)
     {
-        unsafe.putOrderedInt(src, offset, value);
+        unsafe.putIntRelease(src, offset, value);
     }
 
     public static void putVolatileInt(Object src, long offset, int value)
@@ -135,12 +123,12 @@ public class UNSAFE
 
     public static void putVolatileObject(Object src, long offset, Object value)
     {
-        unsafe.putObjectVolatile(src, offset, value);
+        unsafe.putReferenceVolatile(src, offset, value);
     }
 
     public static void putOrderedObject(Object src, long offset, Object value)
     {
-        unsafe.putOrderedObject(src, offset, value);
+        unsafe.putReferenceRelease(src, offset, value);
     }
 
     public static int arrayBaseOffset(Class<?> ckass)
@@ -165,17 +153,17 @@ public class UNSAFE
 
     public static Object getObjectVolatile(Object src, long offset)
     {
-        return unsafe.getObjectVolatile(src, offset);
+        return unsafe.getReferenceVolatile(src, offset);
     }
 
     public static Object getObject(Object src, long offset)
     {
-        return unsafe.getObject(src, offset);
+        return unsafe.getReference(src, offset);
     }
 
     public static void putObject(Object src, long offset, Object value)
     {
-        unsafe.putObject(src, offset, value);
+        unsafe.putReference(src, offset, value);
     }
 
     public static void putInt(Object src, long offset, int value)
@@ -320,4 +308,16 @@ public class UNSAFE
             return null;
         }
     }
+
+    public static boolean unaligned()
+    {
+        return unsafe.unalignedAccess();
+    }
+
+    public static boolean isBigEndian()
+    {
+        return unsafe.isBigEndian();
+    }
+
+
 }

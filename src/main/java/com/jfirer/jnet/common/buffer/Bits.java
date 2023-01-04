@@ -1,11 +1,7 @@
 package com.jfirer.jnet.common.buffer;
 
-
 import com.jfirer.jnet.common.util.ReflectUtil;
 import com.jfirer.jnet.common.util.UNSAFE;
-
-import java.lang.reflect.Method;
-import java.nio.ByteOrder;
 
 public final class Bits
 {
@@ -15,28 +11,11 @@ public final class Bits
     private static final int     arrayBaseOffset               = UNSAFE.arrayBaseOffset(byte[].class);
     private static final boolean nativeByteOrder;
     public static        boolean unaligned;
-
     static
     {
         unaligned = detectUnaligned();
-        nativeByteOrder = detectNativeByteOrder();
+        nativeByteOrder = UNSAFE.isBigEndian();
     }
-
-    private static boolean detectNativeByteOrder()
-    {
-        try
-        {
-            Method method = Class.forName("java.nio.Bits").getDeclaredMethod("byteOrder");
-            method.setAccessible(true);
-            ByteOrder byteOrder = (ByteOrder) method.invoke(null);
-            return byteOrder == ByteOrder.BIG_ENDIAN;
-        } catch (Exception e)
-        {
-            ReflectUtil.throwException(e);
-            return false;
-        }
-    }
-
     private static Boolean detectUnaligned()
     {
         try
@@ -45,10 +24,9 @@ public final class Bits
             {
                 return Boolean.valueOf(System.getProperty("io.jnet.buffer.unaligned"));
             }
-            Method method = Class.forName("java.nio.Bits").getDeclaredMethod("unaligned");
-            method.setAccessible(true);
-            return (Boolean) method.invoke(null);
-        } catch (Exception e)
+            return UNSAFE.unaligned();
+        }
+        catch (Exception e)
         {
             ReflectUtil.throwException(e);
             return false;
@@ -191,13 +169,13 @@ public final class Bits
     static long getLongBigEndian(long address)
     {
         return makeLong(get(address), //
-                get(address + 1), //
-                get(address + 2), //
-                get(address + 3), //
-                get(address + 4), //
-                get(address + 5), //
-                get(address + 6), //
-                get(address + 7));//
+                        get(address + 1), //
+                        get(address + 2), //
+                        get(address + 3), //
+                        get(address + 4), //
+                        get(address + 5), //
+                        get(address + 6), //
+                        get(address + 7));//
     }
 
     public static void putShort(long address, short s)
@@ -242,9 +220,9 @@ public final class Bits
     public static int getInt(byte[] array, int posi)
     {
         return makeInt(array[posi], //
-                array[posi + 1], //
-                array[posi + 2], //
-                array[posi + 3]);//
+                       array[posi + 1], //
+                       array[posi + 2], //
+                       array[posi + 3]);//
     }
 
     public static void putLong(byte[] array, int posi, long value)
@@ -262,13 +240,13 @@ public final class Bits
     public static long getLong(byte[] array, int posi)
     {
         return makeLong(array[posi], //
-                array[posi + 1], //
-                array[posi + 2], //
-                array[posi + 3], //
-                array[posi + 4], //
-                array[posi + 5], //
-                array[posi + 6], //
-                array[posi + 7]); //
+                        array[posi + 1], //
+                        array[posi + 2], //
+                        array[posi + 3], //
+                        array[posi + 4], //
+                        array[posi + 5], //
+                        array[posi + 6], //
+                        array[posi + 7]); //
     }
 
     public static void putShort(byte[] array, int posi, short s)

@@ -2,28 +2,12 @@ package com.jfirer.jnet.common.buffer;
 
 import com.jfirer.jnet.common.util.PlatFormFunction;
 import com.jfirer.jnet.common.util.ReflectUtil;
-
-import java.lang.reflect.Field;
+import com.jfirer.jnet.common.util.UNSAFE;
 import java.nio.ByteBuffer;
 
 @SuppressWarnings("restriction")
 public class DirectArena extends Arena<ByteBuffer>
 {
-    private static Field cleanerField;
-
-    static
-    {
-        Class<?> directByteBufferClass = ByteBuffer.allocateDirect(1).getClass();
-        try
-        {
-            cleanerField = directByteBufferClass.getDeclaredField("cleaner");
-            cleanerField.setAccessible(true);
-        } catch (NoSuchFieldException | SecurityException e)
-        {
-            ReflectUtil.throwException(e);
-            cleanerField = null;
-        }
-    }
 
     public DirectArena(PooledBufferAllocator parent, int maxLevel, int pageSize, int pageSizeShift, int subpageOverflowMask, String name)
     {
@@ -47,9 +31,9 @@ public class DirectArena extends Arena<ByteBuffer>
     {
         try
         {
-            sun.misc.Cleaner cleaner = PlatFormFunction.bytebufferCleaner(chunk.memory);
-            cleaner.clean();
-        } catch (Throwable e)
+            UNSAFE.freeMemory(chunk.memory);
+        }
+        catch (Throwable e)
         {
             ReflectUtil.throwException(e);
         }

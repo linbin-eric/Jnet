@@ -1,19 +1,17 @@
 package com.jfirer.jnet.common.util;
 
-import sun.nio.ch.DirectBuffer;
-
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 
-@SuppressWarnings("restriction")
 public class PlatFormFunction
 {
+    static final long address;
+    static
+    {
+        address = UNSAFE.getFieldOffset("address", Buffer.class);
+    }
     public static long bytebufferOffsetAddress(ByteBuffer buffer)
     {
-        return ((DirectBuffer) buffer).address();
-    }
-
-    public static sun.misc.Cleaner bytebufferCleaner(ByteBuffer buffer)
-    {
-        return ((DirectBuffer) buffer).cleaner();
+        return UNSAFE.getLong(buffer, address);
     }
 }
