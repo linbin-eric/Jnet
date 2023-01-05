@@ -38,10 +38,10 @@ public class TotalLengthFieldBasedFrameDecoder extends AbstractDecoder
         lengthFieldEndOffset = lengthFieldOffset + lengthFieldLength;
     }
 
-
     @Override
     public void process0(ProcessorContext ctx)
     {
+        int index = 0;
         do
         {
             int maskReadPosi = accumulation.getReadPosi();
@@ -94,7 +94,9 @@ public class TotalLengthFieldBasedFrameDecoder extends AbstractDecoder
                     packet.addReadPosi(skipBytes);
                 }
                 ctx.fireRead(packet);
+                index++;
             }
-        } while (true);
+        }
+        while (true);
     }
 }

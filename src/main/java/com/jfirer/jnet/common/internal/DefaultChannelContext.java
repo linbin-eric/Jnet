@@ -1,8 +1,8 @@
 package com.jfirer.jnet.common.internal;
 
+import com.jfirer.jnet.common.api.ChannelContext;
 import com.jfirer.jnet.common.api.Pipeline;
 import com.jfirer.jnet.common.util.ChannelConfig;
-import com.jfirer.jnet.common.api.ChannelContext;
 
 import java.io.IOException;
 import java.nio.channels.AsynchronousSocketChannel;

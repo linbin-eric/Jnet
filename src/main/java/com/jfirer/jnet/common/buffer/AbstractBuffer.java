@@ -26,7 +26,8 @@ public abstract class AbstractBuffer<T> implements IoBuffer
         this.readPosi = readPosi;
         this.writePosi = writePosi;
         this.offset = offset;
-        refCount = 1;
+        // 由于该方法可能会扩容方法所调用，所以需要区分不同的情况。如果是第一次初始化，这refCount是代表自身，需要从0设置为1；否则的话，不需要修改。
+        refCount = refCount == 0 ? 1 : refCount;
         if (isDirect())
         {
             address = PlatFormFunction.bytebufferOffsetAddress((ByteBuffer) memory) + offset;
@@ -402,14 +403,15 @@ public abstract class AbstractBuffer<T> implements IoBuffer
         {
             current = refCount;
             update = current + add;
-        } while (UNSAFE.compareAndSwapInt(this, REF_COUNT_OFFSET, current, update) == false);
+        }
+        while (UNSAFE.compareAndSwapInt(this, REF_COUNT_OFFSET, current, update) == false);
         return update;
     }
 
     @Override
     public void free()
     {
-        int left = descRef();
+        int                 left              = descRef();
         if (left > 0)
         {
             return;
@@ -433,5 +435,10 @@ public abstract class AbstractBuffer<T> implements IoBuffer
     public int refCount()
     {
         return refCount;
+    }
+
+    public int getOffset()
+    {
+        return offset;
     }
 }

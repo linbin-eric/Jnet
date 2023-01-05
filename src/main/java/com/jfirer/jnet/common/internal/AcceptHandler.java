@@ -1,6 +1,7 @@
 package com.jfirer.jnet.common.internal;
 
-import com.jfirer.jnet.common.api.*;
+import com.jfirer.jnet.common.api.ChannelContextInitializer;
+import com.jfirer.jnet.common.api.ReadCompletionHandler;
 import com.jfirer.jnet.common.util.ChannelConfig;
 
 import java.io.IOException;

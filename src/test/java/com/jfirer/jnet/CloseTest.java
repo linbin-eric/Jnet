@@ -34,7 +34,7 @@ public class CloseTest
     {
         return Arrays.asList(new Object[][]{ //
                 {PooledUnThreadCacheBufferAllocator.DEFAULT}, //
-                {PooledUnThreadCacheBufferAllocator.DEFAULT}, //
+//                {PooledUnThreadCacheBufferAllocator.DEFAULT}, //
         });
     }
 
@@ -69,7 +69,7 @@ public class CloseTest
                 {
                     for (IoBuffer each : queue)
                     {
-                        this.ctx.fireRead(each);
+                        this.ctx.fireWrite(each);
                     }
                     queue.clear();
                 }
@@ -106,6 +106,8 @@ public class CloseTest
         CapacityStat internalStat = getStat((PooledBufferAllocator) bufferAllocator);
         Assert.assertTrue(internalStat.getChunkCapacity() - internalStat.getFreeBytes() >= PooledBufferAllocator.PAGESIZE * (writeNum + 1));
         outputStream.close();
+        System.out.println("切分点");
+        Thread.sleep(2000);
         dataProcessor.read(null, null);
         socket.close();
         aioServer.termination();
@@ -126,5 +128,35 @@ public class CloseTest
             each.capacityStat(stat);
         }
         return stat;
+    }
+
+    class  DataProcessor implements  ReadProcessor<IoBuffer>{
+        final Queue<IoBuffer> queue;
+        final CountDownLatch countDownLatch;
+Pipeline pipeline;
+        public DataProcessor(Queue<IoBuffer> queue, CountDownLatch countDownLatch)
+        {
+            this.queue = queue;
+            this.countDownLatch = countDownLatch;
+        }
+
+        @Override
+        public void read(IoBuffer data, ProcessorContext ctx)
+        {
+            if (data != null)
+            {
+                data.addReadPosi(-4);
+                queue.add(data);
+                countDownLatch.countDown();
+            }
+            else
+            {
+                for (IoBuffer each : queue)
+                {
+                 pipeline.fireRead(each);
+                }
+                queue.clear();
+            }
+        }
     }
 }

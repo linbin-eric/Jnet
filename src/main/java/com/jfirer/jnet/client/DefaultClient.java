@@ -1,15 +1,15 @@
 package com.jfirer.jnet.client;
 
+import com.jfirer.jnet.common.api.ChannelContext;
+import com.jfirer.jnet.common.api.ChannelContextInitializer;
 import com.jfirer.jnet.common.api.Pipeline;
+import com.jfirer.jnet.common.api.ReadCompletionHandler;
 import com.jfirer.jnet.common.buffer.IoBuffer;
 import com.jfirer.jnet.common.internal.AdaptiveReadCompletionHandler;
 import com.jfirer.jnet.common.internal.DefaultChannelContext;
 import com.jfirer.jnet.common.internal.DefaultPipeline;
 import com.jfirer.jnet.common.util.ChannelConfig;
 import com.jfirer.jnet.common.util.ReflectUtil;
-import com.jfirer.jnet.common.api.ChannelContext;
-import com.jfirer.jnet.common.api.ChannelContextInitializer;
-import com.jfirer.jnet.common.api.ReadCompletionHandler;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -55,6 +55,7 @@ public class DefaultClient implements JnetClient
                 ((DefaultChannelContext) channelContext).setPipeline(pipeline);
                 ((DefaultPipeline) pipeline).setChannelContext(channelContext);
                 initializer.onChannelContextInit(channelContext);
+                pipeline.firePrepareFirstRead();
                 ReadCompletionHandler readCompletionHandler = new AdaptiveReadCompletionHandler(channelContext);
                 readCompletionHandler.start();
                 state = CONNECTED;
