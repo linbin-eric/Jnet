@@ -1,6 +1,6 @@
 package com.jfirer.jnet.common.decoder;
 
-import com.jfirer.jnet.common.api.ProcessorContext;
+import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.buffer.BufferAllocator;
 import com.jfirer.jnet.common.buffer.IoBuffer;
 
@@ -20,7 +20,7 @@ public class FixLengthDecoder extends AbstractDecoder
     }
 
     @Override
-    protected void process0(ProcessorContext ctx)
+    protected void process0(ReadProcessorNode next)
     {
         do
         {
@@ -36,8 +36,9 @@ public class FixLengthDecoder extends AbstractDecoder
                 break;
             }
             IoBuffer packet = accumulation.slice(frameLength);
-            ctx.fireRead(packet);
-        } while (true);
+            next.fireRead(packet);
+        }
+        while (true);
         compactIfNeed();
     }
 }

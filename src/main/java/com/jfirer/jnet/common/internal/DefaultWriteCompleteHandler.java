@@ -1,9 +1,6 @@
 package com.jfirer.jnet.common.internal;
 
-import com.jfirer.jnet.common.api.ChannelContext;
-import com.jfirer.jnet.common.api.Pipeline;
-import com.jfirer.jnet.common.api.ProcessorContext;
-import com.jfirer.jnet.common.api.WriteCompletionHandler;
+import com.jfirer.jnet.common.api.*;
 import com.jfirer.jnet.common.buffer.BufferAllocator;
 import com.jfirer.jnet.common.buffer.IoBuffer;
 import com.jfirer.jnet.common.util.ChannelConfig;
@@ -154,18 +151,12 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
     @Override
     public void failed(Throwable e, WriteEntry entry)
     {
-        Pipeline pipeline = channelContext.pipeline();
-        try
-        {
-            pipeline.fireExceptionCatch(e);
-            channelContext.close(e);
-        }
-        finally
-        {
-            entry.clean();
-            prepareTermination();
-            pipeline.fireEndOfWriteLife();
-        }
+        entry.clean();
+        prepareTermination();
+        InternalPipeline pipeline = (InternalPipeline) channelContext.pipeline();
+        Pipeline.invokeMethodIgnoreException(() -> pipeline.fireExceptionCatch(e));
+        Pipeline.invokeMethodIgnoreException(() -> pipeline.fireWriteClose());
+        channelContext.close(e);
     }
 
     protected void prepareTermination()
@@ -194,7 +185,7 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
     }
 
     @Override
-    public void write(Object data, ProcessorContext ctx)
+    public void write(Object data, WriteProcessorNode next)
     {
         IoBuffer buf = (IoBuffer) data;
         if (buf == null)
@@ -219,7 +210,12 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
     }
 
     @Override
-    public void endOfWriteLife(ProcessorContext prev)
+    public void writeClose(WriteProcessorNode next)
+    {
+    }
+
+    @Override
+    public void pipelineComplete(WriteProcessorNode next)
     {
     }
 }

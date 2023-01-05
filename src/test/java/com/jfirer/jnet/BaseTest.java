@@ -5,20 +5,18 @@ import com.jfirer.jnet.client.JnetClient;
 import com.jfirer.jnet.common.api.*;
 import com.jfirer.jnet.common.buffer.BufferAllocator;
 import com.jfirer.jnet.common.buffer.IoBuffer;
-import com.jfirer.jnet.common.buffer.PooledBufferAllocator;
 import com.jfirer.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
 import com.jfirer.jnet.common.util.ChannelConfig;
 import com.jfirer.jnet.server.AioServer;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.concurrent.*;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
@@ -61,11 +59,11 @@ public class BaseTest
             public void onChannelContextInit(final ChannelContext channelContext)
             {
                 Pipeline pipeline = channelContext.pipeline();
-                pipeline.add(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024, bufferAllocator));
-                pipeline.add((ReadProcessor) (data, ctx) -> {
+                pipeline.addReadProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024, bufferAllocator));
+                pipeline.addReadProcessor((ReadProcessor) (data, ctx) -> {
                     count.incrementAndGet();
                     ((IoBuffer) data).addReadPosi(-4);
-                    ctx.fireWrite(data);
+                    pipeline.fireWrite(data);
                 });
             }
         };
@@ -79,23 +77,23 @@ public class BaseTest
             final int[] result = results[index];
             ChannelContextInitializer childIniter = channelContext -> {
                 Pipeline pipeline = channelContext.pipeline();
-                pipeline.add(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024 * 4, bufferAllocator));
-                pipeline.add(new ReadProcessor()
+                pipeline.addReadProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024 * 4, bufferAllocator));
+                pipeline.addReadProcessor(new ReadProcessor()
                 {
                     int count = 0;
 
                     @Override
-                    public void read(Object data, ProcessorContext ctx)
+                    public void read(Object data, ReadProcessorNode ctx)
                     {
-                        try{
-
-                        IoBuffer buffer = (IoBuffer) data;
-                        int      j      = buffer.getInt();
-                        result[j] = j;
-                        buffer.free();
-                        count++;
-                        if (count == numPerThread)
+                        try
                         {
+                            IoBuffer buffer = (IoBuffer) data;
+                            int      j      = buffer.getInt();
+                            result[j] = j;
+                            buffer.free();
+                            count++;
+                            if (count == numPerThread)
+                            {
                             latch.countDown();
                         }
                         }catch (Throwable e){

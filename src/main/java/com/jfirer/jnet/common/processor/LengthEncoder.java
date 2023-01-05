@@ -1,8 +1,8 @@
 package com.jfirer.jnet.common.processor;
 
 import com.jfirer.jnet.common.api.ChannelContext;
-import com.jfirer.jnet.common.api.ProcessorContext;
 import com.jfirer.jnet.common.api.WriteProcessor;
+import com.jfirer.jnet.common.api.WriteProcessorNode;
 import com.jfirer.jnet.common.buffer.IoBuffer;
 
 public class LengthEncoder implements WriteProcessor
@@ -19,12 +19,11 @@ public class LengthEncoder implements WriteProcessor
         this.lengthFieldOffset = lengthFieldOffset;
     }
 
-
     @Override
-    public void write(Object data, ProcessorContext ctx)
+    public void write(Object data, WriteProcessorNode next)
     {
-        IoBuffer buf = (IoBuffer) data;
-        int length = buf.remainRead();
+        IoBuffer buf    = (IoBuffer) data;
+        int      length = buf.remainRead();
         switch (lengthFieldLength)
         {
             case 1:
@@ -39,6 +38,6 @@ public class LengthEncoder implements WriteProcessor
             default:
                 break;
         }
-        ctx.fireWrite(buf);
+        next.fireWrite(buf);
     }
 }

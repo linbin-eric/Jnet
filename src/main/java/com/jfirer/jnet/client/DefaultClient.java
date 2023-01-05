@@ -2,7 +2,7 @@ package com.jfirer.jnet.client;
 
 import com.jfirer.jnet.common.api.ChannelContext;
 import com.jfirer.jnet.common.api.ChannelContextInitializer;
-import com.jfirer.jnet.common.api.Pipeline;
+import com.jfirer.jnet.common.api.InternalPipeline;
 import com.jfirer.jnet.common.api.ReadCompletionHandler;
 import com.jfirer.jnet.common.buffer.IoBuffer;
 import com.jfirer.jnet.common.internal.AdaptiveReadCompletionHandler;
@@ -27,7 +27,7 @@ public class DefaultClient implements JnetClient
     private              ChannelConfig             channelConfig;
     private              ChannelContext            channelContext;
     private              int                       state        = NOT_INIT;
-    private              Pipeline                  pipeline;
+    private              InternalPipeline          pipeline;
 
     public DefaultClient(ChannelConfig channelConfig, ChannelContextInitializer initializer)
     {
@@ -51,11 +51,10 @@ public class DefaultClient implements JnetClient
                 Future<Void>              future                    = asynchronousSocketChannel.connect(new InetSocketAddress(channelConfig.getIp(), channelConfig.getPort()));
                 future.get();
                 channelContext = new DefaultChannelContext(asynchronousSocketChannel, channelConfig);
-                pipeline = new DefaultPipeline(channelConfig.getWorkerGroup(), channelContext);
+                pipeline = new DefaultPipeline(channelConfig.getWorkerGroup().next(), channelContext);
                 ((DefaultChannelContext) channelContext).setPipeline(pipeline);
-                ((DefaultPipeline) pipeline).setChannelContext(channelContext);
                 initializer.onChannelContextInit(channelContext);
-                pipeline.firePrepareFirstRead();
+                pipeline.complete();
                 ReadCompletionHandler readCompletionHandler = new AdaptiveReadCompletionHandler(channelContext);
                 readCompletionHandler.start();
                 state = CONNECTED;

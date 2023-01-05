@@ -2,47 +2,80 @@ package com.jfirer.jnet.common.api;
 
 public interface ReadProcessor<T>
 {
+    ReadProcessor NONE_OP = new ReadProcessor()
+    {
+        @Override
+        public void read(Object data, ReadProcessorNode next)
+        {
+        }
+
+        @Override
+        public void pipelineComplete(ReadProcessorNode next)
+        {
+        }
+
+        @Override
+        public void channelClose(ReadProcessorNode next)
+        {
+        }
+
+        @Override
+        public void exceptionCatch(Throwable e, ReadProcessorNode next)
+        {
+        }
+
+        @Override
+        public void readClose(ReadProcessorNode next)
+        {
+        }
+    };
+
     /**
      * 有数据被读取时触发
+     *
      * @param data
      * @param next
      */
-    void read(T data, ProcessorContext next);
+    void read(T data, ReadProcessorNode next);
 
     /**
      * 首次读取注册之前触发
+     *
      * @param next
      */
-    default void prepareFirstRead(ProcessorContext next)
+    default void pipelineComplete(ReadProcessorNode next)
     {
-        next.firePrepareFirstRead();
+        next.firePipelineComplete();
     }
 
     /**
      * 通道关闭时触发动作
+     *
      * @param next
      */
-    default void channelClose(ProcessorContext next)
+    default void channelClose(ReadProcessorNode next)
     {
         next.fireChannelClose();
     }
 
     /**
      * 异常发生时触发
+     *
      * @param e
      * @param next
      */
-    default void exceptionCatch(Throwable e, ProcessorContext next)
+    default void exceptionCatch(Throwable e, ReadProcessorNode next)
     {
         next.fireExceptionCatch(e);
     }
 
     /**
      * 读取生命周期结束，后续不会再有读取相关动作产生。
+     *
      * @param next
      */
-    default void endOfReadLife(ProcessorContext next)
+    default void readClose(ReadProcessorNode next)
     {
-        next.fireEndOfReadLife();
+        next.fireReadClose();
     }
 }

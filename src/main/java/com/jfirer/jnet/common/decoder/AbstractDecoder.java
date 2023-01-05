@@ -1,7 +1,7 @@
 package com.jfirer.jnet.common.decoder;
 
-import com.jfirer.jnet.common.api.ProcessorContext;
 import com.jfirer.jnet.common.api.ReadProcessor;
+import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.buffer.BufferAllocator;
 import com.jfirer.jnet.common.buffer.IoBuffer;
 
@@ -15,7 +15,7 @@ public abstract class AbstractDecoder implements ReadProcessor
         this.allocator = allocator;
     }
 
-    public void read(Object data, ProcessorContext ctx)
+    public void read(Object data, ReadProcessorNode next)
     {
         if (accumulation == null)
         {
@@ -26,10 +26,10 @@ public abstract class AbstractDecoder implements ReadProcessor
             accumulation.put((IoBuffer) data);
             ((IoBuffer) data).free();
         }
-        process0(ctx);
+        process0(next);
     }
 
-    protected abstract void process0(ProcessorContext ctx);
+    protected abstract void process0(ReadProcessorNode next);
 
     protected void compactIfNeed()
     {
@@ -51,7 +51,7 @@ public abstract class AbstractDecoder implements ReadProcessor
     }
 
     @Override
-    public void endOfReadLife(ProcessorContext next)
+    public void readClose(ReadProcessorNode next)
     {
         if (accumulation != null)
         {

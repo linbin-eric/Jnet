@@ -2,153 +2,122 @@ package com.jfirer.jnet.common.internal;
 
 import com.jfirer.jnet.common.api.*;
 
-public class DefaultPipeline implements Pipeline
+import java.util.function.Function;
+import java.util.function.Supplier;
+
+public class DefaultPipeline implements InternalPipeline
 {
+    private JnetWorker         worker;
+    private ChannelContext     channelContext;
+    private ReadProcessorNode  readHead;
+    private WriteProcessorNode writeHead;
 
-    private WorkerGroup             group;
-    private ChannelContext          channelContext;
-    private DefaultProcessorContext head;
-    private DefaultProcessorContext tail;
-
-    public DefaultPipeline(WorkerGroup group, ChannelContext channelContext)
+    public DefaultPipeline(JnetWorker worker, ChannelContext channelContext)
     {
-        this.group = group;
+        this.worker = worker;
         this.channelContext = channelContext;
-    }
-
-    @Override
-    public void add(Object processor)
-    {
-        if (tail == null)
-        {
-            setHead(processor, group.next());
-        }
-        else
-        {
-            setTail(processor, tail.worker());
-        }
-    }
-
-    private void setTail(Object processor, JnetWorker worker)
-    {
-        DefaultProcessorContext prev = tail.getPrev();
-        DefaultProcessorContext ctx  = new DefaultProcessorContext(worker, channelContext);
-        ctx.setProcessor(processor);
-        prev.setNext(ctx);
-        if (worker != tail.worker())
-        {
-            newTail(worker);
-        }
-        ctx.setPrev(prev);
-        ctx.setNext(tail);
-        tail.setPrev(ctx);
-    }
-
-    class TailProcessor implements ReadProcessor, WriteProcessor
-    {
-        @Override
-        public void read(Object data, ProcessorContext ctx)
-        {
-        }
-
-        @Override
-        public void prepareFirstRead(ProcessorContext ctx)
-        {
-        }
-
-        @Override
-        public void channelClose(ProcessorContext ctx)
-        {
-        }
-
-        @Override
-        public void exceptionCatch(Throwable e, ProcessorContext ctx)
-        {
-            channelContext.close(e);
-        }
-
-        @Override
-        public void endOfReadLife(ProcessorContext next)
-        {
-        }
-    }
-
-    private void newTail(JnetWorker worker)
-    {
-        tail = new DefaultProcessorContext(worker, channelContext);
-        tail.setProcessor(new TailProcessor());
-    }
-
-    private void setHead(Object processor, JnetWorker jnetWorker)
-    {
-        head = new DefaultProcessorContext(jnetWorker, channelContext);
-        head.setProcessor(new DefaultWriteCompleteHandler(channelContext));
-        DefaultProcessorContext second = new DefaultProcessorContext(jnetWorker, channelContext);
-        second.setProcessor(processor);
-        head.setNext(second);
-        second.setPrev(head);
-        newTail(jnetWorker);
-        second.setNext(tail);
-        tail.setPrev(second);
-    }
-
-    @Override
-    public void add(Object processor, WorkerGroup workerGroup)
-    {
-        if (tail == null)
-        {
-            setHead(processor, workerGroup.next());
-        }
-        else
-        {
-            setTail(processor, workerGroup.next());
-        }
-    }
-
-    @Override
-    public void fireRead(Object data)
-    {
-        head.fireRead(data);
     }
 
     @Override
     public void fireWrite(Object data)
     {
-        tail.fireWrite(data);
+        writeHead.fireWrite(data);
+    }
+
+    @Override
+    public void addReadProcessor(ReadProcessor<?> processor)
+    {
+        addReadProcessor0(processor, () -> worker, node -> node.worker());
+    }
+
+    private void addReadProcessor0(ReadProcessor<?> processor, Supplier<JnetWorker> supplier, Function<ReadProcessorNode, JnetWorker> function)
+    {
+        if (readHead == null)
+        {
+            readHead = new ReadProcessorNodeImpl(supplier.get(), processor);
+        }
+        else
+        {
+            ReadProcessorNode node = readHead;
+            while (node.next() != null)
+            {
+                node = node.next();
+            }
+            node.setNext(new ReadProcessorNodeImpl(function.apply(node), processor));
+        }
+    }
+
+    @Override
+    public void addReadProcessor(ReadProcessor<?> processor, WorkerGroup group)
+    {
+        addReadProcessor0(processor, () -> group.next(), node -> group.next());
+    }
+
+    @Override
+    public void addWriteProcessor(WriteProcessor<?> processor)
+    {
+        addWriteProcessor0(processor, () -> worker, node -> node.worker());
+    }
+
+    private void addWriteProcessor0(WriteProcessor<?> processor, Supplier<JnetWorker> supplier, Function<WriteProcessorNode, JnetWorker> function)
+    {
+        if (writeHead == null)
+        {
+            writeHead = new WriteProcessorNodeImpl(supplier.get(), processor);
+        }
+        else
+        {
+            WriteProcessorNode node = writeHead;
+            while (node.next() != null)
+            {
+                node = node.next();
+            }
+            node.setNext(new WriteProcessorNodeImpl(function.apply(node), processor));
+        }
+    }
+
+    @Override
+    public void addWriteProcessor(WriteProcessor<?> processor, WorkerGroup group)
+    {
+        addWriteProcessor0(processor, () -> group.next(), node -> group.next());
+    }
+
+    @Override
+    public void fireRead(Object data)
+    {
+        readHead.fireRead(data);
     }
 
     @Override
     public void fireChannelClose()
     {
-        head.fireChannelClose();
+        readHead.fireChannelClose();
     }
 
     @Override
     public void fireExceptionCatch(Throwable e)
     {
-        head.fireExceptionCatch(e);
+        readHead.fireExceptionCatch(e);
     }
 
     @Override
-    public void firePrepareFirstRead()
+    public void complete()
     {
-        head.firePrepareFirstRead();
+        addReadProcessor0(ReadProcessor.NONE_OP, () -> worker, node -> node.worker());
+        addWriteProcessor0(new DefaultWriteCompleteHandler(channelContext), () -> worker, node -> node.worker());
+        readHead.firePipelineComplete();
+        writeHead.firePipelineComplete();
     }
 
     @Override
-    public void fireEndOfReadLife()
+    public void fireReadClose()
     {
-        head.fireEndOfReadLife();
+        readHead.fireReadClose();
     }
 
     @Override
-    public void fireEndOfWriteLife()
+    public void fireWriteClose()
     {
-        tail.fireEndOfWriteLife();
-    }
-
-    public void setChannelContext(ChannelContext channelContext)
-    {
-        this.channelContext = channelContext;
+        writeHead.fireWriteClose();
     }
 }

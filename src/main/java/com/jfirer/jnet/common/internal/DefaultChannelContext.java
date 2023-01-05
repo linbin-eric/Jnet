@@ -1,6 +1,7 @@
 package com.jfirer.jnet.common.internal;
 
 import com.jfirer.jnet.common.api.ChannelContext;
+import com.jfirer.jnet.common.api.InternalPipeline;
 import com.jfirer.jnet.common.api.Pipeline;
 import com.jfirer.jnet.common.util.ChannelConfig;
 
@@ -14,7 +15,7 @@ public class DefaultChannelContext extends AtomicInteger implements ChannelConte
     private static final int                       CLOSE = 0;
     private              AsynchronousSocketChannel socketChannel;
     private              ChannelConfig             channelConfig;
-    private              Pipeline                  pipeline;
+    private              InternalPipeline          pipeline;
 
     public DefaultChannelContext(AsynchronousSocketChannel socketChannel, ChannelConfig channelConfig)
     {
@@ -50,7 +51,7 @@ public class DefaultChannelContext extends AtomicInteger implements ChannelConte
     @Override
     public void close(Throwable e)
     {
-        if (compareAndSet(OPEN,CLOSE)==false)
+        if (compareAndSet(OPEN, CLOSE) == false)
         {
             return;
         }
@@ -65,7 +66,7 @@ public class DefaultChannelContext extends AtomicInteger implements ChannelConte
         pipeline.fireChannelClose();
     }
 
-    public void setPipeline(Pipeline pipeline)
+    public void setPipeline(InternalPipeline pipeline)
     {
         this.pipeline = pipeline;
     }

@@ -1,6 +1,6 @@
 package com.jfirer.jnet.common.decoder;
 
-import com.jfirer.jnet.common.api.ProcessorContext;
+import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.buffer.BufferAllocator;
 import com.jfirer.jnet.common.buffer.IoBuffer;
 import com.jfirer.jnet.common.exception.TooLongException;
@@ -39,7 +39,7 @@ public class TotalLengthFieldBasedFrameDecoder extends AbstractDecoder
     }
 
     @Override
-    public void process0(ProcessorContext ctx)
+    public void process0(ReadProcessorNode next)
     {
         int index = 0;
         do
@@ -93,7 +93,7 @@ public class TotalLengthFieldBasedFrameDecoder extends AbstractDecoder
                 {
                     packet.addReadPosi(skipBytes);
                 }
-                ctx.fireRead(packet);
+                next.fireRead(packet);
                 index++;
             }
         }

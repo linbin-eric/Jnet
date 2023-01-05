@@ -2,13 +2,18 @@ package com.jfirer.jnet.common.api;
 
 public interface WriteProcessor<T>
 {
-    default void write(T data, ProcessorContext prev)
+    default void write(T data, WriteProcessorNode next)
     {
-        prev.fireWrite(data);
+        next.fireWrite(data);
     }
 
-    default void endOfWriteLife(ProcessorContext prev)
+    default void writeClose(WriteProcessorNode next)
     {
-        prev.fireEndOfWriteLife();
+        next.fireWriteClose();
+    }
+
+    default void pipelineComplete(WriteProcessorNode next)
+    {
+        next.firePipelineComplete();
     }
 }

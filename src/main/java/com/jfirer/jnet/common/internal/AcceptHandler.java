@@ -24,12 +24,11 @@ public class AcceptHandler implements CompletionHandler<AsynchronousSocketChanne
     public void completed(AsynchronousSocketChannel socketChannel, AsynchronousServerSocketChannel serverChannel)
     {
         DefaultChannelContext channelContext = new DefaultChannelContext(socketChannel, channelConfig);
-        DefaultPipeline       pipeline       = new DefaultPipeline(channelConfig.getWorkerGroup(), channelContext);
-        pipeline.setChannelContext(channelContext);
+        DefaultPipeline       pipeline       = new DefaultPipeline(channelConfig.getWorkerGroup().next(), channelContext);
         channelContext.setPipeline(pipeline);
         channelContextInitializer.onChannelContextInit(channelContext);
+        pipeline.complete();
         ReadCompletionHandler readCompletionHandler = new AdaptiveReadCompletionHandler(channelContext);
-        pipeline.firePrepareFirstRead();
         readCompletionHandler.start();
         serverChannel.accept(serverChannel, this);
     }

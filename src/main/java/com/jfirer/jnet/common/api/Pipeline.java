@@ -2,21 +2,25 @@ package com.jfirer.jnet.common.api;
 
 public interface Pipeline
 {
-    void add(Object readProcessor);
-
-    void add(Object readProcessor, WorkerGroup workerGroup);
-
-    void fireRead(Object data);
-
     void fireWrite(Object data);
 
-    void fireChannelClose();
+    void addReadProcessor(ReadProcessor<?> processor);
 
-    void fireExceptionCatch(Throwable e);
+    void addReadProcessor(ReadProcessor<?> processor, WorkerGroup group);
 
-    void firePrepareFirstRead();
+    void addWriteProcessor(WriteProcessor<?> processor);
 
-    void fireEndOfReadLife();
+    void addWriteProcessor(WriteProcessor<?> processor, WorkerGroup group);
 
-    void fireEndOfWriteLife();
+    static void invokeMethodIgnoreException(Runnable runnable)
+    {
+        try
+        {
+            runnable.run();
+        }
+        catch (Throwable e)
+        {
+            ;
+        }
+    }
 }

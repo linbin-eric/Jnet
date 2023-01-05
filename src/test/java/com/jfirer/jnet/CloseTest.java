@@ -18,13 +18,12 @@ import java.net.Socket;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Queue;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
 
 @RunWith(Parameterized.class)
 public class CloseTest
 {
-
     private String ip       = "127.0.0.1";
     private int    port     = 4586;
     private int    writeNum = 100;
@@ -48,42 +47,19 @@ public class CloseTest
     @Test
     public void test() throws Throwable
     {
-        ChannelConfig channelConfig = new ChannelConfig();
+        ChannelConfig         channelConfig  = new ChannelConfig();
         final CountDownLatch  countDownLatch = new CountDownLatch(writeNum);
         final Queue<IoBuffer> queue          = new ConcurrentLinkedQueue<>();
-        final ReadProcessor dataProcessor = new ReadProcessor<IoBuffer>()
-        {
-            ProcessorContext ctx;
-
-            @Override
-            public void read(IoBuffer data, ProcessorContext ctx)
-            {
-                if (data != null)
-                {
-                    this.ctx = ctx;
-                    data.addReadPosi(-4);
-                    queue.add(data);
-                    countDownLatch.countDown();
-                }
-                else
-                {
-                    for (IoBuffer each : queue)
-                    {
-                        this.ctx.fireWrite(each);
-                    }
-                    queue.clear();
-                }
-            }
-        };
+        final DataProcessor   dataProcessor  = new DataProcessor(queue, countDownLatch);
         ChannelContextInitializer initializer = new ChannelContextInitializer()
         {
-
             @Override
             public void onChannelContextInit(final ChannelContext channelContext)
             {
                 Pipeline pipeline = channelContext.pipeline();
-                pipeline.add(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024 * 5, bufferAllocator));
-                pipeline.add(dataProcessor);
+                pipeline.addReadProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024 * 5, bufferAllocator));
+                pipeline.addReadProcessor(dataProcessor);
+                dataProcessor.pipeline = (InternalPipeline) pipeline;
             }
         };
         channelConfig.setIp(ip);
@@ -130,10 +106,12 @@ public class CloseTest
         return stat;
     }
 
-    class  DataProcessor implements  ReadProcessor<IoBuffer>{
+    class DataProcessor implements ReadProcessor<IoBuffer>
+    {
         final Queue<IoBuffer> queue;
-        final CountDownLatch countDownLatch;
-Pipeline pipeline;
+        final CountDownLatch  countDownLatch;
+        InternalPipeline pipeline;
+
         public DataProcessor(Queue<IoBuffer> queue, CountDownLatch countDownLatch)
         {
             this.queue = queue;
@@ -141,7 +119,7 @@ Pipeline pipeline;
         }
 
         @Override
-        public void read(IoBuffer data, ProcessorContext ctx)
+        public void read(IoBuffer data, ReadProcessorNode next)
         {
             if (data != null)
             {
@@ -153,7 +131,7 @@ Pipeline pipeline;
             {
                 for (IoBuffer each : queue)
                 {
-                 pipeline.fireRead(each);
+                    pipeline.fireWrite(each);
                 }
                 queue.clear();
             }

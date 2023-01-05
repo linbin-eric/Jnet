@@ -1,6 +1,7 @@
 package com.jfirer.jnet.common.internal;
 
 import com.jfirer.jnet.common.api.ChannelContext;
+import com.jfirer.jnet.common.api.InternalPipeline;
 import com.jfirer.jnet.common.api.Pipeline;
 import com.jfirer.jnet.common.api.ReadCompletionHandler;
 import com.jfirer.jnet.common.buffer.BufferAllocator;
@@ -23,8 +24,7 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler<IoBu
     private         int                       maxIndex;
     private         int                       index;
     private         boolean                   shouldDecr = false;
-    private         Pipeline                  pipeline;
-
+    private         InternalPipeline          pipeline;
     static
     {
         List<Integer> list = new ArrayList<>();
@@ -42,7 +42,6 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler<IoBu
             sizeTable[i] = list.get(i);
         }
     }
-
     static int indexOf(int num)
     {
         if (num == 0)
@@ -68,7 +67,7 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler<IoBu
     public AdaptiveReadCompletionHandler(ChannelContext channelContext)
     {
         this.channelContext = channelContext;
-        pipeline = channelContext.pipeline();
+        pipeline = (InternalPipeline) channelContext.pipeline();
         socketChannel = channelContext.socketChannel();
         ChannelConfig config = channelContext.channelConfig();
         allocator = config.getAllocator();
@@ -98,6 +97,7 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler<IoBu
         if (read == -1)
         {
             entry.clean();
+            Pipeline.invokeMethodIgnoreException(() -> pipeline.fireReadClose());
             channelContext.close();
             return;
         }
@@ -116,7 +116,6 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler<IoBu
         catch (Throwable e)
         {
             failed(e, entry);
-            return;
         }
     }
 
@@ -152,22 +151,9 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler<IoBu
     @Override
     public void failed(Throwable e, ReadEntry entry)
     {
-        try
-        {
-            pipeline.fireExceptionCatch(e);
-            channelContext.close(e);
-        }
-        finally
-        {
-            entry.clean();
-            try
-            {
-                pipeline.fireEndOfReadLife();
-            }
-            finally
-            {
-                ;
-            }
-        }
+        entry.clean();
+        Pipeline.invokeMethodIgnoreException(() -> pipeline.fireExceptionCatch(e));
+        Pipeline.invokeMethodIgnoreException(() -> pipeline.fireReadClose());
+        channelContext.close(e);
     }
 }
