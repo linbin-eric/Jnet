@@ -41,7 +41,6 @@ public class TotalLengthFieldBasedFrameDecoder extends AbstractDecoder
     @Override
     public void process0(ReadProcessorNode next)
     {
-        int index = 0;
         do
         {
             int maskReadPosi = accumulation.getReadPosi();
@@ -94,7 +93,6 @@ public class TotalLengthFieldBasedFrameDecoder extends AbstractDecoder
                     packet.addReadPosi(skipBytes);
                 }
                 next.fireRead(packet);
-                index++;
             }
         }
         while (true);

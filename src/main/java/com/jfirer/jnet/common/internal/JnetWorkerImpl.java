@@ -1,6 +1,7 @@
 package com.jfirer.jnet.common.internal;
 
 import com.jfirer.jnet.common.api.JnetWorker;
+import com.jfirer.jnet.common.thread.FastThreadLocalThread;
 
 import java.util.Queue;
 import java.util.concurrent.LinkedTransferQueue;
@@ -9,7 +10,7 @@ import java.util.concurrent.locks.LockSupport;
 /**
  * 注意，一个JnetWorker会被分配给不同的通道，这意味着有多个生产者
  */
-public class JnetWorkerImpl extends Thread implements JnetWorker
+public class JnetWorkerImpl extends FastThreadLocalThread implements JnetWorker
 {
     private static final int             IDLE     = -1;
     private static final int             WORK     = 1;
@@ -50,7 +51,8 @@ public class JnetWorkerImpl extends Thread implements JnetWorker
                         }
                     }
                 }
-            } while (true);
+            }
+            while (true);
         }
         catch (Throwable e)
         {

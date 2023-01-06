@@ -4,6 +4,11 @@ public class FastThreadLocalThread extends Thread
 {
     private FastThreadLocalMap fastThreadLocalMap;
 
+    public FastThreadLocalThread(String threadName)
+    {
+        super(threadName);
+    }
+
     public FastThreadLocalThread(Runnable runnable)
     {
         super(runnable);
