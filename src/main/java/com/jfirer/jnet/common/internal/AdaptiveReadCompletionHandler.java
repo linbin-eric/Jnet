@@ -17,7 +17,6 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler<IoBu
 {
     protected final AsynchronousSocketChannel socketChannel;
     protected final BufferAllocator           allocator;
-    protected final ReadEntry                 entry      = new ReadEntry();
     protected       ChannelContext            channelContext;
     static final    int[]                     sizeTable;
     private         int                       minIndex;
@@ -25,6 +24,7 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler<IoBu
     private         int                       index;
     private         boolean                   shouldDecr = false;
     private         InternalPipeline          pipeline;
+    private         IoBuffer                  ioBuffer;
     static
     {
         List<Integer> list = new ArrayList<>();
@@ -79,29 +79,22 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler<IoBu
     @Override
     public void start()
     {
-        IoBuffer buffer = allocator.ioBuffer(sizeTable[index]);
-        read(buffer, entry);
-    }
-
-    private void read(IoBuffer buffer, ReadEntry entry)
-    {
-        entry.setIoBuffer(buffer);
-        entry.setByteBuffer(buffer.writableByteBuffer());
-        socketChannel.read(entry.getByteBuffer(), entry, this);
+        ioBuffer = allocator.ioBuffer(sizeTable[index]);
+        socketChannel.read(ioBuffer.writableByteBuffer(), this, this);
     }
 
     @Override
-    public void completed(Integer length, ReadEntry entry)
+    public void completed(Integer length, ReadCompletionHandler handler)
     {
         int read = length;
         if (read == -1)
         {
-            entry.clean();
+            ioBuffer.free();
             Pipeline.invokeMethodIgnoreException(() -> pipeline.fireReadClose());
             channelContext.close();
             return;
         }
-        IoBuffer buffer = entry.getIoBuffer();
+        IoBuffer buffer = ioBuffer;
         int      except = buffer.capacity();
         try
         {
@@ -110,12 +103,12 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler<IoBu
                 buffer.addWritePosi(read);
                 pipeline.fireRead(buffer);
             }
-            IoBuffer nextReadBuffer = nextReadBuffer(except, read);
-            read(nextReadBuffer, entry);
+            ioBuffer = nextReadBuffer(except, read);
+            socketChannel.read(ioBuffer.writableByteBuffer(), this, this);
         }
         catch (Throwable e)
         {
-            failed(e, entry);
+            failed(e, this);
         }
     }
 
@@ -149,9 +142,12 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler<IoBu
     }
 
     @Override
-    public void failed(Throwable e, ReadEntry entry)
+    public void failed(Throwable e, ReadCompletionHandler handler)
     {
-        entry.clean();
+        if (ioBuffer != null)
+        {
+            ioBuffer.free();
+        }
         Pipeline.invokeMethodIgnoreException(() -> pipeline.fireExceptionCatch(e));
         Pipeline.invokeMethodIgnoreException(() -> pipeline.fireReadClose());
         channelContext.close(e);

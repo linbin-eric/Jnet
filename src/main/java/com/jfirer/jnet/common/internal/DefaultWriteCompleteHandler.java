@@ -18,18 +18,18 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
     protected static final int                       SPIN_THRESHOLD    = 16;
     protected static final int                       IDLE              = 1;
     protected static final int                       WORK              = 2;
-    protected final        WriteEntry                entry             = new WriteEntry();
-    protected final        AsynchronousSocketChannel socketChannel;
-    protected final        ChannelContext            channelContext;
-    protected final        BufferAllocator           allocator;
-    protected final        int                       maxWriteBytes;
+    protected final    AsynchronousSocketChannel socketChannel;
+    protected final    ChannelContext            channelContext;
+    protected final    BufferAllocator           allocator;
+    protected final    int                       maxWriteBytes;
     // 终止状态。进入该状态后，不再继续使用
     ////////////////////////////////////////////////////////////
-    protected volatile     int                       state             = IDLE;
+    protected volatile int                       state             = IDLE;
     //注意，不能使用JcTools下面的SpscQueue，其实现会出现当queue.isEmpty()==false时，queue.poll()返回null，导致程序异常
     //MpscQueue则是可以的。JDK的并发queue也是可以的
-    protected              Queue<IoBuffer>           queue             = new SpscLinkedQueue<>();
-    protected              AtomicInteger             pendingWriteBytes = new AtomicInteger();
+    protected          Queue<IoBuffer>           queue             = new SpscLinkedQueue<>();
+    protected          AtomicInteger             pendingWriteBytes = new AtomicInteger();
+    private            IoBuffer                  sendingData;
 
     public DefaultWriteCompleteHandler(ChannelContext channelContext)
     {
@@ -66,17 +66,17 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
     }
 
     @Override
-    public void completed(Integer result, WriteEntry entry)
+    public void completed(Integer result, ByteBuffer byteBuffer)
     {
         try
         {
-            ByteBuffer byteBuffer = entry.getByteBuffer();
             if (byteBuffer.hasRemaining())
             {
-                socketChannel.write(byteBuffer, entry, this);
+                socketChannel.write(byteBuffer, byteBuffer, this);
                 return;
             }
-            entry.clean();
+            sendingData.free();
+            sendingData = null;
             if (queue.isEmpty() == false)
             {
                 writeQueuedBuffer();
@@ -94,7 +94,7 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
         }
         catch (Throwable e)
         {
-            failed(e, entry);
+            failed(e, byteBuffer);
         }
     }
 
@@ -138,9 +138,9 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
             {
                 System.err.println("小于0：" + addAndGet);
             }
-            entry.setIoBuffer(accumulation);
-            entry.setByteBuffer(accumulation.readableByteBuffer());
-            socketChannel.write(entry.getByteBuffer(), entry, this);
+            sendingData = accumulation;
+            ByteBuffer byteBuffer = sendingData.readableByteBuffer();
+            socketChannel.write(byteBuffer, byteBuffer, this);
         }
         catch (Throwable e)
         {
@@ -149,9 +149,12 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
     }
 
     @Override
-    public void failed(Throwable e, WriteEntry entry)
+    public void failed(Throwable e, ByteBuffer byteBuffer)
     {
-        entry.clean();
+        if (sendingData != null)
+        {
+            sendingData.free();
+        }
         prepareTermination();
         InternalPipeline pipeline = (InternalPipeline) channelContext.pipeline();
         Pipeline.invokeMethodIgnoreException(() -> pipeline.fireExceptionCatch(e));
