@@ -12,7 +12,7 @@ public interface WriteProcessor<T>
         next.fireWriteClose();
     }
 
-    default void pipelineComplete(WriteProcessorNode next)
+    default void pipelineComplete(WriteProcessorNode next, ChannelContext channelContext)
     {
         next.firePipelineComplete();
     }

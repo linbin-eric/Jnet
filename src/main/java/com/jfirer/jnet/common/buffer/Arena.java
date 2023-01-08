@@ -81,6 +81,9 @@ public abstract class Arena<T>
 
     static int tinyIdx(int normalizeCapacity)
     {
+        /**
+         * 该数字除以 16 的商。商刚好是数组的下标。
+         */
         return normalizeCapacity >>> 4;
     }
 
@@ -91,6 +94,9 @@ public abstract class Arena<T>
 
     static boolean isTiny(int normCapacity)
     {
+        /**
+         * 0~511的数字大小
+         */
         return (normCapacity & 0xFFFFFE00) == 0;
     }
 
@@ -211,6 +217,7 @@ public abstract class Arena<T>
         }
         if (isTiny(reqCapacity))
         {
+            //获得大于reqCapacity的最小的16的倍数
             return (reqCapacity & 15) == 0 ? reqCapacity : (reqCapacity & ~15) + 16;
         }
         return MathUtil.normalizeSize(reqCapacity);

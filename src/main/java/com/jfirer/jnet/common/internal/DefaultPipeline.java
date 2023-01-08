@@ -103,10 +103,10 @@ public class DefaultPipeline implements InternalPipeline
     @Override
     public void complete()
     {
-        addReadProcessor0(ReadProcessor.NONE_OP, () -> worker, node -> node.worker());
-        addWriteProcessor0(new DefaultWriteCompleteHandler(channelContext), () -> worker, node -> node.worker());
+        addReadProcessor0(ReadProcessor.TAIL, () -> worker, node -> node.worker());
+        addWriteProcessor0(new TailWriteProcessorImpl(), () -> worker, node -> node.worker());
         readHead.firePipelineComplete();
-        writeHead.firePipelineComplete();
+        writeHead.firePipelineComplete(channelContext);
     }
 
     @Override

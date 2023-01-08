@@ -2,11 +2,12 @@ package com.jfirer.jnet.common.api;
 
 public interface ReadProcessor<T>
 {
-    ReadProcessor NONE_OP = new ReadProcessor()
+    ReadProcessor TAIL = new ReadProcessor()
     {
         @Override
         public void read(Object data, ReadProcessorNode next)
         {
+            throw new UnsupportedOperationException();
         }
 
         @Override

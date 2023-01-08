@@ -4,7 +4,7 @@ public interface WriteProcessorNode
 {
     void fireWrite(Object data);
 
-    void firePipelineComplete();
+    void firePipelineComplete(ChannelContext channelContext);
 
     void fireWriteClose();
 

@@ -1,5 +1,6 @@
 package com.jfirer.jnet.common.internal;
 
+import com.jfirer.jnet.common.api.ChannelContext;
 import com.jfirer.jnet.common.api.JnetWorker;
 import com.jfirer.jnet.common.api.WriteProcessor;
 import com.jfirer.jnet.common.api.WriteProcessorNode;
@@ -35,9 +36,9 @@ public class WriteProcessorNodeImpl implements WriteProcessorNode
     }
 
     @Override
-    public void firePipelineComplete()
+    public void firePipelineComplete(ChannelContext channelContext)
     {
-        doWork(() -> processor.pipelineComplete(next));
+        doWork(() -> processor.pipelineComplete(next, channelContext));
     }
 
     @Override

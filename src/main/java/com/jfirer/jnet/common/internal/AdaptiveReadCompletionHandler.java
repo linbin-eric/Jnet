@@ -84,9 +84,8 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler<IoBu
     }
 
     @Override
-    public void completed(Integer length, ReadCompletionHandler handler)
+    public void completed(Integer read, ReadCompletionHandler handler)
     {
-        int read = length;
         if (read == -1)
         {
             ioBuffer.free();
@@ -94,14 +93,13 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler<IoBu
             channelContext.close();
             return;
         }
-        IoBuffer buffer = ioBuffer;
-        int      except = buffer.capacity();
+        int except = ioBuffer.capacity();
         try
         {
             if (read != 0)
             {
-                buffer.addWritePosi(read);
-                pipeline.fireRead(buffer);
+                ioBuffer.addWritePosi(read);
+                pipeline.fireRead(ioBuffer);
             }
             ioBuffer = nextReadBuffer(except, read);
             socketChannel.read(ioBuffer.writableByteBuffer(), this, this);
