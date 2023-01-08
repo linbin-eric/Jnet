@@ -14,6 +14,6 @@ public interface WriteProcessor<T>
 
     default void pipelineComplete(WriteProcessorNode next, ChannelContext channelContext)
     {
-        next.firePipelineComplete();
+        next.firePipelineComplete(channelContext);
     }
 }
