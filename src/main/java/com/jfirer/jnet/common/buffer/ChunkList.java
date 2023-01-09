@@ -4,12 +4,13 @@ import com.jfirer.jnet.common.util.CapacityStat;
 
 public class ChunkList<T>
 {
-    final int maxUsage;
-    final int minUsage;
-    final int maxReqCapacity;
-    ChunkList<T> prevList;
-    ChunkList<T> nextList;
-    Chunk<T>     head;
+    final int   maxUsage;
+    final int   minUsage;
+    final int   maxReqCapacity;
+    final Arena arena;
+    ChunkList<T>     prevList;
+    ChunkList<T>     nextList;
+    ChunkListNode<T> head;
 
     /**
      * 两个边界都是闭区间。也就是大于等于最小使用率，小于等于最大使用率都在这个List中
@@ -19,17 +20,13 @@ public class ChunkList<T>
      * @param next
      * @param chunkSize
      */
-    public ChunkList(int minUsage, int maxUsage, ChunkList<T> next, int chunkSize)
+    public ChunkList(int minUsage, int maxUsage, ChunkList<T> next, int chunkSize, Arena arena)
     {
         this.maxUsage = maxUsage;
         this.minUsage = minUsage;
         maxReqCapacity = calcuteMaxCapacity(minUsage, chunkSize);
         this.nextList = next;
-    }
-
-    public void setPrevList(ChunkList<T> prevList)
-    {
-        this.prevList = prevList;
+        this.arena = arena;
     }
 
     int calcuteMaxCapacity(int minUsage, int chunkSize)
@@ -48,75 +45,151 @@ public class ChunkList<T>
         }
     }
 
-    public boolean allocate(int normalizeSize, PooledBuffer<T> buffer, ThreadCache cache)
+    public void setPrevList(ChunkList<T> prevList)
+    {
+        this.prevList = prevList;
+    }
+
+    public Chunk.MemoryArea<T> allocate(int normalizeSize)
     {
         if (head == null || normalizeSize >= maxReqCapacity)
         {
-            return false;
+            return null;
         }
-        Chunk<T> cursor = head;
-        long     handle = cursor.allocate(normalizeSize);
-        if (handle != -1)
+        ChunkListNode node = head;
+        do
         {
-            cursor.initBuf(handle, buffer, cache);
-            int usage = cursor.usage();
-            if (usage > maxUsage)
+            Chunk.MemoryArea<T> allocate = node.allocate(normalizeSize);
+            if (allocate != null)
             {
-                remove(cursor);
-                nextList.addFromPrev(cursor, usage);
-            }
-            return true;
-        }
-        while ((cursor = cursor.next) != null)
-        {
-            handle = cursor.allocate(normalizeSize);
-            if (handle != -1)
-            {
-                cursor.initBuf(handle, buffer, cache);
-                return true;
+                int usage = node.usage();
+                if (usage > maxUsage)
+                {
+                    remove(node);
+                    nextList.addFromPrev(node, usage);
+                }
+                return allocate;
             }
         }
-        return false;
+        while ((node = node.getNext()) != null);
+        return null;
     }
 
+    public SubPageListNode allocateSubpage()
+    {
+        if (head == null)
+        {
+            return null;
+        }
+        ChunkListNode<T> node = head;
+        do
+        {
+            SubPage subPage = node.allocateSubpage();
+            if (subPage != null)
+            {
+                int usage = node.usage();
+                if (usage > maxUsage)
+                {
+                    remove(node);
+                    nextList.addFromPrev(node, usage);
+                }
+                return node.find(subPage.index());
+            }
+        }
+        while ((node = node.getNext()) != null);
+        return null;
+    }
+//    public boolean allocate(int normalizeSize, PooledBuffer<T> buffer, ThreadCache cache)
+//    {
+//        if (head == null || normalizeSize >= maxReqCapacity)
+//        {
+//            return false;
+//        }
+//        ChunkImpl<T> cursor = head;
+//        long         handle = cursor.allocate(normalizeSize);
+//        if (handle != -1)
+//        {
+//            cursor.initBuf(handle, buffer, cache);
+//            int usage = cursor.usage();
+//            if (usage > maxUsage)
+//            {
+//                remove(cursor);
+//                nextList.addFromPrev(cursor, usage);
+//            }
+//            return true;
+//        }
+//        while ((cursor = cursor.next) != null)
+//        {
+//            handle = cursor.allocate(normalizeSize);
+//            if (handle != -1)
+//            {
+//                cursor.initBuf(handle, buffer, cache);
+//                return true;
+//            }
+//        }
+//        return false;
+//    }
+//    /**
+//     * 返回true意味着该Chunk不在管理之中，可以摧毁。
+//     *
+//     * @param chunk
+//     * @param handle
+//     * @return
+//     */
+//    public boolean free(ChunkImpl<T> chunk, long handle)
+//    {
+//        chunk.free(handle);
+//        int usage = chunk.usage();
+//        if (usage < minUsage)
+//        {
+//            remove(chunk);
+//            return addFromNext(chunk, usage) == false;
+//        }
+//        return false;
+//    }
+
     /**
-     * 返回true意味着该Chunk不在管理之中，可以摧毁。
+     * 返回true意味着该Chunk不在管理之中，可以销毁
      *
-     * @param chunk
+     * @param node
      * @param handle
      * @return
      */
-    public boolean free(Chunk<T> chunk, long handle)
+    public boolean free(ChunkListNode<T> node, int handle)
     {
-        chunk.free(handle);
-        int usage = chunk.usage();
+        node.free(handle);
+        int usage = node.usage();
         if (usage < minUsage)
         {
-            remove(chunk);
-            return addFromNext(chunk, usage) == false;
+            remove(node);
+            return addFromNext(node, usage) == false;
         }
         return false;
     }
 
-    void remove(Chunk<T> node)
+    void remove(ChunkListNode<T> node)
     {
-        Chunk<T> head = this.head;
+        ChunkListNode<T> head = this.head;
         if (node == head)
         {
-            head = node.next;
+            head = node.getNext();
             if (head != null)
             {
-                head.pred = null;
+//                head.prev = null;
+                head.setPrev(null);
             }
+
             this.head = head;
         }
         else
         {
-            Chunk<T> next = node.next;
-            node.pred.next = next;
+            ChunkListNode next = node.getNext();
+//            node.prev.next = next;
+            node.getPrev().setNext(next);
             if (next != null)
             {
-                next.pred = node.pred;
+//                next.prev = node.prev;
+                next.setPrev(node.getPrev());
             }
         }
     }
@@ -124,11 +197,11 @@ public class ChunkList<T>
     /**
      * 返回true意味着有前向列表可以添加，否则返回false
      *
-     * @param chunk
+     * @param node
      * @param usage
      * @return
      */
-    boolean addFromNext(Chunk<T> chunk, int usage)
+    boolean addFromNext(ChunkListNode<T> node, int usage)
     {
         if (usage < minUsage)
         {
@@ -138,67 +211,94 @@ public class ChunkList<T>
             }
             else
             {
-                return prevList.addFromNext(chunk, usage);
+                return prevList.addFromNext(node, usage);
             }
         }
-        add(chunk);
+        add(node);
         return true;
     }
+//    public void add(Chunk chunk)
+//    {
+//        ChunkListNode node  = new ChunkListNode(chunk);
+//        int           usage = node.usage();
+//        if (usage < minUsage)
+//        {
+//            prevList.addFromNext(node, usage);
+//        }
+//        else if (usage > maxUsage)
+//        {
+//            nextList.addFromPrev(node, usage);
+//        }
+//        else
+//        {
+//            add(node);
+//        }
+//    }
 
-    void add(Chunk<T> chunk)
+    void add(ChunkListNode<T> node)
     {
-        chunk.parent = this;
+//        node.parent = this;
+        node.setParent(this);
         if (head == null)
         {
-            head = chunk;
-            chunk.pred = null;
-            chunk.next = null;
+            head = node;
+            node.setPrev(null);
+            node.setNext(null);
+//            node.prev = null;
+//            node.next = null;
         }
         else
         {
-            chunk.pred = null;
-            chunk.next = head;
-            head.pred = chunk;
-            head = chunk;
+            node.setPrev(null);
+            node.setNext(head);
+            head.setPrev(node);
+//            node.prev = null;
+//            node.next = head;
+//            head.prev = node;
+            head = node;
         }
     }
 
-    void addFromPrev(Chunk<T> chunk, int usage)
+    void addFromPrev(ChunkListNode node, int usage)
     {
         if (usage > maxUsage)
         {
-            nextList.addFromPrev(chunk, usage);
+            nextList.addFromPrev(node, usage);
             return;
         }
-        add(chunk);
+        add(node);
     }
-
-    int sum()
-    {
-        Chunk<T> cursor = head;
-        if (cursor == null)
-        {
-            return 0;
-        }
-        int count = 1;
-        while ((cursor = cursor.next) != null)
-        {
-            count++;
-        }
-        return count;
-    }
+//    int sum()
+//    {
+//        ChunkListNode cursor = head;
+//        if (cursor == null)
+//        {
+//            return 0;
+//        }
+//        int count = 1;
+//        while ((cursor = cursor.next) != null)
+//        {
+//            count++;
+//        }
+//        return count;
+//    }
 
     public void stat(CapacityStat stat)
     {
-        Chunk<T> cursor = head;
+        ChunkListNode<T> cursor = head;
         if (cursor == null)
         {
             return;
         }
         stat.add(cursor);
-        while ((cursor = cursor.next) != null)
+        while ((cursor = cursor.getNext()) != null)
         {
             stat.add(cursor);
         }
+    }
+
+    public Arena getArena()
+    {
+        return arena;
     }
 }

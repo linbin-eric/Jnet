@@ -134,10 +134,10 @@ public class PooledBufferAllocator implements BufferAllocator
         }
     }
 
-    private Arena<?> leastUseArena(Arena<?>[] arenas)
+    private AbstractArena<?> leastUseArena(AbstractArena<?>[] arenas)
     {
-        Arena<?> leastUseArena = arenas[0];
-        for (Arena<?> each : arenas)
+        AbstractArena<?> leastUseArena = arenas[0];
+        for (AbstractArena<?> each : arenas)
         {
             if (each.numThreadCaches.get() < leastUseArena.numThreadCaches.get())
             {

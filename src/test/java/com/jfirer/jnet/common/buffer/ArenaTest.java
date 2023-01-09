@@ -1,5 +1,6 @@
 package com.jfirer.jnet.common.buffer;
 
+import com.jfirer.jnet.common.buffer.impl.ChunkImpl;
 import org.junit.Test;
 
 import java.util.LinkedList;
@@ -31,15 +32,15 @@ public class ArenaTest
         IoBuffer        buffer = allocator.ioBuffer(allocator.pagesize, preferDirect);
         Queue<IoBuffer> queue  = new LinkedList<>();
         queue.add(buffer);
-        ThreadCache threadCache = allocator.threadCache();
-        Arena<?>    arena       = threadCache.arena(preferDirect);
+        ThreadCache      threadCache = allocator.threadCache();
+        AbstractArena<?> arena       = threadCache.arena(preferDirect);
         assertNull(arena.c100.head);
         assertNull(arena.c075.head);
         assertNull(arena.c050.head);
         assertNull(arena.c025.head);
         assertNull(arena.c000.head);
         assertNotNull(arena.cInt.head);
-        Chunk<?> chunk = arena.cInt.head;
+        ChunkImpl<?> chunk = arena.cInt.head;
         assertEquals(1 << (allocator.maxLevel + 1), chunk.allocationCapacity.length);
         int total   = 1 << allocator.maxLevel;
         int quarter = total >>> 2;

@@ -1,10 +1,7 @@
 package com.jfirer.jnet.common.buffer;
 
 import com.jfirer.jnet.common.recycler.RecycleHandler;
-import com.jfirer.jnet.common.util.PlatFormFunction;
 import com.jfirer.jnet.common.util.UNSAFE;
-
-import java.nio.ByteBuffer;
 
 public abstract class AbstractBuffer<T> implements IoBuffer
 {
@@ -19,9 +16,9 @@ public abstract class AbstractBuffer<T> implements IoBuffer
     RecycleHandler recycleHandler;
     static final long REF_COUNT_OFFSET = UNSAFE.getFieldOffset("refCount", AbstractBuffer.class);
 
-    public void init(T memory, int capacity, int readPosi, int writePosi, int offset)
+    public void init(Chunk<T> chunk, int capacity, int readPosi, int writePosi, int offset)
     {
-        this.memory = memory;
+        this.memory = chunk.memory();
         this.capacity = capacity;
         this.readPosi = readPosi;
         this.writePosi = writePosi;
@@ -30,7 +27,7 @@ public abstract class AbstractBuffer<T> implements IoBuffer
         refCount = refCount == 0 ? 1 : refCount;
         if (isDirect())
         {
-            address = PlatFormFunction.bytebufferOffsetAddress((ByteBuffer) memory) + offset;
+            address = chunk.directChunkAddress() + offset;
             //！！注意，因为扩容的时候仍然是使用memory计算基础地址再加上offset，因此这里虽然计算了最终的address，但是
             //不能将offset的值修改为其他的值，必须保持其原始值！
         }

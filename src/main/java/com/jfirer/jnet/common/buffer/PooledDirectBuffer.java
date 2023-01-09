@@ -1,5 +1,7 @@
 package com.jfirer.jnet.common.buffer;
 
+import com.jfirer.jnet.common.buffer.impl.ChunkImpl;
+
 import java.nio.ByteBuffer;
 
 public class PooledDirectBuffer extends AbstractDirectBuffer implements PooledBuffer<ByteBuffer>
@@ -7,13 +9,13 @@ public class PooledDirectBuffer extends AbstractDirectBuffer implements PooledBu
 
     final PoolInfoHolder poolInfoHolder = new PoolInfoHolder();
 
-    public void init(Chunk<ByteBuffer> chunk, int capacity, int offset, long handle, ThreadCache cache)
+    public void init(ChunkImpl<ByteBuffer> chunk, int capacity, int offset, long handle, ThreadCache cache)
     {
         poolInfoHolder.init(handle, cache, chunk);
         init(chunk.memory, capacity, 0, 0, offset);
     }
 
-    public void initUnPooled(Chunk<ByteBuffer> chunk, ThreadCache cache)
+    public void initUnPooled(ChunkImpl<ByteBuffer> chunk, ThreadCache cache)
     {
         poolInfoHolder.init(-1, cache, chunk);
         init(chunk.memory, chunk.chunkSize, 0, 0, 0);
@@ -26,7 +28,7 @@ public class PooledDirectBuffer extends AbstractDirectBuffer implements PooledBu
     }
 
     @Override
-    public Chunk<ByteBuffer> chunk()
+    public ChunkImpl<ByteBuffer> chunk()
     {
         return poolInfoHolder.chunk;
     }

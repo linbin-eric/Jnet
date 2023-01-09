@@ -1,14 +1,15 @@
 package com.jfirer.jnet.common.buffer;
 
 
+import com.jfirer.jnet.common.buffer.impl.ChunkImpl;
 import com.jfirer.jnet.common.util.UNSAFE;
 
 import java.util.Arrays;
 
 class Entry<T>
 {
-    Chunk<T> chunk;
-    long     handle;
+    ChunkImpl<T> chunk;
+    long         handle;
 }
 
 abstract class PadFor128Bit
@@ -285,7 +286,7 @@ abstract class AccessInfo<T> extends Pad5<T>
     }
 
     @SuppressWarnings("unchecked")
-    void set(long index, Chunk<T> chunk, long handle)
+    void set(long index, ChunkImpl<T> chunk, long handle)
     {
         long     address = ((index & mask) << bufferScaleShift) + bufferOffset;
         Entry<T> entry   = (Entry<T>) UNSAFE.getObject(entries, address);
@@ -296,10 +297,10 @@ abstract class AccessInfo<T> extends Pad5<T>
     @SuppressWarnings("unchecked")
     void initBuffer(long index, PooledBuffer<T> buffer, ThreadCache cache)
     {
-        long     address = ((index & mask) << bufferScaleShift) + bufferOffset;
-        Entry<T> entry   = (Entry<T>) UNSAFE.getObject(entries, address);
-        Chunk<T> chunk   = entry.chunk;
-        long     handle  = entry.handle;
+        long         address = ((index & mask) << bufferScaleShift) + bufferOffset;
+        Entry<T>     entry   = (Entry<T>) UNSAFE.getObject(entries, address);
+        ChunkImpl<T> chunk   = entry.chunk;
+        long         handle  = entry.handle;
         chunk.initBuf(handle, buffer, cache);
         entry.chunk = null;
     }
@@ -330,7 +331,7 @@ public class MemoryRegionCache<T> extends AccessInfo<T>
         super(capacity);
     }
 
-    boolean offer(Chunk<T> chunk, long handle)
+    boolean offer(ChunkImpl<T> chunk, long handle)
     {
         long index = nextProducerIndex();
         if (index == -1)

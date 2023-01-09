@@ -1,17 +1,18 @@
 package com.jfirer.jnet.common.buffer;
 
+import com.jfirer.jnet.common.buffer.impl.ChunkImpl;
+
 public class PooledHeapBuffer extends AbstractHeapBuffer implements PooledBuffer<byte[]>
 {
-
     final PoolInfoHolder poolInfoHolder = new PoolInfoHolder();
 
-    public void init(Chunk<byte[]> chunk, int capacity, int offset, long handle, ThreadCache cache)
+    public void init(ChunkImpl<byte[]> chunk, int capacity, int offset, long handle, ThreadCache cache)
     {
         poolInfoHolder.init(handle, cache, chunk);
         init(chunk.memory, capacity, 0, 0, offset);
     }
 
-    public void initUnPooled(Chunk<byte[]> chunk, ThreadCache cache)
+    public void initUnPooled(ChunkImpl<byte[]> chunk, ThreadCache cache)
     {
         poolInfoHolder.init(-1, cache, chunk);
         init(chunk.memory, chunk.chunkSize, 0, 0, 0);
@@ -24,7 +25,7 @@ public class PooledHeapBuffer extends AbstractHeapBuffer implements PooledBuffer
     }
 
     @Override
-    public Chunk<byte[]> chunk()
+    public ChunkImpl<byte[]> chunk()
     {
         return poolInfoHolder.chunk;
     }

@@ -1,8 +1,10 @@
 package com.jfirer.jnet.common.buffer;
 
+import com.jfirer.jnet.common.buffer.impl.ChunkImpl;
+
 import java.nio.ByteBuffer;
 
-public class DirectChunk extends Chunk<ByteBuffer>
+public class DirectChunk extends ChunkImpl<ByteBuffer>
 {
     public DirectChunk(int chunkSize)
     {

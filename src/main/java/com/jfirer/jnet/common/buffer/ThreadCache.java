@@ -1,5 +1,6 @@
 package com.jfirer.jnet.common.buffer;
 
+import com.jfirer.jnet.common.buffer.impl.ChunkImpl;
 import com.jfirer.jnet.common.util.MathUtil;
 import com.jfirer.jnet.common.util.ReflectUtil;
 
@@ -128,7 +129,7 @@ public class ThreadCache
 
     MemoryRegionCache<?> cacheForTiny(int normalizeCapacity, boolean isDirect)
     {
-        int tinyIdx = Arena.tinyIdx(normalizeCapacity);
+        int tinyIdx = AbstractArena.tinyIdx(normalizeCapacity);
         if (isDirect)
         {
             if (tinySubPagesDirectCaches == null || tinySubPagesDirectCaches.length <= tinyIdx)
@@ -147,7 +148,7 @@ public class ThreadCache
         }
     }
 
-    Arena<?> arena(boolean direct)
+    AbstractArena<?> arena(boolean direct)
     {
         if (direct)
         {
@@ -161,7 +162,7 @@ public class ThreadCache
 
     MemoryRegionCache<?> cacheForSmall(int normalizeCapacity, boolean isDirect)
     {
-        int smallIdx = Arena.smallIdx(normalizeCapacity);
+        int smallIdx = AbstractArena.smallIdx(normalizeCapacity);
         if (isDirect)
         {
             if (smallSubPagesDirectCaches == null || smallSubPagesDirectCaches.length <= smallIdx)
@@ -203,7 +204,7 @@ public class ThreadCache
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public boolean add(int normalizeCapacity, SizeType sizeType, boolean isDirect, Chunk<?> chunk, long handle)
+    public boolean add(int normalizeCapacity, SizeType sizeType, boolean isDirect, ChunkImpl<?> chunk, long handle)
     {
         if (pagesizeShift == 0)
         {

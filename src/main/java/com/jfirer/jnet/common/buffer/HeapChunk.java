@@ -1,8 +1,9 @@
 package com.jfirer.jnet.common.buffer;
 
-public class HeapChunk extends Chunk<byte[]>
-{
+import com.jfirer.jnet.common.buffer.impl.ChunkImpl;
 
+public class HeapChunk extends ChunkImpl<byte[]>
+{
     public HeapChunk(int maxLevel, int pageSize, int pageSizeShift, int subpageOverflowMask)
     {
         super(maxLevel, pageSize, pageSizeShift, subpageOverflowMask);

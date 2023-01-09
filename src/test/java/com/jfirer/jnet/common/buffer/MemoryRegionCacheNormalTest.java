@@ -1,5 +1,6 @@
 package com.jfirer.jnet.common.buffer;
 
+import com.jfirer.jnet.common.buffer.impl.ChunkImpl;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -45,7 +46,7 @@ public class MemoryRegionCacheNormalTest
     {
         int                   normalCacheSize = allocator.normalCacheNum;
         final Queue<IoBuffer> buffers         = new LinkedList<>();
-        Set<Chunk<?>>         chunks          = new HashSet<>();
+        Set<ChunkImpl<?>>     chunks          = new HashSet<>();
         for (int i = 0; i < normalCacheSize; i++)
         {
             PooledBuffer<?> buffer = (PooledBuffer<?>) allocator.ioBuffer(size, preferDirect);
@@ -53,11 +54,10 @@ public class MemoryRegionCacheNormalTest
             chunks.add(buffer.chunk());
         }
         assertEquals(1, chunks.size());
-        Chunk<?> chunk     = chunks.iterator().next();
-        int      freeBytes = chunk.freeBytes;
+        ChunkImpl<?> chunk     = chunks.iterator().next();
+        int          freeBytes = chunk.freeBytes;
         Thread thread = new Thread(new Runnable()
         {
-
             @Override
             public void run()
             {

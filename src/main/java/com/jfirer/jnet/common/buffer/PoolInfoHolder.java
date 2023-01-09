@@ -1,12 +1,14 @@
 package com.jfirer.jnet.common.buffer;
 
+import com.jfirer.jnet.common.buffer.impl.ChunkImpl;
+
 public class PoolInfoHolder
 {
     protected long        handle;
     protected ThreadCache cache;
-    protected Chunk       chunk;
+    protected ChunkImpl   chunk;
 
-    public void init(long handle, ThreadCache cache, Chunk chunk)
+    public void init(long handle, ThreadCache cache, ChunkImpl chunk)
     {
         this.handle = handle;
         this.cache = cache;

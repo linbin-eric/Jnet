@@ -1,5 +1,6 @@
 package com.jfirer.jnet.common.buffer;
 
+import com.jfirer.jnet.common.buffer.impl.ChunkImpl;
 import org.junit.Test;
 
 import java.util.LinkedList;
@@ -31,8 +32,8 @@ public class ChunkListTest
                 buffers.add(buffer);
             }
         }
-        Arena<?> arena  = allocator.threadCache().arena(preferDirect);
-        Chunk<?> chunk1 = arena.c100.head;
+        AbstractArena<?> arena  = allocator.threadCache().arena(preferDirect);
+        ChunkImpl<?>     chunk1 = arena.c100.head;
         for (int i = 0; i < 4; i++)
         {
             IoBuffer buffer = allocator.ioBuffer(size, preferDirect);
@@ -41,7 +42,7 @@ public class ChunkListTest
                 buffers.add(buffer);
             }
         }
-        Chunk<?> chunk2 = arena.c100.head;
+        ChunkImpl<?> chunk2 = arena.c100.head;
         assertTrue(chunk1 != chunk2);
         while (buffers.isEmpty() == false)
         {
@@ -54,7 +55,7 @@ public class ChunkListTest
         allocator.ioBuffer(size << 1, preferDirect);
         assertEquals(75, chunk1.usage());
         allocator.ioBuffer(size << 1, preferDirect);
-        Chunk<?> chunk3 = arena.c000.head;
+        ChunkImpl<?> chunk3 = arena.c000.head;
         assertNotNull(chunk3);
         assertEquals(50, chunk3.usage());
     }

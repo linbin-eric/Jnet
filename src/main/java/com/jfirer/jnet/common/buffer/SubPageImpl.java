@@ -1,0 +1,201 @@
+package com.jfirer.jnet.common.buffer;
+
+import com.jfirer.jnet.common.buffer.impl.ChunkImpl;
+import com.jfirer.jnet.common.util.ReflectUtil;
+
+public class SubPageImpl<T> implements SubPage
+{
+    final ChunkImpl<T> chunk;
+    final int          pageSize;
+    final int          handle;
+    final int          offset;
+    final int          index;
+    int            elementSize;
+    long[]         bitMap;
+    int            bitMapLength;
+    int            nextAvail;
+    int            maxNumAvail;
+    int            numAvail;
+    SubPageImpl<T> prev;
+    SubPageImpl<T> next;
+//    /**
+//     * 这是一个特殊节点，不参与分配，仅用做标识
+//     *
+//     * @param pageSize
+//     */
+//    public SubPageImpl(int pageSize)
+//    {
+//        chunk = null;
+//        handle = 0;
+//        offset = 0;
+//        this.pageSize = pageSize;
+//        elementSize = 0;
+//        prev = next = this;
+//    }
+
+    public SubPageImpl(ChunkImpl<T> chunk, int pageSize, int handle, int offset, int elementSize)
+    {
+        this.chunk = chunk;
+        this.handle = handle;
+        this.offset = offset;
+        this.pageSize = pageSize;
+        index = handle ^ (1 << chunk.maxLevle());
+        // elementSize最小是16。一个long可以表达64个元素
+        bitMap = new long[pageSize >> 4 >> 6];
+        reset(elementSize);
+    }
+
+    public static void main(String[] args)
+    {
+        long l      = -1L;
+        long result = l & (~(1 << 31));
+        System.out.println(result);
+        System.out.println(Integer.MAX_VALUE);
+    }
+
+    public void reset(int elementSize)
+    {
+        this.elementSize = elementSize;
+        numAvail = maxNumAvail = pageSize / elementSize;
+        nextAvail = 0;
+        bitMapLength = (maxNumAvail & 63) == 0 ? maxNumAvail >>> 6 : (maxNumAvail >>> 6) + 1;
+//        addToArena(elementSize, arena);
+    }
+
+    private void addToArena(int elementSize, AbstractArena<T> arena)
+    {
+        SubPageImpl<T> head    = arena.findSubPageHead(elementSize);
+        SubPageImpl<T> succeed = head.next;
+        head.next = this;
+        next = succeed;
+        succeed.prev = this;
+        prev = head;
+    }
+
+    @Override
+    public long allocate()
+    {
+        if (numAvail == 0)
+        {
+            ReflectUtil.throwException(new IllegalStateException());
+        }
+        int bitmapIdx = findAvail();
+        if (bitmapIdx == -1)
+        {
+            ReflectUtil.throwException(new IllegalStateException());
+        }
+        int r = bitmapIdx >>> 6;
+        int i = bitmapIdx & 63;
+        bitMap[r] |= 1L << i;
+        numAvail--;
+//        if (numAvail == 0)
+//        {
+//            removeFromArena();
+//        }
+        return toHandle(bitmapIdx);
+    }
+
+    private void removeFromArena()
+    {
+        next.prev = prev;
+        prev.next = next;
+        prev = next = null;
+    }
+
+    private int findAvail()
+    {
+        int nextAvail = this.nextAvail;
+        if (nextAvail != -1)
+        {
+            this.nextAvail = -1;
+            return nextAvail;
+        }
+        for (int i = 0; i < bitMapLength; i++)
+        {
+            long bits = bitMap[i];
+            if (~bits != 0)
+            {
+                int bitmapIdx = i << 6;
+                for (int j = 0; j < 64 && bitmapIdx < maxNumAvail; j++)
+                {
+                    if ((bits & 1) == 0)
+                    {
+                        return bitmapIdx;
+                    }
+                    bits >>>= 1;
+                    bitmapIdx += 1;
+                }
+                return -1;
+            }
+        }
+        return -1;
+    }
+
+    long toHandle(int memoryIdx)
+    {
+        // 由于bitMapIdx的初始值是0，为了表达这个0是具备含义的，因此在低3位使用一个1来使得整体高32位不会为0
+        return 0x4000000000000000L | ((long) memoryIdx << 32) | (handle);
+    }
+
+    //    /**
+//     * 返回true意味着该SubPage还在Arena的链表中
+//     *
+//     * @return
+//     */
+    public void free(int bitmapIdx)
+    {
+        nextAvail = bitmapIdx;
+        int r = bitmapIdx >>> 6;
+        int i = bitmapIdx & 63;
+        bitMap[r] ^= 1L << i;
+        numAvail++;
+//        if (numAvail == 1)
+//        {
+//            addToArena(elementSize, arena);
+//            return true;
+//        }
+//        if (numAvail == maxNumAvail)
+//        {
+//            if (next == head && prev == head)
+//            {
+//                return true;
+//            }
+//            else
+//            {
+//                removeFromArena();
+//                return false;
+//            }
+//        }
+//        return true;
+    }
+
+    @Override
+    public int handle()
+    {
+        return handle;
+    }
+
+    @Override
+    public int index()
+    {
+        return index;
+    }
+
+    @Override
+    public boolean empty()
+    {
+        return numAvail == 0;
+    }
+
+    @Override
+    public boolean allAvail()
+    {
+        return numAvail == maxNumAvail;
+    }
+
+    @Override
+    public boolean oneAvail()
+    {
+        return numAvail == 1;
+    }
+}
