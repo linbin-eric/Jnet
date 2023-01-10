@@ -2,6 +2,11 @@ package com.jfirer.jnet.common.buffer;
 
 public class UnPooledHeapBuffer extends AbstractHeapBuffer implements UnPooledBuffer
 {
+    @Override
+    protected long getAddress(byte[] memory)
+    {
+        return 0;
+    }
 
     @Override
     protected void reAllocate(int newCapacity)
@@ -13,7 +18,7 @@ public class UnPooledHeapBuffer extends AbstractHeapBuffer implements UnPooledBu
     }
 
     @Override
-    protected void free0()
+    protected void free0(int capacity)
     {
     }
 

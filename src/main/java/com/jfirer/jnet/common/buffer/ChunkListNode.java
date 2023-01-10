@@ -9,9 +9,10 @@ public abstract class ChunkListNode<T> extends ChunkImpl<T>
     private ChunkListNode<T>  next;
     private SubPageListNode[] subPageListNodes;
 
-    public ChunkListNode(int maxLevel, int pageSize)
+    public ChunkListNode(int maxLevel, int pageSize, ChunkList<T> parent)
     {
         super(maxLevel, pageSize);
+        this.parent = parent;
         subPageListNodes = new SubPageListNode[1 << maxLevel];
         for (int i = 0; i < subPageListNodes.length; i++)
         {
@@ -19,10 +20,6 @@ public abstract class ChunkListNode<T> extends ChunkImpl<T>
         }
     }
 
-    public ChunkListNode(int hugeCapacity)
-    {
-        super(hugeCapacity);
-    }
 
     public SubPageListNode find(int index)
     {

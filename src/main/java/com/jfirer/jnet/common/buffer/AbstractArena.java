@@ -1,48 +1,45 @@
 package com.jfirer.jnet.common.buffer;
 
-import com.jfirer.jnet.common.buffer.impl.ChunkImpl;
 import com.jfirer.jnet.common.util.CapacityStat;
 import com.jfirer.jnet.common.util.MathUtil;
 import com.jfirer.jnet.common.util.ReflectUtil;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class AbstractArena<T>
+public abstract class AbstractArena<T> implements Arena<T>
 {
-    final           int pageSize;
-    final           int pageSizeShift;
-    final           int maxLevel;
-    final           int subpageOverflowMask;
+    final           int          pageSize;
+    final           int          pageSizeShift;
+    final           int          maxLevel;
+    final           int          subpageOverflowMask;
     //二叉树最左叶子节点的下标值。该值与叶子节点下标相与，可快速得到叶子节点对应的SubPage对象，在SubPage[]中的下标值。
-    protected final int subPageIdxMask;
-    final           int chunkSize;
-    ChunkList<T>          c000;
-    ChunkList<T>          c025;
-    ChunkList<T>          c050;
-    ChunkList<T>          c075;
-    ChunkList<T>          c100;
-    ChunkList<T>          cInt;
+    protected final int          subPageIdxMask;
+    final           int          chunkSize;
+    final           ChunkList<T> c000;
+    final           ChunkList<T> c025;
+    final           ChunkList<T> c050;
+    final           ChunkList<T> c075;
+    final           ChunkList<T> c100;
+    final           ChunkList<T> cInt;
     //    SubPageImpl<T>[] tinySubPages;
 //    SubPageImpl<T>[] smallSubPages;
-    SubPageListNode[]     subPageListNodes;
+    SubPageListNode[] subPageHeads;
     // 有多少ThreadCache持有了该Arena
-    AtomicInteger         numThreadCaches = new AtomicInteger(0);
-    PooledBufferAllocator parent;
+    AtomicInteger     numThreadCaches = new AtomicInteger(0);
     /**
      * 统计相关
      **/
-    int                   newChunkCount   = 0;
-    int                   hugeChunkCount  = 0;
-    String                name;
+    int               newChunkCount   = 0;
+    int               hugeChunkCount  = 0;
+    String            name;
 
     @SuppressWarnings("unchecked")
-    public AbstractArena(final PooledBufferAllocator parent, int maxLevel, int pageSize, final String name)
+    public AbstractArena(int maxLevel, int pageSize, final String name)
     {
         if (pageSize < 4096)
         {
             ReflectUtil.throwException(new IllegalArgumentException("pagesize不能小于4096"));
         }
-        this.parent = parent;
         this.maxLevel = maxLevel;
         this.pageSize = pageSize;
         this.pageSizeShift = MathUtil.log2(pageSize);
@@ -50,12 +47,12 @@ public abstract class AbstractArena<T>
         subPageIdxMask = 1 << maxLevel;
         this.name = name;
         chunkSize = (1 << maxLevel) * pageSize;
-        c100 = new ChunkList<>(100, 100, null, chunkSize);
-        c075 = new ChunkList<>(75, 99, c100, chunkSize);
-        c050 = new ChunkList<>(50, 90, c075, chunkSize);
-        c025 = new ChunkList<>(25, 75, c050, chunkSize);
-        c000 = new ChunkList<>(1, 50, c025, chunkSize);
-        cInt = new ChunkList<>(0, 25, c000, chunkSize);
+        c100 = new ChunkList<>(100, 100, null, chunkSize, this);
+        c075 = new ChunkList<>(75, 99, c100, chunkSize, this);
+        c050 = new ChunkList<>(50, 90, c075, chunkSize, this);
+        c025 = new ChunkList<>(25, 75, c050, chunkSize, this);
+        c000 = new ChunkList<>(1, 50, c025, chunkSize, this);
+        cInt = new ChunkList<>(0, 25, c000, chunkSize, this);
         c100.setPrevList(c075);
         c075.setPrevList(c050);
         c050.setPrevList(c025);
@@ -73,10 +70,10 @@ public abstract class AbstractArena<T>
 //            smallSubPages[i] = new SubPageImpl<T>(pageSize);
 //        }
         //从 16 开始，每一次右移都占据一个操作，直到 pagesize 大小
-        subPageListNodes = new SubPageListNode[pageSizeShift - 4];
-        for (int i = 0; i < subPageListNodes.length; i++)
+        subPageHeads = new SubPageListNode[pageSizeShift - 4];
+        for (int i = 0; i < subPageHeads.length; i++)
         {
-            subPageListNodes[i] = new SubPageListNode();
+            subPageHeads[i] = new SubPageListNode();
         }
     }
 //    public int tinySubPageNum()
@@ -102,7 +99,7 @@ public abstract class AbstractArena<T>
         return MathUtil.log2(normalizeCapacity) - 4;
     }
 
-    static boolean isTiny(int normCapacity)
+    boolean isTiny(int normCapacity)
     {
         /**
          * 0~511的数字大小
@@ -112,24 +109,25 @@ public abstract class AbstractArena<T>
 
     abstract ChunkListNode newChunk(int maxLevel, int pageSize, ChunkList chunkList);
 
-    abstract ChunkListNode newChunk(int reqCapacity);
+    abstract HugeChunk<T> newHugeChunk(int reqCapacity);
 
-    void allocateHuge(int reqCapacity, PooledBuffer<T> buffer, ThreadCache cache)
+    private void allocateHuge(int reqCapacity, PooledBuffer<T> buffer)
     {
-        ChunkImpl<T> hugeChunk = newChunk(reqCapacity);
+        HugeChunk<T> chunk = newHugeChunk(reqCapacity);
+        buffer.init(chunk, reqCapacity, 0, 0);
 //        hugeChunk.arena = this;
-        hugeChunk.unPoooledChunkInitBuf(buffer, cache);
         hugeChunkCount++;
     }
 
-    abstract void destoryChunk(ChunkImpl<T> chunk);
+    abstract void destoryChunk(Chunk<T> chunk);
 
-    public void allocate(int reqCapacity, int maxCapacity, PooledBuffer<T> buffer, ThreadCache cache)
+    @Override
+    public void allocate(int reqCapacity, PooledBuffer<T> buffer)
     {
         int normalizeCapacity = normalizeCapacity(reqCapacity);
         if (isSmall(normalizeCapacity))
         {
-            SubPageListNode head = subPageListNodes[smallIdx(normalizeCapacity)];
+            SubPageListNode head = subPageHeads[smallIdx(normalizeCapacity)];
 //            if (isTiny(normalizeCapacity))
 //            {
 //                if (cache.allocate(buffer, normalizeCapacity, SizeType.TINY, isDirect()))
@@ -176,11 +174,11 @@ public abstract class AbstractArena<T>
 //                return;
 //            }
             Chunk.MemoryArea memoryArea = allocateNormal(normalizeCapacity, buffer);
-            buffer.init((ChunkListNode) memoryArea.chunk(), memoryArea.capacity(), memoryArea.offset(), memoryArea.handle());
+            buffer.init(memoryArea.chunk(), memoryArea.capacity(), memoryArea.offset(), memoryArea.handle());
         }
         else
         {
-            allocateHuge(reqCapacity, buffer, cache);
+            allocateHuge(reqCapacity, buffer);
         }
     }
 
@@ -202,44 +200,42 @@ public abstract class AbstractArena<T>
         next.setPrev(subPageProxy);
         subPageProxy.setPrev(head);
     }
-
-    protected void initBuf(long handle, PooledBuffer<T> buffer)
-    {
-        int bitMapIdx = bitmapIdx(handle);
-        if (bitMapIdx == 0)
-        {
-            initNormalizeSIzeBuffer(handle, buffer, cache);
-        }
-        else
-        {
-            initSubPageBuffer(handle, bitMapIdx & 0x3FFFFFFF, buffer);
-        }
-    }
+//    protected void initBuf(long handle, PooledBuffer<T> buffer)
+//    {
+//        int bitMapIdx = bitmapIdx(handle);
+//        if (bitMapIdx == 0)
+//        {
+//            initNormalizeSIzeBuffer(handle, buffer, cache);
+//        }
+//        else
+//        {
+//            initSubPageBuffer(handle, bitMapIdx & 0x3FFFFFFF, buffer);
+//        }
+//    }
 
     private int bitmapIdx(long handle)
     {
-        return (int) (handle >>> 32);
+        return ((int) (handle >>> 32)) & 0x3FFFFFFF;
     }
-
-    private void initNormalizeSIzeBuffer(long handle, PooledBuffer<T> buffer, ThreadCache cache)
-    {
-        int allocationsCapacityIdx = (int) handle;
-        int level                  = MathUtil.log2(allocationsCapacityIdx);
-        int capacityShift          = calculateSizeShift(level);
-        /**
-         * 1<<hitLevel得到是该层节点数量，同时也是该层第一个节点的下标，为2的次方幂。<br/>
-         * 与index进行异或操作就可以去掉最高位的1，也就是得到了index与该值的差。
-         */
-        int off = (allocationsCapacityIdx ^ (1 << level)) << capacityShift;
-        buffer.init(this, 1 << capacityShift, off, handle, cache);
-    }
+//    private void initNormalizeSIzeBuffer(long handle, PooledBuffer<T> buffer, ThreadCache cache)
+//    {
+//        int allocationsCapacityIdx = (int) handle;
+//        int level                  = MathUtil.log2(allocationsCapacityIdx);
+//        int capacityShift          = calculateSizeShift(level);
+//        /**
+//         * 1<<hitLevel得到是该层节点数量，同时也是该层第一个节点的下标，为2的次方幂。<br/>
+//         * 与index进行异或操作就可以去掉最高位的1，也就是得到了index与该值的差。
+//         */
+//        int off = (allocationsCapacityIdx ^ (1 << level)) << capacityShift;
+//        buffer.init(this, 1 << capacityShift, off, handle, cache);
+//    }
 
     private void initSubPageBuffer(long handle, SubPageListNode subPage, PooledBuffer<T> buffer)
     {
         int allocationsCapacityIdx = allocationsCapacityIdx(handle);
-        int bitmapIdx              = bitmapIdx(handle) & 0x3FFFFFFF;
-        int offset                 = calcuteOffset(allocationsCapacityIdx) + bitmapIdx * subPage.getSubPage().getElementSize();
-        buffer.init(subPage.getChunkListNode(), subPage.getSubPage().getElementSize(), offset, handle);
+        int bitmapIdx              = bitmapIdx(handle);
+        int offset                 = calcuteOffset(allocationsCapacityIdx) + bitmapIdx * subPage.getSubPage().elementSize();
+        buffer.init(subPage.getChunkListNode(), subPage.getSubPage().elementSize(), offset, handle);
     }
 
     private int calcuteOffset(int allocationsCapacityIdx)
@@ -317,20 +313,22 @@ public abstract class AbstractArena<T>
         }
         cInt.add(newChunk(maxLevel, pageSize, cInt));
         newChunkCount++;
+        memoryArea = cInt.allocate(normalizeCapacity);
+        return memoryArea;
     }
 
+    @Override
     public void reAllocate(PooledBuffer<T> buf, int newReqCapacity)
     {
         AbstractBuffer<T> buffer       = (AbstractBuffer) buf;
-        ChunkImpl<T>      oldChunk     = buf.getPoolInfoHolder().chunk;
-        long              oldHandle    = buf.getPoolInfoHolder().handle;
+        Chunk<T>          oldChunk     = buf.chunk();
+        long              oldHandle    = buf.handle();
         int               oldReadPosi  = buffer.readPosi;
         int               oldWritePosi = buffer.writePosi;
         int               oldCapacity  = buffer.capacity;
         int               oldOffset    = buffer.offset;
         T                 oldMemory    = buffer.memory;
-        ThreadCache       oldCache     = buf.getPoolInfoHolder().cache;
-        allocate(newReqCapacity, Integer.MAX_VALUE, buf, parent.threadCache());
+        allocate(newReqCapacity, buf);
         if (newReqCapacity > oldCapacity)
         {
             buffer.setReadPosi(oldReadPosi).setWritePosi(oldWritePosi);
@@ -341,8 +339,32 @@ public abstract class AbstractArena<T>
         {
             ReflectUtil.throwException(new UnsupportedOperationException());
         }
-        free(oldChunk, oldHandle, oldCapacity, oldCache);
+        free(oldChunk, oldHandle, oldCapacity);
     }
+//    public void reAllocate(PooledBuffer<T> buf, int newReqCapacity)
+//    {
+//        AbstractBuffer<T> buffer       = (AbstractBuffer) buf;
+//        ChunkImpl<T>      oldChunk     = buf.getPoolInfoHolder().chunk;
+//        long              oldHandle    = buf.getPoolInfoHolder().handle;
+//        int               oldReadPosi  = buffer.readPosi;
+//        int               oldWritePosi = buffer.writePosi;
+//        int               oldCapacity  = buffer.capacity;
+//        int               oldOffset    = buffer.offset;
+//        T                 oldMemory    = buffer.memory;
+//        ThreadCache       oldCache     = buf.getPoolInfoHolder().cache;
+//        allocate(newReqCapacity, Integer.MAX_VALUE, buf, parent.threadCache());
+//        if (newReqCapacity > oldCapacity)
+//        {
+//            buffer.setReadPosi(oldReadPosi).setWritePosi(oldWritePosi);
+//            memoryCopy(oldMemory, oldOffset, buffer.memory, buffer.offset, oldWritePosi);
+//        }
+//        // 这种情况是缩小，目前还不支持
+//        else
+//        {
+//            ReflectUtil.throwException(new UnsupportedOperationException());
+//        }
+//        free(oldChunk, oldHandle, oldCapacity, oldCache);
+//    }
 
     abstract void memoryCopy(T src, int srcOffset, T desc, int destOffset, int oldWritePosi);
 
@@ -351,6 +373,10 @@ public abstract class AbstractArena<T>
         if (reqCapacity >= chunkSize)
         {
             return reqCapacity;
+        }
+        else if (reqCapacity < 16)
+        {
+            return 16;
         }
 //        if (isTiny(reqCapacity))
 //        {
@@ -365,29 +391,76 @@ public abstract class AbstractArena<T>
         return (normCapacity & subpageOverflowMask) == 0;
     }
 
-    public void free(ChunkImpl<T> chunk, long handle, int normalizeCapacity, ThreadCache cache)
+    @Override
+    public void free(Chunk<T> chunk, long handle, int capacity)
     {
-        if (chunk.unpooled == true)
+        if (chunk.isUnPooled())
         {
             destoryChunk(chunk);
         }
         else
         {
-            if (cache.add(normalizeCapacity, sizeType(normalizeCapacity), isDirect(), chunk, handle))
+            if (isSmall(capacity))
             {
-                return;
+                SubPageListNode head = subPageHeads[smallIdx(capacity)];
+                synchronized (head)
+                {
+                    SubPageListNode subPageListNode = ((ChunkListNode<T>) chunk).find(subPageIdx((int) handle));
+                    SubPage         subPage         = subPageListNode.getSubPage();
+                    subPage.free(bitmapIdx(handle));
+                    if (subPage.oneAvail())
+                    {
+                        addToArena(subPageListNode, head);
+                    }
+                    else if (subPage.allAvail())
+                    {
+                        if (subPageListNode.getNext() == head && subPageListNode.getPrev() == head)
+                        {
+                            ;
+                        }
+                        else
+                        {
+                            removeFromArena(subPageListNode);
+                            synchronized (this)
+                            {
+                                ((ChunkListNode<T>) chunk).getParent().free((ChunkListNode<T>) chunk, (int) handle);
+                            }
+                        }
+                    }
+                }
             }
-            final boolean destoryChunk;
-            synchronized (this)
+            else
             {
-                destoryChunk = chunk.parent.free(chunk, handle);
-            }
-            if (destoryChunk)
-            {
-                destoryChunk(chunk);
+                synchronized (this)
+                {
+                    ((ChunkListNode<T>) chunk).getParent().free((ChunkListNode<T>) chunk, (int) handle);
+                }
             }
         }
     }
+//    public void free(ChunkImpl<T> chunk, long handle, int normalizeCapacity, ThreadCache cache)
+//    {
+//        if (chunk.unpooled == true)
+//        {
+//            destoryChunk(chunk);
+//        }
+//        else
+//        {
+//            if (cache.add(normalizeCapacity, sizeType(normalizeCapacity), isDirect(), chunk, handle))
+//            {
+//                return;
+//            }
+//            final boolean destoryChunk;
+//            synchronized (this)
+//            {
+//                destoryChunk = chunk.parent.free(chunk, handle);
+//            }
+//            if (destoryChunk)
+//            {
+//                destoryChunk(chunk);
+//            }
+//        }
+//    }
 
     SizeType sizeType(int normalizeCapacity)
     {
@@ -404,20 +477,19 @@ public abstract class AbstractArena<T>
         }
         return SizeType.NORMAL;
     }
-
-    SubPageImpl<T> findSubPageHead(int elementSize)
-    {
-        if (isTiny(elementSize))
-        {
-            int tinyIdx = tinyIdx(elementSize);
-            return tinySubPages[tinyIdx];
-        }
-        else
-        {
-            int smallIdx = smallIdx(elementSize);
-            return smallSubPages[smallIdx];
-        }
-    }
+//    SubPageImpl<T> findSubPageHead(int elementSize)
+//    {
+//        if (isTiny(elementSize))
+//        {
+//            int tinyIdx = tinyIdx(elementSize);
+//            return tinySubPages[tinyIdx];
+//        }
+//        else
+//        {
+//            int smallIdx = smallIdx(elementSize);
+//            return smallSubPages[smallIdx];
+//        }
+//    }
 
     public abstract boolean isDirect();
 

@@ -20,13 +20,19 @@ public class SliceDirectBuffer extends AbstractDirectBuffer implements SliceBuff
     };
 
     @Override
+    protected long getAddress(ByteBuffer memory)
+    {
+        return parent.getAddress(memory);
+    }
+
+    @Override
     protected void reAllocate(int posi)
     {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    protected void free0()
+    protected void free0(int capacity)
     {
         parent.free();
     }
@@ -46,7 +52,9 @@ public class SliceDirectBuffer extends AbstractDirectBuffer implements SliceBuff
         buffer.incrRef();
         SliceDirectBuffer slice = RECYCLER.get();
         slice.parent = buffer;
-        slice.init(buffer.memory, length, 0, length, buffer.readPosi + buffer.offset);
+//        slice.init(buffer.memory, length, 0, length, buffer.readPosi + buffer.offset);
+        slice.init(buffer.memory, length, buffer.offset + buffer.readPosi);
+        slice.addWritePosi(length);
         buffer.addReadPosi(length);
         return slice;
     }

@@ -1,21 +1,14 @@
 package com.jfirer.jnet.common.buffer;
 
-import com.jfirer.jnet.common.buffer.impl.ChunkImpl;
-
-public class HeapChunk extends ChunkImpl<byte[]>
+public class HeapChunk extends ChunkListNode<byte[]>
 {
-    public HeapChunk(int maxLevel, int pageSize, int pageSizeShift, int subpageOverflowMask)
+    public HeapChunk(int maxLevel, int pageSize, ChunkList<byte[]> parent)
     {
-        super(maxLevel, pageSize, pageSizeShift, subpageOverflowMask);
-    }
-
-    public HeapChunk(int chunkSize)
-    {
-        super(chunkSize);
+        super(maxLevel, pageSize, parent);
     }
 
     @Override
-    byte[] initializeMemory(int size)
+    protected byte[] initializeMemory(int size)
     {
         return new byte[size];
     }

@@ -1,23 +1,16 @@
 package com.jfirer.jnet.common.buffer;
 
-import com.jfirer.jnet.common.buffer.impl.ChunkImpl;
-
 import java.nio.ByteBuffer;
 
-public class DirectChunk extends ChunkImpl<ByteBuffer>
+public class DirectChunk extends ChunkListNode<ByteBuffer>
 {
-    public DirectChunk(int chunkSize)
+    public DirectChunk(int maxLevel, int pageSize, ChunkList<ByteBuffer> parent)
     {
-        super(chunkSize);
-    }
-
-    public DirectChunk(int maxLevel, int pageSize, int pageSizeShift, int subpageOverflowMask)
-    {
-        super(maxLevel, pageSize, pageSizeShift, subpageOverflowMask);
+        super(maxLevel, pageSize, parent);
     }
 
     @Override
-    ByteBuffer initializeMemory(int size)
+    protected ByteBuffer initializeMemory(int size)
     {
         return ByteBuffer.allocateDirect(size);
     }

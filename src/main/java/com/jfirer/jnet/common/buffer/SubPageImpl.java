@@ -1,15 +1,14 @@
 package com.jfirer.jnet.common.buffer;
 
-import com.jfirer.jnet.common.buffer.impl.ChunkImpl;
 import com.jfirer.jnet.common.util.ReflectUtil;
 
 public class SubPageImpl<T> implements SubPage
 {
-    final ChunkImpl<T> chunk;
-    final int          pageSize;
-    final int          handle;
-    final int          offset;
-    final int          index;
+    final Chunk<T> chunk;
+    final int      pageSize;
+    final int      handle;
+    final int      offset;
+    final int      index;
     int            elementSize;
     long[]         bitMap;
     int            bitMapLength;
@@ -33,7 +32,7 @@ public class SubPageImpl<T> implements SubPage
 //        prev = next = this;
 //    }
 
-    public SubPageImpl(ChunkImpl<T> chunk, int pageSize, int handle, int offset, int elementSize)
+    public SubPageImpl(Chunk<T> chunk, int pageSize, int handle, int offset)
     {
         this.chunk = chunk;
         this.handle = handle;
@@ -42,7 +41,6 @@ public class SubPageImpl<T> implements SubPage
         index = handle ^ (1 << chunk.maxLevle());
         // elementSize最小是16。一个long可以表达64个元素
         bitMap = new long[pageSize >> 4 >> 6];
-        reset(elementSize);
     }
 
     public static void main(String[] args)
@@ -61,16 +59,15 @@ public class SubPageImpl<T> implements SubPage
         bitMapLength = (maxNumAvail & 63) == 0 ? maxNumAvail >>> 6 : (maxNumAvail >>> 6) + 1;
 //        addToArena(elementSize, arena);
     }
-
-    private void addToArena(int elementSize, AbstractArena<T> arena)
-    {
-        SubPageImpl<T> head    = arena.findSubPageHead(elementSize);
-        SubPageImpl<T> succeed = head.next;
-        head.next = this;
-        next = succeed;
-        succeed.prev = this;
-        prev = head;
-    }
+//    private void addToArena(int elementSize, AbstractArena<T> arena)
+//    {
+//        SubPageImpl<T> head    = arena.findSubPageHead(elementSize);
+//        SubPageImpl<T> succeed = head.next;
+//        head.next = this;
+//        next = succeed;
+//        succeed.prev = this;
+//        prev = head;
+//    }
 
     @Override
     public long allocate()
@@ -131,10 +128,10 @@ public class SubPageImpl<T> implements SubPage
         return -1;
     }
 
-    long toHandle(int memoryIdx)
+    long toHandle(int bitmapIdx)
     {
         // 由于bitMapIdx的初始值是0，为了表达这个0是具备含义的，因此在低3位使用一个1来使得整体高32位不会为0
-        return 0x4000000000000000L | ((long) memoryIdx << 32) | (handle);
+        return 0x4000000000000000L | ((long) bitmapIdx << 32) | (handle);
     }
 
     //    /**
@@ -142,6 +139,7 @@ public class SubPageImpl<T> implements SubPage
 //     *
 //     * @return
 //     */
+    @Override
     public void free(int bitmapIdx)
     {
         nextAvail = bitmapIdx;
@@ -197,5 +195,17 @@ public class SubPageImpl<T> implements SubPage
     public boolean oneAvail()
     {
         return numAvail == 1;
+    }
+
+    @Override
+    public int elementSize()
+    {
+        return elementSize;
+    }
+
+    @Override
+    public int numOfAvail()
+    {
+        return numAvail;
     }
 }

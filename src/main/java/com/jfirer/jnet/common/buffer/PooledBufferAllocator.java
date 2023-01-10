@@ -1,9 +1,6 @@
 package com.jfirer.jnet.common.buffer;
 
-import com.jfirer.jnet.common.recycler.RecycleHandler;
-import com.jfirer.jnet.common.recycler.Recycler;
 import com.jfirer.jnet.common.thread.FastThreadLocal;
-import com.jfirer.jnet.common.thread.FastThreadLocalThread;
 import com.jfirer.jnet.common.util.MathUtil;
 import com.jfirer.jnet.common.util.SystemPropertyUtil;
 
@@ -21,7 +18,6 @@ public class PooledBufferAllocator implements BufferAllocator
     public static final int                   NUM_DIRECT_ARENA;
     public static final boolean               PREFER_DIRECT;
     public static final PooledBufferAllocator DEFAULT;
-
     static
     {
         USE_CACHE_FOR_ALL_THREAD = SystemPropertyUtil.getBoolean("io.jnet.PooledBufferAllocator.useCacheForAllThread", true);
@@ -37,29 +33,26 @@ public class PooledBufferAllocator implements BufferAllocator
         PREFER_DIRECT = SystemPropertyUtil.getBoolean("io.jnet.PooledBufferAllocator.preferDirect", true);
         DEFAULT = new PooledBufferAllocator(PAGESIZE, MAXLEVEL, NUM_HEAP_ARENA, NUM_DIRECT_ARENA, MAX_CACHEED_BUFFER_CAPACITY, TINY_CACHE_NUM, SMALL_CACHE_NUM, NORMAL_CACHE_NUM, USE_CACHE_FOR_ALL_THREAD, PREFER_DIRECT, "PooledBufferAllocator_Default");
     }
-
-    private final Recycler<PooledDirectBuffer> directBuffers = new Recycler<PooledDirectBuffer>()
-    {
-
-        @Override
-        protected PooledDirectBuffer newObject(RecycleHandler handler)
-        {
-            PooledDirectBuffer buffer = new PooledDirectBuffer();
-            buffer.recycleHandler = handler;
-            return buffer;
-        }
-    };
-    private final Recycler<PooledHeapBuffer>   heapBuffers   = new Recycler<PooledHeapBuffer>()
-    {
-
-        @Override
-        protected PooledHeapBuffer newObject(RecycleHandler handler)
-        {
-            PooledHeapBuffer buffer = new PooledHeapBuffer();
-            buffer.recycleHandler = handler;
-            return buffer;
-        }
-    };
+    //    private final Recycler<PooledDirectBuffer> directBuffers = new Recycler<PooledDirectBuffer>()
+//    {
+//        @Override
+//        protected PooledDirectBuffer newObject(RecycleHandler handler)
+//        {
+//            PooledDirectBuffer buffer = new PooledDirectBuffer();
+//            buffer.recycleHandler = handler;
+//            return buffer;
+//        }
+//    };
+//    private final Recycler<PooledHeapBuffer>   heapBuffers   = new Recycler<PooledHeapBuffer>()
+//    {
+//        @Override
+//        protected PooledHeapBuffer newObject(RecycleHandler handler)
+//        {
+//            PooledHeapBuffer buffer = new PooledHeapBuffer();
+//            buffer.recycleHandler = handler;
+//            return buffer;
+//        }
+//    };
     boolean       useCacheForAllThread = true;
     boolean       preferDirect;
     int           maxCachedBufferCapacity;
@@ -72,27 +65,43 @@ public class PooledBufferAllocator implements BufferAllocator
     String        name;
     HeapArena[]   heapArenas;
     DirectArena[] directArenas;
-    protected final FastThreadLocal<ThreadCache> localCache = new FastThreadLocal<ThreadCache>()
+    //    protected final FastThreadLocal<ThreadCache> localCache                 = new FastThreadLocal<ThreadCache>()
+//    {
+//        @Override
+//        protected ThreadCache initializeValue()
+//        {
+//            HeapArena   leastUseHeapArena   = (HeapArena) leastUseArena(heapArenas);
+//            DirectArena leastUseDirectArena = (DirectArena) leastUseArena(directArenas);
+//            Thread      currentThread       = Thread.currentThread();
+//            if (useCacheForAllThread || currentThread instanceof FastThreadLocalThread)
+//            {
+//                ThreadCache cache = new ThreadCache(leastUseHeapArena, leastUseDirectArena, tinyCacheNum, smallCacheNum, normalCacheNum, maxCachedBufferCapacity, pagesizeShift);
+//                return cache;
+//            }
+//            else
+//            {
+//                ThreadCache cache = new ThreadCache(leastUseHeapArena, leastUseDirectArena);
+//                return cache;
+//            }
+//        }
+//
+//        ;
+//    };
+    protected final FastThreadLocal<DirectArena> directArenaFastThreadLocal = new FastThreadLocal<DirectArena>()
     {
         @Override
-        protected ThreadCache initializeValue()
+        protected DirectArena initializeValue()
         {
-            HeapArena   leastUseHeapArena   = (HeapArena) leastUseArena(heapArenas);
-            DirectArena leastUseDirectArena = (DirectArena) leastUseArena(directArenas);
-            Thread      currentThread       = Thread.currentThread();
-            if (useCacheForAllThread || currentThread instanceof FastThreadLocalThread)
-            {
-                ThreadCache cache = new ThreadCache(leastUseHeapArena, leastUseDirectArena, tinyCacheNum, smallCacheNum, normalCacheNum, maxCachedBufferCapacity, pagesizeShift);
-                return cache;
-            }
-            else
-            {
-                ThreadCache cache = new ThreadCache(leastUseHeapArena, leastUseDirectArena);
-                return cache;
-            }
+            return (DirectArena) leastUseArena(directArenas);
         }
-
-        ;
+    };
+    protected final FastThreadLocal<HeapArena>   heapArenaFastThreadLocal   = new FastThreadLocal<>()
+    {
+        @Override
+        protected HeapArena initializeValue()
+        {
+            return (HeapArena) leastUseArena(heapArenas);
+        }
     };
 
     public PooledBufferAllocator(String name)
@@ -125,12 +134,12 @@ public class PooledBufferAllocator implements BufferAllocator
         this.name = name;
         for (int i = 0; i < numHeapArenas; i++)
         {
-            heapArenas[i] = new HeapArena(this, maxLevel, pagesize, pagesizeShift, subpageOverflowMask, "HeapArena-" + i);
+            heapArenas[i] = new HeapArena(maxLevel, pagesize, "HeapArena-" + i);
         }
         directArenas = new DirectArena[numDirectArenas];
         for (int i = 0; i < numDirectArenas; i++)
         {
-            directArenas[i] = new DirectArena(this, maxLevel, pagesize, pagesizeShift, subpageOverflowMask, "DirectArena-" + i);
+            directArenas[i] = new DirectArena(maxLevel, pagesize, "DirectArena-" + i);
         }
     }
 
@@ -144,31 +153,39 @@ public class PooledBufferAllocator implements BufferAllocator
                 leastUseArena = each;
             }
         }
+        leastUseArena.numThreadCaches.incrementAndGet();
         return leastUseArena;
     }
-
-    public ThreadCache threadCache()
-    {
-        return localCache.get();
-    }
+//    public ThreadCache threadCache()
+//    {
+//        return localCache.get();
+//    }
 
     @Override
     public IoBuffer heapBuffer(int initializeCapacity)
     {
-        ThreadCache      threadCache = localCache.get();
-        HeapArena        heapArena   = threadCache.heapArena;
-        PooledHeapBuffer buffer      = heapBuffers.get();
-        heapArena.allocate(initializeCapacity, Integer.MAX_VALUE, buffer, threadCache);
+//        ThreadCache      threadCache = localCache.get();
+//        HeapArena        heapArena   = threadCache.heapArena;
+//        PooledHeapBuffer buffer      = heapBuffers.get();
+//        heapArena.allocate(initializeCapacity, Integer.MAX_VALUE, buffer, threadCache);
+//        return buffer;
+        HeapArena        heapArena = heapArenaFastThreadLocal.get();
+        PooledHeapBuffer buffer    = new PooledHeapBuffer();
+        heapArena.allocate(initializeCapacity, buffer);
         return buffer;
     }
 
     @Override
     public IoBuffer directBuffer(int initializeCapacity)
     {
-        ThreadCache        threadCache = localCache.get();
-        DirectArena        directArena = threadCache.directArena;
-        PooledDirectBuffer buffer      = directBuffers.get();
-        directArena.allocate(initializeCapacity, Integer.MAX_VALUE, buffer, threadCache);
+//        ThreadCache        threadCache = localCache.get();
+//        DirectArena        directArena = threadCache.directArena;
+//        PooledDirectBuffer buffer      = directBuffers.get();
+//        directArena.allocate(initializeCapacity, Integer.MAX_VALUE, buffer, threadCache);
+//        return buffer;
+        DirectArena        directArena = directArenaFastThreadLocal.get();
+        PooledDirectBuffer buffer      = new PooledDirectBuffer();
+        directArena.allocate(initializeCapacity, buffer);
         return buffer;
     }
 
@@ -182,6 +199,18 @@ public class PooledBufferAllocator implements BufferAllocator
         else
         {
             return heapBuffer(initializeCapacity);
+        }
+    }
+
+    public Arena<?> currentArena(boolean preferDirect)
+    {
+        if (preferDirect)
+        {
+            return directArenaFastThreadLocal.get();
+        }
+        else
+        {
+            return heapArenaFastThreadLocal.get();
         }
     }
 

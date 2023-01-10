@@ -12,8 +12,7 @@ public class HugeAllocateTest
     @Test
     public void testHeap()
     {
-        ThreadCache      threadCache      = allocator.threadCache();
-        AbstractArena<?> arena            = threadCache.heapArena;
+        AbstractArena<?> arena            = (AbstractArena<?>) allocator.currentArena(false);
         int              allocateCapacity = arena.chunkSize + 1;
         PooledBuffer<?>  buffer           = (PooledBuffer<?>) allocator.heapBuffer(allocateCapacity);
         int              newChunkCount    = arena.newChunkCount;
@@ -23,7 +22,7 @@ public class HugeAllocateTest
 
     private void test0(int allocateCapacity, PooledBuffer<?> buffer, AbstractArena<?> arena)
     {
-        assertTrue(buffer.chunk().unpooled);
+        assertTrue(buffer.chunk().isUnPooled());
         assertEquals(0, ((AbstractBuffer) buffer).offset);
         assertEquals(allocateCapacity, ((AbstractBuffer) buffer).capacity);
         ((AbstractBuffer) buffer).free();
@@ -32,8 +31,7 @@ public class HugeAllocateTest
     @Test
     public void testDirect()
     {
-        ThreadCache      threadCache      = allocator.threadCache();
-        AbstractArena<?> arena            = threadCache.directArena;
+        AbstractArena<?> arena            = (AbstractArena<?>) allocator.currentArena(true);
         int              allocateCapacity = arena.chunkSize + 1;
         int              newChunkCount    = arena.newChunkCount;
         PooledBuffer<?>  buffer           = (PooledBuffer<?>) allocator.directBuffer(allocateCapacity);

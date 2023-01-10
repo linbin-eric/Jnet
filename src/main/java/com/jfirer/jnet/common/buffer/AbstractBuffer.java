@@ -5,33 +5,35 @@ import com.jfirer.jnet.common.util.UNSAFE;
 
 public abstract class AbstractBuffer<T> implements IoBuffer
 {
-    T    memory;
-    int  capacity;
-    int  readPosi;
-    int  writePosi;
-    int  offset;
+    protected          T    memory;
+    protected          int  capacity;
+    protected          int  readPosi;
+    protected          int  writePosi;
+    protected          int  offset;
     //当direct时才有值
-    long address;
-    volatile int refCount;
+    protected          long address;
+    protected volatile int  refCount;
     RecycleHandler recycleHandler;
     static final long REF_COUNT_OFFSET = UNSAFE.getFieldOffset("refCount", AbstractBuffer.class);
 
-    public void init(Chunk<T> chunk, int capacity, int readPosi, int writePosi, int offset)
+    public void init(T memory, int capacity, int offset)
     {
-        this.memory = chunk.memory();
+        this.memory = memory;
         this.capacity = capacity;
-        this.readPosi = readPosi;
-        this.writePosi = writePosi;
         this.offset = offset;
+        readPosi = writePosi = 0;
         // 由于该方法可能会扩容方法所调用，所以需要区分不同的情况。如果是第一次初始化，这refCount是代表自身，需要从0设置为1；否则的话，不需要修改。
         refCount = refCount == 0 ? 1 : refCount;
         if (isDirect())
         {
-            address = chunk.directChunkAddress() + offset;
+            address = getAddress(memory) + offset;
+//            address = chunk.directChunkAddress() + offset;
             //！！注意，因为扩容的时候仍然是使用memory计算基础地址再加上offset，因此这里虽然计算了最终的address，但是
             //不能将offset的值修改为其他的值，必须保持其原始值！
         }
     }
+
+    protected abstract long getAddress(T memory);
 
     @Override
     public int capacity()
@@ -408,7 +410,7 @@ public abstract class AbstractBuffer<T> implements IoBuffer
     @Override
     public void free()
     {
-        int                 left              = descRef();
+        int left = descRef();
         if (left > 0)
         {
             return;
@@ -417,16 +419,16 @@ public abstract class AbstractBuffer<T> implements IoBuffer
         {
             throw new IllegalStateException("free调用的次数超过了被申请的次数");
         }
-        free0();
-        address = offset = capacity = readPosi = writePosi = 0;
+        free0(capacity);
         memory = null;
-        if (recycleHandler != null)
-        {
-            recycleHandler.recycle(this);
-        }
+//        address = offset = capacity = readPosi = writePosi = 0;
+//        if (recycleHandler != null)
+//        {
+//            recycleHandler.recycle(this);
+//        }
     }
 
-    protected abstract void free0();
+    protected abstract void free0(int capacity);
 
     @Override
     public int refCount()

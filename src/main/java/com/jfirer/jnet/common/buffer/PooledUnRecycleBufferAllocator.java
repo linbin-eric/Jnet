@@ -17,20 +17,20 @@ public class PooledUnRecycleBufferAllocator extends PooledBufferAllocator
     @Override
     public IoBuffer heapBuffer(int initializeCapacity)
     {
-        ThreadCache      threadCache = localCache.get();
-        HeapArena        heapArena   = threadCache.heapArena;
-        PooledHeapBuffer buffer      = new PooledHeapBuffer();
-        heapArena.allocate(initializeCapacity, Integer.MAX_VALUE, buffer, threadCache);
+//        ThreadCache      threadCache = localCache.get();
+//        HeapArena        heapArena   = threadCache.heapArena;
+        PooledHeapBuffer buffer = new PooledHeapBuffer();
+//        heapArena.allocate(initializeCapacity, Integer.MAX_VALUE, buffer, threadCache);
         return buffer;
     }
 
     @Override
     public IoBuffer directBuffer(int initializeCapacity)
     {
-        ThreadCache        threadCache = localCache.get();
-        DirectArena        directArena = threadCache.directArena;
-        PooledDirectBuffer buffer      = new PooledDirectBuffer();
-        directArena.allocate(initializeCapacity, Integer.MAX_VALUE, buffer, threadCache);
+//        ThreadCache        threadCache = localCache.get();
+//        DirectArena        directArena = threadCache.directArena;
+        PooledDirectBuffer buffer = new PooledDirectBuffer();
+//        directArena.allocate(initializeCapacity, Integer.MAX_VALUE, buffer, threadCache);
         return buffer;
     }
 }

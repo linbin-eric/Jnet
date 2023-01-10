@@ -44,6 +44,7 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
     @Override
     public void write(IoBuffer buffer)
     {
+        System.out.println(System.identityHashCode(this) + "写入" + buffer.remainRead());
         if (buffer == null)
         {
             throw new NullPointerException();
@@ -60,6 +61,10 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
             {
                 rest();
             }
+        }
+        else
+        {
+            System.out.println(System.identityHashCode(this) + "竞争失败");
         }
     }
 
@@ -91,10 +96,13 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
     @Override
     public void completed(Integer result, ByteBuffer byteBuffer)
     {
+        System.out.println(System.identityHashCode(this) + "写动作完毕");
         try
         {
+
             if (byteBuffer.hasRemaining())
             {
+                System.out.println(System.identityHashCode(this) + "数据没完整写出");
                 socketChannel.write(byteBuffer, byteBuffer, this);
                 return;
             }
@@ -102,6 +110,7 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
             sendingData = null;
             if (queue.isEmpty() == false)
             {
+                System.out.println(System.identityHashCode(this) + "队列有数据，准备写出");
                 writeQueuedBuffer();
                 return;
             }
@@ -146,10 +155,12 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
             }
             sendingData = accumulation;
             ByteBuffer byteBuffer = sendingData.readableByteBuffer();
+            System.out.println(System.identityHashCode(this) + "发送" + sendingData.remainRead());
             socketChannel.write(byteBuffer, byteBuffer, this);
         }
         catch (Throwable e)
         {
+            e.printStackTrace();
             Pipeline.invokeMethodIgnoreException(() -> ((InternalPipeline) channelContext.pipeline()).fireExceptionCatch(e));
         }
     }

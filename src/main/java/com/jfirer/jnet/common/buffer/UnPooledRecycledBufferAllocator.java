@@ -3,8 +3,6 @@ package com.jfirer.jnet.common.buffer;
 import com.jfirer.jnet.common.recycler.RecycleHandler;
 import com.jfirer.jnet.common.recycler.Recycler;
 
-import java.nio.ByteBuffer;
-
 public class UnPooledRecycledBufferAllocator implements BufferAllocator
 {
     public static UnPooledRecycledBufferAllocator DEFAULT             = new UnPooledRecycledBufferAllocator("UnPooledRecycledBufferAllocator_default");
@@ -49,17 +47,19 @@ public class UnPooledRecycledBufferAllocator implements BufferAllocator
     @Override
     public IoBuffer heapBuffer(int initializeCapacity)
     {
-        AbstractBuffer buffer = unPooledHeapBuffers.get();
-        buffer.init(new byte[initializeCapacity], initializeCapacity,0,0,0);
-        return buffer;
+//        AbstractBuffer buffer = unPooledHeapBuffers.get();
+//        buffer.init(new byte[initializeCapacity], initializeCapacity,0,0,0);
+//        return buffer;
+        return null;
     }
 
     @Override
     public IoBuffer directBuffer(int initializeCapacity)
     {
-        AbstractBuffer buffer = unPooledDirectBuffers.get();
-        buffer.init(ByteBuffer.allocateDirect(initializeCapacity), initializeCapacity,0,0,0);
-        return buffer;
+//        AbstractBuffer buffer = unPooledDirectBuffers.get();
+//        buffer.init(ByteBuffer.allocateDirect(initializeCapacity), initializeCapacity,0,0,0);
+//        return buffer;
+        return null;
     }
 
     @Override

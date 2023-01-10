@@ -2,14 +2,21 @@ package com.jfirer.jnet.common.buffer;
 
 public interface SubPage
 {
-    static <T> SubPage newSubPage(int handle, int capacity, int offset, T memory, Chunk chunk)
+    static <T> SubPage newSubPage(int handle, int pageSize, int offset, T memory, Chunk chunk)
     {
-        return null;
+        return new SubPageImpl<T>(chunk, pageSize, handle, offset);
     }
 
     void reset(int elementSize);
 
     long allocate();
+
+    //    /**
+//     * 返回true意味着该SubPage还在Arena的链表中
+//     *
+//     * @return
+//     */
+    void free(int bitmapIdx);
 
     int handle();
 
@@ -31,5 +38,7 @@ public interface SubPage
 
     boolean oneAvail();
 
-    int getElementSize();
+    int elementSize();
+
+    int numOfAvail();
 }

@@ -51,6 +51,8 @@ public interface Chunk<T>
 
     long directChunkAddress();
 
+    boolean isUnPooled();
+
     static <T> void destory(Chunk<T> chunk)
     {
         if (chunk.memory() instanceof ByteBuffer byteBuffer && byteBuffer.isDirect())

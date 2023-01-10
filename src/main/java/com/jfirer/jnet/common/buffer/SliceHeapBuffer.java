@@ -18,13 +18,19 @@ public class SliceHeapBuffer extends AbstractHeapBuffer implements SliceBuffer
     };
 
     @Override
+    protected long getAddress(byte[] memory)
+    {
+        return 0;
+    }
+
+    @Override
     protected void reAllocate(int posi)
     {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    protected void free0()
+    protected void free0(int capacity)
     {
         parent.free();
     }
@@ -44,7 +50,9 @@ public class SliceHeapBuffer extends AbstractHeapBuffer implements SliceBuffer
         buffer.incrRef();
         SliceHeapBuffer slice = RECYCLER.get();
         slice.parent = buffer;
-        slice.init(buffer.memory, length, 0, length, buffer.readPosi + buffer.offset);
+        slice.init(buffer.memory, length, buffer.readPosi + buffer.offset);
+        slice.addWritePosi(length);
+//        slice.init(buffer.memory, length, 0, length, buffer.readPosi + buffer.offset);
         buffer.addReadPosi(length);
         return slice;
     }

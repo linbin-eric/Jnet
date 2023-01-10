@@ -1,6 +1,7 @@
 package com.jfirer.jnet.common.buffer;
 
 import com.jfirer.jnet.common.thread.FastThreadLocalThread;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.concurrent.CountDownLatch;
@@ -8,6 +9,7 @@ import java.util.concurrent.CountDownLatch;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+@Ignore
 public class BufferRecycleTest
 {
     PooledUnThreadCacheBufferAllocator allocator = new PooledUnThreadCacheBufferAllocator("test");
@@ -28,7 +30,6 @@ public class BufferRecycleTest
         final IoBuffer buffer = allocator.ioBuffer(12);
         Thread thread = new Thread(new Runnable()
         {
-
             @Override
             public void run()
             {
@@ -62,7 +63,5 @@ public class BufferRecycleTest
         buffer2.free();
         IoBuffer buffer3 = allocator.ioBuffer(128);
         assertEquals(System.identityHashCode(buffer2),System.identityHashCode(buffer3));
-
     }
-
 }

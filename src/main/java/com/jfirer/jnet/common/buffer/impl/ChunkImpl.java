@@ -1,9 +1,7 @@
 package com.jfirer.jnet.common.buffer.impl;
 
 import com.jfirer.jnet.common.buffer.Chunk;
-import com.jfirer.jnet.common.buffer.PooledBuffer;
 import com.jfirer.jnet.common.buffer.SubPage;
-import com.jfirer.jnet.common.buffer.ThreadCache;
 import com.jfirer.jnet.common.util.MathUtil;
 import com.jfirer.jnet.common.util.PlatFormFunction;
 
@@ -37,17 +35,17 @@ public abstract class ChunkImpl<T> implements Chunk<T>
         this.maxLevel = maxLevel;
         pageSizeShift = MathUtil.log2(pageSize);
         subPageOverflowMask = ~(pageSize - 1);
+        freeBytes = chunkSize = 1 << (maxLevel + pageSizeShift);
+        memory = initializeMemory(chunkSize);
         Data data = initAllocationCapacityAndMemoryAreas(maxLevel);
         allocationCapacity = data.allocationCapacity();
         memoryAreas = data.memoryAreas();
-        freeBytes = chunkSize = 1 << (maxLevel + pageSizeShift);
         subPageIdxMask = 1 << maxLevel;
-        memory = initializeMemory(chunkSize);
         unpooled = false;
         subPages = new SubPage[1 << maxLevel];
         for (int i = 0; i < subPages.length; i++)
         {
-            MemoryArea memoryArea = memoryAreas[1 << maxLevel + i];
+            MemoryArea memoryArea = memoryAreas[(1 << maxLevel) + i];
             subPages[i] = SubPage.newSubPage(memoryArea.handle(), memoryArea.capacity(), memoryArea.offset(), memory, this);
         }
         if (memory instanceof ByteBuffer buffer && buffer.isDirect())
@@ -214,11 +212,10 @@ public abstract class ChunkImpl<T> implements Chunk<T>
 //            initSubPageBuffer(handle, bitMapIdx & 0x3FFFFFFF, buffer, cache);
 //        }
 //    }
-
-    protected void unPoooledChunkInitBuf(PooledBuffer<T> buffer, ThreadCache cache)
-    {
-        buffer.initUnPooled(this, cache);
-    }
+//    protected void unPoooledChunkInitBuf(PooledBuffer<T> buffer, ThreadCache cache)
+//    {
+//        buffer.initUnPooled(this, cache);
+//    }
 
     private int subPageIdx(int allocationsCapacityIdx)
     {
@@ -281,16 +278,11 @@ public abstract class ChunkImpl<T> implements Chunk<T>
     @Override
     public void free(int handle)
     {
-        freeNode(handle);
-    }
-
-    private void freeNode(int allocationsCapacityIdx)
-    {
-        int level     = MathUtil.log2(allocationsCapacityIdx);
+        int level     = MathUtil.log2(handle);
         int levelSize = calculateSize(level);
         freeBytes += levelSize;
-        allocationCapacity[allocationsCapacityIdx] = levelSize;
-        int index = allocationsCapacityIdx;
+        allocationCapacity[handle] = levelSize;
+        int index = handle;
         while (index > 1)
         {
             int parentIndex = index >> 1;
@@ -380,5 +372,29 @@ public abstract class ChunkImpl<T> implements Chunk<T>
     public long directChunkAddress()
     {
         return directBufferAddress;
+    }
+
+    @Override
+    public boolean isUnPooled()
+    {
+        return unpooled;
+    }
+
+    @Override
+    public int maxLevle()
+    {
+        return maxLevel;
+    }
+
+    @Override
+    public T memory()
+    {
+        return memory;
+    }
+
+    @Override
+    public int pageSize()
+    {
+        return pageSize;
     }
 }

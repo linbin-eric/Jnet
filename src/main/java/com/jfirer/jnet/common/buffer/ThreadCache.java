@@ -33,24 +33,33 @@ public class ThreadCache
 
     public ThreadCache(HeapArena heapArena, DirectArena directArena, int tinyCacheNum, int smallCacheNum, int normalCacheNum, int maxCachedBufferCapacity, int pagesizeShift)
     {
-        this.pagesizeShift = pagesizeShift;
-        this.heapArena = heapArena;
-        tinySubPagesHeapCaches = createSubPageMemoryRegionCache(tinyCacheNum, heapArena.tinySubPages.length);
-        smallSubPageHeapCaches = createSubPageMemoryRegionCache(smallCacheNum, heapArena.smallSubPages.length);
-        normalHeapCaches = createNormalSizeMemoryRegionCache(normalCacheNum, pagesizeShift, maxCachedBufferCapacity);
-        this.directArena = directArena;
-        tinySubPagesDirectCaches = createSubPageMemoryRegionCache(tinyCacheNum, directArena.tinySubPages.length);
-        smallSubPagesDirectCaches = createSubPageMemoryRegionCache(smallCacheNum, directArena.tinySubPages.length);
-        normalDirectCaches = createNormalSizeMemoryRegionCache(normalCacheNum, pagesizeShift, maxCachedBufferCapacity);
-        if (heapArena != null)
-        {
-            heapArena.numThreadCaches.incrementAndGet();
-        }
-        if (directArena != null)
-        {
-            directArena.numThreadCaches.incrementAndGet();
-        }
+//        this.pagesizeShift = pagesizeShift;
+//        this.heapArena = heapArena;
+//        tinySubPagesHeapCaches = createSubPageMemoryRegionCache(tinyCacheNum, heapArena.tinySubPages.length);
+//        smallSubPageHeapCaches = createSubPageMemoryRegionCache(smallCacheNum, heapArena.smallSubPages.length);
+//        normalHeapCaches = createNormalSizeMemoryRegionCache(normalCacheNum, pagesizeShift, maxCachedBufferCapacity);
+//        this.directArena = directArena;
+//        tinySubPagesDirectCaches = createSubPageMemoryRegionCache(tinyCacheNum, directArena.tinySubPages.length);
+//        smallSubPagesDirectCaches = createSubPageMemoryRegionCache(smallCacheNum, directArena.tinySubPages.length);
+//        normalDirectCaches = createNormalSizeMemoryRegionCache(normalCacheNum, pagesizeShift, maxCachedBufferCapacity);
+//        if (heapArena != null)
+//        {
+//            heapArena.numThreadCaches.incrementAndGet();
+//        }
+//        if (directArena != null)
+//        {
+//            directArena.numThreadCaches.incrementAndGet();
+//        }
         GlobalMetric.watchThreadCache(this);
+        this.directArena = null;
+        tinySubPagesHeapCaches = new MemoryRegionCache[0];
+        this.heapArena = null;
+        smallSubPageHeapCaches = new MemoryRegionCache[0];
+        normalHeapCaches = new MemoryRegionCache[0];
+        tinySubPagesDirectCaches = new MemoryRegionCache[0];
+        smallSubPagesDirectCaches = new MemoryRegionCache[0];
+        normalDirectCaches = new MemoryRegionCache[0];
+        this.pagesizeShift = 0;
     }
 
     @SuppressWarnings("unchecked")

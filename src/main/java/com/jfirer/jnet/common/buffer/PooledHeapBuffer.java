@@ -1,51 +1,60 @@
 package com.jfirer.jnet.common.buffer;
 
-import com.jfirer.jnet.common.buffer.impl.ChunkImpl;
-
 public class PooledHeapBuffer extends AbstractHeapBuffer implements PooledBuffer<byte[]>
 {
-    final PoolInfoHolder poolInfoHolder = new PoolInfoHolder();
+    protected long          handle;
+    protected Chunk<byte[]> chunk;
 
-    public void init(ChunkImpl<byte[]> chunk, int capacity, int offset, long handle, ThreadCache cache)
+    @Override
+    public void init(Chunk<byte[]> chunk, int capacity, int offset, long handle)
     {
-        poolInfoHolder.init(handle, cache, chunk);
-        init(chunk.memory, capacity, 0, 0, offset);
-    }
-
-    public void initUnPooled(ChunkImpl<byte[]> chunk, ThreadCache cache)
-    {
-        poolInfoHolder.init(-1, cache, chunk);
-        init(chunk.memory, chunk.chunkSize, 0, 0, 0);
+        init(chunk.memory(), capacity, offset);
+        this.handle = handle;
+        this.chunk = chunk;
     }
 
     @Override
-    public PoolInfoHolder getPoolInfoHolder()
+    public Chunk<byte[]> chunk()
     {
-        return poolInfoHolder;
-    }
-
-    @Override
-    public ChunkImpl<byte[]> chunk()
-    {
-        return poolInfoHolder.chunk;
+        return chunk;
     }
 
     @Override
     public long handle()
     {
-        return poolInfoHolder.handle;
+        return handle;
     }
 
     @Override
-    protected void reAllocate(int reqCapacity)
+    protected long getAddress(byte[] memory)
     {
-        poolInfoHolder.chunk.arena.reAllocate(this, reqCapacity);
+        return 0;
     }
 
     @Override
-    protected void free0()
+    public void reAllocate(int reqCapacity)
     {
-        poolInfoHolder.free(capacity);
+        if (chunk.isUnPooled())
+        {
+            ((HugeChunk) chunk).arena().reAllocate(this, reqCapacity);
+        }
+        else
+        {
+            ((ChunkListNode) chunk).getParent().getArena().reAllocate(this, reqCapacity);
+        }
+    }
+
+    @Override
+    public void free0(int capacity)
+    {
+        if (chunk.isUnPooled())
+        {
+            ((HugeChunk) chunk).arena().free(chunk, handle, capacity);
+        }
+        else
+        {
+            ((ChunkListNode) chunk).getParent().getArena().free(chunk, handle, capacity);
+        }
     }
 
     @Override

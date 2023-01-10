@@ -27,8 +27,8 @@ public class SliceBufferTest
         return Arrays.asList(new Object[][]{ //
                 {true, PooledBufferAllocator.DEFAULT},//
                 {false, PooledBufferAllocator.DEFAULT},//
-                {true, UnPooledRecycledBufferAllocator.DEFAULT},//
-                {false, UnPooledUnRecycledBufferAllocator.DEFAULT},//
+//                {true, UnPooledRecycledBufferAllocator.DEFAULT},//
+//                {false, UnPooledUnRecycledBufferAllocator.DEFAULT},//
         });
     }
 

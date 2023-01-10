@@ -17,16 +17,24 @@ public abstract class AbstractDecoder implements ReadProcessor
 
     public void read(Object data, ReadProcessorNode next)
     {
-        if (accumulation == null)
+        try
         {
-            accumulation = (IoBuffer) data;
+            System.out.println(System.identityHashCode(this) + "收到");
+            if (accumulation == null)
+            {
+                accumulation = (IoBuffer) data;
+            }
+            else
+            {
+                accumulation.put((IoBuffer) data);
+                ((IoBuffer) data).free();
+            }
+            process0(next);
         }
-        else
+        catch (Exception e)
         {
-            accumulation.put((IoBuffer) data);
-            ((IoBuffer) data).free();
+            e.printStackTrace();
         }
-        process0(next);
     }
 
     protected abstract void process0(ReadProcessorNode next);

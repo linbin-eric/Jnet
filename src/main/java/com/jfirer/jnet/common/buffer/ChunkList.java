@@ -52,7 +52,7 @@ public class ChunkList<T>
 
     public Chunk.MemoryArea<T> allocate(int normalizeSize)
     {
-        if (head == null || normalizeSize >= maxReqCapacity)
+        if (head == null || normalizeSize > maxReqCapacity)
         {
             return null;
         }

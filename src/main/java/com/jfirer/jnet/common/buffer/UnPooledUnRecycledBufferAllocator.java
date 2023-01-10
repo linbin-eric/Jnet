@@ -1,7 +1,5 @@
 package com.jfirer.jnet.common.buffer;
 
-import java.nio.ByteBuffer;
-
 public class UnPooledUnRecycledBufferAllocator implements BufferAllocator
 {
     public static final UnPooledUnRecycledBufferAllocator DEFAULT = new UnPooledUnRecycledBufferAllocator("UnPooledUnRecycledBufferAllocator_default");
@@ -22,17 +20,19 @@ public class UnPooledUnRecycledBufferAllocator implements BufferAllocator
     @Override
     public IoBuffer heapBuffer(int initializeCapacity)
     {
-        AbstractBuffer buffer = new UnPooledHeapBuffer();
-        buffer.init(new byte[initializeCapacity], initializeCapacity, 0, 0, 0);
-        return buffer;
+//        AbstractBuffer buffer = new UnPooledHeapBuffer();
+//        buffer.init(new byte[initializeCapacity], initializeCapacity, 0, 0, 0);
+//        return buffer;
+        return null;
     }
 
     @Override
     public IoBuffer directBuffer(int initializeCapacity)
     {
-        AbstractBuffer buffer = new UnPooledDirectBuffer();
-        buffer.init(ByteBuffer.allocateDirect(initializeCapacity), initializeCapacity, 0, 0, 0);
-        return buffer;
+//        AbstractBuffer buffer = new UnPooledDirectBuffer();
+//        buffer.init(ByteBuffer.allocateDirect(initializeCapacity), initializeCapacity, 0, 0, 0);
+//        return buffer;
+        return null;
     }
 
     @Override

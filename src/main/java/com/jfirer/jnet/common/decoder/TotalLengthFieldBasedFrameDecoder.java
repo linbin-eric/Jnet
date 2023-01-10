@@ -49,8 +49,10 @@ public class TotalLengthFieldBasedFrameDecoder extends AbstractDecoder
             {
                 accumulation.free();
                 accumulation = null;
+                System.out.println(maxLegnth + ":结束");
                 break;
             }
+            System.out.println(System.identityHashCode(this) + ":" + maxLegnth + ":收到：" + left);
             if (lengthFieldEndOffset > left)
             {
                 compactIfNeed();

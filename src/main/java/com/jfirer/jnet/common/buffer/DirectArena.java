@@ -1,6 +1,5 @@
 package com.jfirer.jnet.common.buffer;
 
-import com.jfirer.jnet.common.buffer.impl.ChunkImpl;
 import com.jfirer.jnet.common.util.PlatFormFunction;
 import com.jfirer.jnet.common.util.ReflectUtil;
 import com.jfirer.jnet.common.util.UNSAFE;
@@ -10,29 +9,29 @@ import java.nio.ByteBuffer;
 @SuppressWarnings("restriction")
 public class DirectArena extends AbstractArena<ByteBuffer>
 {
-    public DirectArena(PooledBufferAllocator parent, int maxLevel, int pageSize, int pageSizeShift, int subpageOverflowMask, String name)
+    public DirectArena(int maxLevel, int pageSize, String name)
     {
-        super(parent, maxLevel, pageSize, pageSizeShift, subpageOverflowMask, name);
+        super(maxLevel, pageSize, name);
     }
 
     @Override
-    ChunkImpl<ByteBuffer> newChunk(int maxLevel, int pageSize, int pageSizeShift, int subpageOverflowMask)
+    ChunkListNode newChunk(int maxLevel, int pageSize, ChunkList chunkList)
     {
-        return new DirectChunk(maxLevel, pageSize, pageSizeShift, subpageOverflowMask);
+        return new DirectChunk(maxLevel, pageSize, chunkList);
     }
 
     @Override
-    ChunkImpl<ByteBuffer> newChunk(int reqCapacity, AbstractArena<ByteBuffer> tAbstractArena)
+    HugeChunk<ByteBuffer> newHugeChunk(int reqCapacity)
     {
-        return new DirectChunk(reqCapacity);
+        return new DirectHugeChunk(reqCapacity, this);
     }
 
     @Override
-    void destoryChunk(ChunkImpl<ByteBuffer> chunk)
+    void destoryChunk(Chunk<ByteBuffer> chunk)
     {
         try
         {
-            UNSAFE.freeMemory(chunk.memory);
+            UNSAFE.freeMemory(chunk.memory());
         }
         catch (Throwable e)
         {

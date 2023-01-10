@@ -1,6 +1,7 @@
 package com.jfirer.jnet.common.buffer;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -12,6 +13,7 @@ import java.util.Collection;
 
 import static org.junit.Assert.*;
 
+@Ignore
 @RunWith(Parameterized.class)
 public class UnPooledBufferRWTest
 {

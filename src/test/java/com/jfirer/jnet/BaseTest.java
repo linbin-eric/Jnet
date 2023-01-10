@@ -32,13 +32,12 @@ public class BaseTest
     private              AioServer       aioServer;
     private              String          ip           = "127.0.0.1";
     private              int             port         = 7598;
-    private              int             numPerThread = 10000000;
-    private              int             numClients   = 4;
+    private              int             numPerThread = 3;
+    private              int             numClients   = 1;
     private              JnetClient[]    clients;
     private              CountDownLatch  latch        = new CountDownLatch(numClients);
     private              int[][]         results;
     private              BufferAllocator bufferAllocator;
-
     AtomicInteger count = new AtomicInteger(0);
 
     public BaseTest()
@@ -54,13 +53,13 @@ public class BaseTest
         }
         ChannelContextInitializer initializer = new ChannelContextInitializer()
         {
-
             @Override
             public void onChannelContextInit(final ChannelContext channelContext)
             {
                 Pipeline pipeline = channelContext.pipeline();
                 pipeline.addReadProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024, bufferAllocator));
                 pipeline.addReadProcessor((ReadProcessor) (data, ctx) -> {
+                    System.out.println("shoudao");
                     count.incrementAndGet();
                     ((IoBuffer) data).addReadPosi(-4);
                     pipeline.fireWrite(data);
@@ -85,6 +84,7 @@ public class BaseTest
                     @Override
                     public void read(Object data, ReadProcessorNode ctx)
                     {
+                        System.out.println("shoudao 2");
                         try
                         {
                             IoBuffer buffer = (IoBuffer) data;
@@ -94,9 +94,11 @@ public class BaseTest
                             count++;
                             if (count == numPerThread)
                             {
-                            latch.countDown();
+                                latch.countDown();
+                            }
                         }
-                        }catch (Throwable e){
+                        catch (Throwable e)
+                        {
                             e.printStackTrace();
                         }
                     }
@@ -116,7 +118,6 @@ public class BaseTest
             final int index = i;
             new Thread(new Runnable()
             {
-
                 @Override
                 public void run()
                 {
@@ -137,6 +138,7 @@ public class BaseTest
                         int      max    = num + batch > numPerThread ? numPerThread : num + batch;
                         for (; num < max; num++)
                         {
+                            System.out.println("写出");
                             buffer.putInt(8);
                             buffer.putInt(num);
                         }
@@ -184,6 +186,8 @@ public class BaseTest
 
     static enum IoMode
     {
-        IO, Channel, THREAD
+        IO,
+        Channel,
+        THREAD
     }
 }

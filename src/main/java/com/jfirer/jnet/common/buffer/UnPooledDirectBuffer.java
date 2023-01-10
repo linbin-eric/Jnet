@@ -6,6 +6,11 @@ import java.nio.ByteBuffer;
 
 public class UnPooledDirectBuffer extends AbstractDirectBuffer implements UnPooledBuffer
 {
+    @Override
+    protected long getAddress(ByteBuffer memory)
+    {
+        return PlatFormFunction.bytebufferOffsetAddress(memory);
+    }
 
     @Override
     protected void reAllocate(int newCapacity)
@@ -21,7 +26,7 @@ public class UnPooledDirectBuffer extends AbstractDirectBuffer implements UnPool
     }
 
     @Override
-    protected void free0()
+    protected void free0(int capacity)
     {
     }
 

@@ -10,7 +10,7 @@ import static org.junit.Assert.*;
 
 public class ChunkListTest
 {
-    PooledUnThreadCacheBufferAllocator allocator = new PooledUnThreadCacheBufferAllocator("test");
+    PooledBufferAllocator allocator = new PooledBufferAllocator("test");
 
     @Test
     public void test0()
@@ -32,8 +32,8 @@ public class ChunkListTest
                 buffers.add(buffer);
             }
         }
-        AbstractArena<?> arena  = allocator.threadCache().arena(preferDirect);
-        ChunkImpl<?>     chunk1 = arena.c100.head;
+        AbstractArena<?> arena  = (AbstractArena<?>) allocator.currentArena(preferDirect);
+        ChunkListNode    chunk1 = arena.c100.head;
         for (int i = 0; i < 4; i++)
         {
             IoBuffer buffer = allocator.ioBuffer(size, preferDirect);
@@ -42,13 +42,13 @@ public class ChunkListTest
                 buffers.add(buffer);
             }
         }
-        ChunkImpl<?> chunk2 = arena.c100.head;
+        ChunkListNode chunk2 = arena.c100.head;
         assertTrue(chunk1 != chunk2);
         while (buffers.isEmpty() == false)
         {
             buffers.poll().free();
         }
-        assertTrue(chunk2.next == chunk1);
+        assertTrue(chunk2.getNext() == chunk1);
         allocator.ioBuffer(size, preferDirect);
         allocator.ioBuffer(size, preferDirect);
         assertEquals(75, chunk2.usage());

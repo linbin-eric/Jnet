@@ -1,40 +1,38 @@
 package com.jfirer.jnet.common.buffer;
 
-import com.jfirer.jnet.common.buffer.impl.ChunkImpl;
-
 public class HeapArena extends AbstractArena<byte[]>
 {
-    public HeapArena(PooledBufferAllocator parent, int maxLevel, int pageSize, int pageSizeShift, int subpageOverflowMask, String name)
+    public HeapArena(int maxLevel, int pageSize, String name)
     {
-        super(parent, maxLevel, pageSize, pageSizeShift, subpageOverflowMask, name);
+        super(maxLevel, pageSize, name);
     }
 
     @Override
-    void destoryChunk(ChunkImpl<byte[]> chunk)
+    ChunkListNode newChunk(int maxLevel, int pageSize, ChunkList chunkList)
     {
+        return new HeapChunk(maxLevel, pageSize, chunkList);
     }
 
     @Override
-    public boolean isDirect()
+    HugeChunk<byte[]> newHugeChunk(int reqCapacity)
     {
-        return false;
+        return new HeapHugeChunk(reqCapacity, this);
     }
 
     @Override
-    ChunkImpl<byte[]> newChunk(int maxLevel, int pageSize, int pageSizeShift, int subpageOverflowMask)
+    void destoryChunk(Chunk<byte[]> chunk)
     {
-        return new HeapChunk(maxLevel, pageSize, pageSizeShift, subpageOverflowMask);
-    }
-
-    @Override
-    ChunkImpl<byte[]> newChunk(int reqCapacity, AbstractArena<byte[]> tAbstractArena)
-    {
-        return new HeapChunk(reqCapacity);
     }
 
     @Override
     void memoryCopy(byte[] src, int srcOffset, byte[] desc, int destOffset, int oldWritePosi)
     {
         System.arraycopy(src, srcOffset, desc, destOffset, oldWritePosi);
+    }
+
+    @Override
+    public boolean isDirect()
+    {
+        return false;
     }
 }

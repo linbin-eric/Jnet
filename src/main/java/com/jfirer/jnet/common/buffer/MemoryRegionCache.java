@@ -297,12 +297,12 @@ abstract class AccessInfo<T> extends Pad5<T>
     @SuppressWarnings("unchecked")
     void initBuffer(long index, PooledBuffer<T> buffer, ThreadCache cache)
     {
-        long         address = ((index & mask) << bufferScaleShift) + bufferOffset;
-        Entry<T>     entry   = (Entry<T>) UNSAFE.getObject(entries, address);
-        ChunkImpl<T> chunk   = entry.chunk;
-        long         handle  = entry.handle;
-        chunk.initBuf(handle, buffer, cache);
-        entry.chunk = null;
+//        long         address = ((index & mask) << bufferScaleShift) + bufferOffset;
+//        Entry<T>     entry   = (Entry<T>) UNSAFE.getObject(entries, address);
+//        ChunkImpl<T> chunk   = entry.chunk;
+//        long         handle  = entry.handle;
+//        chunk.initBuf(handle, buffer, cache);
+//        entry.chunk = null;
     }
 
     void setProducerIndexLimit(long limit)
