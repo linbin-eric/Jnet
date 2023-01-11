@@ -1,7 +1,6 @@
 package com.jfirer.jnet.common.buffer;
 
 import com.jfirer.jnet.common.buffer.impl.ChunkImpl;
-import com.jfirer.jnet.common.util.UNSAFE;
 import org.junit.Test;
 
 import java.util.LinkedList;
@@ -12,7 +11,6 @@ import static org.junit.Assert.*;
 public class ArenaTest
 {
     private PooledBufferAllocator allocator;
-    private long                  allocationCapacityOffset = UNSAFE.getFieldOffset("allocationCapacity", ChunkImpl.class);
 
     public ArenaTest()
     {
@@ -43,7 +41,6 @@ public class ArenaTest
         assertNull(arena.c000.head);
         assertNotNull(arena.cInt.head);
         ChunkImpl<?> chunk = arena.cInt.head;
-        assertEquals(1 << (allocator.maxLevel + 1), ((int[]) UNSAFE.getObject(chunk, allocationCapacityOffset)).length);
         int total   = 1 << allocator.maxLevel;
         int quarter = total >>> 2;
         for (int i = 1; i < quarter; i++)

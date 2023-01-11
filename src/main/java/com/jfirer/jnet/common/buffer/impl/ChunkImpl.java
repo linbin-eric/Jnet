@@ -9,24 +9,24 @@ import java.nio.ByteBuffer;
 
 public abstract class ChunkImpl<T> implements Chunk<T>
 {
-    //PageSize的log2的结果值。1<<pageSizeShift=PageSize。用于各类大小的计算。
-    protected final int          pageSizeShift;
-    //用于快速判断申请大小是否小于PageSize
-    protected final int          subPageOverflowMask;
     //内存块管理的二叉树的深度，根节点深度为0.
-    protected final int          maxLevel;
+    protected final int              maxLevel;
     //管理内存的二叉树
-    protected final int[]        allocationCapacity;
-    protected final MemoryArea[] memoryAreas;
-    protected final SubPage[]    subPages;
-    protected final int          chunkSize;
-    protected final T            memory;
-    protected final int          pageSize;
-    protected final boolean      unpooled;
-    protected final long         directBufferAddress;
+    protected final MemoryTreeNode[] memoryTree;
+    protected final int              pageSize;
+    //PageSize的log2的结果值。1<<pageSizeShift=PageSize。用于各类大小的计算。
+    protected final int              pageSizeShift;
+    //用于快速判断申请大小是否小于PageSize
+    protected final int              subPageOverflowMask;
+    //    protected final MemoryArea[]     memoryAreas;
+    protected final SubPage[]        subPages;
+    protected final int              chunkSize;
+    protected final T                memory;
+    protected final boolean          unpooled;
+    protected final long             directBufferAddress;
     //二叉树最左叶子节点的下标值。该值与叶子节点下标相与，可快速得到叶子节点对应的SubPage对象，在SubPage[]中的下标值。
-    protected final int          subPageIdxMask;
-    protected       int          freeBytes;
+    protected final int              subPageIdxMask;
+    protected       int              freeBytes;
 
     /* 供ChunkList使用 */
     public ChunkImpl(int maxLevel, int pageSize)
@@ -37,15 +37,13 @@ public abstract class ChunkImpl<T> implements Chunk<T>
         subPageOverflowMask = ~(pageSize - 1);
         freeBytes = chunkSize = 1 << (maxLevel + pageSizeShift);
         memory = initializeMemory(chunkSize);
-        Data data = initAllocationCapacityAndMemoryAreas(maxLevel);
-        allocationCapacity = data.allocationCapacity();
-        memoryAreas = data.memoryAreas();
+        memoryTree = initMemoryTree(maxLevel);
         subPageIdxMask = 1 << maxLevel;
         unpooled = false;
         subPages = new SubPage[1 << maxLevel];
         for (int i = 0; i < subPages.length; i++)
         {
-            MemoryArea memoryArea = memoryAreas[(1 << maxLevel) + i];
+            MemoryArea memoryArea = memoryTree[(1 << maxLevel) + i].memoryArea;
             subPages[i] = SubPage.newSubPage(memoryArea.handle(), memoryArea.capacity(), memoryArea.offset(), memory, this);
         }
         if (memory instanceof ByteBuffer buffer && buffer.isDirect())
@@ -58,12 +56,21 @@ public abstract class ChunkImpl<T> implements Chunk<T>
         }
     }
 
-    record Data(int[] allocationCapacity, MemoryArea[] memoryAreas) {}
-
-    private Data initAllocationCapacityAndMemoryAreas(int maxLevel)
+    class MemoryTreeNode<T>
     {
-        int[]        allocationCapacity = new int[1 << (maxLevel + 1)];
-        MemoryArea[] memoryAreas        = new MemoryArea[allocationCapacity.length];
+        int           avail;
+        MemoryArea<T> memoryArea;
+
+        public MemoryTreeNode(int avail, MemoryArea<T> memoryArea)
+        {
+            this.avail = avail;
+            this.memoryArea = memoryArea;
+        }
+    }
+
+    private MemoryTreeNode[] initMemoryTree(int maxLevel)
+    {
+        MemoryTreeNode[] memoryTree = new MemoryTreeNode[1 << (maxLevel + 1)];
         for (int i = 0; i <= maxLevel; i++)
         {
             int initializeSize = calculateSize(i);
@@ -71,11 +78,10 @@ public abstract class ChunkImpl<T> implements Chunk<T>
             int end            = (1 << (i + 1));
             for (int j = start; j < end; j++)
             {
-                allocationCapacity[j] = initializeSize;
-                memoryAreas[j] = new MemoryArea(j, initializeSize, calcuteOffset(j), memory, this);
+                memoryTree[j] = new MemoryTreeNode(initializeSize, new MemoryArea(j, initializeSize, calcuteOffset(j), memory, this));
             }
         }
-        return new Data(allocationCapacity, memoryAreas);
+        return memoryTree;
     }
 
     /**
@@ -88,11 +94,11 @@ public abstract class ChunkImpl<T> implements Chunk<T>
         memory = initializeMemory(chunkSize);
         maxLevel = 0;
         pageSizeShift = 0;
-        allocationCapacity = null;
+        memoryTree = null;
         subPageOverflowMask = 0;
         pageSize = 0;
         subPageIdxMask = 0;
-        memoryAreas = null;
+//        memoryAreas = null;
         subPages = null;
         if (memory instanceof ByteBuffer buffer && buffer.isDirect())
         {
@@ -137,42 +143,17 @@ public abstract class ChunkImpl<T> implements Chunk<T>
     @Override
     public MemoryArea<T> allocate(int normalizeSize)
     {
-        if (allocationCapacity[1] < normalizeSize)
+        if (memoryTree[1].avail < normalizeSize)
         {
             return null;
         }
-        return allocateNode(normalizeSize);
-//        if (isTinyOrSmall(normalizeSize))
-//        {
-//            int allocationsCapacityIdx = allocateNode(pageSize);
-//            if (allocationsCapacityIdx == -1)
-//            {
-//                return -1;
-//            }
-//            int            subPageIdx = subPageIdx(allocationsCapacityIdx);
-//            SubPageImpl<T> head       = arena.findSubPageHead(normalizeSize);
-//            synchronized (head)
-//            {
-//                if (subPages == null)
-//                {
-//                    subPages = new SubPageImpl[1 << maxLevel];
-//                }
-//                SubPageImpl<T> subPage = subPages[subPageIdx];
-//                if (subPage != null)
-//                {
-//                    subPage.init(normalizeSize, arena);
-//                }
-//                else
-//                {
-//                    subPage = new SubPageImpl<>(this, pageSize, allocationsCapacityIdx, subPageIdx << pageSizeShift, normalizeSize, arena);
-//                    subPages[subPageIdx] = subPage;
-//                }
-//                return subPage.allocate();
-//            }
-//        }
-//        else
-//        {
-//        }
+        freeBytes -= normalizeSize;
+        int            hitLevel       = calcuteLevel(normalizeSize);
+        int            index          = findNode(normalizeSize, hitLevel);
+        MemoryTreeNode memoryTreeNode = memoryTree[index];
+        memoryTreeNode.avail = 0;
+        updateAllocatedParent(index);
+        return ((MemoryTreeNode<T>) memoryTreeNode).memoryArea;
     }
 
     @Override
@@ -186,94 +167,15 @@ public abstract class ChunkImpl<T> implements Chunk<T>
         return subPages[subPageIdx(allocate.handle())];
     }
 
-    private MemoryArea<T> allocateNode(int normalizeSize)
-    {
-        freeBytes -= normalizeSize;
-        int hitLevel = calcuteLevel(normalizeSize);
-        int index    = findNode(normalizeSize, hitLevel);
-        allocationCapacity[index] = 0;
-        updateAllocatedParent(index);
-        return memoryAreas[index];
-    }
-
     private int calcuteLevel(int normalizeSize)
     {
         return maxLevel - (MathUtil.log2(normalizeSize) - pageSizeShift);
     }
-//    protected void initBuf(long handle, PooledBuffer<T> buffer, ThreadCache cache)
-//    {
-//        int bitMapIdx = bitmapIdx(handle);
-//        if (bitMapIdx == 0)
-//        {
-//            initNormalizeSIzeBuffer(handle, buffer, cache);
-//        }
-//        else
-//        {
-//            initSubPageBuffer(handle, bitMapIdx & 0x3FFFFFFF, buffer, cache);
-//        }
-//    }
-//    protected void unPoooledChunkInitBuf(PooledBuffer<T> buffer, ThreadCache cache)
-//    {
-//        buffer.initUnPooled(this, cache);
-//    }
 
     private int subPageIdx(int allocationsCapacityIdx)
     {
         return allocationsCapacityIdx ^ subPageIdxMask;
     }
-
-    private int bitmapIdx(long handle)
-    {
-        return (int) (handle >>> 32);
-    }
-
-    int allocationsCapacityIdx(long handle)
-    {
-        return (int) handle;
-    }
-//    private void initNormalizeSIzeBuffer(long handle, PooledBuffer<T> buffer, ThreadCache cache)
-//    {
-//        int allocationsCapacityIdx = (int) handle;
-//        int level                  = MathUtil.log2(allocationsCapacityIdx);
-//        int capacityShift          = calculateSizeShift(level);
-//        /**
-//         * 1<<hitLevel得到是该层节点数量，同时也是该层第一个节点的下标，为2的次方幂。<br/>
-//         * 与index进行异或操作就可以去掉最高位的1，也就是得到了index与该值的差。
-//         */
-//        int off = (allocationsCapacityIdx ^ (1 << level)) << capacityShift;
-//        buffer.init(this, 1 << capacityShift, off, handle, cache);
-//    }
-//    private void initSubPageBuffer(long handle, int bitmapIdx, PooledBuffer<T> buffer, ThreadCache cache)
-//    {
-//        int            allocationsCapacityIdx = allocationsCapacityIdx(handle);
-//        int            subPageIdx             = subPageIdx(allocationsCapacityIdx);
-//        SubPageImpl<T> subPage                = subPages[subPageIdx];
-//        int            offset                 = calcuteOffset(allocationsCapacityIdx) + bitmapIdx * subPage.elementSize;
-//        buffer.init(this, subPage.elementSize, offset, handle, cache);
-//    }
-//    /**
-//     * 回收handle处的的空间
-//     *
-//     * @param handle
-//     */
-//    public void free(long handle)
-//    {
-//        int bitMapIdx              = bitmapIdx(handle);
-//        int allocationsCapacityIdx = allocationsCapacityIdx(handle);
-//        if (bitMapIdx > 0)
-//        {
-//            SubPageImpl<T> subPage = subPages[subPageIdx(allocationsCapacityIdx)];
-//            SubPageImpl<T> head    = arena.findSubPageHead(subPage.elementSize);
-//            synchronized (head)
-//            {
-//                if (subPage.free(handle, bitMapIdx & 0x3FFFFFFF, head, arena))
-//                {
-//                    return;
-//                }
-//            }
-//        }
-//        freeNode(allocationsCapacityIdx);
-//    }
 
     @Override
     public void free(int handle)
@@ -281,21 +183,21 @@ public abstract class ChunkImpl<T> implements Chunk<T>
         int level     = MathUtil.log2(handle);
         int levelSize = calculateSize(level);
         freeBytes += levelSize;
-        allocationCapacity[handle] = levelSize;
+        memoryTree[handle].avail = levelSize;
         int index = handle;
         while (index > 1)
         {
             int parentIndex = index >> 1;
-            int value       = allocationCapacity[index];
-            int value2      = allocationCapacity[index ^ 1];
+            int value       = memoryTree[index].avail;
+            int value2      = memoryTree[index ^ 1].avail;
             levelSize = calculateSize(level);
             if (value == levelSize && value2 == levelSize)
             {
-                allocationCapacity[parentIndex] = levelSize << 1;
+                memoryTree[parentIndex].avail = levelSize << 1;
             }
             else
             {
-                allocationCapacity[parentIndex] = value > value2 ? value : value2;
+                memoryTree[parentIndex].avail = value > value2 ? value : value2;
             }
             index = parentIndex;
             level -= 1;
@@ -309,7 +211,7 @@ public abstract class ChunkImpl<T> implements Chunk<T>
         while (level < hitLevel)
         {
             childIndex <<= 1;
-            if (allocationCapacity[childIndex] < normalizeSize)
+            if (memoryTree[childIndex].avail < normalizeSize)
             {
                 childIndex ^= 1;
             }
@@ -324,10 +226,10 @@ public abstract class ChunkImpl<T> implements Chunk<T>
         while (index > 1)
         {
             int parentIndex = index >> 1;
-            int value       = allocationCapacity[index];
-            int value2      = allocationCapacity[index ^ 1];
+            int value       = memoryTree[index].avail;
+            int value2      = memoryTree[index ^ 1].avail;
             int parentValue = value > value2 ? value : value2;
-            allocationCapacity[parentIndex] = parentValue;
+            memoryTree[parentIndex].avail = parentValue;
             index = parentIndex;
         }
     }
@@ -348,12 +250,6 @@ public abstract class ChunkImpl<T> implements Chunk<T>
         {
             return result;
         }
-    }
-
-    private boolean isTinyOrSmall(int normCapacity)
-    {
-        //该结果等同于 normCapacity<pagesize
-        return (normCapacity & subPageOverflowMask) == 0;
     }
 
     @Override
