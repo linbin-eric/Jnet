@@ -1,5 +1,7 @@
 package com.jfirer.jnet.common.api;
 
+import java.nio.channels.ClosedChannelException;
+
 public interface ReadProcessor<T>
 {
     ReadProcessor TAIL = new ReadProcessor()
@@ -23,6 +25,10 @@ public interface ReadProcessor<T>
         @Override
         public void exceptionCatch(Throwable e, ReadProcessorNode next)
         {
+            if (e instanceof ClosedChannelException == false)
+            {
+                e.printStackTrace();
+            }
         }
 
         @Override

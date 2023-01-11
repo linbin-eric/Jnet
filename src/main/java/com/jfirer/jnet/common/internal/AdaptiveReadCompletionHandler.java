@@ -74,6 +74,7 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler<IoBu
         minIndex = indexOf(config.getMinReceiveSize());
         maxIndex = indexOf(config.getMaxReceiveSize());
         index = indexOf(config.getInitReceiveSize());
+        index = index < minIndex ? minIndex : index;
     }
 
     @Override

@@ -13,6 +13,7 @@ import com.jfirer.jnet.common.util.UNSAFE;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.Queue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class DefaultWriteCompleteHandler implements WriteCompletionHandler
 {
@@ -20,17 +21,18 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
     protected static final int                       SPIN_THRESHOLD = 16;
     protected static final int                       IDLE           = 1;
     protected static final int                       WORK           = 2;
-    protected final        AsynchronousSocketChannel socketChannel;
-    protected final        ChannelContext            channelContext;
-    protected final        BufferAllocator           allocator;
-    protected final        int                       maxWriteBytes;
+    protected final    AsynchronousSocketChannel socketChannel;
+    protected final    ChannelContext            channelContext;
+    protected final    BufferAllocator           allocator;
+    protected final    int                       maxWriteBytes;
     // 终止状态。进入该状态后，不再继续使用
     ////////////////////////////////////////////////////////////
-    protected volatile     int                       state          = IDLE;
+    protected volatile int                       state          = IDLE;
     //注意，不能使用JcTools下面的SpscQueue，其实现会出现当queue.isEmpty()==false时，queue.poll()返回null，导致程序异常
     //MpscQueue则是可以的。JDK的并发queue也是可以的
-    protected              Queue<IoBuffer>           queue          = new SpscLinkedQueue<>();
-    private                IoBuffer                  sendingData;
+    protected          Queue<IoBuffer>           queue          = new SpscLinkedQueue<>();
+    private            IoBuffer                  sendingData;
+    private            AtomicInteger             queueCapacity  = new AtomicInteger(0);
 
     public DefaultWriteCompleteHandler(ChannelContext channelContext)
     {
@@ -44,11 +46,11 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
     @Override
     public void write(IoBuffer buffer)
     {
-        System.out.println(System.identityHashCode(this) + "写入" + buffer.remainRead());
         if (buffer == null)
         {
             throw new NullPointerException();
         }
+        queueCapacity.addAndGet(buffer.remainRead());
         queue.offer(buffer);
         int now = state;
         if (now == IDLE && changeToWork())
@@ -61,10 +63,6 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
             {
                 rest();
             }
-        }
-        else
-        {
-            System.out.println(System.identityHashCode(this) + "竞争失败");
         }
     }
 
@@ -96,21 +94,16 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
     @Override
     public void completed(Integer result, ByteBuffer byteBuffer)
     {
-        System.out.println(System.identityHashCode(this) + "写动作完毕");
         try
         {
-
             if (byteBuffer.hasRemaining())
             {
-                System.out.println(System.identityHashCode(this) + "数据没完整写出");
                 socketChannel.write(byteBuffer, byteBuffer, this);
                 return;
             }
-            sendingData.free();
-            sendingData = null;
+            sendingData.clear();
             if (queue.isEmpty() == false)
             {
-                System.out.println(System.identityHashCode(this) + "队列有数据，准备写出");
                 writeQueuedBuffer();
                 return;
             }
@@ -122,6 +115,7 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
                     return;
                 }
             }
+            sendingData = null;
             rest();
         }
         catch (Throwable e)
@@ -137,31 +131,25 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
     {
         try
         {
-            int      count        = 0;
+            int      count = 0;
             IoBuffer buffer;
-            IoBuffer accumulation = null;
+            if (sendingData == null)
+            {
+                sendingData = allocator.ioBuffer(queueCapacity.get());
+            }
             while (count < maxWriteBytes && (buffer = queue.poll()) != null)
             {
                 count += buffer.remainRead();
-                if (accumulation == null)
-                {
-                    accumulation = buffer;
-                }
-                else
-                {
-                    accumulation.put(buffer);
-                    buffer.free();
-                }
+                sendingData.put(buffer);
+                buffer.free();
             }
-            sendingData = accumulation;
+            queueCapacity.addAndGet(0 - count);
             ByteBuffer byteBuffer = sendingData.readableByteBuffer();
-            System.out.println(System.identityHashCode(this) + "发送" + sendingData.remainRead());
             socketChannel.write(byteBuffer, byteBuffer, this);
         }
         catch (Throwable e)
         {
-            e.printStackTrace();
-            Pipeline.invokeMethodIgnoreException(() -> ((InternalPipeline) channelContext.pipeline()).fireExceptionCatch(e));
+            failed(e, null);
         }
     }
 
@@ -171,6 +159,7 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
         if (sendingData != null)
         {
             sendingData.free();
+            sendingData = null;
         }
         prepareTermination();
         InternalPipeline pipeline = (InternalPipeline) channelContext.pipeline();

@@ -32,7 +32,7 @@ public class CloseTest
     public static Collection<Object[]> params()
     {
         return Arrays.asList(new Object[][]{ //
-                {PooledUnThreadCacheBufferAllocator.DEFAULT}, //
+                {PooledBufferAllocator.DEFAULT}, //
 //                {PooledUnThreadCacheBufferAllocator.DEFAULT}, //
         });
     }
@@ -47,20 +47,16 @@ public class CloseTest
     @Test
     public void test() throws Throwable
     {
-        ChannelConfig         channelConfig  = new ChannelConfig();
+        ChannelConfig channelConfig = new ChannelConfig();
+        channelConfig.setMinReceiveSize(PooledBufferAllocator.PAGESIZE);
         final CountDownLatch  countDownLatch = new CountDownLatch(writeNum);
         final Queue<IoBuffer> queue          = new ConcurrentLinkedQueue<>();
         final DataProcessor   dataProcessor  = new DataProcessor(queue, countDownLatch);
-        ChannelContextInitializer initializer = new ChannelContextInitializer()
-        {
-            @Override
-            public void onChannelContextInit(final ChannelContext channelContext)
-            {
-                Pipeline pipeline = channelContext.pipeline();
-                pipeline.addReadProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024 * 5, bufferAllocator));
-                pipeline.addReadProcessor(dataProcessor);
-                dataProcessor.pipeline = (InternalPipeline) pipeline;
-            }
+        ChannelContextInitializer initializer = channelContext -> {
+            Pipeline pipeline = channelContext.pipeline();
+            pipeline.addReadProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024 * 5, bufferAllocator));
+            pipeline.addReadProcessor(dataProcessor);
+            dataProcessor.pipeline = (InternalPipeline) pipeline;
         };
         channelConfig.setIp(ip);
         channelConfig.setPort(port);
@@ -87,7 +83,8 @@ public class CloseTest
         dataProcessor.read(null, null);
         socket.close();
         aioServer.termination();
-        Thread.sleep(2000);
+        Thread.sleep(100);
+        System.out.println("sss");
         CapacityStat stat = getStat((PooledBufferAllocator) bufferAllocator);
         Assert.assertEquals(0, stat.getChunkCapacity() - stat.getFreeBytes());
     }

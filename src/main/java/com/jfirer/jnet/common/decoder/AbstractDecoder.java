@@ -19,7 +19,6 @@ public abstract class AbstractDecoder implements ReadProcessor
     {
         try
         {
-            System.out.println(System.identityHashCode(this) + "收到");
             if (accumulation == null)
             {
                 accumulation = (IoBuffer) data;
@@ -33,7 +32,7 @@ public abstract class AbstractDecoder implements ReadProcessor
         }
         catch (Exception e)
         {
-            e.printStackTrace();
+            next.fireExceptionCatch(e);
         }
     }
 
