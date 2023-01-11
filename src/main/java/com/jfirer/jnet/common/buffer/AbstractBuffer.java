@@ -3,7 +3,7 @@ package com.jfirer.jnet.common.buffer;
 import com.jfirer.jnet.common.recycler.RecycleHandler;
 import com.jfirer.jnet.common.util.UNSAFE;
 
-public abstract class AbstractBuffer<T> implements IoBuffer
+public abstract class AbstractBuffer<T> implements IoBuffer<T>
 {
     protected          T    memory;
     protected          int  capacity;
@@ -439,5 +439,11 @@ public abstract class AbstractBuffer<T> implements IoBuffer
     public int getOffset()
     {
         return offset;
+    }
+
+    @Override
+    public T memory()
+    {
+        return memory;
     }
 }

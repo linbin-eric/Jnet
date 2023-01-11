@@ -1,5 +1,7 @@
-package com.jfirer.jnet.common.buffer;
+package com.jfirer.jnet.common.buffer.arena.impl;
 
+import com.jfirer.jnet.common.buffer.arena.Chunk;
+import com.jfirer.jnet.common.buffer.arena.SubPage;
 import com.jfirer.jnet.common.util.ReflectUtil;
 
 public class SubPageImpl<T> implements SubPage
@@ -9,28 +11,12 @@ public class SubPageImpl<T> implements SubPage
     final int      handle;
     final int      offset;
     final int      index;
-    int            elementSize;
-    long[]         bitMap;
-    int            bitMapLength;
-    int            nextAvail;
-    int            maxNumAvail;
-    int            numAvail;
-    SubPageImpl<T> prev;
-    SubPageImpl<T> next;
-//    /**
-//     * 这是一个特殊节点，不参与分配，仅用做标识
-//     *
-//     * @param pageSize
-//     */
-//    public SubPageImpl(int pageSize)
-//    {
-//        chunk = null;
-//        handle = 0;
-//        offset = 0;
-//        this.pageSize = pageSize;
-//        elementSize = 0;
-//        prev = next = this;
-//    }
+    int    elementSize;
+    long[] bitMap;
+    int    bitMapLength;
+    int    nextAvail;
+    int    maxNumAvail;
+    int    numAvail;
 
     public SubPageImpl(Chunk<T> chunk, int pageSize, int handle, int offset)
     {
@@ -43,31 +29,13 @@ public class SubPageImpl<T> implements SubPage
         bitMap = new long[pageSize >> 4 >> 6];
     }
 
-    public static void main(String[] args)
-    {
-        long l      = -1L;
-        long result = l & (~(1 << 31));
-        System.out.println(result);
-        System.out.println(Integer.MAX_VALUE);
-    }
-
     public void reset(int elementSize)
     {
         this.elementSize = elementSize;
         numAvail = maxNumAvail = pageSize / elementSize;
         nextAvail = 0;
         bitMapLength = (maxNumAvail & 63) == 0 ? maxNumAvail >>> 6 : (maxNumAvail >>> 6) + 1;
-//        addToArena(elementSize, arena);
     }
-//    private void addToArena(int elementSize, AbstractArena<T> arena)
-//    {
-//        SubPageImpl<T> head    = arena.findSubPageHead(elementSize);
-//        SubPageImpl<T> succeed = head.next;
-//        head.next = this;
-//        next = succeed;
-//        succeed.prev = this;
-//        prev = head;
-//    }
 
     @Override
     public long allocate()
@@ -85,18 +53,7 @@ public class SubPageImpl<T> implements SubPage
         int i = bitmapIdx & 63;
         bitMap[r] |= 1L << i;
         numAvail--;
-//        if (numAvail == 0)
-//        {
-//            removeFromArena();
-//        }
         return toHandle(bitmapIdx);
-    }
-
-    private void removeFromArena()
-    {
-        next.prev = prev;
-        prev.next = next;
-        prev = next = null;
     }
 
     private int findAvail()
@@ -134,11 +91,6 @@ public class SubPageImpl<T> implements SubPage
         return 0x4000000000000000L | ((long) bitmapIdx << 32) | (handle);
     }
 
-    //    /**
-//     * 返回true意味着该SubPage还在Arena的链表中
-//     *
-//     * @return
-//     */
     @Override
     public void free(int bitmapIdx)
     {
@@ -147,24 +99,6 @@ public class SubPageImpl<T> implements SubPage
         int i = bitmapIdx & 63;
         bitMap[r] ^= 1L << i;
         numAvail++;
-//        if (numAvail == 1)
-//        {
-//            addToArena(elementSize, arena);
-//            return true;
-//        }
-//        if (numAvail == maxNumAvail)
-//        {
-//            if (next == head && prev == head)
-//            {
-//                return true;
-//            }
-//            else
-//            {
-//                removeFromArena();
-//                return false;
-//            }
-//        }
-//        return true;
     }
 
     @Override

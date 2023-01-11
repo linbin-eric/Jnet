@@ -1,7 +1,7 @@
 package com.jfirer.jnet.common.buffer;
 
 
-import com.jfirer.jnet.common.buffer.impl.ChunkImpl;
+import com.jfirer.jnet.common.buffer.arena.impl.ChunkImpl;
 import com.jfirer.jnet.common.util.UNSAFE;
 
 import java.util.Arrays;

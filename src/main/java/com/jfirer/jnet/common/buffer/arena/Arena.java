@@ -1,4 +1,6 @@
-package com.jfirer.jnet.common.buffer;
+package com.jfirer.jnet.common.buffer.arena;
+
+import com.jfirer.jnet.common.buffer.PooledBuffer;
 
 public interface Arena<T>
 {

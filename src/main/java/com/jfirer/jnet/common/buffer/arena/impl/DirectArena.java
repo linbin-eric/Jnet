@@ -1,5 +1,7 @@
-package com.jfirer.jnet.common.buffer;
+package com.jfirer.jnet.common.buffer.arena.impl;
 
+import com.jfirer.jnet.common.buffer.Bits;
+import com.jfirer.jnet.common.buffer.arena.Chunk;
 import com.jfirer.jnet.common.util.PlatFormFunction;
 import com.jfirer.jnet.common.util.ReflectUtil;
 import com.jfirer.jnet.common.util.UNSAFE;
@@ -15,19 +17,19 @@ public class DirectArena extends AbstractArena<ByteBuffer>
     }
 
     @Override
-    ChunkListNode newChunk(int maxLevel, int pageSize, ChunkList chunkList)
+    protected ChunkListNode newChunk(int maxLevel, int pageSize, ChunkList chunkList)
     {
         return new DirectChunk(maxLevel, pageSize, chunkList);
     }
 
     @Override
-    HugeChunk<ByteBuffer> newHugeChunk(int reqCapacity)
+    protected Chunk<ByteBuffer> newHugeChunk(int reqCapacity)
     {
-        return new DirectHugeChunk(reqCapacity, this);
+        return new DirectChunk(reqCapacity);
     }
 
     @Override
-    void destoryChunk(Chunk<ByteBuffer> chunk)
+    protected void destoryChunk(Chunk<ByteBuffer> chunk)
     {
         try
         {
@@ -46,7 +48,7 @@ public class DirectArena extends AbstractArena<ByteBuffer>
     }
 
     @Override
-    void memoryCopy(ByteBuffer src, int srcOffset, ByteBuffer desc, int destOffset, int oldWritePosi)
+    protected void memoryCopy(ByteBuffer src, int srcOffset, ByteBuffer desc, int destOffset, int oldWritePosi)
     {
         long srcAddress  = PlatFormFunction.bytebufferOffsetAddress(src) + srcOffset;
         long destAddress = PlatFormFunction.bytebufferOffsetAddress(desc) + destOffset;

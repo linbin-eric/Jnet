@@ -1,6 +1,6 @@
 package com.jfirer.jnet.common.buffer;
 
-public class UnPooledHeapBuffer extends AbstractHeapBuffer implements UnPooledBuffer
+public class UnPooledHeapBuffer extends AbstractHeapBuffer implements UnPooledBuffer<byte[]>
 {
     @Override
     protected long getAddress(byte[] memory)

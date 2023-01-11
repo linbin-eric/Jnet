@@ -1,8 +1,15 @@
 package com.jfirer.jnet.common.buffer;
 
+import com.jfirer.jnet.common.buffer.arena.Arena;
+import com.jfirer.jnet.common.buffer.arena.impl.AbstractArena;
+import com.jfirer.jnet.common.buffer.arena.impl.DirectArena;
+import com.jfirer.jnet.common.buffer.arena.impl.HeapArena;
 import com.jfirer.jnet.common.thread.FastThreadLocal;
+import com.jfirer.jnet.common.util.CapacityStat;
 import com.jfirer.jnet.common.util.MathUtil;
 import com.jfirer.jnet.common.util.SystemPropertyUtil;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class PooledBufferAllocator implements BufferAllocator
 {
@@ -53,18 +60,19 @@ public class PooledBufferAllocator implements BufferAllocator
 //            return buffer;
 //        }
 //    };
-    boolean       useCacheForAllThread = true;
-    boolean       preferDirect;
-    int           maxCachedBufferCapacity;
-    int           tinyCacheNum;
-    int           smallCacheNum;
-    int           normalCacheNum;
-    int           pagesize;
-    int           pagesizeShift;
-    int           maxLevel;
-    String        name;
-    HeapArena[]   heapArenas;
-    DirectArena[] directArenas;
+    boolean         useCacheForAllThread = true;
+    boolean         preferDirect;
+    int             maxCachedBufferCapacity;
+    int             tinyCacheNum;
+    int             smallCacheNum;
+    int             normalCacheNum;
+    int             pagesize;
+    int             pagesizeShift;
+    int             maxLevel;
+    String          name;
+    ArenaUseCount[] heapArenaUseCount;
+    ArenaUseCount[] directArenaUseCount;
+
     //    protected final FastThreadLocal<ThreadCache> localCache                 = new FastThreadLocal<ThreadCache>()
 //    {
 //        @Override
@@ -87,12 +95,14 @@ public class PooledBufferAllocator implements BufferAllocator
 //
 //        ;
 //    };
+    record ArenaUseCount(AtomicInteger use, Arena<?> arena) {}
+
     protected final FastThreadLocal<DirectArena> directArenaFastThreadLocal = new FastThreadLocal<DirectArena>()
     {
         @Override
         protected DirectArena initializeValue()
         {
-            return (DirectArena) leastUseArena(directArenas);
+            return (DirectArena) leastUseArena(directArenaUseCount);
         }
     };
     protected final FastThreadLocal<HeapArena>   heapArenaFastThreadLocal   = new FastThreadLocal<>()
@@ -100,7 +110,7 @@ public class PooledBufferAllocator implements BufferAllocator
         @Override
         protected HeapArena initializeValue()
         {
-            return (HeapArena) leastUseArena(heapArenas);
+            return (HeapArena) leastUseArena(heapArenaUseCount);
         }
     };
 
@@ -130,31 +140,31 @@ public class PooledBufferAllocator implements BufferAllocator
         this.preferDirect = preferDirect;
         pagesizeShift = MathUtil.log2(pagesize);
         int subpageOverflowMask = ~(pagesize - 1);
-        heapArenas = new HeapArena[numHeapArenas];
+        heapArenaUseCount = new ArenaUseCount[numHeapArenas];
         this.name = name;
         for (int i = 0; i < numHeapArenas; i++)
         {
-            heapArenas[i] = new HeapArena(maxLevel, pagesize, "HeapArena-" + i);
+            heapArenaUseCount[i] = new ArenaUseCount(new AtomicInteger(0), new HeapArena(maxLevel, pagesize, "HeapArena-" + i));
         }
-        directArenas = new DirectArena[numDirectArenas];
+        directArenaUseCount = new ArenaUseCount[numDirectArenas];
         for (int i = 0; i < numDirectArenas; i++)
         {
-            directArenas[i] = new DirectArena(maxLevel, pagesize, "DirectArena-" + i);
+            directArenaUseCount[i] = new ArenaUseCount(new AtomicInteger(0), new DirectArena(maxLevel, pagesize, "DirectArena-" + i));
         }
     }
 
-    private AbstractArena<?> leastUseArena(AbstractArena<?>[] arenas)
+    private Arena<?> leastUseArena(ArenaUseCount[] arenaUseCounts)
     {
-        AbstractArena<?> leastUseArena = arenas[0];
-        for (AbstractArena<?> each : arenas)
+        ArenaUseCount leastUseArena = arenaUseCounts[0];
+        for (ArenaUseCount each : arenaUseCounts)
         {
-            if (each.numThreadCaches.get() < leastUseArena.numThreadCaches.get())
+            if (each.use.get() < leastUseArena.use.get())
             {
                 leastUseArena = each;
             }
         }
-        leastUseArena.numThreadCaches.incrementAndGet();
-        return leastUseArena;
+        leastUseArena.use.incrementAndGet();
+        return leastUseArena.arena();
     }
 //    public ThreadCache threadCache()
 //    {
@@ -233,13 +243,19 @@ public class PooledBufferAllocator implements BufferAllocator
         return name;
     }
 
-    public HeapArena[] getHeapArenas()
+    public void heapCapacityStat(CapacityStat stat)
     {
-        return heapArenas;
+        for (ArenaUseCount each : heapArenaUseCount)
+        {
+            ((AbstractArena) each.arena).capacityStat(stat);
+        }
     }
 
-    public DirectArena[] getDirectArenas()
+    public void directCapacityStat(CapacityStat stat)
     {
-        return directArenas;
+        for (ArenaUseCount each : directArenaUseCount)
+        {
+            ((AbstractArena) each.arena).capacityStat(stat);
+        }
     }
 }

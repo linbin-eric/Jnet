@@ -4,7 +4,7 @@ import com.jfirer.jnet.common.util.PlatFormFunction;
 
 import java.nio.ByteBuffer;
 
-public class UnPooledDirectBuffer extends AbstractDirectBuffer implements UnPooledBuffer
+public class UnPooledDirectBuffer extends AbstractDirectBuffer implements UnPooledBuffer<ByteBuffer>
 {
     @Override
     protected long getAddress(ByteBuffer memory)

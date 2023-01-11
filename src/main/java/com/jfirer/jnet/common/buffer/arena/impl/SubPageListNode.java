@@ -1,4 +1,6 @@
-package com.jfirer.jnet.common.buffer;
+package com.jfirer.jnet.common.buffer.arena.impl;
+
+import com.jfirer.jnet.common.buffer.arena.SubPage;
 
 public class SubPageListNode
 {
@@ -7,7 +9,7 @@ public class SubPageListNode
     private       SubPageListNode prev;
     private       SubPageListNode next;
 
-    public SubPageListNode(SubPage subPage, ChunkListNode node)
+    protected SubPageListNode(SubPage subPage, ChunkListNode node)
     {
         this.subPage = subPage;
         this.node = node;

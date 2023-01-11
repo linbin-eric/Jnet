@@ -1,7 +1,7 @@
-package com.jfirer.jnet.common.buffer.impl;
+package com.jfirer.jnet.common.buffer.arena.impl;
 
-import com.jfirer.jnet.common.buffer.Chunk;
-import com.jfirer.jnet.common.buffer.SubPage;
+import com.jfirer.jnet.common.buffer.arena.Chunk;
+import com.jfirer.jnet.common.buffer.arena.SubPage;
 import com.jfirer.jnet.common.util.MathUtil;
 import com.jfirer.jnet.common.util.PlatFormFunction;
 
@@ -85,7 +85,7 @@ public abstract class ChunkImpl<T> implements Chunk<T>
     }
 
     /**
-     * 非池化的特殊Chunk
+     * 非池化的Chunk，用于chunkSize大于标准大小的Chunk，此时一个Chunk就是完整的内存区域供使用。
      */
     public ChunkImpl(int chunkSize)
     {
@@ -98,7 +98,6 @@ public abstract class ChunkImpl<T> implements Chunk<T>
         subPageOverflowMask = 0;
         pageSize = 0;
         subPageIdxMask = 0;
-//        memoryAreas = null;
         subPages = null;
         if (memory instanceof ByteBuffer buffer && buffer.isDirect())
         {

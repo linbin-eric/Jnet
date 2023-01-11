@@ -1,12 +1,11 @@
 package com.jfirer.jnet.common.buffer;
 
-public interface PooledBuffer<T> extends IoBuffer
-{
-//    void init(ChunkImpl<T> chunk, int capacity, int offset, long handle, ThreadCache cache);
+import com.jfirer.jnet.common.buffer.arena.Arena;
+import com.jfirer.jnet.common.buffer.arena.Chunk;
 
-    void init(Chunk<T> node, int capacity, int offset, long handle);
-//    void init(HugeChunk<T> hugeChunk);
-//    void initUnPooled(ChunkImpl<T> chunk, ThreadCache cache);
+public interface PooledBuffer<T> extends IoBuffer<T>
+{
+    void init(Arena<T> arena, Chunk<T> chunk, int capacity, int offset, long handle);
 
     Chunk<T> chunk();
 

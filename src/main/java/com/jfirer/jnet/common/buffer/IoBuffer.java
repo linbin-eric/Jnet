@@ -2,9 +2,8 @@ package com.jfirer.jnet.common.buffer;
 
 import java.nio.ByteBuffer;
 
-public interface IoBuffer
+public interface IoBuffer<T>
 {
-
     /**
      * 返回当前Buffer的大小，该数值并不是固定值。因为Buffer是会随着写入自动扩容
      *
@@ -324,4 +323,6 @@ public interface IoBuffer
      * @return
      */
     int refCount();
+
+    T memory();
 }

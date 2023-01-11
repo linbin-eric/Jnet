@@ -1,7 +1,9 @@
 package com.jfirer.jnet;
 
 import com.jfirer.jnet.common.api.*;
-import com.jfirer.jnet.common.buffer.*;
+import com.jfirer.jnet.common.buffer.BufferAllocator;
+import com.jfirer.jnet.common.buffer.IoBuffer;
+import com.jfirer.jnet.common.buffer.PooledBufferAllocator;
 import com.jfirer.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
 import com.jfirer.jnet.common.util.CapacityStat;
 import com.jfirer.jnet.common.util.ChannelConfig;
@@ -92,14 +94,8 @@ public class CloseTest
     private CapacityStat getStat(PooledBufferAllocator bufferAllocator)
     {
         CapacityStat stat = new CapacityStat();
-        for (DirectArena each : bufferAllocator.getDirectArenas())
-        {
-            each.capacityStat(stat);
-        }
-        for (HeapArena each : bufferAllocator.getHeapArenas())
-        {
-            each.capacityStat(stat);
-        }
+        bufferAllocator.directCapacityStat(stat);
+        bufferAllocator.heapCapacityStat(stat);
         return stat;
     }
 

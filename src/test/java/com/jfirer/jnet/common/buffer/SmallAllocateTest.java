@@ -1,6 +1,7 @@
 package com.jfirer.jnet.common.buffer;
 
-import com.jfirer.jnet.common.buffer.impl.ChunkImpl;
+import com.jfirer.jnet.common.buffer.arena.SubPage;
+import com.jfirer.jnet.common.buffer.arena.impl.*;
 import com.jfirer.jnet.common.util.MathUtil;
 import com.jfirer.jnet.common.util.UNSAFE;
 import org.junit.Test;
@@ -22,6 +23,12 @@ public class SmallAllocateTest
     long                  subPageHeadsOffset = UNSAFE.getFieldOffset("subPageHeads", AbstractArena.class);
     long                  subPagesOffset     = UNSAFE.getFieldOffset("subPages", ChunkImpl.class);
     long                  bitMapOffset       = UNSAFE.getFieldOffset("bitMap", SubPageImpl.class);
+    private long c100Offset = UNSAFE.getFieldOffset("c100", AbstractArena.class);
+    private long c075Offset = UNSAFE.getFieldOffset("c075", AbstractArena.class);
+    private long c050Offset = UNSAFE.getFieldOffset("c050", AbstractArena.class);
+    private long c025Offset = UNSAFE.getFieldOffset("c025", AbstractArena.class);
+    private long c000Offset = UNSAFE.getFieldOffset("c000", AbstractArena.class);
+    private long cIntOffset = UNSAFE.getFieldOffset("cInt", AbstractArena.class);
 
     public SmallAllocateTest(int reqCapacity)
     {
@@ -59,6 +66,7 @@ public class SmallAllocateTest
         Queue<SubPage>    subPageQueue = new LinkedList<>();
         SubPageListNode[] subPageHeads = (SubPageListNode[]) UNSAFE.getObject(arena, subPageHeadsOffset);
         SubPageListNode   head         = subPageHeads[MathUtil.log2(reqCapacity) - 4];
+        ChunkList         cInt         = (ChunkList) UNSAFE.getObject(arena, cIntOffset);
         for (int i = 0; i < numOfSubPage; i++)
         {
             for (int elementIdx = 0; elementIdx < elementNum; elementIdx++)
@@ -70,7 +78,7 @@ public class SmallAllocateTest
                 assertEquals(offset, buffer.offset);
                 if (chunk == null)
                 {
-                    chunk = arena.cInt.head;
+                    chunk = cInt.head();
                 }
                 if (elementIdx != elementNum - 1)
                 {

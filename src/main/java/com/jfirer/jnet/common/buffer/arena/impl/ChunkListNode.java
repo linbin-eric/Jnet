@@ -1,6 +1,4 @@
-package com.jfirer.jnet.common.buffer;
-
-import com.jfirer.jnet.common.buffer.impl.ChunkImpl;
+package com.jfirer.jnet.common.buffer.arena.impl;
 
 public abstract class ChunkListNode<T> extends ChunkImpl<T>
 {
@@ -20,6 +18,10 @@ public abstract class ChunkListNode<T> extends ChunkImpl<T>
         }
     }
 
+    public ChunkListNode(int chunkSize)
+    {
+        super(chunkSize);
+    }
 
     public SubPageListNode find(int index)
     {

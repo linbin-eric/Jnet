@@ -1,6 +1,9 @@
 package com.jfirer.jnet.common.buffer;
 
-import com.jfirer.jnet.common.buffer.impl.ChunkImpl;
+import com.jfirer.jnet.common.buffer.arena.impl.AbstractArena;
+import com.jfirer.jnet.common.buffer.arena.impl.ChunkImpl;
+import com.jfirer.jnet.common.buffer.arena.impl.DirectArena;
+import com.jfirer.jnet.common.buffer.arena.impl.HeapArena;
 import com.jfirer.jnet.common.util.MathUtil;
 import com.jfirer.jnet.common.util.ReflectUtil;
 
@@ -50,7 +53,7 @@ public class ThreadCache
 //        {
 //            directArena.numThreadCaches.incrementAndGet();
 //        }
-        GlobalMetric.watchThreadCache(this);
+//        GlobalMetric.watchThreadCache(this);
         this.directArena = null;
         tinySubPagesHeapCaches = new MemoryRegionCache[0];
         this.heapArena = null;
@@ -138,7 +141,7 @@ public class ThreadCache
 
     MemoryRegionCache<?> cacheForTiny(int normalizeCapacity, boolean isDirect)
     {
-        int tinyIdx = AbstractArena.tinyIdx(normalizeCapacity);
+        int tinyIdx = normalizeCapacity >> 4;
         if (isDirect)
         {
             if (tinySubPagesDirectCaches == null || tinySubPagesDirectCaches.length <= tinyIdx)
@@ -171,7 +174,7 @@ public class ThreadCache
 
     MemoryRegionCache<?> cacheForSmall(int normalizeCapacity, boolean isDirect)
     {
-        int smallIdx = AbstractArena.smallIdx(normalizeCapacity);
+        int smallIdx = MathUtil.log2(normalizeCapacity) - 4;
         if (isDirect)
         {
             if (smallSubPagesDirectCaches == null || smallSubPagesDirectCaches.length <= smallIdx)

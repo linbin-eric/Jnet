@@ -1,6 +1,10 @@
 package com.jfirer.jnet.common.buffer;
 
-import com.jfirer.jnet.common.buffer.impl.ChunkImpl;
+import com.jfirer.jnet.common.buffer.arena.impl.AbstractArena;
+import com.jfirer.jnet.common.buffer.arena.impl.ChunkImpl;
+import com.jfirer.jnet.common.buffer.arena.impl.ChunkList;
+import com.jfirer.jnet.common.buffer.arena.impl.ChunkListNode;
+import com.jfirer.jnet.common.util.UNSAFE;
 import org.junit.Test;
 
 import java.util.LinkedList;
@@ -11,6 +15,12 @@ import static org.junit.Assert.*;
 public class ChunkListTest
 {
     PooledBufferAllocator allocator = new PooledBufferAllocator("test");
+    private long c100Offset = UNSAFE.getFieldOffset("c100", AbstractArena.class);
+    private long c075Offset = UNSAFE.getFieldOffset("c075", AbstractArena.class);
+    private long c050Offset = UNSAFE.getFieldOffset("c050", AbstractArena.class);
+    private long c025Offset = UNSAFE.getFieldOffset("c025", AbstractArena.class);
+    private long c000Offset = UNSAFE.getFieldOffset("c000", AbstractArena.class);
+    private long cIntOffset = UNSAFE.getFieldOffset("cInt", AbstractArena.class);
 
     @Test
     public void test0()
@@ -33,7 +43,8 @@ public class ChunkListTest
             }
         }
         AbstractArena<?> arena  = (AbstractArena<?>) allocator.currentArena(preferDirect);
-        ChunkListNode    chunk1 = arena.c100.head;
+        ChunkList<?>     c100   = (ChunkList<?>) UNSAFE.getObject(arena, c100Offset);
+        ChunkListNode    chunk1 = c100.head();
         for (int i = 0; i < 4; i++)
         {
             IoBuffer buffer = allocator.ioBuffer(size, preferDirect);
@@ -42,7 +53,7 @@ public class ChunkListTest
                 buffers.add(buffer);
             }
         }
-        ChunkListNode chunk2 = arena.c100.head;
+        ChunkListNode chunk2 = c100.head();
         assertTrue(chunk1 != chunk2);
         while (buffers.isEmpty() == false)
         {
@@ -55,7 +66,8 @@ public class ChunkListTest
         allocator.ioBuffer(size << 1, preferDirect);
         assertEquals(75, chunk1.usage());
         allocator.ioBuffer(size << 1, preferDirect);
-        ChunkImpl<?> chunk3 = arena.c000.head;
+        ChunkList    c000   = (ChunkList) UNSAFE.getObject(arena, c000Offset);
+        ChunkImpl<?> chunk3 = c000.head();
         assertNotNull(chunk3);
         assertEquals(50, chunk3.usage());
     }

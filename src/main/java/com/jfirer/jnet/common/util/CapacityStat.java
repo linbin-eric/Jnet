@@ -1,6 +1,6 @@
 package com.jfirer.jnet.common.util;
 
-import com.jfirer.jnet.common.buffer.Chunk;
+import com.jfirer.jnet.common.buffer.arena.Chunk;
 
 public class CapacityStat
 {

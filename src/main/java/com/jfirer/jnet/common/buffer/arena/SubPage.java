@@ -1,4 +1,6 @@
-package com.jfirer.jnet.common.buffer;
+package com.jfirer.jnet.common.buffer.arena;
+
+import com.jfirer.jnet.common.buffer.arena.impl.SubPageImpl;
 
 public interface SubPage
 {
@@ -11,11 +13,6 @@ public interface SubPage
 
     long allocate();
 
-    //    /**
-//     * 返回true意味着该SubPage还在Arena的链表中
-//     *
-//     * @return
-//     */
     void free(int bitmapIdx);
 
     int handle();

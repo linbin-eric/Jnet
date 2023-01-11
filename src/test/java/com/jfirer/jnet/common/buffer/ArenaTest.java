@@ -1,6 +1,9 @@
 package com.jfirer.jnet.common.buffer;
 
-import com.jfirer.jnet.common.buffer.impl.ChunkImpl;
+import com.jfirer.jnet.common.buffer.arena.impl.AbstractArena;
+import com.jfirer.jnet.common.buffer.arena.impl.ChunkImpl;
+import com.jfirer.jnet.common.buffer.arena.impl.ChunkList;
+import com.jfirer.jnet.common.util.UNSAFE;
 import org.junit.Test;
 
 import java.util.LinkedList;
@@ -16,6 +19,13 @@ public class ArenaTest
     {
         allocator = new PooledBufferAllocator("test");
     }
+
+    private long c100Offset = UNSAFE.getFieldOffset("c100", AbstractArena.class);
+    private long c075Offset = UNSAFE.getFieldOffset("c075", AbstractArena.class);
+    private long c050Offset = UNSAFE.getFieldOffset("c050", AbstractArena.class);
+    private long c025Offset = UNSAFE.getFieldOffset("c025", AbstractArena.class);
+    private long c000Offset = UNSAFE.getFieldOffset("c000", AbstractArena.class);
+    private long cIntOffset = UNSAFE.getFieldOffset("cInt", AbstractArena.class);
 
     /**
      * 测试随着不同申请率，在多个ChunkList进行移动
@@ -34,106 +44,112 @@ public class ArenaTest
         queue.add(buffer);
 //        ThreadCache      threadCache = allocator.threadCache();
         AbstractArena<?> arena = (AbstractArena<?>) allocator.currentArena(preferDirect);
-        assertNull(arena.c100.head);
-        assertNull(arena.c075.head);
-        assertNull(arena.c050.head);
-        assertNull(arena.c025.head);
-        assertNull(arena.c000.head);
-        assertNotNull(arena.cInt.head);
-        ChunkImpl<?> chunk = arena.cInt.head;
-        int total   = 1 << allocator.maxLevel;
-        int quarter = total >>> 2;
+        ChunkList        c100  = (ChunkList) UNSAFE.getObject(arena, c100Offset);
+        ChunkList        c075  = (ChunkList) UNSAFE.getObject(arena, c075Offset);
+        ChunkList        c050  = (ChunkList) UNSAFE.getObject(arena, c050Offset);
+        ChunkList        c025  = (ChunkList) UNSAFE.getObject(arena, c025Offset);
+        ChunkList        c000  = (ChunkList) UNSAFE.getObject(arena, c000Offset);
+        ChunkList        cInt  = (ChunkList) UNSAFE.getObject(arena, cIntOffset);
+        assertNull(c100.head());
+        assertNull(c075.head());
+        assertNull(c050.head());
+        assertNull(c025.head());
+        assertNull(c000.head());
+        assertNotNull(cInt.head());
+        ChunkImpl<?> chunk   = cInt.head();
+        int          total   = 1 << allocator.maxLevel;
+        int          quarter = total >>> 2;
         for (int i = 1; i < quarter; i++)
         {
             queue.add(allocator.ioBuffer(allocator.pagesize, preferDirect));
-            assertNull(arena.c100.head);
-            assertNull(arena.c075.head);
-            assertNull(arena.c050.head);
-            assertNull(arena.c025.head);
-            assertNull(arena.c000.head);
-            assertNotNull(arena.cInt.head);
-            assertTrue(chunk == arena.cInt.head);
+            assertNull(c100.head());
+            assertNull(c075.head());
+            assertNull(c050.head());
+            assertNull(c025.head());
+            assertNull(c000.head());
+            assertNotNull(cInt.head());
+            assertTrue(chunk == cInt.head());
         }
         assertEquals(25, chunk.usage());
         for (int i = 0; i < quarter; i++)
         {
             queue.add(allocator.ioBuffer(allocator.pagesize, preferDirect));
-            assertNull(arena.c100.head);
-            assertNull(arena.c075.head);
-            assertNull(arena.c050.head);
-            assertNull(arena.c025.head);
-            assertNotNull(arena.c000.head);
-            assertNull(arena.cInt.head);
-            assertTrue(chunk == arena.c000.head);
+            assertNull(c100.head());
+            assertNull(c075.head());
+            assertNull(c050.head());
+            assertNull(c025.head());
+            assertNotNull(c000.head());
+            assertNull(cInt.head());
+            assertTrue(chunk == c000.head());
         }
         assertEquals(50, chunk.usage());
         for (int i = 0; i < quarter; i++)
         {
             queue.add(allocator.ioBuffer(allocator.pagesize, preferDirect));
-            assertNull(arena.c100.head);
-            assertNull(arena.c075.head);
-            assertNull(arena.c050.head);
-            assertNotNull(arena.c025.head);
-            assertNull(arena.c000.head);
-            assertNull(arena.cInt.head);
-            assertTrue(chunk == arena.c025.head);
+            assertNull(c100.head());
+            assertNull(c075.head());
+            assertNull(c050.head());
+            assertNotNull(c025.head());
+            assertNull(c000.head());
+            assertNull(cInt.head());
+            assertTrue(chunk == c025.head());
         }
         assertEquals(75, chunk.usage());
         for (int i = 1; i < quarter; i++)
         {
             queue.add(allocator.ioBuffer(allocator.pagesize, preferDirect));
-            assertNull(arena.c100.head);
+            assertNull(c100.head());
             if (chunk.usage() <= 90)
             {
-                assertNull(arena.c075.head);
-                assertNotNull(arena.c050.head);
+                assertNull(c075.head());
+                assertNotNull(c050.head());
             }
             else
             {
-                assertNotNull(arena.c075.head);
-                assertNull(arena.c050.head);
+                assertNotNull(c075.head());
+                assertNull(c050.head());
             }
-            assertNull(arena.c025.head);
-            assertNull(arena.c000.head);
-            assertNull(arena.cInt.head);
+            assertNull(c025.head());
+            assertNull(c000.head());
+            assertNull(cInt.head());
             if (chunk.usage() <= 90)
             {
-                assertTrue(chunk == arena.c050.head);
+                assertTrue(chunk == c050.head());
             }
             else
             {
-                assertTrue(chunk == arena.c075.head);
+                assertTrue(chunk == c075.head());
             }
         }
         assertEquals(99, chunk.usage());
         queue.add(allocator.ioBuffer(allocator.pagesize, preferDirect));
-        assertNotNull(arena.c100.head);
-        assertNull(arena.c075.head);
-        assertNull(arena.c050.head);
-        assertNull(arena.c025.head);
-        assertNull(arena.c000.head);
-        assertNull(arena.cInt.head);
-        assertTrue(chunk == arena.c100.head);
+        assertNotNull(c100.head());
+        assertNull(c075.head());
+        assertNull(c050.head());
+        assertNull(c025.head());
+        assertNull(c000.head());
+        assertNull(cInt.head());
+        assertTrue(chunk == c100.head());
         assertEquals(100, chunk.usage());
         queue.poll().free();
         assertEquals(99, chunk.usage());
-        assertNull(arena.c100.head);
-        assertNotNull(arena.c075.head);
-        assertNull(arena.c050.head);
-        assertNull(arena.c025.head);
-        assertNull(arena.c000.head);
-        assertNull(arena.cInt.head);
-        assertTrue(chunk == arena.c075.head);
+        assertNull(c100.head());
+        assertNotNull(c075.head());
+        assertNull(c050.head());
+        assertNull(c025.head());
+        assertNull(c000.head());
+        assertNull(cInt.head());
+        assertTrue(chunk == c075.head());
         for (int i = 1; i < quarter; i++)
         {
             queue.poll().free();
-            assertNull(arena.c100.head);
-            assertNotNull(arena.c075.head);
-            assertNull(arena.c050.head);
-            assertNull(arena.c025.head);
-            assertNull(arena.c000.head);
-            assertNull(arena.cInt.head);
-            assertTrue(chunk == arena.c075.head);
+            assertNull(c100.head());
+            assertNotNull(c075.head());
+            assertNull(c050.head());
+            assertNull(c025.head());
+            assertNull(c000.head());
+            assertNull(cInt.head());
+            assertTrue(chunk == c075.head());
         }
         assertEquals(75, chunk.usage());
         int percent = (1 << allocator.maxLevel) / 100;
@@ -141,81 +157,81 @@ public class ArenaTest
         {
             assertEquals(75, chunk.usage());
             queue.poll().free();
-            assertNull(arena.c100.head);
-            assertNotNull(arena.c075.head);
-            assertNull(arena.c050.head);
-            assertNull(arena.c025.head);
-            assertNull(arena.c000.head);
-            assertNull(arena.cInt.head);
-            assertTrue(chunk == arena.c075.head);
+            assertNull(c100.head());
+            assertNotNull(c075.head());
+            assertNull(c050.head());
+            assertNull(c025.head());
+            assertNull(c000.head());
+            assertNull(cInt.head());
+            assertTrue(chunk == c075.head());
         }
         for (int i = 0; i < quarter - percent; i++)
         {
             queue.poll().free();
-            assertNull(arena.c100.head);
-            assertNull(arena.c075.head);
-            assertNotNull(arena.c050.head);
-            assertNull(arena.c025.head);
-            assertNull(arena.c000.head);
-            assertNull(arena.cInt.head);
-            assertTrue(chunk == arena.c050.head);
+            assertNull(c100.head());
+            assertNull(c075.head());
+            assertNotNull(c050.head());
+            assertNull(c025.head());
+            assertNull(c000.head());
+            assertNull(cInt.head());
+            assertTrue(chunk == c050.head());
         }
         assertEquals(50, chunk.usage());
         for (int i = 0; i < percent; i++)
         {
             assertEquals(50, chunk.usage());
             queue.poll().free();
-            assertNull(arena.c100.head);
-            assertNull(arena.c075.head);
-            assertNotNull(arena.c050.head);
-            assertNull(arena.c025.head);
-            assertNull(arena.c000.head);
-            assertNull(arena.cInt.head);
-            assertTrue(chunk == arena.c050.head);
+            assertNull(c100.head());
+            assertNull(c075.head());
+            assertNotNull(c050.head());
+            assertNull(c025.head());
+            assertNull(c000.head());
+            assertNull(cInt.head());
+            assertTrue(chunk == c050.head());
         }
         for (int i = 0; i < quarter - percent; i++)
         {
             queue.poll().free();
-            assertNull(arena.c100.head);
-            assertNull(arena.c075.head);
-            assertNull(arena.c050.head);
-            assertNotNull(arena.c025.head);
-            assertNull(arena.c000.head);
-            assertNull(arena.cInt.head);
-            assertTrue(chunk == arena.c025.head);
+            assertNull(c100.head());
+            assertNull(c075.head());
+            assertNull(c050.head());
+            assertNotNull(c025.head());
+            assertNull(c000.head());
+            assertNull(cInt.head());
+            assertTrue(chunk == c025.head());
         }
         assertEquals(25, chunk.usage());
         for (int i = 0; i < percent; i++)
         {
             assertEquals(25, chunk.usage());
             queue.poll().free();
-            assertNull(arena.c100.head);
-            assertNull(arena.c075.head);
-            assertNull(arena.c050.head);
-            assertNotNull(arena.c025.head);
-            assertNull(arena.c000.head);
-            assertNull(arena.cInt.head);
-            assertTrue(chunk == arena.c025.head);
+            assertNull(c100.head());
+            assertNull(c075.head());
+            assertNull(c050.head());
+            assertNotNull(c025.head());
+            assertNull(c000.head());
+            assertNull(cInt.head());
+            assertTrue(chunk == c025.head());
         }
         for (int i = 0; i < quarter - percent - 1; i++)
         {
             queue.poll().free();
-            assertNull(arena.c100.head);
-            assertNull(arena.c075.head);
-            assertNull(arena.c050.head);
-            assertNull(arena.c025.head);
-            assertNotNull(arena.c000.head);
-            assertNull(arena.cInt.head);
-            assertTrue(chunk == arena.c000.head);
+            assertNull(c100.head());
+            assertNull(c075.head());
+            assertNull(c050.head());
+            assertNull(c025.head());
+            assertNotNull(c000.head());
+            assertNull(cInt.head());
+            assertTrue(chunk == c000.head());
         }
         assertEquals(1, chunk.usage());
         queue.poll().free();
         assertTrue(queue.isEmpty());
-        assertNull(arena.c100.head);
-        assertNull(arena.c075.head);
-        assertNull(arena.c050.head);
-        assertNull(arena.c025.head);
-        assertNull(arena.c000.head);
-        assertNull(arena.cInt.head);
+        assertNull(c100.head());
+        assertNull(c075.head());
+        assertNull(c050.head());
+        assertNull(c025.head());
+        assertNull(c000.head());
+        assertNull(cInt.head());
     }
 }
