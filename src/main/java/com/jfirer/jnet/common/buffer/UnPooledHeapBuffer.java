@@ -1,5 +1,9 @@
 package com.jfirer.jnet.common.buffer;
 
+import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.AbstractHeapBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.SliceHeapBuffer;
+
 public class UnPooledHeapBuffer extends AbstractHeapBuffer implements UnPooledBuffer<byte[]>
 {
     @Override

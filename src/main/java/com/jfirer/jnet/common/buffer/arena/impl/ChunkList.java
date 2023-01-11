@@ -1,9 +1,9 @@
 package com.jfirer.jnet.common.buffer.arena.impl;
 
-import com.jfirer.jnet.common.buffer.PooledBuffer;
 import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.arena.Chunk;
 import com.jfirer.jnet.common.buffer.arena.SubPage;
+import com.jfirer.jnet.common.buffer.buffer.PooledBuffer;
 import com.jfirer.jnet.common.util.CapacityStat;
 
 public class ChunkList<T>

@@ -2,6 +2,8 @@ package com.jfirer.jnet.common.buffer;
 
 import com.jfirer.jnet.common.buffer.arena.SubPage;
 import com.jfirer.jnet.common.buffer.arena.impl.*;
+import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.AbstractBuffer;
 import com.jfirer.jnet.common.util.MathUtil;
 import com.jfirer.jnet.common.util.UNSAFE;
 import org.junit.Test;
@@ -74,8 +76,8 @@ public class SmallAllocateTest
                 AbstractBuffer<?> buffer = (AbstractBuffer<?>) allocator.ioBuffer(reqCapacity, direct);
                 buffers.add((IoBuffer) buffer);
                 int offset = i * pagesize + elementIdx * reqCapacity;
-                assertEquals(reqCapacity, buffer.capacity);
-                assertEquals(offset, buffer.offset);
+                assertEquals(reqCapacity, buffer.capacity());
+                assertEquals(offset, buffer.getOffset());
                 if (chunk == null)
                 {
                     chunk = cInt.head();

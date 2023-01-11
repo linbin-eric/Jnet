@@ -1,20 +1,20 @@
-package com.jfirer.jnet.common.buffer;
+package com.jfirer.jnet.common.buffer.buffer.impl;
 
 import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.arena.Chunk;
 import com.jfirer.jnet.common.buffer.arena.impl.ChunkListNode;
+import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
+import com.jfirer.jnet.common.buffer.buffer.PooledBuffer;
 
-import java.nio.ByteBuffer;
-
-public class PooledDirectBuffer extends AbstractDirectBuffer implements PooledBuffer<ByteBuffer>
+public class PooledHeapBuffer extends AbstractHeapBuffer implements PooledBuffer<byte[]>
 {
-    protected Arena<ByteBuffer>         arena;
-    protected ChunkListNode<ByteBuffer> chunkListNode;
-    protected Chunk<ByteBuffer>         chunk;
-    protected long                      handle;
+    protected long                  handle;
+    protected Chunk<byte[]>         chunk;
+    protected Arena<byte[]>         arena;
+    protected ChunkListNode<byte[]> chunkListNode;
 
     @Override
-    public void init(Arena<ByteBuffer> arena, ChunkListNode<ByteBuffer> chunkListNode, Chunk<ByteBuffer> chunk, int capacity, int offset, long handle)
+    public void init(Arena<byte[]> arena, ChunkListNode<byte[]> chunkListNode, Chunk<byte[]> chunk, int capacity, int offset, long handle)
     {
         this.arena = arena;
         this.chunkListNode = chunkListNode;
@@ -24,7 +24,7 @@ public class PooledDirectBuffer extends AbstractDirectBuffer implements PooledBu
     }
 
     @Override
-    public Chunk<ByteBuffer> chunk()
+    public Chunk<byte[]> chunk()
     {
         return chunk;
     }
@@ -36,13 +36,13 @@ public class PooledDirectBuffer extends AbstractDirectBuffer implements PooledBu
     }
 
     @Override
-    protected long getAddress(ByteBuffer memory)
+    protected long getAddress(byte[] memory)
     {
-        return chunk.directChunkAddress();
+        return 0;
     }
 
     @Override
-    protected void reAllocate(int reqCapacity)
+    public void reAllocate(int reqCapacity)
     {
         arena.reAllocate(chunkListNode, this, reqCapacity);
     }
@@ -56,6 +56,6 @@ public class PooledDirectBuffer extends AbstractDirectBuffer implements PooledBu
     @Override
     public IoBuffer slice(int length)
     {
-        return SliceDirectBuffer.slice(this, length);
+        return SliceHeapBuffer.slice(this, length);
     }
 }

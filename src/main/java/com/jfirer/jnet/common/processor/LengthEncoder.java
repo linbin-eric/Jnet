@@ -3,7 +3,7 @@ package com.jfirer.jnet.common.processor;
 import com.jfirer.jnet.common.api.ChannelContext;
 import com.jfirer.jnet.common.api.WriteProcessor;
 import com.jfirer.jnet.common.api.WriteProcessorNode;
-import com.jfirer.jnet.common.buffer.IoBuffer;
+import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 
 public class LengthEncoder implements WriteProcessor
 {

@@ -1,5 +1,6 @@
 package com.jfirer.jnet.common.buffer;
 
+import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;

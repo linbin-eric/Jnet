@@ -1,4 +1,4 @@
-package com.jfirer.jnet.common.buffer;
+package com.jfirer.jnet.common.buffer.buffer;
 
 import java.nio.ByteBuffer;
 

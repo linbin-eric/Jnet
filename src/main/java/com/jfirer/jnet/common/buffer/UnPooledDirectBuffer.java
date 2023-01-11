@@ -1,5 +1,8 @@
 package com.jfirer.jnet.common.buffer;
 
+import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.AbstractDirectBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.SliceDirectBuffer;
 import com.jfirer.jnet.common.util.PlatFormFunction;
 
 import java.nio.ByteBuffer;

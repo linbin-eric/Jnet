@@ -1,6 +1,8 @@
 package com.jfirer.jnet.common.buffer;
 
 import com.jfirer.jnet.common.buffer.arena.impl.AbstractArena;
+import com.jfirer.jnet.common.buffer.buffer.PooledBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.AbstractBuffer;
 import com.jfirer.jnet.common.util.UNSAFE;
 import org.junit.Test;
 
@@ -27,8 +29,8 @@ public class HugeAllocateTest
     private void test0(int allocateCapacity, PooledBuffer<?> buffer, AbstractArena<?> arena)
     {
         assertTrue(buffer.chunk().isUnPooled());
-        assertEquals(0, ((AbstractBuffer) buffer).offset);
-        assertEquals(allocateCapacity, ((AbstractBuffer) buffer).capacity);
+        assertEquals(0, ((AbstractBuffer) buffer).getOffset());
+        assertEquals(allocateCapacity, ((AbstractBuffer) buffer).capacity());
         ((AbstractBuffer) buffer).free();
     }
 

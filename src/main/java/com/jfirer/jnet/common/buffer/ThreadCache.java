@@ -4,6 +4,7 @@ import com.jfirer.jnet.common.buffer.arena.impl.AbstractArena;
 import com.jfirer.jnet.common.buffer.arena.impl.ChunkImpl;
 import com.jfirer.jnet.common.buffer.arena.impl.DirectArena;
 import com.jfirer.jnet.common.buffer.arena.impl.HeapArena;
+import com.jfirer.jnet.common.buffer.buffer.PooledBuffer;
 import com.jfirer.jnet.common.util.MathUtil;
 import com.jfirer.jnet.common.util.ReflectUtil;
 

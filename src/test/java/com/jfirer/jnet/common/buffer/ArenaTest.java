@@ -3,6 +3,7 @@ package com.jfirer.jnet.common.buffer;
 import com.jfirer.jnet.common.buffer.arena.impl.AbstractArena;
 import com.jfirer.jnet.common.buffer.arena.impl.ChunkList;
 import com.jfirer.jnet.common.buffer.arena.impl.ChunkListNode;
+import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.util.UNSAFE;
 import org.junit.Test;
 

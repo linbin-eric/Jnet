@@ -1,5 +1,7 @@
 package com.jfirer.jnet.common.buffer;
 
+import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.AbstractBuffer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -41,31 +43,31 @@ public class SliceBufferTest
         buffer.putInt(3);
         IoBuffer slice = buffer.slice(4);
         assertEquals(4, buffer.getReadPosi());
-        assertEquals(2, ((AbstractBuffer) buffer).refCount);
+        assertEquals(2, ((AbstractBuffer) buffer).refCount());
         assertEquals(4, slice.getWritePosi());
         assertEquals(4, slice.capacity());
         assertEquals(0, slice.getReadPosi());
         assertEquals(1, slice.getInt());
         slice.setReadPosi(0);
         IoBuffer slice2 = slice.slice(4);
-        assertEquals(2, ((AbstractBuffer) buffer).refCount);
-        assertEquals(2, ((AbstractBuffer) slice).refCount);
-        assertEquals(1, ((AbstractBuffer) slice2).refCount);
+        assertEquals(2, ((AbstractBuffer) buffer).refCount());
+        assertEquals(2, ((AbstractBuffer) slice).refCount());
+        assertEquals(1, ((AbstractBuffer) slice2).refCount());
         assertEquals(4, slice.getReadPosi());
         assertEquals(4, slice2.getWritePosi());
         assertEquals(0, slice2.getReadPosi());
         assertEquals(1, slice2.getInt());
         slice.free();
-        assertEquals(1, ((AbstractBuffer) slice).refCount);
-        assertEquals(2, ((AbstractBuffer) buffer).refCount);
-        assertEquals(1, ((AbstractBuffer) slice2).refCount);
-        assertNotNull(((AbstractBuffer) slice).memory);
+        assertEquals(1, ((AbstractBuffer) slice).refCount());
+        assertEquals(2, ((AbstractBuffer) buffer).refCount());
+        assertEquals(1, ((AbstractBuffer) slice2).refCount());
+        assertNotNull(((AbstractBuffer) slice).memory());
         slice2.free();
-        assertEquals(0, ((AbstractBuffer) slice).refCount);
-        assertNull(((AbstractBuffer) slice).memory);
-        assertNotNull(((AbstractBuffer) buffer).memory);
+        assertEquals(0, ((AbstractBuffer) slice).refCount());
+        assertNull(((AbstractBuffer) slice).memory());
+        assertNotNull(((AbstractBuffer) buffer).memory());
         buffer.free();
-        assertEquals(0, ((AbstractBuffer) buffer).refCount);
+        assertEquals(0, ((AbstractBuffer) buffer).refCount());
     }
 
     @Test
@@ -79,12 +81,12 @@ public class SliceBufferTest
         IoBuffer slice2 = slice.slice(4);
         buffer.free();
         slice.free();
-        assertNotNull(((AbstractBuffer) buffer).memory);
-        assertNotNull(((AbstractBuffer) slice).memory);
+        assertNotNull(((AbstractBuffer) buffer).memory());
+        assertNotNull(((AbstractBuffer) slice).memory());
         slice2.free();
-        assertNull(((AbstractBuffer) buffer).memory);
-        assertNull(((AbstractBuffer) slice).memory);
-        assertNull(((AbstractBuffer) slice2).memory);
+        assertNull(((AbstractBuffer) buffer).memory());
+        assertNull(((AbstractBuffer) slice).memory());
+        assertNull(((AbstractBuffer) slice2).memory());
     }
 
     @Test

@@ -4,7 +4,7 @@ import com.jfirer.jnet.client.DefaultClient;
 import com.jfirer.jnet.client.JnetClient;
 import com.jfirer.jnet.common.api.*;
 import com.jfirer.jnet.common.buffer.BufferAllocator;
-import com.jfirer.jnet.common.buffer.IoBuffer;
+import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
 import com.jfirer.jnet.common.util.ChannelConfig;
 import com.jfirer.jnet.server.AioServer;

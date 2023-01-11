@@ -1,4 +1,4 @@
-package com.jfirer.jnet.common.buffer;
+package com.jfirer.jnet.common.buffer.buffer;
 
 import com.jfirer.jnet.common.util.ReflectUtil;
 import com.jfirer.jnet.common.util.UNSAFE;

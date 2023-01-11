@@ -1,6 +1,6 @@
 package com.jfirer.jnet.client;
 
-import com.jfirer.jnet.common.buffer.IoBuffer;
+import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 
 public interface JnetClient
 {

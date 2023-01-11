@@ -1,5 +1,7 @@
 package com.jfirer.jnet.common.buffer;
 
+import com.jfirer.jnet.common.buffer.buffer.PooledBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.AbstractBuffer;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

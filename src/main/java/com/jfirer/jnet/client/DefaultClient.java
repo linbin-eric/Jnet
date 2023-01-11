@@ -4,7 +4,7 @@ import com.jfirer.jnet.common.api.ChannelContext;
 import com.jfirer.jnet.common.api.ChannelContextInitializer;
 import com.jfirer.jnet.common.api.InternalPipeline;
 import com.jfirer.jnet.common.api.ReadCompletionHandler;
-import com.jfirer.jnet.common.buffer.IoBuffer;
+import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.internal.AdaptiveReadCompletionHandler;
 import com.jfirer.jnet.common.internal.DefaultChannelContext;
 import com.jfirer.jnet.common.internal.DefaultPipeline;

@@ -1,10 +1,10 @@
 package com.jfirer.jnet.common.buffer.arena.impl;
 
-import com.jfirer.jnet.common.buffer.AbstractBuffer;
-import com.jfirer.jnet.common.buffer.PooledBuffer;
 import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.arena.Chunk;
 import com.jfirer.jnet.common.buffer.arena.SubPage;
+import com.jfirer.jnet.common.buffer.buffer.PooledBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.AbstractBuffer;
 import com.jfirer.jnet.common.util.CapacityStat;
 import com.jfirer.jnet.common.util.MathUtil;
 import com.jfirer.jnet.common.util.ReflectUtil;

@@ -1,5 +1,7 @@
 package com.jfirer.jnet.common.buffer;
 
+import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
+
 public class UnPooledUnRecycledBufferAllocator implements BufferAllocator
 {
     public static final UnPooledUnRecycledBufferAllocator DEFAULT = new UnPooledUnRecycledBufferAllocator("UnPooledUnRecycledBufferAllocator_default");

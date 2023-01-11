@@ -1,4 +1,7 @@
-package com.jfirer.jnet.common.buffer;
+package com.jfirer.jnet.common.buffer.buffer.impl;
+
+import com.jfirer.jnet.common.buffer.buffer.Bits;
+import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 
 import java.nio.ByteBuffer;
 

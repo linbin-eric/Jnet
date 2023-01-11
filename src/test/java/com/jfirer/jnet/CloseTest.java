@@ -2,8 +2,8 @@ package com.jfirer.jnet;
 
 import com.jfirer.jnet.common.api.*;
 import com.jfirer.jnet.common.buffer.BufferAllocator;
-import com.jfirer.jnet.common.buffer.IoBuffer;
 import com.jfirer.jnet.common.buffer.PooledBufferAllocator;
+import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
 import com.jfirer.jnet.common.util.CapacityStat;
 import com.jfirer.jnet.common.util.ChannelConfig;

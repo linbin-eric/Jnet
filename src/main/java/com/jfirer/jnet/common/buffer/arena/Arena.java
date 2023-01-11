@@ -1,7 +1,7 @@
 package com.jfirer.jnet.common.buffer.arena;
 
-import com.jfirer.jnet.common.buffer.PooledBuffer;
 import com.jfirer.jnet.common.buffer.arena.impl.ChunkListNode;
+import com.jfirer.jnet.common.buffer.buffer.PooledBuffer;
 
 public interface Arena<T>
 {

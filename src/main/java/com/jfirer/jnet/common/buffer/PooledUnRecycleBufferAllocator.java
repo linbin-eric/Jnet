@@ -1,5 +1,9 @@
 package com.jfirer.jnet.common.buffer;
 
+import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.PooledDirectBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.PooledHeapBuffer;
+
 public class PooledUnRecycleBufferAllocator extends PooledBufferAllocator
 {
     public static final PooledUnRecycleBufferAllocator DEFAULT = new PooledUnRecycleBufferAllocator("PooledUnRecycleBufferAllocator_default");

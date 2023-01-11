@@ -1,6 +1,6 @@
 package com.jfirer.jnet.common.api;
 
-import com.jfirer.jnet.common.buffer.IoBuffer;
+import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.CompletionHandler;

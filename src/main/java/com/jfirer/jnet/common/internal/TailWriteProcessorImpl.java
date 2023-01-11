@@ -4,7 +4,7 @@ import com.jfirer.jnet.common.api.ChannelContext;
 import com.jfirer.jnet.common.api.WriteCompletionHandler;
 import com.jfirer.jnet.common.api.WriteProcessor;
 import com.jfirer.jnet.common.api.WriteProcessorNode;
-import com.jfirer.jnet.common.buffer.IoBuffer;
+import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 
 public class TailWriteProcessorImpl implements WriteProcessor
 {

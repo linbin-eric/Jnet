@@ -1,7 +1,7 @@
 package com.jfirer.jnet.common.buffer.arena.impl;
 
-import com.jfirer.jnet.common.buffer.Bits;
 import com.jfirer.jnet.common.buffer.arena.Chunk;
+import com.jfirer.jnet.common.buffer.buffer.Bits;
 import com.jfirer.jnet.common.util.PlatFormFunction;
 import com.jfirer.jnet.common.util.ReflectUtil;
 import com.jfirer.jnet.common.util.UNSAFE;
