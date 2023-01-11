@@ -9,7 +9,7 @@ public class SubPageListNode
     private       SubPageListNode prev;
     private       SubPageListNode next;
 
-    protected SubPageListNode(SubPage subPage, ChunkListNode node)
+    public SubPageListNode(SubPage subPage, ChunkListNode node)
     {
         this.subPage = subPage;
         this.node = node;

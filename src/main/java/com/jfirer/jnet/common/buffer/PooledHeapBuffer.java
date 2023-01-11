@@ -2,17 +2,20 @@ package com.jfirer.jnet.common.buffer;
 
 import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.arena.Chunk;
+import com.jfirer.jnet.common.buffer.arena.impl.ChunkListNode;
 
 public class PooledHeapBuffer extends AbstractHeapBuffer implements PooledBuffer<byte[]>
 {
-    protected long          handle;
-    protected Chunk<byte[]> chunk;
-    protected Arena<byte[]> arena;
+    protected long                  handle;
+    protected Chunk<byte[]>         chunk;
+    protected Arena<byte[]>         arena;
+    protected ChunkListNode<byte[]> chunkListNode;
 
     @Override
-    public void init(Arena<byte[]> arena, Chunk<byte[]> chunk, int capacity, int offset, long handle)
+    public void init(Arena<byte[]> arena, ChunkListNode<byte[]> chunkListNode, Chunk<byte[]> chunk, int capacity, int offset, long handle)
     {
         this.arena = arena;
+        this.chunkListNode = chunkListNode;
         this.chunk = chunk;
         this.handle = handle;
         init(chunk.memory(), capacity, offset);
@@ -39,13 +42,13 @@ public class PooledHeapBuffer extends AbstractHeapBuffer implements PooledBuffer
     @Override
     public void reAllocate(int reqCapacity)
     {
-        arena.reAllocate(this, reqCapacity);
+        arena.reAllocate(chunkListNode, this, reqCapacity);
     }
 
     @Override
     public void free0(int capacity)
     {
-        arena.free(chunk, handle, capacity);
+        arena.free(chunkListNode, chunk, handle, capacity);
     }
 
     @Override

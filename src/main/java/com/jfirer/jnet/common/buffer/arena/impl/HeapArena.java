@@ -10,13 +10,13 @@ public class HeapArena extends AbstractArena<byte[]>
     }
 
     @Override
-    protected ChunkListNode newChunk(int maxLevel, int pageSize, ChunkList chunkList)
+    protected HeapChunk newChunk(int maxLevel, int pageSize)
     {
-        return new HeapChunk(maxLevel, pageSize, chunkList);
+        return new HeapChunk(maxLevel, pageSize);
     }
 
     @Override
-    protected Chunk<byte[]> newHugeChunk(int reqCapacity)
+    protected HeapChunk newHugeChunk(int reqCapacity)
     {
         return new HeapChunk(reqCapacity);
     }

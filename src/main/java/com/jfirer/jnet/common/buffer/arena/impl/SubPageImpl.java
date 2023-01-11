@@ -102,6 +102,12 @@ public class SubPageImpl<T> implements SubPage
     }
 
     @Override
+    public Chunk<T> chunk()
+    {
+        return chunk;
+    }
+
+    @Override
     public int handle()
     {
         return handle;

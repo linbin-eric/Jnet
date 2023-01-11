@@ -1,5 +1,6 @@
 package com.jfirer.jnet.common.buffer.arena.impl;
 
+import com.jfirer.jnet.common.buffer.PooledBuffer;
 import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.arena.Chunk;
 import com.jfirer.jnet.common.buffer.arena.SubPage;
@@ -53,29 +54,30 @@ public class ChunkList<T>
         this.prevList = prevList;
     }
 
-    public Chunk.MemoryArea<T> allocate(int normalizeSize)
+    public boolean allocate(int normalizeSize, PooledBuffer<T> buffer)
     {
         if (head == null || normalizeSize > maxReqCapacity)
         {
-            return null;
+            return false;
         }
         ChunkListNode node = head;
         do
         {
-            Chunk.MemoryArea<T> allocate = node.allocate(normalizeSize);
+            Chunk.MemoryArea<T> allocate = node.getChunk().allocate(normalizeSize);
             if (allocate != null)
             {
-                int usage = node.usage();
+                int usage = node.getChunk().usage();
                 if (usage > maxUsage)
                 {
                     remove(node);
                     nextList.addFromPrev(node, usage);
                 }
-                return allocate;
+                buffer.init(arena, node, allocate.chunk(), allocate.capacity(), allocate.offset(), allocate.handle());
+                return true;
             }
         }
         while ((node = node.getNext()) != null);
-        return null;
+        return false;
     }
 
     public SubPageListNode allocateSubpage()
@@ -87,16 +89,16 @@ public class ChunkList<T>
         ChunkListNode<T> node = head;
         do
         {
-            SubPage subPage = node.allocateSubpage();
+            SubPage subPage = node.getChunk().allocateSubpage();
             if (subPage != null)
             {
-                int usage = node.usage();
+                int usage = node.getChunk().usage();
                 if (usage > maxUsage)
                 {
                     remove(node);
                     nextList.addFromPrev(node, usage);
                 }
-                return node.find(subPage.index());
+                return node.exchange(subPage);
             }
         }
         while ((node = node.getNext()) != null);
@@ -112,8 +114,8 @@ public class ChunkList<T>
      */
     public boolean free(ChunkListNode<T> node, int handle)
     {
-        node.free(handle);
-        int usage = node.usage();
+        node.getChunk().free(handle);
+        int usage = node.getChunk().usage();
         if (usage < minUsage)
         {
             remove(node);
@@ -204,10 +206,10 @@ public class ChunkList<T>
         {
             return;
         }
-        stat.add(cursor);
+        stat.add(cursor.getChunk());
         while ((cursor = cursor.getNext()) != null)
         {
-            stat.add(cursor);
+            stat.add(cursor.getChunk());
         }
     }
 

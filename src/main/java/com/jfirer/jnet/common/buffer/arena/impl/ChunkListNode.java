@@ -1,31 +1,43 @@
 package com.jfirer.jnet.common.buffer.arena.impl;
 
-public abstract class ChunkListNode<T> extends ChunkImpl<T>
-{
-    private ChunkList<T>      parent;
-    private ChunkListNode<T>  prev;
-    private ChunkListNode<T>  next;
-    private SubPageListNode[] subPageListNodes;
+import com.jfirer.jnet.common.buffer.arena.Chunk;
+import com.jfirer.jnet.common.buffer.arena.SubPage;
 
-    public ChunkListNode(int maxLevel, int pageSize, ChunkList<T> parent)
+public class ChunkListNode<T>
+{
+    private       ChunkList<T>      parent;
+    private       ChunkListNode<T>  prev;
+    private       ChunkListNode<T>  next;
+    private final SubPageListNode[] subPageListNodes;
+    private final Chunk<T>          chunk;
+
+    public ChunkListNode(ChunkList<T> parent, Chunk<T> chunk)
     {
-        super(maxLevel, pageSize);
         this.parent = parent;
-        subPageListNodes = new SubPageListNode[1 << maxLevel];
-        for (int i = 0; i < subPageListNodes.length; i++)
-        {
-            subPageListNodes[i] = new SubPageListNode(subPages[i], this);
-        }
+        this.chunk = chunk;
+        subPageListNodes = new SubPageListNode[1 << chunk.maxLevle()];
     }
 
-    public ChunkListNode(int chunkSize)
+    public SubPageListNode exchange(SubPage subPage)
     {
-        super(chunkSize);
+        int             index           = subPage.index();
+        SubPageListNode subPageListNode = subPageListNodes[index];
+        if (subPageListNode == null)
+        {
+            subPageListNode = new SubPageListNode(subPage, this);
+            subPageListNodes[index] = subPageListNode;
+        }
+        return subPageListNode;
     }
 
     public SubPageListNode find(int index)
     {
-        return subPageListNodes[index];
+        SubPageListNode subPageListNode = subPageListNodes[index];
+        if (subPageListNode == null)
+        {
+            throw new IllegalStateException("不应该为空");
+        }
+        return subPageListNode;
     }
 
     public ChunkList<T> getParent()
@@ -56,5 +68,10 @@ public abstract class ChunkListNode<T> extends ChunkImpl<T>
     public void setNext(ChunkListNode<T> next)
     {
         this.next = next;
+    }
+
+    public Chunk<T> getChunk()
+    {
+        return chunk;
     }
 }

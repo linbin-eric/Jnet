@@ -17,9 +17,9 @@ public class DirectArena extends AbstractArena<ByteBuffer>
     }
 
     @Override
-    protected ChunkListNode newChunk(int maxLevel, int pageSize, ChunkList chunkList)
+    protected DirectChunk newChunk(int maxLevel, int pageSize)
     {
-        return new DirectChunk(maxLevel, pageSize, chunkList);
+        return new DirectChunk(maxLevel, pageSize);
     }
 
     @Override

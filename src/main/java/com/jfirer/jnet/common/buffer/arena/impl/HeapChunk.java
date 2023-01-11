@@ -1,10 +1,10 @@
 package com.jfirer.jnet.common.buffer.arena.impl;
 
-public class HeapChunk extends ChunkListNode<byte[]>
+public class HeapChunk extends ChunkImpl<byte[]>
 {
-    public HeapChunk(int maxLevel, int pageSize, ChunkList<byte[]> parent)
+    public HeapChunk(int maxLevel, int pageSize)
     {
-        super(maxLevel, pageSize, parent);
+        super(maxLevel, pageSize);
     }
 
     public HeapChunk(int chunkSize)

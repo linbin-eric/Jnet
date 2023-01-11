@@ -23,7 +23,7 @@ public interface Chunk<T>
      * @param capacity 该内存区域的大小
      * @param offset   该内存区域
      */
-    record MemoryArea<T>(int handle, int capacity, int offset, T memory, Chunk chunk) {}
+    record MemoryArea<T>(int handle, int capacity, int offset, T memory, Chunk<T> chunk) {}
 
     /**
      * 分配一个规范化后的容量大小的内存空间，返回该内存空间对应的信息。

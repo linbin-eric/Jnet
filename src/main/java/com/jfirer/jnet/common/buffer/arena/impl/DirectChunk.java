@@ -2,11 +2,11 @@ package com.jfirer.jnet.common.buffer.arena.impl;
 
 import java.nio.ByteBuffer;
 
-public class DirectChunk extends ChunkListNode<ByteBuffer>
+public class DirectChunk extends ChunkImpl<ByteBuffer>
 {
-    public DirectChunk(int maxLevel, int pageSize, ChunkList<ByteBuffer> parent)
+    public DirectChunk(int maxLevel, int pageSize)
     {
-        super(maxLevel, pageSize, parent);
+        super(maxLevel, pageSize);
     }
 
     public DirectChunk(int chunkSize)

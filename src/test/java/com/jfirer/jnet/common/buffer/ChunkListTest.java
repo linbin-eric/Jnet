@@ -1,7 +1,7 @@
 package com.jfirer.jnet.common.buffer;
 
+import com.jfirer.jnet.common.buffer.arena.Chunk;
 import com.jfirer.jnet.common.buffer.arena.impl.AbstractArena;
-import com.jfirer.jnet.common.buffer.arena.impl.ChunkImpl;
 import com.jfirer.jnet.common.buffer.arena.impl.ChunkList;
 import com.jfirer.jnet.common.buffer.arena.impl.ChunkListNode;
 import com.jfirer.jnet.common.util.UNSAFE;
@@ -62,12 +62,12 @@ public class ChunkListTest
         assertTrue(chunk2.getNext() == chunk1);
         allocator.ioBuffer(size, preferDirect);
         allocator.ioBuffer(size, preferDirect);
-        assertEquals(75, chunk2.usage());
+        assertEquals(75, chunk2.getChunk().usage());
         allocator.ioBuffer(size << 1, preferDirect);
-        assertEquals(75, chunk1.usage());
+        assertEquals(75, chunk1.getChunk().usage());
         allocator.ioBuffer(size << 1, preferDirect);
-        ChunkList    c000   = (ChunkList) UNSAFE.getObject(arena, c000Offset);
-        ChunkImpl<?> chunk3 = c000.head();
+        ChunkList c000   = (ChunkList) UNSAFE.getObject(arena, c000Offset);
+        Chunk<?>  chunk3 = c000.head().getChunk();
         assertNotNull(chunk3);
         assertEquals(50, chunk3.usage());
     }

@@ -15,6 +15,8 @@ public interface SubPage
 
     void free(int bitmapIdx);
 
+    Chunk chunk();
+
     int handle();
 
     int index();

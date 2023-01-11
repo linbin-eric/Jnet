@@ -60,7 +60,7 @@ public class SmallAllocateTest
         int               pagesize     = allocator.pagesize;
         int               elementNum   = pagesize / reqCapacity;
         int               numOfSubPage = 1 << allocator.maxLevel;
-        ChunkImpl<?>      chunk        = null;
+        ChunkListNode<?>  chunk        = null;
         AbstractArena<?>  arena        = (AbstractArena<?>) allocator.currentArena(direct);
         Queue<IoBuffer>   buffers      = new LinkedList<>();
         Queue<SubPage>    subPageQueue = new LinkedList<>();
@@ -82,17 +82,17 @@ public class SmallAllocateTest
                 }
                 if (elementIdx != elementNum - 1)
                 {
-                    assertTrue(head.getNext().getSubPage() == ((SubPage[]) UNSAFE.getObject(chunk, subPagesOffset))[i]);
+                    assertTrue(head.getNext().getSubPage() == ((SubPage[]) UNSAFE.getObject(chunk.getChunk(), subPagesOffset))[i]);
                 }
                 else
                 {
                     assertTrue(head.getNext() == head);
                 }
             }
-            subPageQueue.offer(((SubPage[]) UNSAFE.getObject(chunk, subPagesOffset))[i]);
-            assertEquals(0, ((SubPage[]) UNSAFE.getObject(chunk, subPagesOffset))[i].numOfAvail());
+            subPageQueue.offer(((SubPage[]) UNSAFE.getObject(chunk.getChunk(), subPagesOffset))[i]);
+            assertEquals(0, ((SubPage[]) UNSAFE.getObject(chunk.getChunk(), subPagesOffset))[i].numOfAvail());
         }
-        SubPage[] subPages = (SubPage[]) UNSAFE.getObject(chunk, subPagesOffset);
+        SubPage[] subPages = (SubPage[]) UNSAFE.getObject(chunk.getChunk(), subPagesOffset);
         for (int i = 0; i < numOfSubPage; i++)
         {
             SubPage subPage = subPages[i];
