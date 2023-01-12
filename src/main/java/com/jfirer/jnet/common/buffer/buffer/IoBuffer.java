@@ -1,5 +1,9 @@
 package com.jfirer.jnet.common.buffer.buffer;
 
+import com.jfirer.jnet.common.buffer.buffer.impl.AbstractBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.SliceDirectBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.SliceHeapBuffer;
+
 import java.nio.ByteBuffer;
 
 public interface IoBuffer<T>
@@ -315,7 +319,17 @@ public interface IoBuffer<T>
      * @param length
      * @return
      */
-    IoBuffer slice(int length);
+    default IoBuffer slice(int length)
+    {
+        if (isDirect())
+        {
+            return SliceDirectBuffer.slice((AbstractBuffer<ByteBuffer>) this, length);
+        }
+        else
+        {
+            return SliceHeapBuffer.slice((AbstractBuffer<byte[]>) this, length);
+        }
+    }
 
     /**
      * 返回当前Buffer持有的存储区域被多少对象持有

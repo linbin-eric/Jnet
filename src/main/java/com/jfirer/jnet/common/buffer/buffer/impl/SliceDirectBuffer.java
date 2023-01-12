@@ -1,21 +1,35 @@
 package com.jfirer.jnet.common.buffer.buffer.impl;
 
-import com.jfirer.jnet.common.buffer.SliceBuffer;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.recycler.RecycleHandler;
 import com.jfirer.jnet.common.recycler.Recycler;
 
 import java.nio.ByteBuffer;
 
-public class SliceDirectBuffer extends AbstractDirectBuffer implements SliceBuffer
+public class SliceDirectBuffer extends AbstractDirectBuffer
 {
-    AbstractBuffer parent;
-    private      RecycleHandler<SliceDirectBuffer> sliceRecycleHandler;
-    static final Recycler<SliceDirectBuffer>       RECYCLER = new Recycler<>(function -> {
+    static final Recycler<SliceDirectBuffer> RECYCLER = new Recycler<>(function -> {
         SliceDirectBuffer buffer = new SliceDirectBuffer();
         buffer.sliceRecycleHandler = function.apply(buffer);
         return buffer;
     });
+    AbstractBuffer parent;
+    private RecycleHandler<SliceDirectBuffer> sliceRecycleHandler;
+
+    public static IoBuffer slice(AbstractBuffer<ByteBuffer> buffer, int length)
+    {
+        if (buffer.remainRead() < length)
+        {
+            throw new IllegalArgumentException();
+        }
+        buffer.incrRef();
+        SliceDirectBuffer slice = RECYCLER.get();
+        slice.parent = buffer;
+        slice.init(buffer.memory, length, buffer.offset + buffer.readPosi);
+        slice.addWritePosi(length);
+        buffer.addReadPosi(length);
+        return slice;
+    }
 
     @Override
     protected long getAddress(ByteBuffer memory)
@@ -34,32 +48,5 @@ public class SliceDirectBuffer extends AbstractDirectBuffer implements SliceBuff
     {
         parent.free();
         sliceRecycleHandler.recycle(this);
-    }
-
-    @Override
-    public IoBuffer slice(int length)
-    {
-        return slice(this, length);
-    }
-
-    public static IoBuffer slice(AbstractBuffer<ByteBuffer> buffer, int length)
-    {
-        if (buffer.remainRead() < length)
-        {
-            throw new IllegalArgumentException();
-        }
-        buffer.incrRef();
-        SliceDirectBuffer slice = RECYCLER.get();
-        slice.parent = buffer;
-        slice.init(buffer.memory, length, buffer.offset + buffer.readPosi);
-        slice.addWritePosi(length);
-        buffer.addReadPosi(length);
-        return slice;
-    }
-
-    @Override
-    public IoBuffer getParent()
-    {
-        return parent;
     }
 }

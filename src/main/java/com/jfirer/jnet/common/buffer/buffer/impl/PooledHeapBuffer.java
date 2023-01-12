@@ -4,7 +4,6 @@ import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.arena.Chunk;
 import com.jfirer.jnet.common.buffer.arena.impl.ChunkListNode;
 import com.jfirer.jnet.common.buffer.arena.impl.HeapArena;
-import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.buffer.buffer.PooledBuffer;
 import com.jfirer.jnet.common.recycler.RecycleHandler;
 import com.jfirer.jnet.common.recycler.Recycler;
@@ -69,11 +68,5 @@ public class PooledHeapBuffer extends AbstractHeapBuffer implements PooledBuffer
     {
         arena.free(chunkListNode, chunk, handle, capacity);
         recycleHandler.recycle(this);
-    }
-
-    @Override
-    public IoBuffer slice(int length)
-    {
-        return SliceHeapBuffer.slice(this, length);
     }
 }

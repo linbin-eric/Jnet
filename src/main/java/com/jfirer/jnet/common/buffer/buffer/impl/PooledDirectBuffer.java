@@ -4,7 +4,6 @@ import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.arena.Chunk;
 import com.jfirer.jnet.common.buffer.arena.impl.ChunkListNode;
 import com.jfirer.jnet.common.buffer.arena.impl.DirectArena;
-import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.buffer.buffer.PooledBuffer;
 import com.jfirer.jnet.common.recycler.RecycleHandler;
 import com.jfirer.jnet.common.recycler.Recycler;
@@ -73,9 +72,4 @@ public class PooledDirectBuffer extends AbstractDirectBuffer implements PooledBu
         recycleHandler.recycle(this);
     }
 
-    @Override
-    public IoBuffer slice(int length)
-    {
-        return SliceDirectBuffer.slice(this, length);
-    }
 }
