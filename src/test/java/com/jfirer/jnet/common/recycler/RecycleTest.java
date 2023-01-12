@@ -307,15 +307,56 @@ public class RecycleTest
         Recycler<Entry>.Stack stack = recycler.currentStack.get();
         assertEquals(Recycler.MAX_SHARED_CAPACITY - 2 * Recycler.LINK_SIZE, stack.sharedCapacity.get());
         System.gc();
+        Thread.sleep(100);
+        System.gc();
         for (int i = 0; i < size; i++)
         {
             recycler.get();
             if (i == 0)
             {
-                assertEquals(Recycler.MAX_SHARED_CAPACITY - 1 * Recycler.LINK_SIZE, stack.sharedCapacity.get());
+                assertEquals(Recycler.MAX_SHARED_CAPACITY - Recycler.LINK_SIZE, stack.sharedCapacity.get());
             }
         }
-        assertEquals(Recycler.MAX_SHARED_CAPACITY - 1 * Recycler.LINK_SIZE, stack.sharedCapacity.get());
+        assertEquals(Recycler.MAX_SHARED_CAPACITY - Recycler.LINK_SIZE, stack.sharedCapacity.get());
+        recycler.get();
+        assertEquals(Recycler.MAX_SHARED_CAPACITY, stack.sharedCapacity.get());
+    }
+
+    /**
+     * 测试归还剩余容量是否会导致溢出
+     */
+    @Test
+    public void test8() throws InterruptedException
+    {
+        int                size  = Recycler.LINK_SIZE - 1;
+        final Queue<Entry> queue = new LinkedList<>();
+        for (int i = 0; i < size; i++)
+        {
+            queue.add(recycler.get());
+        }
+        final CountDownLatch latch = new CountDownLatch(1);
+        new Thread(() -> {
+            for (Entry each : queue)
+            {
+                each.handler.recycle(each);
+            }
+            latch.countDown();
+        }).start();
+        latch.await();
+        Recycler<Entry>.Stack stack = recycler.currentStack.get();
+        assertEquals(Recycler.MAX_SHARED_CAPACITY - Recycler.LINK_SIZE, stack.sharedCapacity.get());
+        System.gc();
+        Thread.sleep(100);
+        System.gc();
+        for (int i = 0; i < size; i++)
+        {
+            recycler.get();
+            if (i == 0)
+            {
+                assertEquals(Recycler.MAX_SHARED_CAPACITY - Recycler.LINK_SIZE, stack.sharedCapacity.get());
+            }
+        }
+        assertEquals(Recycler.MAX_SHARED_CAPACITY - Recycler.LINK_SIZE, stack.sharedCapacity.get());
         recycler.get();
         assertEquals(Recycler.MAX_SHARED_CAPACITY, stack.sharedCapacity.get());
     }

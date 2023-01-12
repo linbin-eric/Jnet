@@ -384,7 +384,7 @@ public class Recycler<T>
 
         void returnResidueSpace()
         {
-            // 在最后一次迁移尝试后，如果该Link的read没有处于终止位置（LinkSize），则意味着该Link的空间尚未归还
+            // 在最后一次迁移尝试后，如果该Link的read没有处于终止位置（LinkSize），则意味着该Link的空间没有通过transfer方法内部归还。
             if (cursor.read != linkSize)
             {
                 reclaimSpace(linkSize, sharedCapacity);
