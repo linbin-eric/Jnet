@@ -11,14 +11,8 @@ import static org.junit.Assert.*;
 public class FastThreadLocalTest
 {
     private static final String                  instance = "123";
-    volatile boolean                 fail  = false;
-    private  FastThreadLocal<String> local = new FastThreadLocal<String>()
-    {
-        protected String initializeValue()
-        {
-            return instance;
-        }
-    };
+    volatile             boolean                 fail     = false;
+    private              FastThreadLocal<String> local    = FastThreadLocal.withInitializeValue(() -> instance);
 
     @Test
     public void test()
