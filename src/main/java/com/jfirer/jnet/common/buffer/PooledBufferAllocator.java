@@ -168,10 +168,8 @@ public class PooledBufferAllocator implements BufferAllocator
 //        PooledHeapBuffer buffer      = heapBuffers.get();
 //        heapArena.allocate(initializeCapacity, Integer.MAX_VALUE, buffer, threadCache);
 //        return buffer;
-        HeapArena        heapArena = heapArenaFastThreadLocal.get();
-        PooledHeapBuffer buffer    = new PooledHeapBuffer();
-        heapArena.allocate(initializeCapacity, buffer);
-        return buffer;
+        HeapArena heapArena = heapArenaFastThreadLocal.get();
+        return PooledHeapBuffer.allocate(heapArena, initializeCapacity);
     }
 
     @Override
@@ -183,8 +181,7 @@ public class PooledBufferAllocator implements BufferAllocator
 //        directArena.allocate(initializeCapacity, Integer.MAX_VALUE, buffer, threadCache);
 //        return buffer;
         DirectArena        directArena = directArenaFastThreadLocal.get();
-        PooledDirectBuffer buffer      = new PooledDirectBuffer();
-        directArena.allocate(initializeCapacity, buffer);
+        PooledDirectBuffer buffer      = PooledDirectBuffer.allocate(directArena, initializeCapacity);
         return buffer;
     }
 

@@ -1,7 +1,6 @@
 package com.jfirer.jnet.common.buffer.buffer.impl;
 
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
-import com.jfirer.jnet.common.recycler.RecycleHandler;
 import com.jfirer.jnet.common.util.UNSAFE;
 
 public abstract class AbstractBuffer<T> implements IoBuffer<T>
@@ -14,8 +13,7 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
     //当direct时才有值
     protected          long address;
     protected volatile int  refCount;
-    RecycleHandler recycleHandler;
-    static final long REF_COUNT_OFFSET = UNSAFE.getFieldOffset("refCount", AbstractBuffer.class);
+    static final       long REF_COUNT_OFFSET = UNSAFE.getFieldOffset("refCount", AbstractBuffer.class);
 
     public void init(T memory, int capacity, int offset)
     {
