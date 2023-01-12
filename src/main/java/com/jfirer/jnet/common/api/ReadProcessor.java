@@ -26,7 +26,7 @@ public interface ReadProcessor<T>
         @Override
         public void exceptionCatch(Throwable e, ReadProcessorNode next)
         {
-            if (e instanceof ClosedChannelException == false || e instanceof ShutdownChannelGroupException == false)
+            if (e instanceof ClosedChannelException == false && e instanceof ShutdownChannelGroupException == false)
             {
                 e.printStackTrace();
             }

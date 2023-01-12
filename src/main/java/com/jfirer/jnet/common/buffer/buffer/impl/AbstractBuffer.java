@@ -11,7 +11,7 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
     protected          int  writePosi;
     protected          int  offset;
     //当direct时才有值
-    protected          long address;
+//    protected          long address;
     protected volatile int  refCount;
     static final       long REF_COUNT_OFFSET = UNSAFE.getFieldOffset("refCount", AbstractBuffer.class);
 
@@ -23,13 +23,6 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
         readPosi = writePosi = 0;
         // 由于该方法可能会扩容方法所调用，所以需要区分不同的情况。如果是第一次初始化，这refCount是代表自身，需要从0设置为1；否则的话，不需要修改。
         refCount = refCount == 0 ? 1 : refCount;
-        if (isDirect())
-        {
-            address = getAddress(memory) + offset;
-//            address = chunk.directChunkAddress() + offset;
-            //！！注意，因为扩容的时候仍然是使用memory计算基础地址再加上offset，因此这里虽然计算了最终的address，但是
-            //不能将offset的值修改为其他的值，必须保持其原始值！
-        }
     }
 
     protected abstract long getAddress(T memory);

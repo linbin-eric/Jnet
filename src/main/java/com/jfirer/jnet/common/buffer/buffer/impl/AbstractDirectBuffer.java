@@ -7,6 +7,18 @@ import java.nio.ByteBuffer;
 
 public abstract class AbstractDirectBuffer extends AbstractBuffer<ByteBuffer>
 {
+    //当direct时才有值
+    protected long address;
+
+    @Override
+    public void init(ByteBuffer memory, int capacity, int offset)
+    {
+        super.init(memory, capacity, offset);
+        //！！注意，因为扩容的时候仍然是使用memory计算基础地址再加上offset，因此这里虽然计算了最终的address，但是
+        //不能将offset的值修改为其他的值，必须保持其原始值！
+        address = getAddress(memory) + offset;
+    }
+
     @Override
     public IoBuffer put(IoBuffer buf, int len)
     {
@@ -16,15 +28,15 @@ public abstract class AbstractDirectBuffer extends AbstractBuffer<ByteBuffer>
         }
         if (buf.isDirect())
         {
-            AbstractBuffer<ByteBuffer> buffer = (AbstractBuffer) buf;
-            int                        posi   = nextWritePosi(len);
+            AbstractDirectBuffer buffer = (AbstractDirectBuffer) buf;
+            int                  posi   = nextWritePosi(len);
             Bits.copyDirectMemory(buffer.address + buffer.readPosi, realAddress(posi), len);
         }
         else
         {
-            AbstractBuffer<byte[]> buffer = (AbstractBuffer) buf;
-            int                    posi   = nextWritePosi(len);
-            Bits.copyFromByteArray( buffer.memory, buffer.offset + buffer.readPosi, realAddress(posi), len);
+            AbstractHeapBuffer buffer = (AbstractHeapBuffer) buf;
+            int                posi   = nextWritePosi(len);
+            Bits.copyFromByteArray(buffer.memory, buffer.offset + buffer.readPosi, realAddress(posi), len);
         }
         return this;
     }

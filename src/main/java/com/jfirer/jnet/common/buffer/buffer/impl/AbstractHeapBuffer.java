@@ -110,15 +110,16 @@ public abstract class AbstractHeapBuffer extends AbstractBuffer<byte[]>
         {
             throw new IllegalArgumentException("剩余读取长度不足");
         }
-        AbstractBuffer buffer = (AbstractBuffer) buf;
-        if (buffer.isDirect())
+        if (buf.isDirect())
         {
-            int posi = nextWritePosi(len);
+            AbstractDirectBuffer buffer = (AbstractDirectBuffer) buf;
+            int                  posi   = nextWritePosi(len);
             Bits.copyToArray(buffer.address + buffer.readPosi, memory, realPosi(posi), len);
         }
         else
         {
-            int posi = nextWritePosi(len);
+            AbstractHeapBuffer buffer = (AbstractHeapBuffer) buf;
+            int                posi   = nextWritePosi(len);
             System.arraycopy(buffer.memory, buffer.readPosi + buffer.offset, memory, realPosi(posi), len);
         }
         return this;
