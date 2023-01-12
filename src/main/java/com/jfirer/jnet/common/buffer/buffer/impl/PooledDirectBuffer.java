@@ -3,6 +3,7 @@ package com.jfirer.jnet.common.buffer.buffer.impl;
 import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.arena.Chunk;
 import com.jfirer.jnet.common.buffer.arena.impl.ChunkListNode;
+import com.jfirer.jnet.common.buffer.arena.impl.DirectArena;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.buffer.buffer.PooledBuffer;
 import com.jfirer.jnet.common.recycler.RecycleHandler;
@@ -12,7 +13,7 @@ import java.nio.ByteBuffer;
 
 public class PooledDirectBuffer extends AbstractDirectBuffer implements PooledBuffer<ByteBuffer>
 {
-    protected Arena<ByteBuffer>                  arena;
+    protected DirectArena                        arena;
     protected ChunkListNode<ByteBuffer>          chunkListNode;
     protected Chunk<ByteBuffer>                  chunk;
     protected long                               handle;
@@ -24,7 +25,7 @@ public class PooledDirectBuffer extends AbstractDirectBuffer implements PooledBu
         return buffer;
     });
 
-    public static PooledDirectBuffer allocate(Arena<ByteBuffer> arena, int reqCapacity)
+    public static PooledDirectBuffer allocate(DirectArena arena, int reqCapacity)
     {
         PooledDirectBuffer pooledDirectBuffer = RECYCLER.get();
         arena.allocate(reqCapacity, pooledDirectBuffer);
@@ -34,7 +35,7 @@ public class PooledDirectBuffer extends AbstractDirectBuffer implements PooledBu
     @Override
     public void init(Arena<ByteBuffer> arena, ChunkListNode<ByteBuffer> chunkListNode, Chunk<ByteBuffer> chunk, int capacity, int offset, long handle)
     {
-        this.arena = arena;
+        this.arena = (DirectArena) arena;
         this.chunkListNode = chunkListNode;
         this.chunk = chunk;
         this.handle = handle;

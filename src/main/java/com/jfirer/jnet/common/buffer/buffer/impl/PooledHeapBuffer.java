@@ -3,6 +3,7 @@ package com.jfirer.jnet.common.buffer.buffer.impl;
 import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.arena.Chunk;
 import com.jfirer.jnet.common.buffer.arena.impl.ChunkListNode;
+import com.jfirer.jnet.common.buffer.arena.impl.HeapArena;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.buffer.buffer.PooledBuffer;
 import com.jfirer.jnet.common.recycler.RecycleHandler;
@@ -12,7 +13,7 @@ public class PooledHeapBuffer extends AbstractHeapBuffer implements PooledBuffer
 {
     protected long                             handle;
     protected Chunk<byte[]>                    chunk;
-    protected Arena<byte[]>                    arena;
+    protected HeapArena                        arena;
     protected ChunkListNode<byte[]>            chunkListNode;
     protected RecycleHandler<PooledHeapBuffer> recycleHandler;
     static    Recycler<PooledHeapBuffer>       RECYCLER = new Recycler<>(function -> {
@@ -22,7 +23,7 @@ public class PooledHeapBuffer extends AbstractHeapBuffer implements PooledBuffer
         return buffer;
     });
 
-    public static PooledHeapBuffer allocate(Arena<byte[]> arena, int reqCapacity)
+    public static PooledHeapBuffer allocate(HeapArena arena, int reqCapacity)
     {
         PooledHeapBuffer pooledHeapBuffer = RECYCLER.get();
         arena.allocate(reqCapacity, pooledHeapBuffer);
@@ -32,7 +33,7 @@ public class PooledHeapBuffer extends AbstractHeapBuffer implements PooledBuffer
     @Override
     public void init(Arena<byte[]> arena, ChunkListNode<byte[]> chunkListNode, Chunk<byte[]> chunk, int capacity, int offset, long handle)
     {
-        this.arena = arena;
+        this.arena = (HeapArena) arena;
         this.chunkListNode = chunkListNode;
         this.chunk = chunk;
         this.handle = handle;
