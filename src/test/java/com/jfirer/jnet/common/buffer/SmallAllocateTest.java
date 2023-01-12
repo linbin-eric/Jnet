@@ -1,7 +1,9 @@
 package com.jfirer.jnet.common.buffer;
 
-import com.jfirer.jnet.common.buffer.arena.SubPage;
-import com.jfirer.jnet.common.buffer.arena.impl.*;
+import com.jfirer.jnet.common.buffer.arena.impl.AbstractArena;
+import com.jfirer.jnet.common.buffer.arena.impl.ChunkList;
+import com.jfirer.jnet.common.buffer.arena.impl.ChunkListNode;
+import com.jfirer.jnet.common.buffer.arena.impl.SubPage;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.buffer.buffer.impl.AbstractBuffer;
 import com.jfirer.jnet.common.util.MathUtil;
@@ -23,8 +25,8 @@ public class SmallAllocateTest
     PooledBufferAllocator allocator          = new PooledBufferAllocator("test");
     int                   reqCapacity;
     long                  subPageHeadsOffset = UNSAFE.getFieldOffset("subPageHeads", AbstractArena.class);
-    long                  subPagesOffset     = UNSAFE.getFieldOffset("subPages", ChunkImpl.class);
-    long                  bitMapOffset       = UNSAFE.getFieldOffset("bitMap", SubPageImpl.class);
+    long                  subPagesOffset     = UNSAFE.getFieldOffset("subPages", ChunkListNode.class);
+    long                  bitMapOffset       = UNSAFE.getFieldOffset("bitMap", SubPage.class);
     private long c100Offset = UNSAFE.getFieldOffset("c100", AbstractArena.class);
     private long c075Offset = UNSAFE.getFieldOffset("c075", AbstractArena.class);
     private long c050Offset = UNSAFE.getFieldOffset("c050", AbstractArena.class);
@@ -59,16 +61,16 @@ public class SmallAllocateTest
 
     private void test0(boolean direct)
     {
-        int               pagesize     = allocator.pagesize;
-        int               elementNum   = pagesize / reqCapacity;
-        int               numOfSubPage = 1 << allocator.maxLevel;
-        ChunkListNode<?>  chunk        = null;
-        AbstractArena<?>  arena        = (AbstractArena<?>) allocator.currentArena(direct);
-        Queue<IoBuffer>   buffers      = new LinkedList<>();
-        Queue<SubPage>    subPageQueue = new LinkedList<>();
-        SubPageListNode[] subPageHeads = (SubPageListNode[]) UNSAFE.getObject(arena, subPageHeadsOffset);
-        SubPageListNode   head         = subPageHeads[MathUtil.log2(reqCapacity) - 4];
-        ChunkList         cInt         = (ChunkList) UNSAFE.getObject(arena, cIntOffset);
+        int                pagesize     = allocator.pagesize;
+        int                elementNum   = pagesize / reqCapacity;
+        int                numOfSubPage = 1 << allocator.maxLevel;
+        ChunkListNode<?>   chunk        = null;
+        AbstractArena<?>   arena        = (AbstractArena<?>) allocator.currentArena(direct);
+        Queue<IoBuffer<?>> buffers      = new LinkedList<>();
+        Queue<SubPage<?>>  subPageQueue = new LinkedList<>();
+        SubPage<?>[]       subPageHeads = (SubPage<?>[]) UNSAFE.getObject(arena, subPageHeadsOffset);
+        SubPage<?>         head         = subPageHeads[MathUtil.log2(reqCapacity) - 4];
+        ChunkList<?>       cInt         = (ChunkList<?>) UNSAFE.getObject(arena, cIntOffset);
         for (int i = 0; i < numOfSubPage; i++)
         {
             for (int elementIdx = 0; elementIdx < elementNum; elementIdx++)
@@ -84,17 +86,17 @@ public class SmallAllocateTest
                 }
                 if (elementIdx != elementNum - 1)
                 {
-                    assertTrue(head.getNext().getSubPage() == ((SubPage[]) UNSAFE.getObject(chunk.getChunk(), subPagesOffset))[i]);
+                    assertTrue(head.getNext() == ((SubPage[]) UNSAFE.getObject(chunk, subPagesOffset))[i]);
                 }
                 else
                 {
                     assertTrue(head.getNext() == head);
                 }
             }
-            subPageQueue.offer(((SubPage[]) UNSAFE.getObject(chunk.getChunk(), subPagesOffset))[i]);
-            assertEquals(0, ((SubPage[]) UNSAFE.getObject(chunk.getChunk(), subPagesOffset))[i].numOfAvail());
+            subPageQueue.offer(((SubPage[]) UNSAFE.getObject(chunk, subPagesOffset))[i]);
+            assertEquals(0, ((SubPage[]) UNSAFE.getObject(chunk, subPagesOffset))[i].numOfAvail());
         }
-        SubPage[] subPages = (SubPage[]) UNSAFE.getObject(chunk.getChunk(), subPagesOffset);
+        SubPage[] subPages = (SubPage[]) UNSAFE.getObject(chunk, subPagesOffset);
         for (int i = 0; i < numOfSubPage; i++)
         {
             SubPage subPage = subPages[i];
@@ -104,8 +106,8 @@ public class SmallAllocateTest
                 buffers.poll().free();
                 if (elementIdx != elementNum - 1)
                 {
-                    assertTrue("当前下标" + i, head.getNext().getSubPage() == subPages[i]);
-                    SubPageListNode subPageListNode = ((ChunkListNode<?>) chunk).find(i);
+                    assertTrue("当前下标" + i, head.getNext() == subPages[i]);
+                    SubPage subPageListNode = ((ChunkListNode<?>) chunk).find(i);
                     if (i == 0)
                     {
                         assertTrue(subPageListNode.getNext() == head);
@@ -136,58 +138,4 @@ public class SmallAllocateTest
         }
         assertTrue(head.getNext() != head);
     }
-//    @Test
-//    public void test1()
-//    {
-//        test1(true);
-//        test1(false);
-//    }
-//
-//    private void test1(boolean preferDirect)
-//    {
-//        Queue<IoBuffer>  buffers    = new LinkedList<>();
-//        int              elementNum = allocator.pagesize / 512;
-//        AbstractArena<?> arena      = allocator.threadCache().arena(preferDirect);
-//        SubPageImpl<?>   head       = arena.findSubPageHead(512);
-//        SubPageImpl<?>   subPage1;
-//        IoBuffer         buffer     = allocator.ioBuffer(512, preferDirect);
-//        buffers.add(buffer);
-//        subPage1 = head.next;
-//        assertTrue(subPage1.next == head && subPage1.prev == head);
-//        for (int i = 1; i < elementNum; i++)
-//        {
-//            buffer = allocator.ioBuffer(512, preferDirect);
-//            buffers.add(buffer);
-//        }
-//        assertNull(subPage1.prev);
-//        assertNull(subPage1.next);
-//        assertTrue(head == head.next);
-//        buffer = allocator.ioBuffer(512, preferDirect);
-//        buffers.add(buffer);
-//        SubPageImpl<?> subPage2 = head.next;
-//        assertTrue(subPage2.next == head && subPage2.prev == head);
-//        for (int i = 1; i < elementNum; i++)
-//        {
-//            buffer = allocator.ioBuffer(512, preferDirect);
-//            buffers.add(buffer);
-//        }
-//        assertNull(subPage2.prev);
-//        assertNull(subPage2.next);
-//        assertTrue(head == head.next);
-//        while (buffers.isEmpty() == false)
-//        {
-//            buffers.poll().free();
-//        }
-//        assertTrue(head.next == subPage1);
-//        assertNull(subPage2.prev);
-//        assertNull(subPage2.next);
-//        for (int i = 0; i < elementNum; i++)
-//        {
-//            buffer = allocator.ioBuffer(512, preferDirect);
-//            buffers.add(buffer);
-//        }
-//        assertTrue(head.next == head && subPage1.prev == null && subPage1.next == null);
-//        allocator.ioBuffer(512, preferDirect);
-//        assertTrue(head.next == subPage2);
-//    }
 }

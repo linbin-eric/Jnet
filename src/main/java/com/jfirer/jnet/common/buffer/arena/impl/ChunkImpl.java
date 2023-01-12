@@ -1,7 +1,6 @@
 package com.jfirer.jnet.common.buffer.arena.impl;
 
 import com.jfirer.jnet.common.buffer.arena.Chunk;
-import com.jfirer.jnet.common.buffer.arena.SubPage;
 import com.jfirer.jnet.common.util.MathUtil;
 import com.jfirer.jnet.common.util.PlatFormFunction;
 
@@ -18,14 +17,10 @@ public abstract class ChunkImpl<T> implements Chunk<T>
     protected final int              pageSizeShift;
     //用于快速判断申请大小是否小于PageSize
     protected final int              subPageOverflowMask;
-    //    protected final MemoryArea[]     memoryAreas;
-    protected final SubPage[]        subPages;
     protected final int              chunkSize;
     protected final T                memory;
     protected final boolean          unpooled;
     protected final long             directBufferAddress;
-    //二叉树最左叶子节点的下标值。该值与叶子节点下标相与，可快速得到叶子节点对应的SubPage对象，在SubPage[]中的下标值。
-    protected final int              subPageIdxMask;
     protected       int              freeBytes;
 
     /* 供ChunkList使用 */
@@ -38,14 +33,7 @@ public abstract class ChunkImpl<T> implements Chunk<T>
         freeBytes = chunkSize = 1 << (maxLevel + pageSizeShift);
         memory = initializeMemory(chunkSize);
         memoryTree = initMemoryTree(maxLevel);
-        subPageIdxMask = 1 << maxLevel;
         unpooled = false;
-        subPages = new SubPage[1 << maxLevel];
-        for (int i = 0; i < subPages.length; i++)
-        {
-            MemoryArea memoryArea = memoryTree[(1 << maxLevel) + i].memoryArea;
-            subPages[i] = SubPage.newSubPage(memoryArea.handle(), memoryArea.capacity(), memoryArea.offset(), memory, this);
-        }
         if (memory instanceof ByteBuffer buffer && buffer.isDirect())
         {
             directBufferAddress = PlatFormFunction.bytebufferOffsetAddress(buffer);
@@ -56,15 +44,26 @@ public abstract class ChunkImpl<T> implements Chunk<T>
         }
     }
 
-    class MemoryTreeNode<T>
+    /**
+     * 非池化的Chunk，用于chunkSize大于标准大小的Chunk，此时一个Chunk就是完整的内存区域供使用。
+     */
+    public ChunkImpl(int chunkSize)
     {
-        int           avail;
-        MemoryArea<T> memoryArea;
-
-        public MemoryTreeNode(int avail, MemoryArea<T> memoryArea)
+        unpooled = true;
+        this.chunkSize = chunkSize;
+        memory = initializeMemory(chunkSize);
+        maxLevel = 0;
+        pageSizeShift = 0;
+        memoryTree = null;
+        subPageOverflowMask = 0;
+        pageSize = 0;
+        if (memory instanceof ByteBuffer buffer && buffer.isDirect())
         {
-            this.avail = avail;
-            this.memoryArea = memoryArea;
+            directBufferAddress = PlatFormFunction.bytebufferOffsetAddress(buffer);
+        }
+        else
+        {
+            directBufferAddress = 0;
         }
     }
 
@@ -82,31 +81,6 @@ public abstract class ChunkImpl<T> implements Chunk<T>
             }
         }
         return memoryTree;
-    }
-
-    /**
-     * 非池化的Chunk，用于chunkSize大于标准大小的Chunk，此时一个Chunk就是完整的内存区域供使用。
-     */
-    public ChunkImpl(int chunkSize)
-    {
-        unpooled = true;
-        this.chunkSize = chunkSize;
-        memory = initializeMemory(chunkSize);
-        maxLevel = 0;
-        pageSizeShift = 0;
-        memoryTree = null;
-        subPageOverflowMask = 0;
-        pageSize = 0;
-        subPageIdxMask = 0;
-        subPages = null;
-        if (memory instanceof ByteBuffer buffer && buffer.isDirect())
-        {
-            directBufferAddress = PlatFormFunction.bytebufferOffsetAddress(buffer);
-        }
-        else
-        {
-            directBufferAddress = 0;
-        }
     }
 
     private int calculateSize(int level)
@@ -155,25 +129,9 @@ public abstract class ChunkImpl<T> implements Chunk<T>
         return ((MemoryTreeNode<T>) memoryTreeNode).memoryArea;
     }
 
-    @Override
-    public SubPage allocateSubpage()
-    {
-        MemoryArea<T> allocate = allocate(pageSize);
-        if (allocate == null)
-        {
-            return null;
-        }
-        return subPages[subPageIdx(allocate.handle())];
-    }
-
     private int calcuteLevel(int normalizeSize)
     {
         return maxLevel - (MathUtil.log2(normalizeSize) - pageSizeShift);
-    }
-
-    private int subPageIdx(int allocationsCapacityIdx)
-    {
-        return allocationsCapacityIdx ^ subPageIdxMask;
     }
 
     @Override
@@ -291,5 +249,17 @@ public abstract class ChunkImpl<T> implements Chunk<T>
     public int pageSize()
     {
         return pageSize;
+    }
+
+    class MemoryTreeNode<T>
+    {
+        int           avail;
+        MemoryArea<T> memoryArea;
+
+        public MemoryTreeNode(int avail, MemoryArea<T> memoryArea)
+        {
+            this.avail = avail;
+            this.memoryArea = memoryArea;
+        }
     }
 }

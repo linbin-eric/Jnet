@@ -2,7 +2,6 @@ package com.jfirer.jnet.common.buffer.arena.impl;
 
 import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.arena.Chunk;
-import com.jfirer.jnet.common.buffer.arena.SubPage;
 import com.jfirer.jnet.common.buffer.buffer.PooledBuffer;
 import com.jfirer.jnet.common.buffer.buffer.impl.AbstractBuffer;
 import com.jfirer.jnet.common.util.CapacityStat;
@@ -11,12 +10,12 @@ import com.jfirer.jnet.common.util.ReflectUtil;
 
 public abstract class AbstractArena<T> implements Arena<T>
 {
+    //二叉树最左叶子节点的下标值。该值与叶子节点下标相与，可快速得到叶子节点对应的SubPage对象，在SubPage[]中的下标值。
+    protected final int          subPageIdxMask;
     final           int          pageSize;
     final           int          pageSizeShift;
     final           int          maxLevel;
     final           int          subpageOverflowMask;
-    //二叉树最左叶子节点的下标值。该值与叶子节点下标相与，可快速得到叶子节点对应的SubPage对象，在SubPage[]中的下标值。
-    protected final int          subPageIdxMask;
     final           int          chunkSize;
     final           int          smallestMask = ~15;
     final           ChunkList<T> c000;
@@ -25,13 +24,13 @@ public abstract class AbstractArena<T> implements Arena<T>
     final           ChunkList<T> c075;
     final           ChunkList<T> c100;
     final           ChunkList<T> cInt;
-    SubPageListNode[] subPageHeads;
+    SubPage<T>[] subPageHeads;
     /**
      * 统计相关
      **/
-    int               newChunkCount  = 0;
-    int               hugeChunkCount = 0;
-    String            name;
+    int          newChunkCount  = 0;
+    int          hugeChunkCount = 0;
+    String       name;
 
     @SuppressWarnings("unchecked")
     public AbstractArena(int maxLevel, int pageSize, final String name)
@@ -58,24 +57,16 @@ public abstract class AbstractArena<T> implements Arena<T>
         c050.setPrevList(c025);
         c025.setPrevList(c000);
         //从 16 开始，每一次右移都占据一个操作，直到 pagesize 大小
-        subPageHeads = new SubPageListNode[pageSizeShift - 4];
+        subPageHeads = new SubPage[pageSizeShift - 4];
         for (int i = 0; i < subPageHeads.length; i++)
         {
-            subPageHeads[i] = new SubPageListNode();
+            subPageHeads[i] = new SubPage<>();
         }
     }
 
     int smallIdx(int normalizeCapacity)
     {
         return MathUtil.log2(normalizeCapacity) - 4;
-    }
-
-    boolean isTiny(int normCapacity)
-    {
-        /**
-         * 0~511的数字大小
-         */
-        return (normCapacity & 0xFFFFFE00) == 0;
     }
 
     protected abstract Chunk<T> newChunk(int maxLevel, int pageSize);
@@ -97,28 +88,25 @@ public abstract class AbstractArena<T> implements Arena<T>
         int normalizeCapacity = normalizeCapacity(reqCapacity);
         if (isSmall(normalizeCapacity))
         {
-            SubPageListNode head = subPageHeads[smallIdx(normalizeCapacity)];
+            SubPage<T> head = subPageHeads[smallIdx(normalizeCapacity)];
             synchronized (head)
             {
-                SubPageListNode succeed = head.getNext();
+                SubPage<T> succeed = head.next;
                 if (succeed != head)
                 {
-                    long handle = succeed.getSubPage().allocate();
-                    initSubPageBuffer(handle, succeed, buffer);
-                    if (succeed.getSubPage().empty())
+                    initSubPageBuffer(succeed, buffer);
+                    if (succeed.empty())
                     {
                         removeFromArena(succeed);
                     }
                     return;
                 }
             }
-            SubPageListNode subPageProxy = allocateSubPage();
-            subPageProxy.getSubPage().reset(normalizeCapacity);
+            SubPage<T> subPage = allocateSubPage(normalizeCapacity);
             synchronized (head)
             {
-                addToArena(subPageProxy, head);
-                long allocate = subPageProxy.getSubPage().allocate();
-                initSubPageBuffer(allocate, subPageProxy, buffer);
+                addToArena(subPage, head);
+                initSubPageBuffer(subPage, buffer);
             }
         }
         else if (normalizeCapacity <= chunkSize)
@@ -131,23 +119,23 @@ public abstract class AbstractArena<T> implements Arena<T>
         }
     }
 
-    private void removeFromArena(SubPageListNode subPageProxy)
+    private void removeFromArena(SubPage<T> subPage)
     {
-        SubPageListNode prev = subPageProxy.getPrev();
-        SubPageListNode next = subPageProxy.getNext();
-        prev.setNext(next);
-        next.setPrev(prev);
-        subPageProxy.setPrev(null);
-        subPageProxy.setNext(null);
+        SubPage<T> prev = subPage.prev;
+        SubPage<T> next = subPage.next;
+        prev.next = next;
+        next.prev = prev;
+        subPage.prev = null;
+        subPage.next = null;
     }
 
-    private void addToArena(SubPageListNode subPageProxy, SubPageListNode head)
+    private void addToArena(SubPage<T> subPage, SubPage<T> head)
     {
-        SubPageListNode next = head.getNext();
-        head.setNext(subPageProxy);
-        subPageProxy.setNext(next);
-        next.setPrev(subPageProxy);
-        subPageProxy.setPrev(head);
+        SubPage next = head.next;
+        head.next = subPage;
+        subPage.next = next;
+        next.prev = subPage;
+        subPage.prev = head;
     }
 
     private int bitmapIdx(long handle)
@@ -155,12 +143,13 @@ public abstract class AbstractArena<T> implements Arena<T>
         return ((int) (handle >>> 32)) & 0x3FFFFFFF;
     }
 
-    private void initSubPageBuffer(long handle, SubPageListNode subPageListNode, PooledBuffer<T> buffer)
+    private void initSubPageBuffer(SubPage<T> subPage, PooledBuffer<T> buffer)
     {
-        int allocationsCapacityIdx = allocationsCapacityIdx(handle);
-        int bitmapIdx              = bitmapIdx(handle);
-        int offset                 = calcuteOffset(allocationsCapacityIdx) + bitmapIdx * subPageListNode.getSubPage().elementSize();
-        buffer.init(this, subPageListNode.getChunkListNode(), subPageListNode.getSubPage().chunk(), subPageListNode.getSubPage().elementSize(), offset, handle);
+        long handle                 = subPage.allocate();
+        int  allocationsCapacityIdx = allocationsCapacityIdx(handle);
+        int  bitmapIdx              = bitmapIdx(handle);
+        int  offset                 = calcuteOffset(allocationsCapacityIdx) + bitmapIdx * subPage.elementSize();
+        buffer.init(this, subPage.getChunkListNode(), subPage.chunk(), subPage.elementSize(), offset, handle);
     }
 
     private int calcuteOffset(int allocationsCapacityIdx)
@@ -189,22 +178,22 @@ public abstract class AbstractArena<T> implements Arena<T>
         return allocationsCapacityIdx ^ subPageIdxMask;
     }
 
-    private synchronized SubPageListNode allocateSubPage()
+    private synchronized SubPage<T> allocateSubPage(int normalizeCapacity)
     {
-        SubPageListNode subPageProxy;
-        if ((subPageProxy = c050.allocateSubpage()) != null //
-            || (subPageProxy = c025.allocateSubpage()) != null//
-            || (subPageProxy = c000.allocateSubpage()) != null//
-            || (subPageProxy = cInt.allocateSubpage()) != null//
-            || (subPageProxy = c075.allocateSubpage()) != null)
+        SubPage<T> subPage;
+        if ((subPage = c050.allocateSubpage(normalizeCapacity)) != null //
+            || (subPage = c025.allocateSubpage(normalizeCapacity)) != null//
+            || (subPage = c000.allocateSubpage(normalizeCapacity)) != null//
+            || (subPage = cInt.allocateSubpage(normalizeCapacity)) != null//
+            || (subPage = c075.allocateSubpage(normalizeCapacity)) != null)
         {
-            return subPageProxy;
+            return subPage;
         }
         Chunk<T> chunk = newChunk(maxLevel, pageSize);
         cInt.add(new ChunkListNode<>(cInt, chunk));
         newChunkCount++;
-        subPageProxy = cInt.allocateSubpage();
-        return subPageProxy;
+        subPage = cInt.allocateSubpage(normalizeCapacity);
+        return subPage;
     }
 
     private synchronized void allocateNormal(int normalizeCapacity, PooledBuffer<T> buffer)
@@ -226,7 +215,7 @@ public abstract class AbstractArena<T> implements Arena<T>
     @Override
     public void reAllocate(ChunkListNode<T> oldChunkListNode, PooledBuffer<T> buf, int newReqCapacity)
     {
-        AbstractBuffer<T> buffer       = (AbstractBuffer) buf;
+        AbstractBuffer<T> buffer       = (AbstractBuffer<T>) buf;
         Chunk<T>          oldChunk     = buf.chunk();
         long              oldHandle    = buf.handle();
         int               oldReadPosi  = buffer.getReadPosi();
@@ -279,25 +268,24 @@ public abstract class AbstractArena<T> implements Arena<T>
         {
             if (isSmall(capacity))
             {
-                SubPageListNode head = subPageHeads[smallIdx(capacity)];
+                SubPage<T> head = subPageHeads[smallIdx(capacity)];
                 synchronized (head)
                 {
-                    SubPageListNode subPageListNode = chunkListNode.find(subPageIdx((int) handle));
-                    SubPage         subPage         = subPageListNode.getSubPage();
+                    SubPage<T> subPage = chunkListNode.find(subPageIdx((int) handle));
                     subPage.free(bitmapIdx(handle));
                     if (subPage.oneAvail())
                     {
-                        addToArena(subPageListNode, head);
+                        addToArena(subPage, head);
                     }
                     else if (subPage.allAvail())
                     {
-                        if (subPageListNode.getNext() == head && subPageListNode.getPrev() == head)
+                        if (subPage.next == head && subPage.prev == head)
                         {
                             ;
                         }
                         else
                         {
-                            removeFromArena(subPageListNode);
+                            removeFromArena(subPage);
                             synchronized (this)
                             {
                                 chunkListNode.getParent().free(chunkListNode, (int) handle);

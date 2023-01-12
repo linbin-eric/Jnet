@@ -1,32 +1,44 @@
 package com.jfirer.jnet.common.buffer.arena.impl;
 
 import com.jfirer.jnet.common.buffer.arena.Chunk;
-import com.jfirer.jnet.common.buffer.arena.SubPage;
 import com.jfirer.jnet.common.util.ReflectUtil;
 
-public class SubPageImpl<T> implements SubPage
+public class SubPage<T>
 {
-    final Chunk<T> chunk;
-    final int      pageSize;
-    final int      handle;
-    final int      offset;
-    final int      index;
-    int    elementSize;
-    long[] bitMap;
-    int    bitMapLength;
-    int    nextAvail;
-    int    maxNumAvail;
-    int    numAvail;
+    final         int              pageSize;
+    final         int              handle;
+    final         int              offset;
+    final         int              index;
+    final         long[]           bitMap;
+    private final ChunkListNode<T> node;
+    int        elementSize;
+    int        bitMapLength;
+    int        nextAvail;
+    int        maxNumAvail;
+    int        numAvail;
+    SubPage<T> prev;
+    SubPage<T> next;
 
-    public SubPageImpl(Chunk<T> chunk, int pageSize, int handle, int offset)
+    public SubPage(ChunkListNode<T> node, int pageSize, int handle, int offset)
     {
-        this.chunk = chunk;
+        this.node = node;
         this.handle = handle;
         this.offset = offset;
         this.pageSize = pageSize;
-        index = handle ^ (1 << chunk.maxLevle());
+        index = handle ^ (1 << node.getChunk().maxLevle());
         // elementSize最小是16。一个long可以表达64个元素
         bitMap = new long[pageSize >> 4 >> 6];
+    }
+
+    public SubPage()
+    {
+        pageSize = 0;
+        handle = 0;
+        offset = 0;
+        index = 0;
+        bitMap = null;
+        node = null;
+        prev = next = this;
     }
 
     public void reset(int elementSize)
@@ -37,7 +49,6 @@ public class SubPageImpl<T> implements SubPage
         bitMapLength = (maxNumAvail & 63) == 0 ? maxNumAvail >>> 6 : (maxNumAvail >>> 6) + 1;
     }
 
-    @Override
     public long allocate()
     {
         if (numAvail == 0)
@@ -91,7 +102,6 @@ public class SubPageImpl<T> implements SubPage
         return 0x4000000000000000L | ((long) bitmapIdx << 32) | (handle);
     }
 
-    @Override
     public void free(int bitmapIdx)
     {
         nextAvail = bitmapIdx;
@@ -101,51 +111,53 @@ public class SubPageImpl<T> implements SubPage
         numAvail++;
     }
 
-    @Override
     public Chunk<T> chunk()
     {
-        return chunk;
+        return node.getChunk();
     }
 
-    @Override
     public int handle()
     {
         return handle;
     }
 
-    @Override
     public int index()
     {
         return index;
     }
 
-    @Override
     public boolean empty()
     {
         return numAvail == 0;
     }
 
-    @Override
     public boolean allAvail()
     {
         return numAvail == maxNumAvail;
     }
 
-    @Override
     public boolean oneAvail()
     {
         return numAvail == 1;
     }
 
-    @Override
     public int elementSize()
     {
         return elementSize;
     }
 
-    @Override
     public int numOfAvail()
     {
         return numAvail;
+    }
+
+    public ChunkListNode<T> getChunkListNode()
+    {
+        return node;
+    }
+
+    public SubPage<T> getNext()
+    {
+        return next;
     }
 }

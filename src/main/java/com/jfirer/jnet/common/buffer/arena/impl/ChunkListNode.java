@@ -1,43 +1,47 @@
 package com.jfirer.jnet.common.buffer.arena.impl;
 
 import com.jfirer.jnet.common.buffer.arena.Chunk;
-import com.jfirer.jnet.common.buffer.arena.SubPage;
 
-public class ChunkListNode<T>
+public class ChunkListNode<T> implements Chunk<T>
 {
-    private       ChunkList<T>      parent;
-    private       ChunkListNode<T>  prev;
-    private       ChunkListNode<T>  next;
-    private final SubPageListNode[] subPageListNodes;
-    private final Chunk<T>          chunk;
+    private final SubPage<T>[]     subPages;
+    private final Chunk<T>         delegation;
+    private final int              pageSize;
+    private final int              subPageIdxMask;
+    private       ChunkList<T>     parent;
+    private       ChunkListNode<T> prev;
+    private       ChunkListNode<T> next;
 
     public ChunkListNode(ChunkList<T> parent, Chunk<T> chunk)
     {
         this.parent = parent;
-        this.chunk = chunk;
-        subPageListNodes = new SubPageListNode[1 << chunk.maxLevle()];
+        delegation = chunk;
+        pageSize = chunk.pageSize();
+        subPageIdxMask = 1 << chunk.maxLevle();
+        subPages = new SubPage[1 << chunk.maxLevle()];
     }
 
-    public SubPageListNode exchange(SubPage subPage)
+    public SubPage<T> allocateSubPage(int normalizeCapacity)
     {
-        int             index           = subPage.index();
-        SubPageListNode subPageListNode = subPageListNodes[index];
-        if (subPageListNode == null)
+        MemoryArea<T> memoryArea = delegation.allocate(pageSize);
+        int           subPageIdx = subPageIdx(memoryArea.handle());
+        SubPage<T>    subPage    = subPages[subPageIdx];
+        if (subPage == null)
         {
-            subPageListNode = new SubPageListNode(subPage, this);
-            subPageListNodes[index] = subPageListNode;
+            subPages[subPageIdx] = subPage = new SubPage<T>(this, pageSize, memoryArea.handle(), memoryArea.offset());
         }
-        return subPageListNode;
+        subPage.reset(normalizeCapacity);
+        return subPage;
     }
 
-    public SubPageListNode find(int index)
+    private int subPageIdx(int allocationsCapacityIdx)
     {
-        SubPageListNode subPageListNode = subPageListNodes[index];
-        if (subPageListNode == null)
-        {
-            throw new IllegalStateException("不应该为空");
-        }
-        return subPageListNode;
+        return allocationsCapacityIdx ^ subPageIdxMask;
+    }
+
+    public SubPage<T> find(int subPageIdx)
+    {
+        return subPages[subPageIdx];
     }
 
     public ChunkList<T> getParent()
@@ -72,6 +76,66 @@ public class ChunkListNode<T>
 
     public Chunk<T> getChunk()
     {
-        return chunk;
+        return delegation;
+    }
+
+    @Override
+    public int usage()
+    {
+        return delegation.usage();
+    }
+
+    @Override
+    public int getFreeBytes()
+    {
+        return delegation.getFreeBytes();
+    }
+
+    @Override
+    public int getChunkSize()
+    {
+        return delegation.getChunkSize();
+    }
+
+    @Override
+    public int pageSize()
+    {
+        return delegation.pageSize();
+    }
+
+    @Override
+    public int maxLevle()
+    {
+        return delegation.maxLevle();
+    }
+
+    @Override
+    public MemoryArea<T> allocate(int normalizeCapacity)
+    {
+        return delegation.allocate(normalizeCapacity);
+    }
+
+    @Override
+    public void free(int handle)
+    {
+        delegation.free(handle);
+    }
+
+    @Override
+    public T memory()
+    {
+        return delegation.memory();
+    }
+
+    @Override
+    public long directChunkAddress()
+    {
+        return delegation.directChunkAddress();
+    }
+
+    @Override
+    public boolean isUnPooled()
+    {
+        return delegation.isUnPooled();
     }
 }

@@ -2,7 +2,6 @@ package com.jfirer.jnet.common.buffer.arena.impl;
 
 import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.arena.Chunk;
-import com.jfirer.jnet.common.buffer.arena.SubPage;
 import com.jfirer.jnet.common.buffer.buffer.PooledBuffer;
 import com.jfirer.jnet.common.util.CapacityStat;
 
@@ -80,7 +79,7 @@ public class ChunkList<T>
         return false;
     }
 
-    public SubPageListNode allocateSubpage()
+    public SubPage<T> allocateSubpage(int normalizeCapacity)
     {
         if (head == null)
         {
@@ -89,16 +88,16 @@ public class ChunkList<T>
         ChunkListNode<T> node = head;
         do
         {
-            SubPage subPage = node.getChunk().allocateSubpage();
+            SubPage subPage = node.allocateSubPage(normalizeCapacity);
             if (subPage != null)
             {
-                int usage = node.getChunk().usage();
+                int usage = node.usage();
                 if (usage > maxUsage)
                 {
                     remove(node);
                     nextList.addFromPrev(node, usage);
                 }
-                return node.exchange(subPage);
+                return subPage;
             }
         }
         while ((node = node.getNext()) != null);
