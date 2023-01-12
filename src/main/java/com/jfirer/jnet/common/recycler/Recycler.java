@@ -9,8 +9,9 @@ import java.lang.ref.WeakReference;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
-public abstract class Recycler<T>
+public class Recycler<T>
 {
     public static final AtomicInteger                               IDGENERATOR                 = new AtomicInteger(0);
     public static final int                                         recyclerId                  = IDGENERATOR.getAndIncrement();
@@ -21,31 +22,12 @@ public abstract class Recycler<T>
     // Stack最多可以在延迟队列中存放的个数
     public static final int                                         MAX_SHARED_CAPACITY         = Math.max(SystemPropertyUtil.getInt("io.jnet.recycler.maxSharedCapacity", 0), MAX_CACHE_INSTANCE_CAPACITY);
     public static final int                                         LINK_SIZE                   = Math.max(SystemPropertyUtil.getInt("io.jnet.recycler.linSize", 0), 1024);
-    final               FastThreadLocal<Map<Stack, WeakOrderQueue>> delayQueues                 = new FastThreadLocal<Map<Stack, WeakOrderQueue>>()
-    {
-        @Override
-        protected java.util.Map<Stack, WeakOrderQueue> initializeValue()
-        {
-            return new WeakHashMap<>();
-        }
-
-        ;
-    };
-    final               FastThreadLocal<Stack>                      currentStack                = new FastThreadLocal<Stack>()
-    {
-        @Override
-        protected Stack initializeValue()
-        {
-            return new Stack();
-        }
-
-        ;
-    };
+    final               FastThreadLocal<Map<Stack, WeakOrderQueue>> delayQueues                 = FastThreadLocal.withInitializeValue(() -> new WeakHashMap<>());
+    final               FastThreadLocal<Stack>                      currentStack                = FastThreadLocal.withInitializeValue(() -> new Stack());
     final               long                                        LINK_NEXT_OFFSET            = UNSAFE.getFieldOffset("next", Link.class);
     private final       WeakOrderQueue                              DUMMY                       = new WeakOrderQueue();
     private final       RecycleHandler                              NO_OP                       = new RecycleHandler()
     {
-
         @Override
         public void recycle(Object value)
         {
@@ -57,21 +39,20 @@ public abstract class Recycler<T>
     private             int                                         maxDelayQueueNum;
     private             int                                         linkSize;
     private             int                                         maxSharedCapacity;
+    protected           Function<Function<T, RecycleHandler<T>>, T> function;
 
-    public Recycler()
+    public Recycler(Function<Function<T, RecycleHandler<T>>, T> function)
     {
-        maxCachedInstanceCapacity = MAX_CACHE_INSTANCE_CAPACITY;
-        maxDelayQueueNum = MAX_DELAY_QUEUE_NUM;
-        linkSize = LINK_SIZE;
-        maxSharedCapacity = MAX_SHARED_CAPACITY;
+        this(MAX_CACHE_INSTANCE_CAPACITY, MAX_DELAY_QUEUE_NUM, LINK_SIZE, MAX_SHARED_CAPACITY, function);
     }
 
-    public Recycler(int maxCachedInstanceCapcity, int maxDelayQueueNum, int linkSize, int maxShadCapacity)
+    public Recycler(int maxCachedInstanceCapcity, int maxDelayQueueNum, int linkSize, int maxShadCapacity, Function<Function<T, RecycleHandler<T>>, T> function)
     {
         this.maxCachedInstanceCapacity = maxCachedInstanceCapcity;
         this.maxDelayQueueNum = maxDelayQueueNum;
         this.linkSize = linkSize;
         this.maxSharedCapacity = maxShadCapacity;
+        this.function = function;
     }
 
     /**
@@ -102,29 +83,29 @@ public abstract class Recycler<T>
             {
                 return false;
             }
-        } while (availableSharedCapacity.compareAndSet(now, now - space) == false);
+        }
+        while (availableSharedCapacity.compareAndSet(now, now - space) == false);
         return true;
     }
-
-    protected abstract T newObject(RecycleHandler handler);
+//    protected abstract T newObject(Function<T, RecycleHandler> function);
 
     @SuppressWarnings("unchecked")
     public T get()
     {
         if (maxCachedInstanceCapacity == 0)
         {
-            return newObject(NO_OP);
+            return function.apply((Function<T, RecycleHandler<T>>) (T t) -> NO_OP);
         }
         Stack          stack = currentStack.get();
         DefaultHandler pop   = stack.pop();
         if (pop == null)
         {
-            pop = new DefaultHandler();
-            T instance = newObject(pop);
-            pop.value = instance;
+            return function.apply((Function<T, RecycleHandler<T>>) (T t) -> new DefaultHandler(t, stack));
         }
-        pop.stack = stack;
-        return (T) pop.value;
+        else
+        {
+            return (T) pop.value;
+        }
     }
 
     class Stack
@@ -178,7 +159,7 @@ public abstract class Recycler<T>
             posi -= 1;
             DefaultHandler result = (DefaultHandler) buffer[posi];
             buffer[posi] = null;
-            if (result.lastRecycleId != result.lastRecycleId)
+            if (result.recyclerId != result.lastRecycleId)
             {
                 throw new IllegalStateException("对象被回收了多次");
             }
@@ -251,7 +232,8 @@ public abstract class Recycler<T>
                 {
                     cursor = cursor.next;
                 }
-            } while (anchor != cursor);
+            }
+            while (anchor != cursor);
         }
 
         void push(DefaultHandler handler)
@@ -319,10 +301,28 @@ public abstract class Recycler<T>
 
     class DefaultHandler implements RecycleHandler
     {
-        int    recyclerId;
-        int    lastRecycleId;
-        Object value;
-        Stack  stack;
+        /**
+         * 当handler被所属的stack回收的时候，被赋值。赋值的情况有三：
+         * 1、handler被所属的stack的线程回收，被赋予一个全局固定的非0值，此时与lastRecycled相等。
+         * 2、handler被其他线程回收。在触发转移到所属stack的时候，被赋值lastRecycleId的值。
+         * 3、缓存对象被提供出去使用时，赋值0.
+         */
+        int recyclerId;
+        /**
+         * 当handler触发回收的时候，该属性总是被赋值。可能被赋值的情况有三：
+         * 1、handler被所属的stack的线程回收，则被赋予一个全局固定的非0值。
+         * 2、handler被其他线程回收，则被赋予其他线程中与该stack关联的weakOrderQueue的id值。
+         * 3、缓存对象被提供出去使用时，赋值0.
+         */
+        int lastRecycleId;
+        final Object               value;
+        final WeakReference<Stack> stackRef;
+
+        public DefaultHandler(Object value, Stack stack)
+        {
+            this.value = value;
+            this.stackRef = new WeakReference<>(stack);
+        }
 
         @Override
         public void recycle(Object value)
@@ -331,7 +331,11 @@ public abstract class Recycler<T>
             {
                 throw new IllegalArgumentException("非法回收，回收对象不是之前申请出来的对象");
             }
-            stack.push(this);
+            Stack stack = stackRef.get();
+            if (stack != null)
+            {
+                stack.push(this);
+            }
         }
     }
 
@@ -452,7 +456,8 @@ public abstract class Recycler<T>
                         cursor = next;
                     }
                 }
-            } while (true);
+            }
+            while (true);
         }
     }
 
@@ -472,7 +477,7 @@ public abstract class Recycler<T>
         public void put(RecycleHandler handler, int write)
         {
             buffer[write] = handler;
-            ((DefaultHandler) handler).stack = null;
+//            ((DefaultHandler) handler).stackRef = null;
             lazySet(write + 1);
         }
 

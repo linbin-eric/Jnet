@@ -8,16 +8,12 @@ import com.jfirer.jnet.common.recycler.Recycler;
 public class SliceHeapBuffer extends AbstractHeapBuffer implements SliceBuffer
 {
     AbstractBuffer parent;
-    static final Recycler<SliceHeapBuffer> RECYCLER = new Recycler<SliceHeapBuffer>()
-    {
-        @Override
-        protected SliceHeapBuffer newObject(RecycleHandler handler)
-        {
-            SliceHeapBuffer buffer = new SliceHeapBuffer();
-            buffer.recycleHandler = handler;
-            return buffer;
-        }
-    };
+    private      RecycleHandler<SliceHeapBuffer> sliceRecycleHandler;
+    static final Recycler<SliceHeapBuffer>       RECYCLER = new Recycler<>(recycleHandlerFunction -> {
+        SliceHeapBuffer buffer = new SliceHeapBuffer();
+        buffer.sliceRecycleHandler = recycleHandlerFunction.apply(buffer);
+        return buffer;
+    });
 
     @Override
     protected long getAddress(byte[] memory)
@@ -35,6 +31,7 @@ public class SliceHeapBuffer extends AbstractHeapBuffer implements SliceBuffer
     protected void free0(int capacity)
     {
         parent.free();
+        sliceRecycleHandler.recycle(this);
     }
 
     @Override
@@ -54,7 +51,6 @@ public class SliceHeapBuffer extends AbstractHeapBuffer implements SliceBuffer
         slice.parent = buffer;
         slice.init(buffer.memory, length, buffer.readPosi + buffer.offset);
         slice.addWritePosi(length);
-//        slice.init(buffer.memory, length, 0, length, buffer.readPosi + buffer.offset);
         buffer.addReadPosi(length);
         return slice;
     }

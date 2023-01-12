@@ -10,16 +10,12 @@ import java.nio.ByteBuffer;
 public class SliceDirectBuffer extends AbstractDirectBuffer implements SliceBuffer
 {
     AbstractBuffer parent;
-    static final Recycler<SliceDirectBuffer> RECYCLER = new Recycler<SliceDirectBuffer>()
-    {
-        @Override
-        protected SliceDirectBuffer newObject(RecycleHandler handler)
-        {
-            SliceDirectBuffer buffer = new SliceDirectBuffer();
-            buffer.recycleHandler = handler;
-            return buffer;
-        }
-    };
+    private      RecycleHandler<SliceDirectBuffer> sliceRecycleHandler;
+    static final Recycler<SliceDirectBuffer>       RECYCLER = new Recycler<>(function -> {
+        SliceDirectBuffer buffer = new SliceDirectBuffer();
+        buffer.sliceRecycleHandler = function.apply(buffer);
+        return buffer;
+    });
 
     @Override
     protected long getAddress(ByteBuffer memory)
@@ -37,6 +33,7 @@ public class SliceDirectBuffer extends AbstractDirectBuffer implements SliceBuff
     protected void free0(int capacity)
     {
         parent.free();
+        sliceRecycleHandler.recycle(this);
     }
 
     @Override
@@ -54,7 +51,6 @@ public class SliceDirectBuffer extends AbstractDirectBuffer implements SliceBuff
         buffer.incrRef();
         SliceDirectBuffer slice = RECYCLER.get();
         slice.parent = buffer;
-//        slice.init(buffer.memory, length, 0, length, buffer.readPosi + buffer.offset);
         slice.init(buffer.memory, length, buffer.offset + buffer.readPosi);
         slice.addWritePosi(length);
         buffer.addReadPosi(length);

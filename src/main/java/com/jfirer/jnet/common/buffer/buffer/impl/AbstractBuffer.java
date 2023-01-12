@@ -422,11 +422,6 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
         }
         free0(capacity);
         memory = null;
-//        address = offset = capacity = readPosi = writePosi = 0;
-//        if (recycleHandler != null)
-//        {
-//            recycleHandler.recycle(this);
-//        }
     }
 
     protected abstract void free0(int capacity);

@@ -14,7 +14,6 @@ public class FastThreadLocalTest
     volatile boolean                 fail  = false;
     private  FastThreadLocal<String> local = new FastThreadLocal<String>()
     {
-        @Override
         protected String initializeValue()
         {
             return instance;

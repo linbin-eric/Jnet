@@ -1,6 +1,7 @@
 package com.jfirer.jnet.common.api;
 
 import java.nio.channels.ClosedChannelException;
+import java.nio.channels.ShutdownChannelGroupException;
 
 public interface ReadProcessor<T>
 {
@@ -25,7 +26,7 @@ public interface ReadProcessor<T>
         @Override
         public void exceptionCatch(Throwable e, ReadProcessorNode next)
         {
-            if (e instanceof ClosedChannelException == false)
+            if (e instanceof ClosedChannelException == false || e instanceof ShutdownChannelGroupException == false)
             {
                 e.printStackTrace();
             }

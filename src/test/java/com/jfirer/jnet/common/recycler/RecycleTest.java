@@ -17,12 +17,12 @@ import static org.junit.Assert.*;
 
 public class RecycleTest
 {
-
     Recycler<Entry> recycler;
     private Field recycleIdField;
     private Field lastRecycleIdField;
     private Field currentStackField;
     private Field sharedCapacityField;
+
     public RecycleTest()
     {
         try
@@ -35,7 +35,8 @@ public class RecycleTest
             currentStackField.setAccessible(true);
             sharedCapacityField = Recycler.Stack.class.getDeclaredField("sharedCapacity");
             sharedCapacityField.setAccessible(true);
-        } catch (NoSuchFieldException | SecurityException e)
+        }
+        catch (NoSuchFieldException | SecurityException e)
         {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -45,17 +46,11 @@ public class RecycleTest
     @Before
     public void before()
     {
-        recycler = new Recycler<Entry>()
-        {
-
-            @Override
-            protected Entry newObject(RecycleHandler handler)
-            {
-                Entry entry = new Entry();
-                entry.handler = handler;
-                return entry;
-            }
-        };
+        recycler = new Recycler<Entry>(entryRecycleHandlerFunction -> {
+            Entry entry = new Entry();
+            entry.handler = entryRecycleHandlerFunction.apply(entry);
+            return entry;
+        });
     }
 
     @Test
@@ -113,7 +108,8 @@ public class RecycleTest
         try
         {
             entry2.handler.recycle(entry2);
-        } catch (Exception e)
+        }
+        catch (Exception e)
         {
             assertTrue(e instanceof IllegalStateException);
         }
@@ -131,14 +127,14 @@ public class RecycleTest
         final CountDownLatch latch = new CountDownLatch(1);
         new FastThreadLocalThread(new Runnable()
         {
-
             @Override
             public void run()
             {
                 try
                 {
                     entry.handler.recycle(entry);
-                } finally
+                }
+                finally
                 {
                     latch.countDown();
                 }
@@ -149,7 +145,7 @@ public class RecycleTest
         assertTrue(entry == entry2);
         entry2.handler.recycle(entry2);
         Entry entry3 = recycler.get();
-        assertTrue(entry2==entry3);
+        assertTrue(entry2 == entry3);
     }
 
     /**
@@ -173,7 +169,6 @@ public class RecycleTest
         final CountDownLatch latch2 = new CountDownLatch(1);
         new FastThreadLocalThread(new Runnable()
         {
-
             @Override
             public void run()
             {
@@ -185,10 +180,12 @@ public class RecycleTest
                         entry.handler.recycle(entry);
                     }
                     another.handler.recycle(another);
-                } catch (IllegalArgumentException | InterruptedException e)
+                }
+                catch (IllegalArgumentException | InterruptedException e)
                 {
                     e.printStackTrace();
-                } finally
+                }
+                finally
                 {
                     latch.countDown();
                 }
@@ -213,8 +210,8 @@ public class RecycleTest
     @SuppressWarnings({"unchecked", "rawtypes"})
     private AtomicInteger getShareCapacity() throws IllegalAccessException
     {
-        FastThreadLocal<Recycler.Stack> object = (FastThreadLocal<Recycler.Stack>) currentStackField.get(recycler);
-        Recycler.Stack                  stack  = object.get();
+        FastThreadLocal<Recycler.Stack> object        = (FastThreadLocal<Recycler.Stack>) currentStackField.get(recycler);
+        Recycler.Stack                  stack         = object.get();
         AtomicInteger                   shareCapacity = (AtomicInteger) sharedCapacityField.get(stack);
         return shareCapacity;
     }
@@ -246,14 +243,14 @@ public class RecycleTest
         {
             new FastThreadLocalThread(new Runnable()
             {
-
                 @Override
                 public void run()
                 {
                     try
                     {
                         barrier.await();
-                    } catch (InterruptedException | BrokenBarrierException e)
+                    }
+                    catch (InterruptedException | BrokenBarrierException e)
                     {
                         e.printStackTrace();
                     }
@@ -296,7 +293,6 @@ public class RecycleTest
         final CountDownLatch latch = new CountDownLatch(1);
         new Thread(new Runnable()
         {
-
             @Override
             public void run()
             {

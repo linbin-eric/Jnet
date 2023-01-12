@@ -100,22 +100,8 @@ public class PooledBufferAllocator implements BufferAllocator
 //    };
     record ArenaUseCount(AtomicInteger use, Arena<?> arena) {}
 
-    protected final FastThreadLocal<DirectArena> directArenaFastThreadLocal = new FastThreadLocal<DirectArena>()
-    {
-        @Override
-        protected DirectArena initializeValue()
-        {
-            return (DirectArena) leastUseArena(directArenaUseCount);
-        }
-    };
-    protected final FastThreadLocal<HeapArena>   heapArenaFastThreadLocal   = new FastThreadLocal<>()
-    {
-        @Override
-        protected HeapArena initializeValue()
-        {
-            return (HeapArena) leastUseArena(heapArenaUseCount);
-        }
-    };
+    protected final FastThreadLocal<DirectArena> directArenaFastThreadLocal = FastThreadLocal.withInitializeValue(() -> (DirectArena) leastUseArena(directArenaUseCount));
+    protected final FastThreadLocal<HeapArena>   heapArenaFastThreadLocal   = FastThreadLocal.withInitializeValue(() -> (HeapArena) leastUseArena(heapArenaUseCount));
 
     public PooledBufferAllocator(String name)
     {

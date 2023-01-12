@@ -1,12 +1,21 @@
 package com.jfirer.jnet.common.thread;
 
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 public class FastThreadLocal<T>
 {
     // 下标0用作特殊用途，暂时保留
     static final  AtomicInteger IDGENERATOR = new AtomicInteger(1);
     private final int           idx         = IDGENERATOR.getAndIncrement();
+    private       Supplier<T>   supplier    = () -> null;
+
+    public static <T> FastThreadLocal<T> withInitializeValue(Supplier<T> supplier)
+    {
+        FastThreadLocal<T> fastThreadLocal = new FastThreadLocal<>();
+        fastThreadLocal.supplier = supplier;
+        return fastThreadLocal;
+    }
 
     @SuppressWarnings("unchecked")
     public T get()
@@ -17,7 +26,7 @@ public class FastThreadLocal<T>
         {
             return result;
         }
-        result = initializeValue();
+        result = supplier.get();
         if (result == null)
         {
             return null;
@@ -27,16 +36,6 @@ public class FastThreadLocal<T>
             fastThreadLocalMap.set(result, idx);
             return result;
         }
-    }
-
-    /**
-     * 如果当前线程变量中没有这个值则调用该方法进行初始化
-     *
-     * @return
-     */
-    protected T initializeValue()
-    {
-        return null;
     }
 
     public void remove()
