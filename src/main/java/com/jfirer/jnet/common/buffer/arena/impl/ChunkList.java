@@ -71,7 +71,7 @@ public class ChunkList<T>
                     remove(node);
                     nextList.addFromPrev(node, usage);
                 }
-                buffer.init(arena, node, allocate.chunk(), allocate.capacity(), allocate.offset(), allocate.handle());
+                buffer.init(arena, node, allocate.capacity(), allocate.offset(), allocate.handle());
                 return true;
             }
         }

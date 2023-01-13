@@ -76,7 +76,7 @@ public abstract class AbstractArena<T> implements Arena<T>
     private void allocateHuge(int reqCapacity, PooledBuffer<T> buffer)
     {
         Chunk<T> chunk = newHugeChunk(reqCapacity);
-        buffer.init(this, null, chunk, reqCapacity, 0, 0);
+        buffer.init(this, new ChunkListNode<>(chunk), reqCapacity, 0, 0);
         hugeChunkCount++;
     }
 
@@ -149,7 +149,7 @@ public abstract class AbstractArena<T> implements Arena<T>
         int  allocationsCapacityIdx = allocationsCapacityIdx(handle);
         int  bitmapIdx              = bitmapIdx(handle);
         int  offset                 = calcuteOffset(allocationsCapacityIdx) + bitmapIdx * subPage.elementSize();
-        buffer.init(this, subPage.getChunkListNode(), subPage.chunk(), subPage.elementSize(), offset, handle);
+        buffer.init(this, subPage.getChunkListNode(), subPage.elementSize(), offset, handle);
     }
 
     private int calcuteOffset(int allocationsCapacityIdx)

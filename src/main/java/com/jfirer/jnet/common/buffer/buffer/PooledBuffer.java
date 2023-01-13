@@ -6,7 +6,7 @@ import com.jfirer.jnet.common.buffer.arena.impl.ChunkListNode;
 
 public interface PooledBuffer<T> extends IoBuffer<T>
 {
-    void init(Arena<T> arena, ChunkListNode<T> chunkListNode, Chunk<T> chunk, int capacity, int offset, long handle);
+    void init(Arena<T> arena, ChunkListNode<T> chunkListNode, int capacity, int offset, long handle);
 
     Chunk<T> chunk();
 

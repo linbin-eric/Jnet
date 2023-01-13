@@ -32,11 +32,11 @@ public class PooledDirectBuffer extends AbstractDirectBuffer implements PooledBu
     }
 
     @Override
-    public void init(Arena<ByteBuffer> arena, ChunkListNode<ByteBuffer> chunkListNode, Chunk<ByteBuffer> chunk, int capacity, int offset, long handle)
+    public void init(Arena<ByteBuffer> arena, ChunkListNode<ByteBuffer> chunkListNode, int capacity, int offset, long handle)
     {
         this.arena = (DirectArena) arena;
         this.chunkListNode = chunkListNode;
-        this.chunk = chunk;
+        this.chunk = chunkListNode.getChunk();
         this.handle = handle;
         init(chunk.memory(), capacity, offset);
     }
@@ -71,5 +71,4 @@ public class PooledDirectBuffer extends AbstractDirectBuffer implements PooledBu
         arena.free(chunkListNode, chunk, handle, capacity);
         recycleHandler.recycle(this);
     }
-
 }

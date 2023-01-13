@@ -30,11 +30,11 @@ public class PooledHeapBuffer extends AbstractHeapBuffer implements PooledBuffer
     }
 
     @Override
-    public void init(Arena<byte[]> arena, ChunkListNode<byte[]> chunkListNode, Chunk<byte[]> chunk, int capacity, int offset, long handle)
+    public void init(Arena<byte[]> arena, ChunkListNode<byte[]> chunkListNode, int capacity, int offset, long handle)
     {
         this.arena = (HeapArena) arena;
         this.chunkListNode = chunkListNode;
-        this.chunk = chunk;
+        this.chunk = chunkListNode.getChunk();
         this.handle = handle;
         init(chunk.memory(), capacity, offset);
     }

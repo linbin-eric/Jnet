@@ -21,8 +21,25 @@ public class ChunkListNode<T> implements Chunk<T>
         subPages = new SubPage[1 << chunk.maxLevle()];
     }
 
+    public ChunkListNode(Chunk<T> chunk)
+    {
+        if (chunk.isUnPooled() == false)
+        {
+            throw new IllegalArgumentException();
+        }
+        delegation = chunk;
+        parent = null;
+        pageSize = chunk.pageSize();
+        subPageIdxMask = 0;
+        subPages = null;
+    }
+
     public SubPage<T> allocateSubPage(int normalizeCapacity)
     {
+        if (delegation.isUnPooled())
+        {
+            throw new UnsupportedOperationException();
+        }
         MemoryArea<T> memoryArea = delegation.allocate(pageSize);
         int           subPageIdx = subPageIdx(memoryArea.handle());
         SubPage<T>    subPage    = subPages[subPageIdx];
@@ -41,11 +58,19 @@ public class ChunkListNode<T> implements Chunk<T>
 
     public SubPage<T> find(int subPageIdx)
     {
+        if (delegation.isUnPooled())
+        {
+            throw new UnsupportedOperationException();
+        }
         return subPages[subPageIdx];
     }
 
     public ChunkList<T> getParent()
     {
+        if (delegation.isUnPooled())
+        {
+            throw new UnsupportedOperationException();
+        }
         return parent;
     }
 
@@ -56,11 +81,19 @@ public class ChunkListNode<T> implements Chunk<T>
 
     public ChunkListNode<T> getPrev()
     {
+        if (delegation.isUnPooled())
+        {
+            throw new UnsupportedOperationException();
+        }
         return prev;
     }
 
     public void setPrev(ChunkListNode<T> prev)
     {
+        if (delegation.isUnPooled())
+        {
+            throw new UnsupportedOperationException();
+        }
         this.prev = prev;
     }
 
