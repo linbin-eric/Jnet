@@ -7,8 +7,8 @@ import com.jfirer.jnet.common.api.WriteCompletionHandler;
 import com.jfirer.jnet.common.buffer.BufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.util.ChannelConfig;
-import com.jfirer.jnet.common.util.SpscLinkedQueue;
 import com.jfirer.jnet.common.util.UNSAFE;
+import org.jctools.queues.SpscLinkedQueue;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
