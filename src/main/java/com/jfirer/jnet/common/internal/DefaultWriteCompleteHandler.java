@@ -21,18 +21,18 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
     protected static final int                       SPIN_THRESHOLD = 16;
     protected static final int                       IDLE           = 1;
     protected static final int                       WORK           = 2;
-    protected final    AsynchronousSocketChannel socketChannel;
-    protected final    ChannelContext            channelContext;
-    protected final    BufferAllocator           allocator;
-    protected final    int                       maxWriteBytes;
+    protected final        AsynchronousSocketChannel socketChannel;
+    protected final        ChannelContext            channelContext;
+    protected final        BufferAllocator           allocator;
+    protected final        int                       maxWriteBytes;
     // 终止状态。进入该状态后，不再继续使用
     ////////////////////////////////////////////////////////////
-    protected volatile int                       state          = IDLE;
+    protected volatile     int                       state          = IDLE;
     //注意，不能使用JcTools下面的SpscQueue，其实现会出现当queue.isEmpty()==false时，queue.poll()返回null，导致程序异常
     //MpscQueue则是可以的。JDK的并发queue也是可以的
-    protected          Queue<IoBuffer>           queue          = new SpscLinkedQueue<>();
-    private            IoBuffer                  sendingData;
-    private            AtomicInteger             queueCapacity  = new AtomicInteger(0);
+    protected              Queue<IoBuffer>           queue          = new SpscLinkedQueue<>();
+    private                IoBuffer                  sendingData;
+    private                AtomicInteger             queueCapacity  = new AtomicInteger(0);
 
     public DefaultWriteCompleteHandler(ChannelContext channelContext)
     {

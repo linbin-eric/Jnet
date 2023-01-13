@@ -14,7 +14,6 @@ public class PooledDirectBuffer extends AbstractDirectBuffer implements PooledBu
 {
     protected DirectArena                        arena;
     protected ChunkListNode<ByteBuffer>          chunkListNode;
-    protected Chunk<ByteBuffer>                  chunk;
     protected long                               handle;
     protected RecycleHandler<PooledDirectBuffer> recycleHandler;
     static    Recycler<PooledDirectBuffer>       RECYCLER = new Recycler<>(function -> {
@@ -36,15 +35,14 @@ public class PooledDirectBuffer extends AbstractDirectBuffer implements PooledBu
     {
         this.arena = (DirectArena) arena;
         this.chunkListNode = chunkListNode;
-        this.chunk = chunkListNode.getChunk();
         this.handle = handle;
-        init(chunk.memory(), capacity, offset);
+        init(chunkListNode.memory(), capacity, offset);
     }
 
     @Override
     public Chunk<ByteBuffer> chunk()
     {
-        return chunk;
+        return chunkListNode;
     }
 
     @Override
@@ -56,7 +54,7 @@ public class PooledDirectBuffer extends AbstractDirectBuffer implements PooledBu
     @Override
     protected long getAddress(ByteBuffer memory)
     {
-        return chunk.directChunkAddress();
+        return chunkListNode.directChunkAddress();
     }
 
     @Override
@@ -68,7 +66,7 @@ public class PooledDirectBuffer extends AbstractDirectBuffer implements PooledBu
     @Override
     public void free0(int capacity)
     {
-        arena.free(chunkListNode, chunk, handle, capacity);
+        arena.free(chunkListNode, handle, capacity);
         recycleHandler.recycle(this);
     }
 }

@@ -9,5 +9,5 @@ public interface Arena<T>
 
     void reAllocate(ChunkListNode<T> chunkListNode, PooledBuffer<T> buf, int newReqCapacity);
 
-    void free(ChunkListNode<T> chunkListNode, Chunk<T> node, long handle, int capacity);
+    void free(ChunkListNode<T> chunkListNode, long handle, int capacity);
 }

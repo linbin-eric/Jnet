@@ -216,7 +216,6 @@ public abstract class AbstractArena<T> implements Arena<T>
     public void reAllocate(ChunkListNode<T> oldChunkListNode, PooledBuffer<T> buf, int newReqCapacity)
     {
         AbstractBuffer<T> buffer       = (AbstractBuffer<T>) buf;
-        Chunk<T>          oldChunk     = buf.chunk();
         long              oldHandle    = buf.handle();
         int               oldReadPosi  = buffer.getReadPosi();
         int               oldWritePosi = buffer.getWritePosi();
@@ -234,7 +233,7 @@ public abstract class AbstractArena<T> implements Arena<T>
         {
             ReflectUtil.throwException(new UnsupportedOperationException());
         }
-        free(oldChunkListNode, oldChunk, oldHandle, oldCapacity);
+        free(oldChunkListNode, oldHandle, oldCapacity);
     }
 
     protected abstract void memoryCopy(T src, int srcOffset, T desc, int destOffset, int oldWritePosi);
@@ -258,11 +257,11 @@ public abstract class AbstractArena<T> implements Arena<T>
     }
 
     @Override
-    public void free(ChunkListNode<T> chunkListNode, Chunk<T> chunk, long handle, int capacity)
+    public void free(ChunkListNode<T> chunkListNode, long handle, int capacity)
     {
-        if (chunk.isUnPooled())
+        if (chunkListNode.isUnPooled())
         {
-            destoryChunk(chunk);
+            destoryChunk(chunkListNode);
         }
         else
         {
