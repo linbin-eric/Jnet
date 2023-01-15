@@ -1,5 +1,6 @@
 package com.jfirer.jnet.common.buffer;
 
+import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.PooledBuffer;
 import com.jfirer.jnet.common.buffer.buffer.impl.AbstractBuffer;
 import org.junit.Test;
@@ -9,7 +10,7 @@ import static org.junit.Assert.assertNotEquals;
 
 public class ReAllocateTest
 {
-    PooledUnThreadCacheBufferAllocator allocator = new PooledUnThreadCacheBufferAllocator("test");
+    PooledBufferAllocator allocator = new PooledBufferAllocator("test");
 
     @Test
     public void test()

@@ -1,5 +1,6 @@
 package com.jfirer.jnet.common.buffer;
 
+import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.buffer.buffer.PooledBuffer;
 import org.junit.Test;
@@ -26,9 +27,9 @@ public class NormalAllocateTest
     private void test0(boolean direct)
     {
         List<IoBuffer> buffers = new LinkedList<>();
-        for (int i = allocator.maxLevel; i >= 0; i--)
+        for (int i = allocator.maxLevel(); i >= 0; i--)
         {
-            int levelSize = allocator.pagesize << (allocator.maxLevel - i);
+            int levelSize = allocator.pagesize() << (allocator.maxLevel() - i);
             int base      = 1 << i;
             for (int j = 0; j < 1 << i; j++)
             {
@@ -57,8 +58,8 @@ public class NormalAllocateTest
 
     private void test1(boolean preferDirect)
     {
-        int pagesize = allocator.pagesize;
-        int maxLevel = allocator.maxLevel;
+        int pagesize = allocator.pagesize();
+        int maxLevel = allocator.maxLevel();
         for (int i = maxLevel; i > 0; i--)
         {
             int             size   = pagesize << (maxLevel - i);

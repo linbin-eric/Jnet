@@ -1,5 +1,6 @@
 package com.jfirer.jnet.common.buffer;
 
+import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 import com.jfirer.jnet.common.buffer.arena.impl.AbstractArena;
 import com.jfirer.jnet.common.buffer.arena.impl.ChunkList;
 import com.jfirer.jnet.common.buffer.arena.impl.ChunkListNode;
@@ -61,9 +62,9 @@ public class SmallAllocateTest
 
     private void test0(boolean direct)
     {
-        int                pagesize     = allocator.pagesize;
+        int                pagesize     = allocator.pagesize();
         int                elementNum   = pagesize / reqCapacity;
-        int                numOfSubPage = 1 << allocator.maxLevel;
+        int                numOfSubPage = 1 << allocator.maxLevel();
         ChunkListNode<?>   chunk        = null;
         AbstractArena<?>   arena        = (AbstractArena<?>) allocator.currentArena(direct);
         Queue<IoBuffer<?>> buffers      = new LinkedList<>();

@@ -1,8 +1,8 @@
 package com.jfirer.jnet.common.util;
 
 import com.jfirer.jnet.common.api.WorkerGroup;
-import com.jfirer.jnet.common.buffer.BufferAllocator;
-import com.jfirer.jnet.common.buffer.PooledBufferAllocator;
+import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
+import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 import com.jfirer.jnet.common.internal.DefaultWorkerGroup;
 import com.jfirer.jnet.common.thread.FastThreadLocalThread;
 

@@ -2,7 +2,7 @@ package com.jfirer.jnet.common.decoder;
 
 import com.jfirer.jnet.common.api.ReadProcessor;
 import com.jfirer.jnet.common.api.ReadProcessorNode;
-import com.jfirer.jnet.common.buffer.BufferAllocator;
+import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 
 public abstract class AbstractDecoder implements ReadProcessor

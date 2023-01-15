@@ -1,5 +1,6 @@
 package com.jfirer.jnet.common.buffer;
 
+import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 import com.jfirer.jnet.common.buffer.arena.Chunk;
 import com.jfirer.jnet.common.buffer.arena.impl.AbstractArena;
 import com.jfirer.jnet.common.buffer.arena.impl.ChunkList;
@@ -32,7 +33,7 @@ public class ChunkListTest
 
     private void test0(boolean preferDirect)
     {
-        int             chunkSize = allocator.pagesize << allocator.maxLevel;
+        int             chunkSize = allocator.pagesize() << allocator.maxLevel();
         int             size      = chunkSize >> 2;
         Queue<IoBuffer> buffers   = new LinkedList<>();
         for (int i = 0; i < 4; i++)

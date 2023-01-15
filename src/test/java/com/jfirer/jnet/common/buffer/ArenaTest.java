@@ -1,5 +1,6 @@
 package com.jfirer.jnet.common.buffer;
 
+import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 import com.jfirer.jnet.common.buffer.arena.impl.AbstractArena;
 import com.jfirer.jnet.common.buffer.arena.impl.ChunkList;
 import com.jfirer.jnet.common.buffer.arena.impl.ChunkListNode;
@@ -40,7 +41,7 @@ public class ArenaTest
 
     private void testMove(boolean preferDirect)
     {
-        IoBuffer        buffer = allocator.ioBuffer(allocator.pagesize, preferDirect);
+        IoBuffer        buffer = allocator.ioBuffer(allocator.pagesize(), preferDirect);
         Queue<IoBuffer> queue  = new LinkedList<>();
         queue.add(buffer);
 //        ThreadCache      threadCache = allocator.threadCache();
@@ -58,11 +59,11 @@ public class ArenaTest
         assertNull(c000.head());
         assertNotNull(cInt.head());
         ChunkListNode<?> chunkListNode = cInt.head();
-        int              total         = 1 << allocator.maxLevel;
+        int              total         = 1 << allocator.maxLevel();
         int              quarter       = total >>> 2;
         for (int i = 1; i < quarter; i++)
         {
-            queue.add(allocator.ioBuffer(allocator.pagesize, preferDirect));
+            queue.add(allocator.ioBuffer(allocator.pagesize(), preferDirect));
             assertNull(c100.head());
             assertNull(c075.head());
             assertNull(c050.head());
@@ -74,7 +75,7 @@ public class ArenaTest
         assertEquals(25, chunkListNode.getChunk().usage());
         for (int i = 0; i < quarter; i++)
         {
-            queue.add(allocator.ioBuffer(allocator.pagesize, preferDirect));
+            queue.add(allocator.ioBuffer(allocator.pagesize(), preferDirect));
             assertNull(c100.head());
             assertNull(c075.head());
             assertNull(c050.head());
@@ -86,7 +87,7 @@ public class ArenaTest
         assertEquals(50, chunkListNode.getChunk().usage());
         for (int i = 0; i < quarter; i++)
         {
-            queue.add(allocator.ioBuffer(allocator.pagesize, preferDirect));
+            queue.add(allocator.ioBuffer(allocator.pagesize(), preferDirect));
             assertNull(c100.head());
             assertNull(c075.head());
             assertNull(c050.head());
@@ -98,7 +99,7 @@ public class ArenaTest
         assertEquals(75, chunkListNode.getChunk().usage());
         for (int i = 1; i < quarter; i++)
         {
-            queue.add(allocator.ioBuffer(allocator.pagesize, preferDirect));
+            queue.add(allocator.ioBuffer(allocator.pagesize(), preferDirect));
             assertNull(c100.head());
             if (chunkListNode.getChunk().usage() <= 90)
             {
@@ -123,7 +124,7 @@ public class ArenaTest
             }
         }
         assertEquals(99, chunkListNode.getChunk().usage());
-        queue.add(allocator.ioBuffer(allocator.pagesize, preferDirect));
+        queue.add(allocator.ioBuffer(allocator.pagesize(), preferDirect));
         assertNotNull(c100.head());
         assertNull(c075.head());
         assertNull(c050.head());
@@ -153,7 +154,7 @@ public class ArenaTest
             assertTrue(chunkListNode == c075.head());
         }
         assertEquals(75, chunkListNode.getChunk().usage());
-        int percent = (1 << allocator.maxLevel) / 100;
+        int percent = (1 << allocator.maxLevel()) / 100;
         for (int i = 0; i < percent; i++)
         {
             assertEquals(75, chunkListNode.getChunk().usage());

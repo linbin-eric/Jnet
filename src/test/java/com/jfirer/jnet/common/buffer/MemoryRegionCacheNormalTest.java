@@ -1,78 +1,67 @@
 package com.jfirer.jnet.common.buffer;
 
+import com.jfirer.jnet.common.buffer.allocator.impl.CachedPooledBufferAllocator;
+import com.jfirer.jnet.common.buffer.arena.impl.AbstractArena;
+import com.jfirer.jnet.common.buffer.arena.impl.ChunkList;
+import com.jfirer.jnet.common.buffer.arena.impl.ChunkListNode;
+import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
+import com.jfirer.jnet.common.util.UNSAFE;
+import org.junit.Assert;
 import org.junit.Ignore;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+
+import java.util.*;
 
 @Ignore
-//@RunWith(Parameterized.class)
+@RunWith(Parameterized.class)
 public class MemoryRegionCacheNormalTest
 {
-//    PooledBufferAllocator allocator = new PooledBufferAllocator("test");
-//    private int size;
-//
-//    public MemoryRegionCacheNormalTest(int size)
-//    {
-//        this.size = size;
-//    }
-//
-//    @Parameters
-//    public static List<Integer> params()
-//    {
-//        List<Integer> list = new LinkedList<>();
-//        int           i    = PooledBufferAllocator.PAGESIZE;
-//        while (i <= PooledBufferAllocator.MAX_CACHEED_BUFFER_CAPACITY)
-//        {
-//            list.add(i);
-//            i <<= 1;
-//        }
-//        return list;
-//    }
-//
-//    @Test
-//    public void test() throws InterruptedException
-//    {
-//        test0(false, size);
-//        test0(true, size);
-//    }
-//
-//    @SuppressWarnings("unchecked")
-//    private void test0(boolean preferDirect, int size) throws InterruptedException
-//    {
-//        int                   normalCacheSize = allocator.normalCacheNum;
-//        final Queue<IoBuffer> buffers         = new LinkedList<>();
-//        Set<ChunkImpl<?>>     chunks          = new HashSet<>();
-//        for (int i = 0; i < normalCacheSize; i++)
-//        {
-//            PooledBuffer<?> buffer = (PooledBuffer<?>) allocator.ioBuffer(size, preferDirect);
-//            buffers.add((IoBuffer) buffer);
-//            chunks.add(buffer.chunk());
-//        }
-//        assertEquals(1, chunks.size());
-//        ChunkImpl<?> chunk     = chunks.iterator().next();
-//        int          freeBytes = chunk.freeBytes;
-//        Thread thread = new Thread(new Runnable()
-//        {
-//            @Override
-//            public void run()
-//            {
-//                while (buffers.isEmpty() == false)
-//                {
-//                    buffers.poll().free();
-//                }
-//            }
-//        });
-//        thread.start();
-//        thread.join();
-//        assertEquals(freeBytes, chunk.freeBytes);
-//        ThreadCache threadCache = allocator.threadCache();
-//        @SuppressWarnings("rawtypes") MemoryRegionCache memoryRegionCache = threadCache.findCache(size, SizeType.NORMAL, threadCache.arena(preferDirect).isDirect());
-//        assertEquals(normalCacheSize, memoryRegionCache.size());
-//        assertFalse(memoryRegionCache.offer(chunk, -1L));
-//        for (int i = 0; i < normalCacheSize; i++)
-//        {
-//            PooledBuffer<?> buffer = (PooledBuffer<?>) allocator.ioBuffer(size, preferDirect);
-//            buffers.add((IoBuffer) buffer);
-//        }
-//        assertEquals("当前分配大小是:" + size, freeBytes, chunk.freeBytes);
-//        assertTrue(memoryRegionCache.isEmpty());
-//    }
+    private long c100Offset = UNSAFE.getFieldOffset("c100", AbstractArena.class);
+    private long c075Offset = UNSAFE.getFieldOffset("c075", AbstractArena.class);
+    private long c050Offset = UNSAFE.getFieldOffset("c050", AbstractArena.class);
+    private long c025Offset = UNSAFE.getFieldOffset("c025", AbstractArena.class);
+    private long c000Offset = UNSAFE.getFieldOffset("c000", AbstractArena.class);
+    private long cIntOffset = UNSAFE.getFieldOffset("cInt", AbstractArena.class);
+    CachedPooledBufferAllocator allocator = CachedPooledBufferAllocator.DEFAULT;
+    private boolean preferDirect;
+
+    public MemoryRegionCacheNormalTest(boolean preferDirect)
+    {
+        this.preferDirect = preferDirect;
+    }
+
+    @Parameterized.Parameters
+    public static Collection<Boolean> data()
+    {
+        Set<Boolean> set = new HashSet<>();
+        set.add(true);
+        set.add(false);
+        return set;
+    }
+
+    @Test
+    public void test()
+    {
+        Queue<IoBuffer<?>> queue = new LinkedList<>();
+        queue.add(allocator.ioBuffer(allocator.pagesize(), preferDirect));
+        AbstractArena<?> arena     = (AbstractArena<?>) allocator.currentArena(preferDirect);
+        ChunkList<?>     chunkList = (ChunkList<?>) UNSAFE.getObject(arena, cIntOffset);
+        int              total     = 1 << allocator.maxLevel();
+        ChunkListNode<?> head      = chunkList.head();
+        for (int i = 1; i < total; i++)
+        {
+            queue.add(allocator.ioBuffer(allocator.pagesize(), preferDirect));
+        }
+        for (int i = 0; i < CachedPooledBufferAllocator.NUM_OF_CACHE; i++)
+        {
+            queue.poll().free();
+            Assert.assertEquals(0, head.getFreeBytes());
+        }
+        queue.poll().free();
+        Assert.assertEquals(allocator.pagesize(), head.getFreeBytes());
+        queue.forEach(IoBuffer::free);
+        Assert.assertEquals((total - CachedPooledBufferAllocator.NUM_OF_CACHE) * allocator.pagesize(), head.getFreeBytes());
+    }
 }

@@ -1,233 +1,112 @@
 package com.jfirer.jnet.common.buffer;
 
-import com.jfirer.jnet.common.buffer.arena.impl.AbstractArena;
-import com.jfirer.jnet.common.buffer.arena.impl.ChunkImpl;
-import com.jfirer.jnet.common.buffer.arena.impl.DirectArena;
-import com.jfirer.jnet.common.buffer.arena.impl.HeapArena;
-import com.jfirer.jnet.common.buffer.buffer.PooledBuffer;
+import com.jfirer.jnet.common.buffer.arena.Arena;
+import com.jfirer.jnet.common.buffer.arena.impl.ChunkListNode;
+import com.jfirer.jnet.common.buffer.buffer.CachedPooledBuffer;
+import com.jfirer.jnet.common.recycler.RecycleHandler;
+import com.jfirer.jnet.common.recycler.Recycler;
 import com.jfirer.jnet.common.util.MathUtil;
-import com.jfirer.jnet.common.util.ReflectUtil;
+import org.jctools.queues.MpscArrayQueue;
 
-import java.nio.ByteBuffer;
-
-public class ThreadCache
+public class ThreadCache<T>
 {
-    final HeapArena                       heapArena;
-    final MemoryRegionCache<byte[]>[]     tinySubPagesHeapCaches;
-    final MemoryRegionCache<byte[]>[]     smallSubPageHeapCaches;
-    final MemoryRegionCache<byte[]>[]     normalHeapCaches;
-    final DirectArena                     directArena;
-    final MemoryRegionCache<ByteBuffer>[] tinySubPagesDirectCaches;
-    final MemoryRegionCache<ByteBuffer>[] smallSubPagesDirectCaches;
-    final MemoryRegionCache<ByteBuffer>[] normalDirectCaches;
-    final int                             pagesizeShift;
-
-    public ThreadCache(HeapArena heapArena, DirectArena directArena)
+    public static class MemoryCached<T>
     {
-        this.heapArena = heapArena;
-        this.directArena = directArena;
-        pagesizeShift = 0;
-        tinySubPagesHeapCaches = null;
-        smallSubPageHeapCaches = null;
-        tinySubPagesDirectCaches = null;
-        smallSubPagesDirectCaches = null;
-        normalHeapCaches = null;
-        normalDirectCaches = null;
+        public Arena<T>         arena;
+        public ChunkListNode<T> chunkListNode;
+        public int              capacity;
+        public int              offset;
+        public long             handle;
+        RecycleHandler<MemoryCached<T>> recycleHandler;
     }
 
-    public ThreadCache(HeapArena heapArena, DirectArena directArena, int tinyCacheNum, int smallCacheNum, int normalCacheNum, int maxCachedBufferCapacity, int pagesizeShift)
-    {
-//        this.pagesizeShift = pagesizeShift;
-//        this.heapArena = heapArena;
-//        tinySubPagesHeapCaches = createSubPageMemoryRegionCache(tinyCacheNum, heapArena.tinySubPages.length);
-//        smallSubPageHeapCaches = createSubPageMemoryRegionCache(smallCacheNum, heapArena.smallSubPages.length);
-//        normalHeapCaches = createNormalSizeMemoryRegionCache(normalCacheNum, pagesizeShift, maxCachedBufferCapacity);
-//        this.directArena = directArena;
-//        tinySubPagesDirectCaches = createSubPageMemoryRegionCache(tinyCacheNum, directArena.tinySubPages.length);
-//        smallSubPagesDirectCaches = createSubPageMemoryRegionCache(smallCacheNum, directArena.tinySubPages.length);
-//        normalDirectCaches = createNormalSizeMemoryRegionCache(normalCacheNum, pagesizeShift, maxCachedBufferCapacity);
-//        if (heapArena != null)
-//        {
-//            heapArena.numThreadCaches.incrementAndGet();
-//        }
-//        if (directArena != null)
-//        {
-//            directArena.numThreadCaches.incrementAndGet();
-//        }
-//        GlobalMetric.watchThreadCache(this);
-        this.directArena = null;
-        tinySubPagesHeapCaches = new MemoryRegionCache[0];
-        this.heapArena = null;
-        smallSubPageHeapCaches = new MemoryRegionCache[0];
-        normalHeapCaches = new MemoryRegionCache[0];
-        tinySubPagesDirectCaches = new MemoryRegionCache[0];
-        smallSubPagesDirectCaches = new MemoryRegionCache[0];
-        normalDirectCaches = new MemoryRegionCache[0];
-        this.pagesizeShift = 0;
-    }
+    private MpscArrayQueue<MemoryCached<T>>[] regionCaches;
+    Recycler<MemoryCached<T>> recycler = new Recycler<>(function -> {
+        MemoryCached   memoryCached   = new MemoryCached();
+        RecycleHandler recycleHandler = function.apply(memoryCached);
+        memoryCached.recycleHandler = recycleHandler;
+        return memoryCached;
+    });
 
-    @SuppressWarnings("unchecked")
-    private <T> MemoryRegionCache<T>[] createSubPageMemoryRegionCache(int cacheSize, int len)
+    public ThreadCache(int numOfCached, int maxCachedCapacity)
     {
-        if (cacheSize > 0)
+        regionCaches = new MpscArrayQueue[MathUtil.log2(maxCachedCapacity) - 4];
+        for (int i = 0; i < regionCaches.length; i++)
         {
-            MemoryRegionCache<T>[] array = new MemoryRegionCache[len];
-            for (int i = 0; i < array.length; i++)
+            regionCaches[i] = new MpscArrayQueue<>(numOfCached);
+        }
+    }
+
+    public boolean add(MemoryCached<T> memoryCached)
+    {
+        int index = MathUtil.log2(MathUtil.normalizeSize(memoryCached.capacity)) - 4;
+        if (index < regionCaches.length)
+        {
+            MpscArrayQueue<MemoryCached<T>> regionCache = regionCaches[index];
+            if (regionCache.offer(memoryCached))
             {
-                array[i] = new MemoryRegionCache<>(cacheSize);
+                return true;
             }
-            return array;
+            else
+            {
+                memoryCached.recycleHandler.recycle(memoryCached);
+                return false;
+            }
         }
         else
-        {
-            return null;
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private <T> MemoryRegionCache<T>[] createNormalSizeMemoryRegionCache(int cacheNum, int pagesizeShift, int maxCachedBufferCapacity)
-    {
-        int normalizeSize = MathUtil.normalizeSize(maxCachedBufferCapacity);
-        int shift         = MathUtil.log2(normalizeSize);
-        int length        = shift - pagesizeShift + 1;
-        if (length > 0 && cacheNum > 0)
-        {
-            MemoryRegionCache<T>[] array = new MemoryRegionCache[length];
-            for (int i = 0; i < array.length; i++)
-            {
-                array[i] = new MemoryRegionCache<>(cacheNum);
-            }
-            return array;
-        }
-        else
-        {
-            return null;
-        }
-    }
-
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public boolean allocate(PooledBuffer<?> buffer, int normalizeCapacity, SizeType sizeType, boolean isDirect)
-    {
-        if (pagesizeShift == 0)
         {
             return false;
         }
-        MemoryRegionCache<?> cache = findCache(normalizeCapacity, sizeType, isDirect);
-        if (cache == null)
+    }
+
+    public boolean allocate(int capacity, CachedPooledBuffer<T> buffer)
+    {
+        int index = MathUtil.log2(MathUtil.normalizeSize(capacity)) - 4;
+        if (index < regionCaches.length)
+        {
+            MpscArrayQueue<MemoryCached<T>> regionCache = regionCaches[index];
+            MemoryCached<T>                 cached      = regionCache.poll();
+            if (cached == null)
+            {
+                return false;
+            }
+            else
+            {
+                buffer.init(cached, this);
+                return true;
+            }
+        }
+        else
         {
             return false;
         }
-        return ((MemoryRegionCache) cache).tryFindAndInitBuffer(buffer, this);
     }
 
-    MemoryRegionCache<?> findCache(int normalizeCapacity, SizeType sizeType, boolean isDirect)
+    public boolean add(Arena<T> arena, ChunkListNode<T> chunkListNode, int capacity, int offset, long handle)
     {
-        MemoryRegionCache<?> cache = null;
-        switch (sizeType)
+        int index = MathUtil.log2(MathUtil.normalizeSize(capacity)) - 4;
+        if (index < regionCaches.length)
         {
-            case TINY:
-                cache = cacheForTiny(normalizeCapacity, isDirect);
-                break;
-            case SMALL:
-                cache = cacheForSmall(normalizeCapacity, isDirect);
-                break;
-            case NORMAL:
-                cache = cacheForNormal(normalizeCapacity, isDirect);
-                break;
-            default:
-                ReflectUtil.throwException(new NullPointerException());
-        }
-        return cache;
-    }
-
-    MemoryRegionCache<?> cacheForTiny(int normalizeCapacity, boolean isDirect)
-    {
-        int tinyIdx = normalizeCapacity >> 4;
-        if (isDirect)
-        {
-            if (tinySubPagesDirectCaches == null || tinySubPagesDirectCaches.length <= tinyIdx)
+            MpscArrayQueue<MemoryCached<T>> regionCache  = regionCaches[index];
+            MemoryCached<T>                 memoryCached = recycler.get();
+            memoryCached.arena = arena;
+            memoryCached.chunkListNode = chunkListNode;
+            memoryCached.capacity = capacity;
+            memoryCached.offset = offset;
+            memoryCached.handle = handle;
+            if (regionCache.offer(memoryCached))
             {
-                return null;
+                return true;
             }
-            return tinySubPagesDirectCaches[tinyIdx];
+            else
+            {
+                memoryCached.recycleHandler.recycle(memoryCached);
+                return false;
+            }
         }
         else
-        {
-            if (tinySubPagesHeapCaches == null || tinySubPagesHeapCaches.length <= tinyIdx)
-            {
-                return null;
-            }
-            return tinySubPagesHeapCaches[tinyIdx];
-        }
-    }
-
-    AbstractArena<?> arena(boolean direct)
-    {
-        if (direct)
-        {
-            return directArena;
-        }
-        else
-        {
-            return heapArena;
-        }
-    }
-
-    MemoryRegionCache<?> cacheForSmall(int normalizeCapacity, boolean isDirect)
-    {
-        int smallIdx = MathUtil.log2(normalizeCapacity) - 4;
-        if (isDirect)
-        {
-            if (smallSubPagesDirectCaches == null || smallSubPagesDirectCaches.length <= smallIdx)
-            {
-                return null;
-            }
-            return smallSubPagesDirectCaches[smallIdx];
-        }
-        else
-        {
-            if (smallSubPageHeapCaches == null || smallSubPageHeapCaches.length <= smallIdx)
-            {
-                return null;
-            }
-            return smallSubPageHeapCaches[smallIdx];
-        }
-    }
-
-    MemoryRegionCache<?> cacheForNormal(int normalizeCapacity, boolean isDirect)
-    {
-        int shift = MathUtil.log2(normalizeCapacity);
-        int idx   = shift - pagesizeShift;
-        if (isDirect)
-        {
-            if (normalDirectCaches == null || normalDirectCaches.length <= idx)
-            {
-                return null;
-            }
-            return normalDirectCaches[idx];
-        }
-        else
-        {
-            if (normalHeapCaches == null || normalHeapCaches.length <= idx)
-            {
-                return null;
-            }
-            return normalHeapCaches[idx];
-        }
-    }
-
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public boolean add(int normalizeCapacity, SizeType sizeType, boolean isDirect, ChunkImpl<?> chunk, long handle)
-    {
-        if (pagesizeShift == 0)
         {
             return false;
         }
-        MemoryRegionCache<?> cache = findCache(normalizeCapacity, sizeType, isDirect);
-        if (cache == null)
-        {
-            return false;
-        }
-        return ((MemoryRegionCache) cache).offer(chunk, handle);
     }
 }

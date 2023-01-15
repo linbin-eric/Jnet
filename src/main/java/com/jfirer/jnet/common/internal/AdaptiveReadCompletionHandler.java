@@ -4,7 +4,7 @@ import com.jfirer.jnet.common.api.ChannelContext;
 import com.jfirer.jnet.common.api.InternalPipeline;
 import com.jfirer.jnet.common.api.Pipeline;
 import com.jfirer.jnet.common.api.ReadCompletionHandler;
-import com.jfirer.jnet.common.buffer.BufferAllocator;
+import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.util.ChannelConfig;
 import com.jfirer.jnet.common.util.MathUtil;

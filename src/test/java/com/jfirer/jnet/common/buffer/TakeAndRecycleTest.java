@@ -1,5 +1,6 @@
 package com.jfirer.jnet.common.buffer;
 
+import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.PooledBuffer;
 import com.jfirer.jnet.common.buffer.buffer.impl.AbstractBuffer;
 import org.junit.Test;
@@ -8,8 +9,8 @@ import static org.junit.Assert.assertEquals;
 
 public class TakeAndRecycleTest
 {
-    int                                pagesize  = 4096;
-    PooledUnThreadCacheBufferAllocator allocator = new PooledUnThreadCacheBufferAllocator(pagesize, 4, 1, 1, true, "test");
+    int                   pagesize  = 4096;
+    PooledBufferAllocator allocator = new PooledBufferAllocator(pagesize, 4, 1, true, "test");
 
     @Test
     public void test()

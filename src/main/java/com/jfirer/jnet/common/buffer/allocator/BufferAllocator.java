@@ -1,4 +1,4 @@
-package com.jfirer.jnet.common.buffer;
+package com.jfirer.jnet.common.buffer.allocator;
 
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 

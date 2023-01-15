@@ -12,7 +12,6 @@ import org.junit.runners.Suite.SuiteClasses;
         PooledBufferRWTest.class, //
         SmallAllocateTest.class, //
         TakeAndRecycleTest.class, //
-        TinyAllocateTest.class, //
         ChunkListTest.class, //
         BufferRecycleTest.class, //
         ReAllocateTest.class, //

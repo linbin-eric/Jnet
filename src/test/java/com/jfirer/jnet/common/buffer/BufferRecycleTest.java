@@ -1,5 +1,6 @@
 package com.jfirer.jnet.common.buffer;
 
+import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.thread.FastThreadLocalThread;
 import org.junit.Ignore;
@@ -13,7 +14,7 @@ import static org.junit.Assert.assertTrue;
 @Ignore
 public class BufferRecycleTest
 {
-    PooledUnThreadCacheBufferAllocator allocator = new PooledUnThreadCacheBufferAllocator("test");
+    PooledBufferAllocator allocator = new PooledBufferAllocator("test");
 
     @Test
     public void test()

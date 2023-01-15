@@ -34,7 +34,7 @@ public class MathUtil
     {
         for (int i = 3; i < 9; i++)
         {
-            System.out.println(log2(i));
+            System.out.println(normalizeSize(i));
         }
     }
 }
