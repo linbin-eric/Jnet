@@ -60,14 +60,14 @@
     </dependencies>
     <distributionManagement>
         <repository>
-            <id>nexus</id>
+            <id>nexus3</id>
             <name>nexus</name>
-            <url>https://nexus.ylzpay.com/repository/maven-releases/</url>
+            <url>http://backupnas.jfirer.com:8082/repository/maven-releases/</url>
         </repository>
         <snapshotRepository>
-            <id>nexus-snapshot</id>
+            <id>nexus3</id>
             <name>nexus</name>
-            <url>https://nexus.ylzpay.com/repository/maven-snapshots/</url>
+            <url>http://backupnas.jfirer.com:8082/repository/maven-snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
     <build>

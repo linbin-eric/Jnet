@@ -268,7 +268,8 @@ public class UNSAFE
 
     public static void copyMemory(long srcAddr, long destAddr, long len)
     {
-        unsafe.copyMemory(srcAddr, destAddr, len);
+//        unsafe.copyMemory(srcAddr, destAddr, len);
+        unsafe.copyMemory(null, srcAddr, null, destAddr, len);
     }
 
     public static void putChar(Object entity, long offset, char c)

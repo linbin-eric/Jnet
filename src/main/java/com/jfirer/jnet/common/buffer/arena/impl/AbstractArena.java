@@ -308,6 +308,7 @@ public abstract class AbstractArena<T> implements Arena<T>
     public void capacityStat(CapacityStat capacityStat)
     {
         cInt.stat(capacityStat);
+        c000.stat(capacityStat);
         c025.stat(capacityStat);
         c050.stat(capacityStat);
         c075.stat(capacityStat);

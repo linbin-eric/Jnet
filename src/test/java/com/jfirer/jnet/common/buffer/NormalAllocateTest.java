@@ -12,7 +12,7 @@ import static org.junit.Assert.assertEquals;
 
 public class NormalAllocateTest
 {
-    PooledBufferAllocator allocator = PooledUnThreadCacheBufferAllocator.DEFAULT;
+    PooledBufferAllocator allocator = new PooledBufferAllocator("NormalAllocateTest");
 
     /**
      * 遍历对每层的每一个节点进行分配测试

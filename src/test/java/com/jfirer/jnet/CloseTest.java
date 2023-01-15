@@ -34,7 +34,8 @@ public class CloseTest
     public static Collection<Object[]> params()
     {
         return Arrays.asList(new Object[][]{ //
-                {PooledBufferAllocator.DEFAULT}, //
+//                {PooledBufferAllocator.DEFAULT}
+                {new PooledBufferAllocator("closetest")}, //
 //                {PooledUnThreadCacheBufferAllocator.DEFAULT}, //
         });
     }
@@ -51,6 +52,7 @@ public class CloseTest
     {
         ChannelConfig channelConfig = new ChannelConfig();
         channelConfig.setMinReceiveSize(PooledBufferAllocator.PAGESIZE);
+        channelConfig.setAllocator(bufferAllocator);
         final CountDownLatch  countDownLatch = new CountDownLatch(writeNum);
         final Queue<IoBuffer> queue          = new ConcurrentLinkedQueue<>();
         final DataProcessor   dataProcessor  = new DataProcessor(queue, countDownLatch);
@@ -75,8 +77,10 @@ public class CloseTest
         {
             outputStream.write(content);
             outputStream.flush();
+            Thread.sleep(10);
         }
         countDownLatch.await();
+        Thread.sleep(1000);
         CapacityStat internalStat = getStat((PooledBufferAllocator) bufferAllocator);
         Assert.assertTrue(internalStat.getChunkCapacity() - internalStat.getFreeBytes() >= PooledBufferAllocator.PAGESIZE * (writeNum + 1));
         outputStream.close();

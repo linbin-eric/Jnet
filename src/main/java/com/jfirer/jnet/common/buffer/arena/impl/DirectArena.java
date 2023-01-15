@@ -50,8 +50,14 @@ public class DirectArena extends AbstractArena<ByteBuffer>
     @Override
     protected void memoryCopy(ByteBuffer src, int srcOffset, ByteBuffer desc, int destOffset, int oldWritePosi)
     {
+        long[] longs = addressXX(src, srcOffset, desc, destOffset);
+        Bits.copyDirectMemory(longs[0], longs[1], oldWritePosi);
+    }
+
+    long[] addressXX(ByteBuffer src, int srcOffset, ByteBuffer desc, int destOffset)
+    {
         long srcAddress  = PlatFormFunction.bytebufferOffsetAddress(src) + srcOffset;
         long destAddress = PlatFormFunction.bytebufferOffsetAddress(desc) + destOffset;
-        Bits.copyDirectMemory(srcAddress, destAddress, oldWritePosi);
+        return new long[]{srcAddress, destAddress};
     }
 }

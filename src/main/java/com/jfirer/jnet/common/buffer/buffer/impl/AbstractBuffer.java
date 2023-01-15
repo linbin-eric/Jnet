@@ -386,7 +386,7 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
     {
         int current = refCount;
         int update  = current + add;
-        if (UNSAFE.compareAndSwapInt(this, REF_COUNT_OFFSET, current, update))
+        if (update >= 0 && UNSAFE.compareAndSwapInt(this, REF_COUNT_OFFSET, current, update))
         {
             return update;
         }
@@ -394,6 +394,10 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
         {
             current = refCount;
             update = current + add;
+            if (update < 0)
+            {
+                throw new IllegalStateException("free调用的次数超过了被申请的次数");
+            }
         }
         while (UNSAFE.compareAndSwapInt(this, REF_COUNT_OFFSET, current, update) == false);
         return update;
@@ -406,10 +410,6 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
         if (left > 0)
         {
             return;
-        }
-        else if (left < 0)
-        {
-            throw new IllegalStateException("free调用的次数超过了被申请的次数");
         }
         free0(capacity);
         memory = null;

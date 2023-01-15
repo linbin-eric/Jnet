@@ -12,7 +12,7 @@ import static org.junit.Assert.assertTrue;
 
 public class HugeAllocateTest
 {
-    PooledBufferAllocator allocator = PooledBufferAllocator.DEFAULT;
+    PooledBufferAllocator allocator = new PooledBufferAllocator("HugeTest");
     private static final long chunkSizeOffset     = UNSAFE.getFieldOffset("chunkSize", AbstractArena.class);
     private static final long newChunkCountOffset = UNSAFE.getFieldOffset("newChunkCount", AbstractArena.class);
 

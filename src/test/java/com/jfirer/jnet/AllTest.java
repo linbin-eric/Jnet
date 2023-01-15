@@ -6,6 +6,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
-@Suite.SuiteClasses({BaseTest.class, BufferSuiteTest.class, RecycleTest.class, FastThreadLocalTest.class})
+@Suite.SuiteClasses({BaseTest.class, CloseTest.class, BufferSuiteTest.class, RecycleTest.class, FastThreadLocalTest.class})
 public class AllTest
 {}
