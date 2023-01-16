@@ -5,7 +5,6 @@ import com.jfirer.jnet.common.buffer.arena.Chunk;
 import com.jfirer.jnet.common.buffer.arena.impl.ChunkListNode;
 import com.jfirer.jnet.common.buffer.arena.impl.DirectArena;
 import com.jfirer.jnet.common.buffer.buffer.PooledBuffer;
-import com.jfirer.jnet.common.recycler.RecycleHandler;
 
 import java.nio.ByteBuffer;
 
@@ -14,7 +13,6 @@ public class PooledDirectBuffer extends AbstractDirectBuffer implements PooledBu
     protected DirectArena                        arena;
     protected ChunkListNode<ByteBuffer>          chunkListNode;
     protected long                               handle;
-    protected RecycleHandler<PooledDirectBuffer> recycleHandler;
 
     @Override
     public void init(Arena<ByteBuffer> arena, ChunkListNode<ByteBuffer> chunkListNode, int capacity, int offset, long handle)
@@ -53,11 +51,5 @@ public class PooledDirectBuffer extends AbstractDirectBuffer implements PooledBu
     public void free0(int capacity)
     {
         arena.free(chunkListNode, handle, capacity);
-        recycleHandler.recycle(this);
-    }
-
-    public void setRecycleHandler(RecycleHandler<PooledDirectBuffer> handler)
-    {
-        this.recycleHandler = handler;
     }
 }

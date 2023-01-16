@@ -1,19 +1,21 @@
 package com.jfirer.jnet.common.buffer.buffer.impl;
 
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
+import com.jfirer.jnet.common.recycler.RecycleHandler;
 import com.jfirer.jnet.common.util.UNSAFE;
 
 public abstract class AbstractBuffer<T> implements IoBuffer<T>
 {
-    protected          T    memory;
-    protected          int  capacity;
-    protected          int  readPosi;
-    protected          int  writePosi;
-    protected          int  offset;
+    protected          T              memory;
+    protected          int            capacity;
+    protected          int            readPosi;
+    protected          int            writePosi;
+    protected          int            offset;
     //当direct时才有值
 //    protected          long address;
-    protected volatile int  refCount;
-    static final       long REF_COUNT_OFFSET = UNSAFE.getFieldOffset("refCount", AbstractBuffer.class);
+    protected volatile int            refCount;
+    static final       long           REF_COUNT_OFFSET = UNSAFE.getFieldOffset("refCount", AbstractBuffer.class);
+    protected          RecycleHandler recycleHandler;
 
     public void init(T memory, int capacity, int offset)
     {
@@ -39,7 +41,14 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
         int posi    = oldPosi + length;
         if (posi > capacity)
         {
-            reAllocate(posi);
+            if (refCount == 1)
+            {
+                reAllocate(posi);
+            }
+            else
+            {
+                throw new IllegalStateException("当前存在slice的部分，无法进行扩容");
+            }
         }
         writePosi = posi;
         return oldPosi;
@@ -413,6 +422,7 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
         }
         free0(capacity);
         memory = null;
+        recycleHandler.recycle(this);
     }
 
     protected abstract void free0(int capacity);
@@ -432,5 +442,10 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
     public T memory()
     {
         return memory;
+    }
+
+    public void setRecycleHandler(RecycleHandler handler)
+    {
+        this.recycleHandler = handler;
     }
 }

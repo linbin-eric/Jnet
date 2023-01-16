@@ -1,7 +1,6 @@
 package com.jfirer.jnet.common.buffer.buffer.impl;
 
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
-import com.jfirer.jnet.common.recycler.RecycleHandler;
 import com.jfirer.jnet.common.recycler.Recycler;
 
 import java.nio.ByteBuffer;
@@ -10,11 +9,10 @@ public class SliceDirectBuffer extends AbstractDirectBuffer
 {
     static final Recycler<SliceDirectBuffer> RECYCLER = new Recycler<>(function -> {
         SliceDirectBuffer buffer = new SliceDirectBuffer();
-        buffer.sliceRecycleHandler = function.apply(buffer);
+        buffer.setRecycleHandler(function.apply(buffer));
         return buffer;
     });
     AbstractBuffer parent;
-    private RecycleHandler<SliceDirectBuffer> sliceRecycleHandler;
 
     public static IoBuffer slice(AbstractBuffer<ByteBuffer> buffer, int length)
     {
@@ -47,6 +45,6 @@ public class SliceDirectBuffer extends AbstractDirectBuffer
     protected void free0(int capacity)
     {
         parent.free();
-        sliceRecycleHandler.recycle(this);
+        parent = null;
     }
 }

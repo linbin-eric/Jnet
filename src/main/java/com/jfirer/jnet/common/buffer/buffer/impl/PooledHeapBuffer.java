@@ -5,14 +5,12 @@ import com.jfirer.jnet.common.buffer.arena.Chunk;
 import com.jfirer.jnet.common.buffer.arena.impl.ChunkListNode;
 import com.jfirer.jnet.common.buffer.arena.impl.HeapArena;
 import com.jfirer.jnet.common.buffer.buffer.PooledBuffer;
-import com.jfirer.jnet.common.recycler.RecycleHandler;
 
 public class PooledHeapBuffer extends AbstractHeapBuffer implements PooledBuffer<byte[]>
 {
-    protected long                             handle;
-    protected HeapArena                        arena;
-    protected ChunkListNode<byte[]>            chunkListNode;
-    protected RecycleHandler<PooledHeapBuffer> recycleHandler;
+    protected long                  handle;
+    protected HeapArena             arena;
+    protected ChunkListNode<byte[]> chunkListNode;
 
     @Override
     public void init(Arena<byte[]> arena, ChunkListNode<byte[]> chunkListNode, int capacity, int offset, long handle)
@@ -51,11 +49,5 @@ public class PooledHeapBuffer extends AbstractHeapBuffer implements PooledBuffer
     public void free0(int capacity)
     {
         arena.free(chunkListNode, handle, capacity);
-        recycleHandler.recycle(this);
-    }
-
-    public void setRecycleHandler(RecycleHandler<PooledHeapBuffer> handler)
-    {
-        this.recycleHandler = handler;
     }
 }

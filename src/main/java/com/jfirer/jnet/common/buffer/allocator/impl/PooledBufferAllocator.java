@@ -46,7 +46,7 @@ public class PooledBufferAllocator implements BufferAllocator
         buffer.setRecycleHandler(handler);
         return buffer;
     });
-    protected Recycler<PooledHeapBuffer>   pooled_heap_buffer_allocator   = new Recycler<>(function -> {
+    protected Recycler<PooledHeapBuffer>   POOLED_HEAP_BUFFER_ALLOCATOR   = new Recycler<>(function -> {
         PooledHeapBuffer                 buffer  = new PooledHeapBuffer();
         RecycleHandler<PooledHeapBuffer> handler = function.apply(buffer);
         buffer.setRecycleHandler(handler);
@@ -108,7 +108,7 @@ public class PooledBufferAllocator implements BufferAllocator
     @Override
     public IoBuffer heapBuffer(int initializeCapacity)
     {
-        PooledHeapBuffer pooledHeapBuffer = pooled_heap_buffer_allocator.get();
+        PooledHeapBuffer pooledHeapBuffer = POOLED_HEAP_BUFFER_ALLOCATOR.get();
         HeapArena        heapArena        = heapArenaFastThreadLocal.get();
         heapArena.allocate(initializeCapacity, pooledHeapBuffer);
         return pooledHeapBuffer;

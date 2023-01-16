@@ -5,6 +5,10 @@ import com.jfirer.jnet.common.buffer.arena.impl.DirectArena;
 import com.jfirer.jnet.common.buffer.arena.impl.HeapArena;
 import com.jfirer.jnet.common.buffer.buffer.CachedPooledBuffer;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.CachedPooledDirectBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.CachedPooledHeapBuffer;
+import com.jfirer.jnet.common.recycler.RecycleHandler;
+import com.jfirer.jnet.common.recycler.Recycler;
 import com.jfirer.jnet.common.thread.FastThreadLocal;
 import com.jfirer.jnet.common.util.SystemPropertyUtil;
 
@@ -36,10 +40,23 @@ public class CachedPooledBufferAllocator extends PooledBufferAllocator
         THREAD_CACHE_FOR_HEAP = FastThreadLocal.withInitializeValue(() -> new ThreadCache<>(numOfCached, maxCachedBufferCapacity));
     }
 
+    protected final Recycler<CachedPooledDirectBuffer> CACHED_POOLED_DIRECT_BUFFER_ALLOCATOR = new Recycler<>(function -> {
+        CachedPooledDirectBuffer                 buffer         = new CachedPooledDirectBuffer();
+        RecycleHandler<CachedPooledDirectBuffer> recycleHandler = function.apply(buffer);
+        buffer.setRecycleHandler(recycleHandler);
+        return buffer;
+    });
+    protected final Recycler<CachedPooledHeapBuffer>   cached_pooled_heap_buffer_allocator   = new Recycler<>(function -> {
+        CachedPooledHeapBuffer                 buffer         = new CachedPooledHeapBuffer();
+        RecycleHandler<CachedPooledHeapBuffer> recycleHandler = function.apply(buffer);
+        buffer.setRecycleHandler(recycleHandler);
+        return buffer;
+    });
+
     @Override
     public IoBuffer heapBuffer(int initializeCapacity)
     {
-        CachedPooledBuffer<byte[]> buffer      = CachedPooledBuffer.allocate();
+        CachedPooledBuffer<byte[]> buffer      = cached_pooled_heap_buffer_allocator.get();
         ThreadCache<byte[]>        threadCache = THREAD_CACHE_FOR_HEAP.get();
         if (threadCache.allocate(initializeCapacity, buffer))
         {
@@ -57,7 +74,7 @@ public class CachedPooledBufferAllocator extends PooledBufferAllocator
     @Override
     public IoBuffer directBuffer(int initializeCapacity)
     {
-        CachedPooledBuffer<ByteBuffer> buffer      = CachedPooledBuffer.allocateDirect();
+        CachedPooledBuffer<ByteBuffer> buffer      = CACHED_POOLED_DIRECT_BUFFER_ALLOCATOR.get();
         ThreadCache<ByteBuffer>        threadCache = THREAD_CACHE_FOR_DIRECT.get();
         if (threadCache.allocate(initializeCapacity, buffer))
         {

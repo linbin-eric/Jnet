@@ -2,27 +2,13 @@ package com.jfirer.jnet.common.buffer.buffer.impl;
 
 import com.jfirer.jnet.common.buffer.ThreadCache;
 import com.jfirer.jnet.common.buffer.buffer.CachedPooledBuffer;
-import com.jfirer.jnet.common.recycler.RecycleHandler;
-import com.jfirer.jnet.common.recycler.Recycler;
 
 import java.nio.ByteBuffer;
 
 public class CachedPooledDirectBuffer extends PooledDirectBuffer implements CachedPooledBuffer<ByteBuffer>
 {
-    protected ThreadCache<ByteBuffer>                  cache;
-    protected ThreadCache.MemoryCached<ByteBuffer>     memoryCached;
-    protected RecycleHandler<CachedPooledDirectBuffer> recycleHandler;
-    static    Recycler<CachedPooledDirectBuffer>       RECYCLER = new Recycler<>(function -> {
-        CachedPooledDirectBuffer                 buffer         = new CachedPooledDirectBuffer();
-        RecycleHandler<CachedPooledDirectBuffer> recycleHandler = function.apply(buffer);
-        buffer.recycleHandler = recycleHandler;
-        return buffer;
-    });
-
-    public static CachedPooledDirectBuffer newOne()
-    {
-        return RECYCLER.get();
-    }
+    protected ThreadCache<ByteBuffer>              cache;
+    protected ThreadCache.MemoryCached<ByteBuffer> memoryCached;
 
     @Override
     public void init(ThreadCache.MemoryCached<ByteBuffer> memoryCached, ThreadCache<ByteBuffer> cache)
@@ -49,7 +35,7 @@ public class CachedPooledDirectBuffer extends PooledDirectBuffer implements Cach
             }
             else
             {
-                arena.free(chunkListNode, handle, capacity);
+                super.free0(capacity);
             }
         }
         else
@@ -60,11 +46,10 @@ public class CachedPooledDirectBuffer extends PooledDirectBuffer implements Cach
             }
             else
             {
-                arena.free(chunkListNode, handle, capacity);
+                super.free0(capacity);
             }
         }
         cache = null;
         memoryCached = null;
-        recycleHandler.recycle(this);
     }
 }
