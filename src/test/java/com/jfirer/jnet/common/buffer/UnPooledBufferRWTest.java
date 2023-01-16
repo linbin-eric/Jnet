@@ -1,8 +1,8 @@
 package com.jfirer.jnet.common.buffer;
 
+import com.jfirer.jnet.common.buffer.allocator.impl.UnPoolBufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -14,7 +14,6 @@ import java.util.Collection;
 
 import static org.junit.Assert.*;
 
-@Ignore
 @RunWith(Parameterized.class)
 public class UnPooledBufferRWTest
 {
@@ -30,16 +29,9 @@ public class UnPooledBufferRWTest
     @Parameters
     public static Collection<?> data()
     {
+        UnPoolBufferAllocator allocator = new UnPoolBufferAllocator();
         return Arrays.asList(new Object[][]{ //
-                {UnPooledUnRecycledBufferAllocator.DEFAULT.heapBuffer(128), UnPooledUnRecycledBufferAllocator.DEFAULT.heapBuffer(30)}, //
-                {UnPooledUnRecycledBufferAllocator.DEFAULT.heapBuffer(128), UnPooledUnRecycledBufferAllocator.DEFAULT.directBuffer(30)}, //
-                {UnPooledUnRecycledBufferAllocator.DEFAULT.directBuffer(128), UnPooledUnRecycledBufferAllocator.DEFAULT.heapBuffer(30)}, //
-                {UnPooledUnRecycledBufferAllocator.DEFAULT.directBuffer(128), UnPooledUnRecycledBufferAllocator.DEFAULT.directBuffer(30)}, //
-                {UnPooledRecycledBufferAllocator.DEFAULT.heapBuffer(128), UnPooledRecycledBufferAllocator.DEFAULT.heapBuffer(30)}, //
-                {UnPooledRecycledBufferAllocator.DEFAULT.heapBuffer(128), UnPooledRecycledBufferAllocator.DEFAULT.directBuffer(30)}, //
-                {UnPooledRecycledBufferAllocator.DEFAULT.directBuffer(128), UnPooledRecycledBufferAllocator.DEFAULT.heapBuffer(30)}, //
-                {UnPooledRecycledBufferAllocator.DEFAULT.directBuffer(128), UnPooledRecycledBufferAllocator.DEFAULT.directBuffer(30)},//
-        });
+                {allocator.heapBuffer(128), allocator.heapBuffer(30)}, {allocator.heapBuffer(128), allocator.directBuffer(30)}, {allocator.heapBuffer(128), allocator.directByteBuffer(30)}, {allocator.heapBuffer(128), allocator.memoryBuffer(30)}, {allocator.directBuffer(128), allocator.heapBuffer(30)}, {allocator.directBuffer(128), allocator.directBuffer(30)}, {allocator.directBuffer(128), allocator.directByteBuffer(30)}, {allocator.directBuffer(128), allocator.memoryBuffer(30)}, {allocator.directByteBuffer(128), allocator.heapBuffer(30)}, {allocator.directByteBuffer(128), allocator.directBuffer(30)}, {allocator.directByteBuffer(128), allocator.directByteBuffer(30)}, {allocator.directByteBuffer(128), allocator.memoryBuffer(30)}, {allocator.memoryBuffer(128), allocator.heapBuffer(30)}, {allocator.memoryBuffer(128), allocator.directBuffer(30)}, {allocator.memoryBuffer(128), allocator.directByteBuffer(30)}, {allocator.memoryBuffer(128), allocator.memoryBuffer(30)},});
     }
 
     @Before
@@ -159,7 +151,8 @@ public class UnPooledBufferRWTest
         try
         {
             buffer.putInt(4);
-        } catch (Exception e)
+        }
+        catch (Exception e)
         {
             assertTrue(e instanceof IllegalArgumentException);
         }
@@ -194,7 +187,8 @@ public class UnPooledBufferRWTest
         try
         {
             buffer.put(paramBuffer, 20);
-        } catch (Exception e)
+        }
+        catch (Exception e)
         {
             assertTrue(e instanceof IllegalArgumentException);
         }

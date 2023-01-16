@@ -80,7 +80,7 @@ public class SmallAllocateTest
                 buffers.add((IoBuffer) buffer);
                 int offset = i * pagesize + elementIdx * reqCapacity;
                 assertEquals(reqCapacity, buffer.capacity());
-                assertEquals(offset, buffer.getOffset());
+                assertEquals(offset, buffer.offset());
                 if (chunk == null)
                 {
                     chunk = cInt.head();

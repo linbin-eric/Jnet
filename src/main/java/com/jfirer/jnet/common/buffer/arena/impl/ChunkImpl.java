@@ -67,7 +67,7 @@ public abstract class ChunkImpl<T> implements Chunk<T>
         }
     }
 
-    private MemoryTreeNode[] initMemoryTree(int maxLevel)
+    protected MemoryTreeNode[] initMemoryTree(int maxLevel)
     {
         MemoryTreeNode[] memoryTree = new MemoryTreeNode[1 << (maxLevel + 1)];
         for (int i = 0; i <= maxLevel; i++)

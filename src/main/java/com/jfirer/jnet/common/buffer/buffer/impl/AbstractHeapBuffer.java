@@ -3,6 +3,8 @@ package com.jfirer.jnet.common.buffer.buffer.impl;
 import com.jfirer.jnet.common.buffer.buffer.Bits;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
 import java.nio.ByteBuffer;
 
 public abstract class AbstractHeapBuffer extends AbstractBuffer<byte[]>
@@ -112,9 +114,17 @@ public abstract class AbstractHeapBuffer extends AbstractBuffer<byte[]>
         }
         if (buf.isDirect())
         {
-            AbstractDirectBuffer buffer = (AbstractDirectBuffer) buf;
-            int                  posi   = nextWritePosi(len);
-            Bits.copyToArray(buffer.address + buffer.readPosi, memory, realPosi(posi), len);
+            int posi = nextWritePosi(len);
+            if (buf.memory() instanceof ByteBuffer)
+            {
+                AbstractBuffer buffer = (AbstractBuffer) buf;
+                Bits.copyToArray(buffer.directMemoryAddress() + buffer.offset + buffer.readPosi, memory, realPosi(posi), len);
+            }
+            else
+            {
+                MemorySegment segment = (MemorySegment) buf.memory();
+                MemorySegment.copy(segment, ValueLayout.JAVA_BYTE, buf.offset() + buf.getReadPosi(), memory, realPosi(posi), len);
+            }
         }
         else
         {

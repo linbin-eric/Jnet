@@ -15,7 +15,8 @@ public class UnPooledHeapBuffer extends AbstractHeapBuffer implements UnPooledBu
     @Override
     protected void reAllocate(int newCapacity)
     {
-        byte[] oldMemory = memory;
+        byte[] oldMemory    = memory;
+        int    oldWritePosi = writePosi;
         memory = new byte[newCapacity];
         System.arraycopy(oldMemory, 0, memory, 0, writePosi);
         capacity = newCapacity;

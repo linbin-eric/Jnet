@@ -338,5 +338,7 @@ public interface IoBuffer<T>
      */
     int refCount();
 
+    int offset();
+
     T memory();
 }

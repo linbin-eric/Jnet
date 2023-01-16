@@ -220,13 +220,13 @@ public abstract class AbstractArena<T> implements Arena<T>
         int               oldReadPosi  = buffer.getReadPosi();
         int               oldWritePosi = buffer.getWritePosi();
         int               oldCapacity  = buffer.capacity();
-        int               oldOffset    = buffer.getOffset();
+        int               oldOffset    = buffer.offset();
         T                 oldMemory    = buffer.memory();
         allocate(newReqCapacity, buf);
         if (newReqCapacity > oldCapacity)
         {
             buffer.setReadPosi(oldReadPosi).setWritePosi(oldWritePosi);
-            memoryCopy(oldMemory, oldOffset, buffer.memory(), buffer.getOffset(), oldWritePosi);
+            memoryCopy(oldMemory, oldOffset, buffer.memory(), buffer.offset(), oldWritePosi);
         }
         // 这种情况是缩小，目前还不支持
         else
