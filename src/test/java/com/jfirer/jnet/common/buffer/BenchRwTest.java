@@ -3,9 +3,9 @@ package com.jfirer.jnet.common.buffer;
 import com.jfirer.jnet.common.buffer.allocator.impl.UnPoolBufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.buffer.buffer.impl.unpool.UnPoolDirectBuffer;
-import com.jfirer.jnet.common.buffer.buffer.impl.unpool.UnPoolDirectByteBuffer;
 import com.jfirer.jnet.common.buffer.buffer.impl.unpool.UnPoolHeapBuffer;
 import com.jfirer.jnet.common.buffer.buffer.impl.unpool.UnPoolMemoryBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.unpool.UnPoolUnsafeBuffer;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
@@ -20,17 +20,19 @@ public class BenchRwTest
     @State(Scope.Benchmark)
     public static class BufferWrapper
     {
-        UnPoolDirectBuffer     unPoolDirectBuffer;
-        UnPoolDirectByteBuffer unPoolDirectByteBuffer;
-        UnPoolHeapBuffer       unPoolHeapBuffer;
-        UnPoolMemoryBuffer     unPoolMemoryBuffer;
+        UnPoolUnsafeBuffer unPoolUnsafeBuffer;
+        UnPoolDirectBuffer unPoolDirectBuffer;
+        UnPoolHeapBuffer   unPoolHeapBuffer;
+        UnPoolMemoryBuffer unPoolMemoryBuffer;
+        ByteBuffer         buffer     = ByteBuffer.allocateDirect(10);
+        ByteBuffer         heapBuffer = ByteBuffer.allocate(10);
 
         @Setup(Level.Trial)
         public void before()
         {
             UnPoolBufferAllocator allocator = new UnPoolBufferAllocator();
-            unPoolDirectBuffer = (UnPoolDirectBuffer) allocator.directBuffer(10);
-            unPoolDirectByteBuffer = allocator.directByteBuffer(10);
+            unPoolUnsafeBuffer = allocator.unsafeBuffer(10);
+            unPoolDirectBuffer = allocator.directByteBuffer(10);
             unPoolHeapBuffer = (UnPoolHeapBuffer) allocator.heapBuffer(10);
             unPoolMemoryBuffer = allocator.memoryBuffer(10);
         }
@@ -42,14 +44,14 @@ public class BenchRwTest
     }
 
     @Benchmark
-    public IoBuffer<ByteBuffer> direct(BufferWrapper wrapper)
+    public IoBuffer<ByteBuffer> unsafe(BufferWrapper wrapper)
     {
-        UnPoolDirectBuffer buffer = wrapper.unPoolDirectBuffer;
+        UnPoolUnsafeBuffer buffer = wrapper.unPoolUnsafeBuffer;
         buffer.put((byte) 1, 0);
         return buffer;
     }
 
-    @Benchmark
+    //    @Benchmark
     public UnPoolHeapBuffer heap(BufferWrapper wrapper)
     {
         UnPoolHeapBuffer buffer = wrapper.unPoolHeapBuffer;
@@ -58,9 +60,9 @@ public class BenchRwTest
     }
 
     @Benchmark
-    public UnPoolDirectByteBuffer byteBuffer(BufferWrapper wrapper)
+    public UnPoolDirectBuffer byteBuffer(BufferWrapper wrapper)
     {
-        UnPoolDirectByteBuffer buffer = wrapper.unPoolDirectByteBuffer;
+        UnPoolDirectBuffer buffer = wrapper.unPoolDirectBuffer;
         buffer.put((byte) 1, 0);
         return buffer;
     }
@@ -73,12 +75,28 @@ public class BenchRwTest
         return buffer;
     }
 
+    @Benchmark
+    public ByteBuffer originBuffer(BufferWrapper wrapper)
+    {
+        ByteBuffer buffer = wrapper.buffer;
+        buffer.put(0, (byte) 1);
+        return buffer;
+    }
+
+    //    @Benchmark
+    public ByteBuffer originHeapBuffer(BufferWrapper wrapper)
+    {
+        ByteBuffer heapBuffer = wrapper.heapBuffer;
+        heapBuffer.put(0, (byte) 1);
+        return heapBuffer;
+    }
+
     public static void main(String[] args) throws RunnerException
     {
         Options opt = new OptionsBuilder().include(BenchRwTest.class.getSimpleName())//
                                           .warmupIterations(1).warmupTime(TimeValue.seconds(3))//
-                                          .measurementIterations(3).measurementTime(TimeValue.seconds(2))//
-                                          .threads(1).forks(2).build();
+                                          .measurementIterations(5).measurementTime(TimeValue.seconds(1))//
+                                          .threads(1).forks(1).build();
         new Runner(opt).run();
     }
 }

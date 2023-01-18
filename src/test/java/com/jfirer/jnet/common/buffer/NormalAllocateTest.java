@@ -2,7 +2,7 @@ package com.jfirer.jnet.common.buffer;
 
 import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
-import com.jfirer.jnet.common.buffer.buffer.PooledBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.PoolableBuffer;
 import org.junit.Test;
 
 import java.util.LinkedList;
@@ -33,8 +33,8 @@ public class NormalAllocateTest
             int base      = 1 << i;
             for (int j = 0; j < 1 << i; j++)
             {
-                PooledBuffer<?> buffer = (PooledBuffer<?>) allocator.ioBuffer(levelSize, direct);
-                long            handle = buffer.handle();
+                PoolableBuffer<?> buffer = (PoolableBuffer<?>) allocator.ioBuffer(levelSize, direct);
+                long              handle = buffer.handle();
                 assertEquals(base + j, handle);
                 buffers.add((IoBuffer) buffer);
             }
@@ -62,8 +62,8 @@ public class NormalAllocateTest
         int maxLevel = allocator.maxLevel();
         for (int i = maxLevel; i > 0; i--)
         {
-            int             size   = pagesize << (maxLevel - i);
-            PooledBuffer<?> buffer = (PooledBuffer<?>) allocator.ioBuffer(size, preferDirect);
+            int               size   = pagesize << (maxLevel - i);
+            PoolableBuffer<?> buffer = (PoolableBuffer<?>) allocator.ioBuffer(size, preferDirect);
             if (i == maxLevel)
             {
                 assertEquals(1 << i, buffer.handle());

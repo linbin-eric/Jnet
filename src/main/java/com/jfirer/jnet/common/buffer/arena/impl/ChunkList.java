@@ -2,7 +2,7 @@ package com.jfirer.jnet.common.buffer.arena.impl;
 
 import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.arena.Chunk;
-import com.jfirer.jnet.common.buffer.buffer.PooledBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.PoolableBuffer;
 import com.jfirer.jnet.common.util.CapacityStat;
 
 public class ChunkList<T>
@@ -53,7 +53,7 @@ public class ChunkList<T>
         this.prevList = prevList;
     }
 
-    public boolean allocate(int normalizeSize, PooledBuffer<T> buffer)
+    public boolean allocate(int normalizeSize, PoolableBuffer<T> buffer)
     {
         if (head == null || normalizeSize > maxReqCapacity)
         {

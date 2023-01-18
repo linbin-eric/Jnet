@@ -31,7 +31,23 @@ public class UnPooledBufferRWTest
     {
         UnPoolBufferAllocator allocator = new UnPoolBufferAllocator();
         return Arrays.asList(new Object[][]{ //
-                {allocator.heapBuffer(128), allocator.heapBuffer(30)}, {allocator.heapBuffer(128), allocator.directBuffer(30)}, {allocator.heapBuffer(128), allocator.directByteBuffer(30)}, {allocator.heapBuffer(128), allocator.memoryBuffer(30)}, {allocator.directBuffer(128), allocator.heapBuffer(30)}, {allocator.directBuffer(128), allocator.directBuffer(30)}, {allocator.directBuffer(128), allocator.directByteBuffer(30)}, {allocator.directBuffer(128), allocator.memoryBuffer(30)}, {allocator.directByteBuffer(128), allocator.heapBuffer(30)}, {allocator.directByteBuffer(128), allocator.directBuffer(30)}, {allocator.directByteBuffer(128), allocator.directByteBuffer(30)}, {allocator.directByteBuffer(128), allocator.memoryBuffer(30)}, {allocator.memoryBuffer(128), allocator.heapBuffer(30)}, {allocator.memoryBuffer(128), allocator.directBuffer(30)}, {allocator.memoryBuffer(128), allocator.directByteBuffer(30)}, {allocator.memoryBuffer(128), allocator.memoryBuffer(30)},});
+                {allocator.heapBuffer(128), allocator.heapBuffer(30)},//
+                {allocator.heapBuffer(128), allocator.unsafeBuffer(30)}, //
+                {allocator.heapBuffer(128), allocator.directByteBuffer(30)},//
+                {allocator.heapBuffer(128), allocator.memoryBuffer(30)},//
+                {allocator.unsafeBuffer(128), allocator.heapBuffer(30)}, //
+                {allocator.unsafeBuffer(128), allocator.unsafeBuffer(30)}, //
+                {allocator.unsafeBuffer(128), allocator.directByteBuffer(30)},//
+                {allocator.unsafeBuffer(128), allocator.memoryBuffer(30)},//
+                {allocator.directByteBuffer(128), allocator.heapBuffer(30)},//
+                {allocator.directByteBuffer(128), allocator.unsafeBuffer(30)},//
+                {allocator.directByteBuffer(128), allocator.directByteBuffer(30)}, //
+                {allocator.directByteBuffer(128), allocator.memoryBuffer(30)},//
+                {allocator.memoryBuffer(128), allocator.heapBuffer(30)}, //
+                {allocator.memoryBuffer(128), allocator.unsafeBuffer(30)}, //
+                {allocator.memoryBuffer(128), allocator.directByteBuffer(30)}, //
+                {allocator.memoryBuffer(128), allocator.memoryBuffer(30)},//
+        });//
     }
 
     @Before
@@ -223,6 +239,7 @@ public class UnPooledBufferRWTest
         {
             System.out.println(buffer.get());
         }
+        System.out.println("***");
         buffer.putInt(4);
         buffer.putShort((short) 2);
         buffer.putLong(23L);
@@ -234,6 +251,7 @@ public class UnPooledBufferRWTest
         ByteBuffer nioBuffer = buffer.readableByteBuffer();
         System.out.println(nioBuffer.position());
         System.out.println(nioBuffer.limit());
+        System.out.println("++++");
 //        for (int i = 0; i < nioBuffer.limit(); i++)
 //        {
 //            System.out.println(nioBuffer.get());

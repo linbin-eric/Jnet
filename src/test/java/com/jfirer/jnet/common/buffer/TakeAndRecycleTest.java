@@ -1,8 +1,8 @@
 package com.jfirer.jnet.common.buffer;
 
 import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
-import com.jfirer.jnet.common.buffer.buffer.PooledBuffer;
 import com.jfirer.jnet.common.buffer.buffer.impl.AbstractBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.PoolableBuffer;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -21,21 +21,21 @@ public class TakeAndRecycleTest
 
     private void test0(boolean preferDirect)
     {
-        PooledBuffer<?> buffer = (PooledBuffer<?>) allocator.ioBuffer(pagesize, preferDirect);
+        PoolableBuffer<?> buffer = (PoolableBuffer<?>) allocator.ioBuffer(pagesize, preferDirect);
         assertEquals(16, buffer.handle());
-        PooledBuffer<?> buffer2 = (PooledBuffer<?>) allocator.ioBuffer(pagesize << 1, preferDirect);
+        PoolableBuffer<?> buffer2 = (PoolableBuffer<?>) allocator.ioBuffer(pagesize << 1, preferDirect);
         assertEquals(9, buffer2.handle());
         ((AbstractBuffer) buffer).free();
-        PooledBuffer<?> buffer3 = (PooledBuffer<?>) allocator.ioBuffer(pagesize << 1, preferDirect);
+        PoolableBuffer<?> buffer3 = (PoolableBuffer<?>) allocator.ioBuffer(pagesize << 1, preferDirect);
         assertEquals(8, buffer3.handle());
-        PooledBuffer<?> buffer4 = (PooledBuffer<?>) allocator.ioBuffer(pagesize, preferDirect);
+        PoolableBuffer<?> buffer4 = (PoolableBuffer<?>) allocator.ioBuffer(pagesize, preferDirect);
         assertEquals(20, buffer4.handle());
-        PooledBuffer<?> buffer5 = (PooledBuffer<?>) allocator.ioBuffer(pagesize << 1, preferDirect);
+        PoolableBuffer<?> buffer5 = (PoolableBuffer<?>) allocator.ioBuffer(pagesize << 1, preferDirect);
         assertEquals(11, buffer5.handle());
-        PooledBuffer<?> buffer6 = (PooledBuffer<?>) allocator.ioBuffer(pagesize, preferDirect);
+        PoolableBuffer<?> buffer6 = (PoolableBuffer<?>) allocator.ioBuffer(pagesize, preferDirect);
         assertEquals(21, buffer6.handle());
         ((AbstractBuffer) buffer2).free();
-        PooledBuffer<?> buffer7 = (PooledBuffer<?>) allocator.ioBuffer(pagesize << 1, preferDirect);
+        PoolableBuffer<?> buffer7 = (PoolableBuffer<?>) allocator.ioBuffer(pagesize << 1, preferDirect);
         assertEquals(9, buffer7.handle());
     }
 }

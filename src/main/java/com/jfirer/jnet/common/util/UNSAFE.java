@@ -268,8 +268,8 @@ public class UNSAFE
 
     public static void copyMemory(long srcAddr, long destAddr, long len)
     {
-//        unsafe.copyMemory(srcAddr, destAddr, len);
-        unsafe.copyMemory(null, srcAddr, null, destAddr, len);
+        unsafe.copyMemory(srcAddr, destAddr, len);
+//        unsafe.copyMemory(null, srcAddr, null, destAddr, len);
     }
 
     public static void putChar(Object entity, long offset, char c)
@@ -320,5 +320,33 @@ public class UNSAFE
         return unsafe.isBigEndian();
     }
 
+    public static void putIntUnaligned(long address, int value)
+    {
+        unsafe.putIntUnaligned(null, address, value, true);
+    }
 
+    public static int getIntUnaligned(long address)
+    {
+        return unsafe.getIntUnaligned(null, address, true);
+    }
+
+    public static void putShortUnaligned(long address, short value)
+    {
+        unsafe.putShortUnaligned(null, address, value, true);
+    }
+
+    public static short getShortUnaligned(long address)
+    {
+        return unsafe.getShortUnaligned(null, address, true);
+    }
+
+    public static void putLongUnaligned(long address, long value)
+    {
+        unsafe.putLongUnaligned(null, address, value, true);
+    }
+
+    public static long getLongUnaligned(long address)
+    {
+        return unsafe.getLongUnaligned(null, address, true);
+    }
 }

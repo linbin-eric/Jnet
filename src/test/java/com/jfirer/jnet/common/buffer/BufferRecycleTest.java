@@ -3,7 +3,6 @@ package com.jfirer.jnet.common.buffer;
 import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.thread.FastThreadLocalThread;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.concurrent.CountDownLatch;
@@ -11,7 +10,6 @@ import java.util.concurrent.CountDownLatch;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-@Ignore
 public class BufferRecycleTest
 {
     PooledBufferAllocator allocator = new PooledBufferAllocator("test");

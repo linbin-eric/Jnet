@@ -6,12 +6,12 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.nio.ByteBuffer;
 
-public abstract class AbstractMemorySegmentBuffer extends AbstractBuffer<MemorySegment>
+public class CacheablePoolableMemoryBuffer extends PoolableBuffer<MemorySegment>
 {
     @Override
-    public void init(MemorySegment memory, int capacity, int offset)
+    protected void free0(int capacity)
     {
-        super.init(memory, capacity, offset);
+        memory.session().close();
     }
 
     @Override
@@ -46,24 +46,11 @@ public abstract class AbstractMemorySegmentBuffer extends AbstractBuffer<MemoryS
     }
 
     @Override
-    public IoBuffer compact()
+    protected void compact0(int length)
     {
-        if (readPosi == 0)
-        {
-            return this;
-        }
-        int length = remainRead();
-        if (length == 0)
-        {
-            writePosi = readPosi = 0;
-        }
-        else
-        {
-            MemorySegment.copy(memory, offset + readPosi, memory, offset, length);
-            writePosi = length;
-            readPosi = 0;
-        }
-        return this;
+        MemorySegment.copy(memory, offset + readPosi, memory, offset, length);
+        writePosi = length;
+        readPosi = 0;
     }
 
     @Override

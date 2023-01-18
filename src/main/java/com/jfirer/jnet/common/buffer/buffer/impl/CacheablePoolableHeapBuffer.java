@@ -7,19 +7,14 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.nio.ByteBuffer;
 
-public abstract class AbstractHeapBuffer extends AbstractBuffer<byte[]>
+public class CacheablePoolableHeapBuffer extends CacheablePoolableBuffer<byte[]>
 {
     @Override
-    public IoBuffer compact()
+    protected void compact0(int length)
     {
-        if (readPosi == 0)
-        {
-            return this;
-        }
-        System.arraycopy(memory, offset + readPosi, memory, offset, remainRead());
-        writePosi -= readPosi;
+        System.arraycopy(memory, offset + readPosi, memory, offset, length);
+        writePosi = length;
         readPosi = 0;
-        return this;
     }
 
     @Override
@@ -128,9 +123,8 @@ public abstract class AbstractHeapBuffer extends AbstractBuffer<byte[]>
         }
         else
         {
-            AbstractHeapBuffer buffer = (AbstractHeapBuffer) buf;
-            int                posi   = nextWritePosi(len);
-            System.arraycopy(buffer.memory, buffer.readPosi + buffer.offset, memory, realPosi(posi), len);
+            int posi = nextWritePosi(len);
+            System.arraycopy(buf.memory(), buf.getReadPosi() + buf.offset(), memory, realPosi(posi), len);
         }
         return this;
     }

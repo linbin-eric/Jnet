@@ -1,15 +1,14 @@
 package com.jfirer.jnet.common.buffer.buffer.impl.unpool;
 
-import com.jfirer.jnet.common.buffer.buffer.Bits;
-import com.jfirer.jnet.common.buffer.buffer.impl.AbstractDirectBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.CacheablePoolableDirectBuffer;
 import com.jfirer.jnet.common.util.PlatFormFunction;
 
 import java.nio.ByteBuffer;
 
-public class UnPoolDirectBuffer extends AbstractDirectBuffer
+public class UnPoolDirectBuffer extends CacheablePoolableDirectBuffer
 {
     @Override
-    protected long getAddress(ByteBuffer memory)
+    protected long getDirectAddress(ByteBuffer memory)
     {
         return PlatFormFunction.bytebufferOffsetAddress(memory);
     }
@@ -18,12 +17,14 @@ public class UnPoolDirectBuffer extends AbstractDirectBuffer
     protected void reAllocate(int posi)
     {
         posi = posi > capacity * 2 ? posi : 2 * capacity;
-        long oldAddress   = address;
-        long oldWritePosi = writePosi;
+        ByteBuffer src          = memory;
+        int        oldReadPosi  = readPosi;
+        int        oldWritePosi = writePosi;
         memory = ByteBuffer.allocateDirect(posi);
-        address = PlatFormFunction.bytebufferOffsetAddress(memory);
-        capacity = posi;
-        Bits.copyDirectMemory(oldAddress, address, oldWritePosi);
+        init(memory, posi, 0);
+        readPosi = oldReadPosi;
+        writePosi = oldWritePosi;
+        memory.put(0, src, 0, writePosi);
     }
 
     @Override

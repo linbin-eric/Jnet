@@ -6,18 +6,29 @@ import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import java.lang.foreign.MemorySegment;
 import java.nio.ByteBuffer;
 
-public abstract class AbstractDirectBuffer extends AbstractBuffer<ByteBuffer>
+public class CacheablePoolableUnsafeBuffer extends CacheablePoolableBuffer<ByteBuffer>
 {
     //当direct时才有值
-    protected long address;
+    protected long selfAddress;
+
+    long realAddress(int posi)
+    {
+        return selfAddress + posi;
+    }
+//    @Override
+//    public void init(Arena<ByteBuffer> arena, ChunkListNode<ByteBuffer> chunkListNode, int capacity, int offset, long handle)
+//    {
+//        super.init(arena, chunkListNode, capacity, offset, handle);
+//        //！！注意，因为扩容的时候仍然是使用memory计算基础地址再加上offset，因此这里虽然计算了最终的address，但是
+//        //不能将offset的值修改为其他的值，必须保持其原始值！
+//        selfAddress = getDirectAddress(memory) + offset;
+//    }
 
     @Override
     public void init(ByteBuffer memory, int capacity, int offset)
     {
         super.init(memory, capacity, offset);
-        //！！注意，因为扩容的时候仍然是使用memory计算基础地址再加上offset，因此这里虽然计算了最终的address，但是
-        //不能将offset的值修改为其他的值，必须保持其原始值！
-        address = getDirectAddress(memory) + offset;
+        selfAddress = getDirectAddress(memory) + offset;
     }
 
     @Override
@@ -44,32 +55,18 @@ public abstract class AbstractDirectBuffer extends AbstractBuffer<ByteBuffer>
         }
         else
         {
-            AbstractHeapBuffer buffer = (AbstractHeapBuffer) buf;
-            int                posi   = nextWritePosi(len);
-            Bits.copyFromByteArray(buffer.memory, buffer.offset + buffer.readPosi, realAddress(posi), len);
+            int posi = nextWritePosi(len);
+            Bits.copyFromByteArray((byte[]) buf.memory(), buf.offset() + buf.getReadPosi(), realAddress(posi), len);
         }
         return this;
     }
 
     @Override
-    public IoBuffer compact()
+    protected void compact0(int length)
     {
-        if (readPosi == 0)
-        {
-            return this;
-        }
-        int length = remainRead();
-        if (length == 0)
-        {
-            writePosi = readPosi = 0;
-        }
-        else
-        {
-            Bits.copyDirectMemory(address + readPosi, address, length);
-            writePosi = length;
-            readPosi = 0;
-        }
-        return this;
+        Bits.copyDirectMemory(selfAddress + readPosi, selfAddress, length);
+        writePosi = length;
+        readPosi = 0;
     }
 
     @Override
@@ -92,11 +89,6 @@ public abstract class AbstractDirectBuffer extends AbstractBuffer<ByteBuffer>
     public boolean isDirect()
     {
         return true;
-    }
-
-    long realAddress(int posi)
-    {
-        return address + posi;
     }
 
     @Override

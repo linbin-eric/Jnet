@@ -1,33 +1,33 @@
 package com.jfirer.jnet.common.buffer.buffer.impl;
 
 import com.jfirer.jnet.common.buffer.ThreadCache;
-import com.jfirer.jnet.common.buffer.buffer.CachedPooledBuffer;
 
-import java.nio.ByteBuffer;
-
-public class CachedPooledDirectBuffer extends PooledDirectBuffer implements CachedPooledBuffer<ByteBuffer>
+public abstract class CacheablePoolableBuffer<T> extends PoolableBuffer<T>
 {
-    protected ThreadCache<ByteBuffer>              cache;
-    protected ThreadCache.MemoryCached<ByteBuffer> memoryCached;
+    protected ThreadCache<T>              cache;
+    protected ThreadCache.MemoryCached<T> memoryCached;
 
-    @Override
-    public void init(ThreadCache.MemoryCached<ByteBuffer> memoryCached, ThreadCache<ByteBuffer> cache)
+    public void init(ThreadCache.MemoryCached<T> memoryCached, ThreadCache<T> cache)
     {
         this.cache = cache;
         this.memoryCached = memoryCached;
         init(memoryCached.arena, memoryCached.chunkListNode, memoryCached.capacity, memoryCached.offset, memoryCached.handle);
     }
 
-    @Override
-    public void setCache(ThreadCache<ByteBuffer> cache)
+    public void setCache(ThreadCache<T> cache)
     {
         this.cache = cache;
     }
 
     @Override
-    public void free0(int capacity)
+    protected void free0(int capacity)
     {
-        if (memoryCached != null)
+        if (cache == null)
+        {
+            super.free0(capacity);
+            return;
+        }
+        else if (memoryCached != null)
         {
             if (cache.add(memoryCached))
             {

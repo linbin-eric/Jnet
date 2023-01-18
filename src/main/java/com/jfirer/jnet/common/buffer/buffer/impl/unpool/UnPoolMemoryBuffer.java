@@ -1,14 +1,14 @@
 package com.jfirer.jnet.common.buffer.buffer.impl.unpool;
 
-import com.jfirer.jnet.common.buffer.buffer.impl.AbstractMemorySegmentBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.CacheablePoolableMemoryBuffer;
 
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.MemorySession;
 
-public class UnPoolMemoryBuffer extends AbstractMemorySegmentBuffer
+public class UnPoolMemoryBuffer extends CacheablePoolableMemoryBuffer
 {
     @Override
-    protected long getAddress(MemorySegment memory)
+    protected long getDirectAddress(MemorySegment memory)
     {
         return memory.address().toRawLongValue();
     }
@@ -18,11 +18,14 @@ public class UnPoolMemoryBuffer extends AbstractMemorySegmentBuffer
     {
         MemorySession session = memory.session();
         posi = posi > capacity * 2 ? posi : 2 * capacity;
-        MemorySegment old        = memory;
-        MemorySegment newSegment = MemorySegment.allocateNative(posi, session);
-        capacity = posi;
-        MemorySegment.copy(old, 0, newSegment, 0, writePosi);
-        memory = newSegment;
+        MemorySegment old          = memory;
+        int           oldReadPosi  = readPosi;
+        int           oldWritePosi = writePosi;
+        memory = MemorySegment.allocateNative(posi, session);
+        init(memory, posi, 0);
+        readPosi = oldReadPosi;
+        writePosi = oldWritePosi;
+        MemorySegment.copy(old, 0, memory, 0, writePosi);
     }
 
     @Override

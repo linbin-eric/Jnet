@@ -27,7 +27,7 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
         refCount = refCount == 0 ? 1 : refCount;
         if (isDirect())
         {
-            directMemoryAddress = getAddress(memory);
+            directMemoryAddress = getDirectAddress(memory);
         }
         else
         {
@@ -35,7 +35,7 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
         }
     }
 
-    protected abstract long getAddress(T memory);
+    protected abstract long getDirectAddress(T memory);
 
     @Override
     public int capacity()
@@ -43,7 +43,7 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
         return capacity;
     }
 
-    int nextWritePosi(int length)
+    protected int nextWritePosi(int length)
     {
         int oldPosi = writePosi;
         int posi    = oldPosi + length;
@@ -72,7 +72,7 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
         return this;
     }
 
-    abstract void put0(int posi, byte value);
+    protected abstract void put0(int posi, byte value);
 
     void checkWritePosi(int posi, int length)
     {
@@ -100,7 +100,7 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
         return this;
     }
 
-    abstract void put0(byte[] content, int off, int len, int posi);
+    protected abstract void put0(byte[] content, int off, int len, int posi);
 
     @Override
     public IoBuffer put(byte[] content, int off, int len)
@@ -124,7 +124,7 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
         return this;
     }
 
-    abstract void putInt0(int posi, int value);
+    protected abstract void putInt0(int posi, int value);
 
     @Override
     public IoBuffer putInt(int value, int posi)
@@ -142,7 +142,7 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
         return this;
     }
 
-    abstract void putShort0(int posi, short value);
+    protected abstract void putShort0(int posi, short value);
 
     @Override
     public IoBuffer putLong(long value, int posi)
@@ -152,7 +152,7 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
         return this;
     }
 
-    abstract void putLong0(int posi, long value);
+    protected abstract void putLong0(int posi, long value);
 
     @Override
     public IoBuffer putShort(short s)
@@ -233,7 +233,7 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
         return get0(posi);
     }
 
-    abstract byte get0(int posi);
+    protected abstract byte get0(int posi);
 
     void checkReadPosi(int posi, int len)
     {
@@ -269,7 +269,7 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
         return get(content, 0, content.length);
     }
 
-    abstract void get0(byte[] content, int off, int len, int posi);
+    protected abstract void get0(byte[] content, int off, int len, int posi);
 
     @Override
     public IoBuffer get(byte[] content, int off, int len)
@@ -348,7 +348,7 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
         return getInt0(posi);
     }
 
-    abstract int getInt0(int posi);
+    protected abstract int getInt0(int posi);
 
     @Override
     public short getShort()
@@ -357,7 +357,7 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
         return getShort0(posi);
     }
 
-    abstract short getShort0(int posi);
+    protected abstract short getShort0(int posi);
 
     @Override
     public long getLong()
@@ -387,7 +387,7 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
         return getLong0(posi);
     }
 
-    abstract long getLong0(int posi);
+    protected abstract long getLong0(int posi);
 
     int incrRef()
     {
@@ -430,7 +430,10 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
         }
         free0(capacity);
         memory = null;
-        recycleHandler.recycle(this);
+        if (recycleHandler != null)
+        {
+            recycleHandler.recycle(this);
+        }
     }
 
     protected abstract void free0(int capacity);
@@ -462,4 +465,25 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
     {
         this.recycleHandler = handler;
     }
+
+    @Override
+    public IoBuffer compact()
+    {
+        if (readPosi == 0)
+        {
+            return this;
+        }
+        int length = remainRead();
+        if (length == 0)
+        {
+            writePosi = readPosi = 0;
+        }
+        else
+        {
+            compact0(length);
+        }
+        return this;
+    }
+
+    protected abstract void compact0(int length);
 }

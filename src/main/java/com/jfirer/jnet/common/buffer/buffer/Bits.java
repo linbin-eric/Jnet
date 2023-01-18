@@ -1,37 +1,13 @@
 package com.jfirer.jnet.common.buffer.buffer;
 
-import com.jfirer.jnet.common.util.ReflectUtil;
 import com.jfirer.jnet.common.util.UNSAFE;
 
 public final class Bits
 {
-    public static final  int     JNI_COPY_TO_ARRAY_THRESHOLD   = 6;
-    public static final  int     JNI_COPY_FROM_ARRAY_THRESHOLD = 6;
-    private static final long    UNSAFE_COPY_THRESHOLD         = 1024L * 1024L;
-    private static final int     arrayBaseOffset               = UNSAFE.arrayBaseOffset(byte[].class);
-    private static final boolean nativeByteOrder;
-    public static        boolean unaligned;
-    static
-    {
-        unaligned = detectUnaligned();
-        nativeByteOrder = UNSAFE.isBigEndian();
-    }
-    private static Boolean detectUnaligned()
-    {
-        try
-        {
-            if (System.getProperty("io.jnet.buffer.unaligned") != null)
-            {
-                return Boolean.valueOf(System.getProperty("io.jnet.buffer.unaligned"));
-            }
-            return UNSAFE.unaligned();
-        }
-        catch (Exception e)
-        {
-            ReflectUtil.throwException(e);
-            return false;
-        }
-    }
+    public static final  int  JNI_COPY_TO_ARRAY_THRESHOLD   = 6;
+    public static final  int  JNI_COPY_FROM_ARRAY_THRESHOLD = 6;
+    private static final long UNSAFE_COPY_THRESHOLD         = 4;
+    private static final int  arrayBaseOffset               = UNSAFE.arrayBaseOffset(byte[].class);
 
     /**
      * 从堆内存中拷贝数据到堆外内存
@@ -43,14 +19,17 @@ public final class Bits
      */
     public static void copyFromByteArray(byte[] src, int srcPos, long dstAddr, long length)
     {
-        long offset = arrayBaseOffset + srcPos;
-        while (length > 0)
+        if (length > JNI_COPY_FROM_ARRAY_THRESHOLD)
         {
-            long size = (length > UNSAFE_COPY_THRESHOLD) ? UNSAFE_COPY_THRESHOLD : length;
-            UNSAFE.copyMemory(src, offset, null, dstAddr, size);
-            length -= size;
-            offset += size;
-            dstAddr += size;
+            long offset = arrayBaseOffset + srcPos;
+            UNSAFE.copyMemory(src, offset, null, dstAddr, length);
+        }
+        else
+        {
+            for (int i = 0; i < length; i++)
+            {
+                UNSAFE.putByte(dstAddr + i, src[srcPos + i]);
+            }
         }
     }
 
@@ -64,14 +43,17 @@ public final class Bits
      */
     public static void copyToArray(long srcAddr, byte[] dst, int dstPos, long length)
     {
-        long offset = arrayBaseOffset + dstPos;
-        while (length > 0)
+        if (length > Bits.JNI_COPY_TO_ARRAY_THRESHOLD)
         {
-            long size = (length > UNSAFE_COPY_THRESHOLD) ? UNSAFE_COPY_THRESHOLD : length;
-            UNSAFE.copyMemory(null, srcAddr, dst, offset, size);
-            length -= size;
-            srcAddr += size;
-            offset += size;
+            long offset = arrayBaseOffset + dstPos;
+            UNSAFE.copyMemory(null, srcAddr, dst, offset, length);
+        }
+        else
+        {
+            for (int i = 0; i < length; i++)
+            {
+                dst[i] = UNSAFE.getByte(srcAddr + i);
+            }
         }
     }
 
@@ -99,14 +81,15 @@ public final class Bits
 
     public static void putInt(long address, int value)
     {
-        if (unaligned)
-        {
-            UNSAFE.putInt(address, nativeByteOrder ? value : swap(value));
-        }
-        else
-        {
-            putIntBigendian(address, value);
-        }
+//        if (unaligned)
+//        {
+//            UNSAFE.putInt(address, nativeByteOrder ? value : swap(value));
+//        }
+//        else
+//        {
+//            putIntBigendian(address, value);
+//        }
+        UNSAFE.putIntUnaligned(address, value);
     }
 
     static void putIntBigendian(long address, int value)
@@ -119,12 +102,13 @@ public final class Bits
 
     public static int getInt(long address)
     {
-        if (unaligned)
-        {
-            int x = UNSAFE.getInt(address);
-            return nativeByteOrder ? x : swap(x);
-        }
-        return getIntBigendian(address);
+//        if (unaligned)
+//        {
+//            int x = UNSAFE.getInt(address);
+//            return nativeByteOrder ? x : swap(x);
+//        }
+//        return getIntBigendian(address);
+        return UNSAFE.getIntUnaligned(address);
     }
 
     static int getIntBigendian(long address)
@@ -134,14 +118,15 @@ public final class Bits
 
     public static void putLong(long address, long value)
     {
-        if (unaligned)
-        {
-            UNSAFE.putLong(address, nativeByteOrder ? value : swap(value));
-        }
-        else
-        {
-            putLongBigEndian(address, value);
-        }
+//        if (unaligned)
+//        {
+//            UNSAFE.putLong(address, nativeByteOrder ? value : swap(value));
+//        }
+//        else
+//        {
+//            putLongBigEndian(address, value);
+//        }
+        UNSAFE.putLongUnaligned(address, value);
     }
 
     static void putLongBigEndian(long address, long value)
@@ -158,12 +143,13 @@ public final class Bits
 
     public static long getLong(long address)
     {
-        if (unaligned)
-        {
-            long value = UNSAFE.getLong(address);
-            return nativeByteOrder ? value : swap(value);
-        }
-        return getLongBigEndian(address);
+//        if (unaligned)
+//        {
+//            long value = UNSAFE.getLong(address);
+//            return nativeByteOrder ? value : swap(value);
+//        }
+//        return getLongBigEndian(address);
+        return UNSAFE.getLongUnaligned(address);
     }
 
     static long getLongBigEndian(long address)
@@ -180,14 +166,15 @@ public final class Bits
 
     public static void putShort(long address, short s)
     {
-        if (unaligned)
-        {
-            UNSAFE.putShort(address, nativeByteOrder ? s : swap(s));
-        }
-        else
-        {
-            putShortBigEndian(address, s);
-        }
+//        if (unaligned)
+//        {
+//            UNSAFE.putShort(address, nativeByteOrder ? s : swap(s));
+//        }
+//        else
+//        {
+//            putShortBigEndian(address, s);
+//        }
+        UNSAFE.putShortUnaligned(address, s);
     }
 
     static void putShortBigEndian(long address, short s)
@@ -198,15 +185,16 @@ public final class Bits
 
     public static short getShort(long address)
     {
-        if (unaligned)
-        {
-            short s = UNSAFE.getShort(address);
-            return nativeByteOrder ? s : swap(s);
-        }
-        else
-        {
-            return makeShort(get(address), get(address + 1));
-        }
+//        if (unaligned)
+//        {
+//            short s = UNSAFE.getShort(address);
+//            return nativeByteOrder ? s : swap(s);
+//        }
+//        else
+//        {
+//            return makeShort(get(address), get(address + 1));
+//        }
+        return UNSAFE.getShortUnaligned(address);
     }
 
     public static void putInt(byte[] array, int posi, int value)

@@ -2,8 +2,8 @@ package com.jfirer.jnet.common.buffer.arena.impl;
 
 import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.arena.Chunk;
-import com.jfirer.jnet.common.buffer.buffer.PooledBuffer;
 import com.jfirer.jnet.common.buffer.buffer.impl.AbstractBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.PoolableBuffer;
 import com.jfirer.jnet.common.util.CapacityStat;
 import com.jfirer.jnet.common.util.MathUtil;
 import com.jfirer.jnet.common.util.ReflectUtil;
@@ -73,7 +73,7 @@ public abstract class AbstractArena<T> implements Arena<T>
 
     protected abstract Chunk<T> newHugeChunk(int reqCapacity);
 
-    private void allocateHuge(int reqCapacity, PooledBuffer<T> buffer)
+    private void allocateHuge(int reqCapacity, PoolableBuffer<T> buffer)
     {
         Chunk<T> chunk = newHugeChunk(reqCapacity);
         buffer.init(this, new ChunkListNode<>(chunk), reqCapacity, 0, 0);
@@ -83,7 +83,7 @@ public abstract class AbstractArena<T> implements Arena<T>
     protected abstract void destoryChunk(Chunk<T> chunk);
 
     @Override
-    public void allocate(int reqCapacity, PooledBuffer<T> buffer)
+    public void allocate(int reqCapacity, PoolableBuffer<T> buffer)
     {
         int normalizeCapacity = normalizeCapacity(reqCapacity);
         if (isSmall(normalizeCapacity))
@@ -143,7 +143,7 @@ public abstract class AbstractArena<T> implements Arena<T>
         return ((int) (handle >>> 32)) & 0x3FFFFFFF;
     }
 
-    private void initSubPageBuffer(SubPage<T> subPage, PooledBuffer<T> buffer)
+    private void initSubPageBuffer(SubPage<T> subPage, PoolableBuffer<T> buffer)
     {
         long handle                 = subPage.allocate();
         int  allocationsCapacityIdx = allocationsCapacityIdx(handle);
@@ -196,7 +196,7 @@ public abstract class AbstractArena<T> implements Arena<T>
         return subPage;
     }
 
-    private synchronized void allocateNormal(int normalizeCapacity, PooledBuffer<T> buffer)
+    private synchronized void allocateNormal(int normalizeCapacity, PoolableBuffer<T> buffer)
     {
         if (c050.allocate(normalizeCapacity, buffer)//
             || c025.allocate(normalizeCapacity, buffer)//
@@ -213,7 +213,7 @@ public abstract class AbstractArena<T> implements Arena<T>
     }
 
     @Override
-    public void reAllocate(ChunkListNode<T> oldChunkListNode, PooledBuffer<T> buf, int newReqCapacity)
+    public void reAllocate(ChunkListNode<T> oldChunkListNode, PoolableBuffer<T> buf, int newReqCapacity)
     {
         AbstractBuffer<T> buffer       = (AbstractBuffer<T>) buf;
         long              oldHandle    = buf.handle();

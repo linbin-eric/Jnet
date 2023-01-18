@@ -2,7 +2,7 @@ package com.jfirer.jnet.common.buffer;
 
 import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.arena.impl.ChunkListNode;
-import com.jfirer.jnet.common.buffer.buffer.CachedPooledBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.CacheablePoolableBuffer;
 import com.jfirer.jnet.common.recycler.RecycleHandler;
 import com.jfirer.jnet.common.recycler.Recycler;
 import com.jfirer.jnet.common.util.MathUtil;
@@ -59,7 +59,7 @@ public class ThreadCache<T>
         }
     }
 
-    public boolean allocate(int capacity, CachedPooledBuffer<T> buffer)
+    public boolean allocate(int capacity, CacheablePoolableBuffer<T> buffer)
     {
         int index = MathUtil.log2(MathUtil.normalizeSize(capacity)) - 4;
         if (index < regionCaches.length)

@@ -1,15 +1,9 @@
 package com.jfirer.jnet.common.buffer.buffer.impl.unpool;
 
-import com.jfirer.jnet.common.buffer.buffer.impl.AbstractHeapBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.CacheablePoolableHeapBuffer;
 
-public class UnPoolHeapBuffer extends AbstractHeapBuffer
+public class UnPoolHeapBuffer extends CacheablePoolableHeapBuffer
 {
-    @Override
-    protected long getAddress(byte[] memory)
-    {
-        return 0;
-    }
-
     @Override
     protected void reAllocate(int posi)
     {

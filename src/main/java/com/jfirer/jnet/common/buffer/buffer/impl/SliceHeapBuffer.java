@@ -3,7 +3,7 @@ package com.jfirer.jnet.common.buffer.buffer.impl;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.recycler.Recycler;
 
-public class SliceHeapBuffer extends AbstractHeapBuffer
+public class SliceHeapBuffer extends CacheablePoolableHeapBuffer
 {
     static final Recycler<SliceHeapBuffer> RECYCLER = new Recycler<>(recycleHandlerFunction -> {
         SliceHeapBuffer buffer = new SliceHeapBuffer();
@@ -25,12 +25,6 @@ public class SliceHeapBuffer extends AbstractHeapBuffer
         slice.addWritePosi(length);
         buffer.addReadPosi(length);
         return slice;
-    }
-
-    @Override
-    protected long getAddress(byte[] memory)
-    {
-        return 0;
     }
 
     @Override

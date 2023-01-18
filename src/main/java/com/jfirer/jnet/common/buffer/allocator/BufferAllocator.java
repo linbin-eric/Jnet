@@ -15,7 +15,7 @@ public interface BufferAllocator
 
     IoBuffer heapBuffer(int initializeCapacity);
 
-    IoBuffer directBuffer(int initializeCapacity);
+    IoBuffer unsafeBuffer(int initializeCapacity);
 
     String name();
 }

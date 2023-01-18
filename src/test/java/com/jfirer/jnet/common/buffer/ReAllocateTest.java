@@ -1,8 +1,8 @@
 package com.jfirer.jnet.common.buffer;
 
 import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
-import com.jfirer.jnet.common.buffer.buffer.PooledBuffer;
 import com.jfirer.jnet.common.buffer.buffer.impl.AbstractBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.PoolableBuffer;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -23,7 +23,7 @@ public class ReAllocateTest
     {
         AbstractBuffer<?> buffer = (AbstractBuffer<?>) allocator.ioBuffer(16, preferDirect);
         int               offset = buffer.offset();
-        long              handle = ((PooledBuffer) buffer).handle();
+        long              handle = ((PoolableBuffer) buffer).handle();
         assertEquals(16, buffer.capacity());
         buffer.putInt(4);
         buffer.putInt(5);
@@ -35,7 +35,7 @@ public class ReAllocateTest
         assertEquals(20, buffer.getWritePosi());
         assertEquals(0, buffer.getReadPosi());
         assertNotEquals(offset, buffer.offset());
-        assertNotEquals(handle, ((PooledBuffer) buffer).handle());
+        assertNotEquals(handle, ((PoolableBuffer) buffer).handle());
         assertEquals(4, buffer.getInt());
         assertEquals(5, buffer.getInt());
         assertEquals(6, buffer.getInt());

@@ -5,7 +5,7 @@ import com.jfirer.jnet.common.recycler.Recycler;
 
 import java.nio.ByteBuffer;
 
-public class SliceDirectBuffer extends AbstractDirectBuffer
+public class SliceDirectBuffer extends CacheablePoolableUnsafeBuffer
 {
     static final Recycler<SliceDirectBuffer> RECYCLER = new Recycler<>(function -> {
         SliceDirectBuffer buffer = new SliceDirectBuffer();
@@ -27,12 +27,6 @@ public class SliceDirectBuffer extends AbstractDirectBuffer
         slice.addWritePosi(length);
         buffer.addReadPosi(length);
         return slice;
-    }
-
-    @Override
-    protected long getAddress(ByteBuffer memory)
-    {
-        return parent.getAddress(memory);
     }
 
     @Override
