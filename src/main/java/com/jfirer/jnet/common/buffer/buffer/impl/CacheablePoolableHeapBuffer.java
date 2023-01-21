@@ -1,6 +1,7 @@
 package com.jfirer.jnet.common.buffer.buffer.impl;
 
 import com.jfirer.jnet.common.buffer.buffer.Bits;
+import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 
 import java.lang.foreign.MemorySegment;
@@ -30,9 +31,9 @@ public class CacheablePoolableHeapBuffer extends CacheablePoolableBuffer<byte[]>
     }
 
     @Override
-    public boolean isDirect()
+    public BufferType bufferType()
     {
-        return false;
+        return BufferType.HEAP;
     }
 
     int realPosi(int posi)
@@ -107,24 +108,23 @@ public class CacheablePoolableHeapBuffer extends CacheablePoolableBuffer<byte[]>
         {
             throw new IllegalArgumentException("剩余读取长度不足");
         }
-        if (buf.isDirect())
+        int posi = nextWritePosi(len);
+        switch (buf.bufferType())
         {
-            int posi = nextWritePosi(len);
-            if (buf.memory() instanceof ByteBuffer)
+            case HEAP ->
+            {
+                System.arraycopy(buf.memory(), buf.getReadPosi() + buf.offset(), memory, realPosi(posi), len);
+            }
+            case DIRECT, UNSAFE ->
             {
                 AbstractBuffer buffer = (AbstractBuffer) buf;
-                Bits.copyToArray(buffer.directMemoryAddress() + buffer.offset + buffer.readPosi, memory, realPosi(posi), len);
+                Bits.copyToArray(buffer.nativeAddress() + buffer.offset + buffer.readPosi, memory, realPosi(posi), len);
             }
-            else
+            case MEMORY ->
             {
                 MemorySegment segment = (MemorySegment) buf.memory();
                 MemorySegment.copy(segment, ValueLayout.JAVA_BYTE, buf.offset() + buf.getReadPosi(), memory, realPosi(posi), len);
             }
-        }
-        else
-        {
-            int posi = nextWritePosi(len);
-            System.arraycopy(buf.memory(), buf.getReadPosi() + buf.offset(), memory, realPosi(posi), len);
         }
         return this;
     }

@@ -1,5 +1,6 @@
 package com.jfirer.jnet.common.buffer.buffer.impl;
 
+import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 
 import java.nio.ByteBuffer;
@@ -13,25 +14,25 @@ public class CacheablePoolableDirectBuffer extends PoolableBuffer<ByteBuffer>
             throw new IllegalArgumentException("剩余读取长度不足");
         }
         int posi = nextWritePosi(len);
-        if (buffer.isDirect())
+        switch (buffer.bufferType())
         {
-            if (buffer.memory() instanceof ByteBuffer)
+            case HEAP ->
+            {
+                byte[] src       = (byte[]) buffer.memory();
+                int    srcOffset = buffer.offset() + buffer.getReadPosi();
+                memory.put(posi, src, srcOffset, len);
+            }
+            case DIRECT, UNSAFE ->
             {
                 ByteBuffer src       = (ByteBuffer) buffer.memory();
                 int        srcOffset = buffer.offset() + buffer.getReadPosi();
                 memory.put(posi, src, srcOffset, len);
             }
-            else
+            case MEMORY ->
             {
                 ByteBuffer srcBuffer = buffer.readableByteBuffer();
                 memory.put(posi, srcBuffer, srcBuffer.position(), len);
             }
-        }
-        else
-        {
-            byte[] src       = (byte[]) buffer.memory();
-            int    srcOffset = buffer.offset() + buffer.getReadPosi();
-            memory.put(posi, src, srcOffset, len);
         }
         return this;
     }
@@ -61,9 +62,9 @@ public class CacheablePoolableDirectBuffer extends PoolableBuffer<ByteBuffer>
     }
 
     @Override
-    public boolean isDirect()
+    public BufferType bufferType()
     {
-        return true;
+        return BufferType.DIRECT;
     }
 
     @Override

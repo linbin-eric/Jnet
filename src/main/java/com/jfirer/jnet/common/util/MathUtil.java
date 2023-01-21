@@ -2,6 +2,8 @@ package com.jfirer.jnet.common.util;
 
 public class MathUtil
 {
+    static final int smallestMask = ~15;
+
     /**
      * 计算大于CAP的最小的2的次方幂
      *

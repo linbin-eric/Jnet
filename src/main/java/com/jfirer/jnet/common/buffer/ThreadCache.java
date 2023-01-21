@@ -20,7 +20,9 @@ public class ThreadCache<T>
         RecycleHandler<MemoryCached<T>> recycleHandler;
     }
 
-    private MpscArrayQueue<MemoryCached<T>>[] regionCaches;
+    static final int                               smallestMask = ~15;
+    final        int                               numOfCached;
+    private      MpscArrayQueue<MemoryCached<T>>[] regionCaches;
     Recycler<MemoryCached<T>> recycler = new Recycler<>(function -> {
         MemoryCached   memoryCached   = new MemoryCached();
         RecycleHandler recycleHandler = function.apply(memoryCached);
@@ -30,6 +32,7 @@ public class ThreadCache<T>
 
     public ThreadCache(int numOfCached, int maxCachedCapacity)
     {
+        this.numOfCached = numOfCached;
         regionCaches = new MpscArrayQueue[MathUtil.log2(maxCachedCapacity) - 4];
         for (int i = 0; i < regionCaches.length; i++)
         {
@@ -61,7 +64,7 @@ public class ThreadCache<T>
 
     public boolean allocate(int capacity, CacheablePoolableBuffer<T> buffer)
     {
-        int index = MathUtil.log2(MathUtil.normalizeSize(capacity)) - 4;
+        int index = MathUtil.log2(normalizeCapacity(capacity)) - 4;
         if (index < regionCaches.length)
         {
             MpscArrayQueue<MemoryCached<T>> regionCache = regionCaches[index];
@@ -82,13 +85,26 @@ public class ThreadCache<T>
         }
     }
 
+    int normalizeCapacity(int reqCapacity)
+    {
+        if ((reqCapacity & smallestMask) == 0)
+        {
+            return 16;
+        }
+        return MathUtil.normalizeSize(reqCapacity);
+    }
+
     public boolean add(Arena<T> arena, ChunkListNode<T> chunkListNode, int capacity, int offset, long handle)
     {
         int index = MathUtil.log2(MathUtil.normalizeSize(capacity)) - 4;
         if (index < regionCaches.length)
         {
-            MpscArrayQueue<MemoryCached<T>> regionCache  = regionCaches[index];
-            MemoryCached<T>                 memoryCached = recycler.get();
+            MpscArrayQueue<MemoryCached<T>> regionCache = regionCaches[index];
+            if (regionCache.size() == numOfCached)
+            {
+                return false;
+            }
+            MemoryCached<T> memoryCached = recycler.get();
             memoryCached.arena = arena;
             memoryCached.chunkListNode = chunkListNode;
             memoryCached.capacity = capacity;

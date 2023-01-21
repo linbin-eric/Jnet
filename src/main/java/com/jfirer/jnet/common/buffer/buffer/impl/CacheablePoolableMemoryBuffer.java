@@ -1,5 +1,6 @@
 package com.jfirer.jnet.common.buffer.buffer.impl;
 
+import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 
 import java.lang.foreign.MemorySegment;
@@ -22,25 +23,25 @@ public class CacheablePoolableMemoryBuffer extends PoolableBuffer<MemorySegment>
             throw new IllegalArgumentException("剩余读取长度不足");
         }
         int posi = nextWritePosi(len);
-        if (buffer.isDirect())
+        switch (buffer.bufferType())
         {
-            if (buffer.memory() instanceof ByteBuffer)
+            case HEAP ->
+            {
+                byte[]        src        = (byte[]) buffer.memory();
+                MemorySegment srcSegment = MemorySegment.ofArray(src);
+                MemorySegment.copy(srcSegment, buffer.offset() + buffer.getReadPosi(), memory, realOffset(posi), len);
+            }
+            case DIRECT, UNSAFE ->
             {
                 ByteBuffer    byteBuffer = buffer.readableByteBuffer();
                 MemorySegment srcSegment = MemorySegment.ofBuffer(byteBuffer);
                 MemorySegment.copy(srcSegment, byteBuffer.position(), memory, realOffset(posi), len);
             }
-            else
+            case MEMORY ->
             {
                 MemorySegment srcSegment = (MemorySegment) buffer.memory();
                 MemorySegment.copy(srcSegment, buffer.offset() + buffer.getReadPosi(), memory, realOffset(posi), len);
             }
-        }
-        else
-        {
-            byte[]        src        = (byte[]) buffer.memory();
-            MemorySegment srcSegment = MemorySegment.ofArray(src);
-            MemorySegment.copy(srcSegment, buffer.offset() + buffer.getReadPosi(), memory, realOffset(posi), len);
         }
         return this;
     }
@@ -70,9 +71,9 @@ public class CacheablePoolableMemoryBuffer extends PoolableBuffer<MemorySegment>
     }
 
     @Override
-    public boolean isDirect()
+    public BufferType bufferType()
     {
-        return true;
+        return BufferType.MEMORY;
     }
 
     int realOffset(int posi)

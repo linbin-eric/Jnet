@@ -297,7 +297,12 @@ public interface IoBuffer<T>
      */
     ByteBuffer writableByteBuffer();
 
-    boolean isDirect();
+    /**
+     * 该实现类底层存储的类型
+     *
+     * @return
+     */
+    BufferType bufferType();
 
     /**
      * 释放该Buffer持有的空间以及实例对象
@@ -321,13 +326,18 @@ public interface IoBuffer<T>
      */
     default IoBuffer slice(int length)
     {
-        if (isDirect())
+        switch (bufferType())
         {
-            return SliceDirectBuffer.slice((AbstractBuffer<ByteBuffer>) this, length);
-        }
-        else
-        {
-            return SliceHeapBuffer.slice((AbstractBuffer<byte[]>) this, length);
+            case HEAP ->
+            {
+                return SliceHeapBuffer.slice((AbstractBuffer<byte[]>) this, length);
+            }
+            case UNSAFE ->
+            {
+                return SliceDirectBuffer.slice((AbstractBuffer<ByteBuffer>) this, length);
+            }
+            case DIRECT, MEMORY -> throw new UnsupportedOperationException();
+            default -> throw new IllegalStateException("Unexpected value: " + bufferType());
         }
     }
 

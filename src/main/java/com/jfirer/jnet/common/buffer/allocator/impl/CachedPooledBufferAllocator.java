@@ -9,6 +9,7 @@ import com.jfirer.jnet.common.thread.FastThreadLocal;
 import com.jfirer.jnet.common.util.SystemPropertyUtil;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.LongAdder;
 
 public class CachedPooledBufferAllocator extends PooledBufferAllocator
 {
@@ -19,8 +20,8 @@ public class CachedPooledBufferAllocator extends PooledBufferAllocator
     public static       CachedPooledBufferAllocator              DEFAULT = new CachedPooledBufferAllocator("CachedPooledBufferAllocator_default");
     static
     {
-        NUM_OF_CACHE = SystemPropertyUtil.getInt("io.jnet.PooledBufferAllocator.numOfCache", 128);
-        MAX_CACHED_BUFFER_CAPACITY = SystemPropertyUtil.getInt("io.jnet.PooledBufferAllocator.maxCachedBufferCapacity", 32 * 1024);
+        NUM_OF_CACHE = SystemPropertyUtil.getInt("io.jnet.PooledBufferAllocator.numOfCache", 1000);
+        MAX_CACHED_BUFFER_CAPACITY = SystemPropertyUtil.getInt("io.jnet.PooledBufferAllocator.maxCachedBufferCapacity", 64 * 1024);
     }
     public CachedPooledBufferAllocator(String name)
     {
@@ -64,13 +65,18 @@ public class CachedPooledBufferAllocator extends PooledBufferAllocator
         if (threadCache.allocate(initializeCapacity, buffer))
         {
             ;
+            success.increment();
         }
         else
         {
             DirectArena arena = directArenaFastThreadLocal.get();
             arena.allocate(initializeCapacity, buffer);
             buffer.setCache(threadCache);
+            fail.increment();
         }
         return buffer;
     }
+
+    public LongAdder success = new LongAdder();
+    public LongAdder fail    = new LongAdder();
 }

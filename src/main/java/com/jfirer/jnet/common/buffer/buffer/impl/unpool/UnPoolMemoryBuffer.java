@@ -8,7 +8,7 @@ import java.lang.foreign.MemorySession;
 public class UnPoolMemoryBuffer extends CacheablePoolableMemoryBuffer
 {
     @Override
-    protected long getDirectAddress(MemorySegment memory)
+    protected long getNativeAddress(MemorySegment memory)
     {
         return memory.address().toRawLongValue();
     }

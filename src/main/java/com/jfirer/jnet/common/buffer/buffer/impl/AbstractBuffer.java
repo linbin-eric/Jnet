@@ -11,8 +11,8 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
     protected          int            readPosi;
     protected          int            writePosi;
     protected          int            offset;
-    //    当direct时才有值
-    protected          long           directMemoryAddress;
+    // 当是堆外内存的时候才会有值，0是非法值，不应该使用
+    protected          long           nativeAddress;
     protected volatile int            refCount;
     static final       long           REF_COUNT_OFFSET = UNSAFE.getFieldOffset("refCount", AbstractBuffer.class);
     protected          RecycleHandler recycleHandler;
@@ -25,17 +25,14 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
         readPosi = writePosi = 0;
         // 由于该方法可能会扩容方法所调用，所以需要区分不同的情况。如果是第一次初始化，这refCount是代表自身，需要从0设置为1；否则的话，不需要修改。
         refCount = refCount == 0 ? 1 : refCount;
-        if (isDirect())
+        switch (bufferType())
         {
-            directMemoryAddress = getDirectAddress(memory);
-        }
-        else
-        {
-            directMemoryAddress = 0;
+            case UNSAFE, DIRECT, MEMORY -> nativeAddress = getNativeAddress(memory);
+            case HEAP -> nativeAddress = 0;
         }
     }
 
-    protected abstract long getDirectAddress(T memory);
+    protected abstract long getNativeAddress(T memory);
 
     @Override
     public int capacity()
@@ -456,9 +453,9 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
         return memory;
     }
 
-    public long directMemoryAddress()
+    public long nativeAddress()
     {
-        return directMemoryAddress;
+        return nativeAddress;
     }
 
     public void setRecycleHandler(RecycleHandler handler)

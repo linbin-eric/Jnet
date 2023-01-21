@@ -4,6 +4,7 @@ import com.jfirer.jnet.client.DefaultClient;
 import com.jfirer.jnet.client.JnetClient;
 import com.jfirer.jnet.common.api.*;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
+import com.jfirer.jnet.common.buffer.allocator.impl.CachedPooledBufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
 import com.jfirer.jnet.common.util.ChannelConfig;
@@ -32,7 +33,7 @@ public class BaseTest
     private              AioServer       aioServer;
     private              String          ip           = "127.0.0.1";
     private              int             port         = 7598;
-    private              int             numPerThread = 1000000;
+    private              int             numPerThread = 10000000;
     private              int             numClients   = 4;
     private              JnetClient[]    clients;
     private              CountDownLatch  latch        = new CountDownLatch(numClients);
@@ -172,6 +173,7 @@ public class BaseTest
         }
         logger.info("测试完毕");
         aioServer.termination();
+        System.out.println("success:" + CachedPooledBufferAllocator.DEFAULT.success.sum() + ",fail:" + CachedPooledBufferAllocator.DEFAULT.fail.sum());
     }
 
     static enum IoMode

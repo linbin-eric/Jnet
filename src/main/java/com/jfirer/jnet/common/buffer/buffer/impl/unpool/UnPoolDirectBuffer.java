@@ -8,7 +8,7 @@ import java.nio.ByteBuffer;
 public class UnPoolDirectBuffer extends CacheablePoolableDirectBuffer
 {
     @Override
-    protected long getDirectAddress(ByteBuffer memory)
+    protected long getNativeAddress(ByteBuffer memory)
     {
         return PlatFormFunction.bytebufferOffsetAddress(memory);
     }

@@ -33,7 +33,7 @@ public abstract class PoolableBuffer<T> extends AbstractBuffer<T>
     }
 
     @Override
-    protected long getDirectAddress(T memory)
+    protected long getNativeAddress(T memory)
     {
         if (arena != null)
         {
