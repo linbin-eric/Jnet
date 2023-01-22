@@ -21,7 +21,9 @@ public abstract class AbstractDecoder implements ReadProcessor
         {
             if (accumulation == null)
             {
-                accumulation = (IoBuffer) data;
+                accumulation = allocator.heapBuffer(1000);
+                accumulation.put((IoBuffer) data);
+//                accumulation = (IoBuffer) data;
             }
             else
             {
