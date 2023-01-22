@@ -3,9 +3,9 @@ package com.jfirer.jnet.common.buffer.buffer.impl;
 import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.arena.Chunk;
 import com.jfirer.jnet.common.buffer.arena.impl.ChunkListNode;
+import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.util.PlatFormFunction;
 
-import java.lang.foreign.MemorySegment;
 import java.nio.ByteBuffer;
 
 public abstract class PoolableBuffer<T> extends AbstractBuffer<T>
@@ -39,14 +39,19 @@ public abstract class PoolableBuffer<T> extends AbstractBuffer<T>
         {
             return chunkListNode.directChunkAddress();
         }
-        else if (memory instanceof ByteBuffer buffer)
+        else if (bufferType() == BufferType.DIRECT || bufferType() == BufferType.UNSAFE)
         {
-            return PlatFormFunction.bytebufferOffsetAddress(buffer);
+            return PlatFormFunction.bytebufferOffsetAddress((ByteBuffer) memory);
         }
-        else if (memory instanceof MemorySegment segment)
-        {
-            return segment.address().toRawLongValue();
-        }
+        //因为Memory还处于孵化之中，性能上也是最差的，因此先放弃。
+//        else if (memory instanceof ByteBuffer buffer)
+//        {
+//            return PlatFormFunction.bytebufferOffsetAddress(buffer);
+//        }
+//        else if (memory instanceof MemorySegment segment)
+//        {
+//            return segment.address().toRawLongValue();
+//        }
         else
         {
             throw new IllegalArgumentException();

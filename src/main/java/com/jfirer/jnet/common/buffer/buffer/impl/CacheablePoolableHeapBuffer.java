@@ -4,8 +4,6 @@ import com.jfirer.jnet.common.buffer.buffer.Bits;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.ValueLayout;
 import java.nio.ByteBuffer;
 
 public class CacheablePoolableHeapBuffer extends CacheablePoolableBuffer<byte[]>
@@ -120,11 +118,11 @@ public class CacheablePoolableHeapBuffer extends CacheablePoolableBuffer<byte[]>
                 AbstractBuffer buffer = (AbstractBuffer) buf;
                 Bits.copyToArray(buffer.nativeAddress() + buffer.offset + buffer.readPosi, memory, realPosi(posi), len);
             }
-            case MEMORY ->
-            {
-                MemorySegment segment = (MemorySegment) buf.memory();
-                MemorySegment.copy(segment, ValueLayout.JAVA_BYTE, buf.offset() + buf.getReadPosi(), memory, realPosi(posi), len);
-            }
+//            case MEMORY ->
+//            {
+//                MemorySegment segment = (MemorySegment) buf.memory();
+//                MemorySegment.copy(segment, ValueLayout.JAVA_BYTE, buf.offset() + buf.getReadPosi(), memory, realPosi(posi), len);
+//            }
         }
         return this;
     }

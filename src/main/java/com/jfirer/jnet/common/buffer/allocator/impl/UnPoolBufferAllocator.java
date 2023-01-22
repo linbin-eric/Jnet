@@ -4,12 +4,9 @@ import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.buffer.buffer.impl.unpool.UnPoolDirectBuffer;
 import com.jfirer.jnet.common.buffer.buffer.impl.unpool.UnPoolHeapBuffer;
-import com.jfirer.jnet.common.buffer.buffer.impl.unpool.UnPoolMemoryBuffer;
 import com.jfirer.jnet.common.buffer.buffer.impl.unpool.UnPoolUnsafeBuffer;
 import com.jfirer.jnet.common.util.SystemPropertyUtil;
 
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.MemorySession;
 import java.nio.ByteBuffer;
 
 public class UnPoolBufferAllocator implements BufferAllocator
@@ -57,14 +54,13 @@ public class UnPoolBufferAllocator implements BufferAllocator
         buffer.init(ByteBuffer.allocateDirect(initializeCapacity), initializeCapacity, 0);
         return buffer;
     }
-
-    public UnPoolMemoryBuffer memoryBuffer(int initializeCapacity)
-    {
-        UnPoolMemoryBuffer buffer  = new UnPoolMemoryBuffer();
-        MemorySession      session = MemorySession.openShared();
-        buffer.init(MemorySegment.allocateNative(initializeCapacity, session), initializeCapacity, 0);
-        return buffer;
-    }
+//    public UnPoolMemoryBuffer memoryBuffer(int initializeCapacity)
+//    {
+//        UnPoolMemoryBuffer buffer  = new UnPoolMemoryBuffer();
+//        MemorySession      session = MemorySession.openShared();
+//        buffer.init(MemorySegment.allocateNative(initializeCapacity, session), initializeCapacity, 0);
+//        return buffer;
+//    }
 
     @Override
     public String name()

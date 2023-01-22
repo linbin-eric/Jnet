@@ -28,11 +28,11 @@ public class CacheablePoolableDirectBuffer extends PoolableBuffer<ByteBuffer>
                 int        srcOffset = buffer.offset() + buffer.getReadPosi();
                 memory.put(posi, src, srcOffset, len);
             }
-            case MEMORY ->
-            {
-                ByteBuffer srcBuffer = buffer.readableByteBuffer();
-                memory.put(posi, srcBuffer, srcBuffer.position(), len);
-            }
+//            case MEMORY ->
+//            {
+//                ByteBuffer srcBuffer = buffer.readableByteBuffer();
+//                memory.put(posi, srcBuffer, srcBuffer.position(), len);
+//            }
         }
         return this;
     }
