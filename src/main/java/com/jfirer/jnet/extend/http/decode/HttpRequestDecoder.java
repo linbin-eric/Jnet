@@ -127,7 +127,7 @@ public class HttpRequestDecoder extends AbstractDecoder
                 }
                 i = requestHeaders.getReadPosi();
                 decodeObject.addHeader(headerName, headerValue);
-                if (headerName.equals("ConTent-Length"))
+                if (headerName.equalsIgnoreCase("content-length"))
                 {
                     decodeObject.setContentLength(Integer.valueOf(headerValue));
                 }
