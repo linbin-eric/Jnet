@@ -33,7 +33,7 @@ public class BaseTest
     private              AioServer       aioServer;
     private              String          ip           = "127.0.0.1";
     private              int             port         = 7598;
-    private              int             numPerThread = 10000000;
+    private              int             numPerThread = 20000000;
     private              int             numClients   = 4;
     private              JnetClient[]    clients;
     private              CountDownLatch  latch        = new CountDownLatch(numClients);
@@ -44,13 +44,14 @@ public class BaseTest
     public BaseTest()
     {
         ChannelConfig channelConfig = new ChannelConfig();
+//        channelConfig.setAllocator(new CachedPooledBufferAllocator("baseTest"));
         this.bufferAllocator = channelConfig.getAllocator();
         clients = new JnetClient[numClients];
         results = new int[numClients][numPerThread];
         for (int i = 0; i < numClients; i++)
         {
             results[i] = new int[numPerThread];
-            Arrays.fill(results[i], -1);
+            Arrays.fill(results[i], -2);
         }
         ChannelContextInitializer initializer = new ChannelContextInitializer()
         {
@@ -86,6 +87,10 @@ public class BaseTest
                     {
                         IoBuffer buffer = (IoBuffer) data;
                         int      j      = buffer.getInt();
+//                        if (result[j] != -2)
+//                        {
+//                            System.err.println("重复了"+j);
+//                        }
                         result[j] = j;
                         buffer.free();
                         count++;
@@ -122,7 +127,7 @@ public class BaseTest
                     {
                         e1.printStackTrace();
                     }
-                    int batch = 1000;
+                    int batch = 5000;
                     for (int j = 0; j < numPerThread; )
                     {
                         IoBuffer buffer = bufferAllocator.ioBuffer(8);

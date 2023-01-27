@@ -14,9 +14,21 @@ public abstract class CacheablePoolableBuffer<T> extends PoolableBuffer<T>
         init(memoryCached.arena, memoryCached.chunkListNode, memoryCached.capacity, memoryCached.offset, memoryCached.handle);
     }
 
-    public void setCache(ThreadCache<T> cache)
+    @Override
+    protected void reAllocate(int reqCapacity)
     {
-        this.cache = cache;
+        if (cache == null)
+        {
+            super.reAllocate(reqCapacity);
+        }
+        else
+        {
+            ThreadCache.MemoryCached<T> oldMemoryCached = this.memoryCached;
+            ThreadCache<T>              oldCache        = this.cache;
+            cache = null;
+            memoryCached = null;
+            oldCache.reAllocate(oldMemoryCached, reqCapacity, this);
+        }
     }
 
     @Override
@@ -25,31 +37,12 @@ public abstract class CacheablePoolableBuffer<T> extends PoolableBuffer<T>
         if (cache == null)
         {
             super.free0(capacity);
-            return;
-        }
-        else if (memoryCached != null)
-        {
-            if (cache.add(memoryCached))
-            {
-                ;
-            }
-            else
-            {
-                super.free0(capacity);
-            }
         }
         else
         {
-            if (cache.add(arena, chunkListNode, capacity, offset, handle))
-            {
-                ;
-            }
-            else
-            {
-                super.free0(capacity);
-            }
+            cache.free(memoryCached);
+            cache = null;
+            memoryCached = null;
         }
-        cache = null;
-        memoryCached = null;
     }
 }

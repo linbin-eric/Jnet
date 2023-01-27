@@ -7,14 +7,12 @@ import com.jfirer.jnet.common.buffer.arena.impl.ChunkListNode;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.util.UNSAFE;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.util.*;
 
-@Ignore
 @RunWith(Parameterized.class)
 public class MemoryRegionCacheNormalTest
 {
@@ -24,7 +22,7 @@ public class MemoryRegionCacheNormalTest
     private long c025Offset = UNSAFE.getFieldOffset("c025", AbstractArena.class);
     private long c000Offset = UNSAFE.getFieldOffset("c000", AbstractArena.class);
     private long cIntOffset = UNSAFE.getFieldOffset("cInt", AbstractArena.class);
-    CachedPooledBufferAllocator allocator = CachedPooledBufferAllocator.DEFAULT;
+    CachedPooledBufferAllocator allocator = new CachedPooledBufferAllocator("test");
     private boolean preferDirect;
 
     public MemoryRegionCacheNormalTest(boolean preferDirect)
@@ -53,7 +51,9 @@ public class MemoryRegionCacheNormalTest
         for (int i = 1; i < total; i++)
         {
             queue.add(allocator.ioBuffer(allocator.pagesize(), preferDirect));
+            Assert.assertEquals((total - i - 1) * allocator.pagesize(), head.getFreeBytes());
         }
+        Assert.assertEquals(0, head.getFreeBytes());
         for (int i = 0; i < CachedPooledBufferAllocator.NUM_OF_CACHE; i++)
         {
             queue.poll().free();

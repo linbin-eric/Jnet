@@ -1,8 +1,6 @@
 package com.jfirer.jnet.common.buffer.allocator.impl;
 
 import com.jfirer.jnet.common.buffer.ThreadCache;
-import com.jfirer.jnet.common.buffer.arena.impl.DirectArena;
-import com.jfirer.jnet.common.buffer.arena.impl.HeapArena;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.buffer.buffer.impl.CacheablePoolableBuffer;
 import com.jfirer.jnet.common.thread.FastThreadLocal;
@@ -20,40 +18,29 @@ public class CachedPooledBufferAllocator extends PooledBufferAllocator
     public static       CachedPooledBufferAllocator              DEFAULT = new CachedPooledBufferAllocator("CachedPooledBufferAllocator_default");
     static
     {
-        NUM_OF_CACHE = SystemPropertyUtil.getInt("io.jnet.PooledBufferAllocator.numOfCache", 1000);
-        MAX_CACHED_BUFFER_CAPACITY = SystemPropertyUtil.getInt("io.jnet.PooledBufferAllocator.maxCachedBufferCapacity", 64 * 1024);
+        NUM_OF_CACHE = SystemPropertyUtil.getInt("io.jnet.PooledBufferAllocator.numOfCache", 512);
+        MAX_CACHED_BUFFER_CAPACITY = SystemPropertyUtil.getInt("io.jnet.PooledBufferAllocator.maxCachedBufferCapacity", 32 * 1024);
     }
     public CachedPooledBufferAllocator(String name)
     {
         super(name);
-        THREAD_CACHE_FOR_DIRECT = FastThreadLocal.withInitializeValue(() -> new ThreadCache<>(NUM_OF_CACHE, MAX_CACHED_BUFFER_CAPACITY));
-        THREAD_CACHE_FOR_HEAP = FastThreadLocal.withInitializeValue(() -> new ThreadCache<>(NUM_OF_CACHE, MAX_CACHED_BUFFER_CAPACITY));
+        THREAD_CACHE_FOR_DIRECT = FastThreadLocal.withInitializeValue(() -> new ThreadCache<>(NUM_OF_CACHE, MAX_CACHED_BUFFER_CAPACITY, directArenaFastThreadLocal.get()));
+        THREAD_CACHE_FOR_HEAP = FastThreadLocal.withInitializeValue(() -> new ThreadCache<>(NUM_OF_CACHE, MAX_CACHED_BUFFER_CAPACITY, heapArenaFastThreadLocal.get()));
     }
 
     public CachedPooledBufferAllocator(int pagesize, int maxLevel, int numOfArena, boolean preferDirect, String name, int numOfCached, int maxCachedBufferCapacity)
     {
         super(pagesize, maxLevel, numOfArena, preferDirect, name);
-        THREAD_CACHE_FOR_DIRECT = FastThreadLocal.withInitializeValue(() -> new ThreadCache<>(numOfCached, maxCachedBufferCapacity));
-        THREAD_CACHE_FOR_HEAP = FastThreadLocal.withInitializeValue(() -> new ThreadCache<>(numOfCached, maxCachedBufferCapacity));
+        THREAD_CACHE_FOR_DIRECT = FastThreadLocal.withInitializeValue(() -> new ThreadCache<>(numOfCached, maxCachedBufferCapacity, directArenaFastThreadLocal.get()));
+        THREAD_CACHE_FOR_HEAP = FastThreadLocal.withInitializeValue(() -> new ThreadCache<>(numOfCached, maxCachedBufferCapacity, heapArenaFastThreadLocal.get()));
     }
-
-
 
     @Override
     public IoBuffer heapBuffer(int initializeCapacity)
     {
         CacheablePoolableBuffer<byte[]> buffer      = HEAP_BUFFER_ALLOCATOR.get();
         ThreadCache<byte[]>             threadCache = THREAD_CACHE_FOR_HEAP.get();
-        if (threadCache.allocate(initializeCapacity, buffer))
-        {
-            ;
-        }
-        else
-        {
-            HeapArena heapArena = heapArenaFastThreadLocal.get();
-            heapArena.allocate(initializeCapacity, buffer);
-            buffer.setCache(threadCache);
-        }
+        threadCache.allocate(initializeCapacity, buffer);
         return buffer;
     }
 
@@ -62,18 +49,7 @@ public class CachedPooledBufferAllocator extends PooledBufferAllocator
     {
         CacheablePoolableBuffer<ByteBuffer> buffer      = DIRECT_BUFFER_ALLOCATOR.get();
         ThreadCache<ByteBuffer>             threadCache = THREAD_CACHE_FOR_DIRECT.get();
-        if (threadCache.allocate(initializeCapacity, buffer))
-        {
-            ;
-            success.increment();
-        }
-        else
-        {
-            DirectArena arena = directArenaFastThreadLocal.get();
-            arena.allocate(initializeCapacity, buffer);
-            buffer.setCache(threadCache);
-            fail.increment();
-        }
+        threadCache.allocate(initializeCapacity, buffer);
         return buffer;
     }
 

@@ -5,7 +5,7 @@ import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 
 import java.nio.ByteBuffer;
 
-public class CacheablePoolableDirectBuffer extends PoolableBuffer<ByteBuffer>
+public class CacheablePoolableDirectBuffer extends CacheablePoolableBuffer<ByteBuffer>
 {
     public IoBuffer put(IoBuffer buffer, int len)
     {

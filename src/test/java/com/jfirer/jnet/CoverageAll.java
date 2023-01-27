@@ -7,5 +7,5 @@ import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({BaseTest.class, CloseTest.class, BufferSuiteTest.class, RecycleTest.class, FastThreadLocalTest.class})
-public class AllTest
+public class CoverageAll
 {}

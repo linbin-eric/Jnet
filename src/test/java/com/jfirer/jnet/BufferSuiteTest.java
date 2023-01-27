@@ -15,7 +15,6 @@ import org.junit.runners.Suite.SuiteClasses;
         ChunkListTest.class, //
         BufferRecycleTest.class, //
         ReAllocateTest.class, //
-        MemoryRegionCacheTinyTest.class, //
         MemoryRegionCacheSmallTest.class, //
         MemoryRegionCacheNormalTest.class, //
         UnPooledBufferRWTest.class, //
