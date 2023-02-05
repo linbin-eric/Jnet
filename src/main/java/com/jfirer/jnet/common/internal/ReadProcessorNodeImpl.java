@@ -1,6 +1,7 @@
 package com.jfirer.jnet.common.internal;
 
 import com.jfirer.jnet.common.api.JnetWorker;
+import com.jfirer.jnet.common.api.Pipeline;
 import com.jfirer.jnet.common.api.ReadProcessor;
 import com.jfirer.jnet.common.api.ReadProcessorNode;
 
@@ -9,11 +10,13 @@ public class ReadProcessorNodeImpl implements ReadProcessorNode
     private JnetWorker        worker;
     private ReadProcessor     processor;
     private ReadProcessorNode next;
+    private Pipeline          pipeline;
 
-    public ReadProcessorNodeImpl(JnetWorker worker, ReadProcessor processor)
+    public ReadProcessorNodeImpl(JnetWorker worker, ReadProcessor processor, Pipeline pipeline)
     {
         this.worker = worker;
         this.processor = processor;
+        this.pipeline = pipeline;
     }
 
     private void doWork(Runnable runnable)
@@ -68,6 +71,12 @@ public class ReadProcessorNodeImpl implements ReadProcessorNode
     public ReadProcessorNode next()
     {
         return next;
+    }
+
+    @Override
+    public Pipeline pipeline()
+    {
+        return pipeline;
     }
 
     @Override

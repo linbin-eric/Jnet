@@ -34,7 +34,7 @@ public class DefaultPipeline implements InternalPipeline
     {
         if (readHead == null)
         {
-            readHead = new ReadProcessorNodeImpl(supplier.get(), processor);
+            readHead = new ReadProcessorNodeImpl(supplier.get(), processor, this);
         }
         else
         {
@@ -43,7 +43,7 @@ public class DefaultPipeline implements InternalPipeline
             {
                 node = node.next();
             }
-            node.setNext(new ReadProcessorNodeImpl(function.apply(node), processor));
+            node.setNext(new ReadProcessorNodeImpl(function.apply(node), processor, this));
         }
     }
 

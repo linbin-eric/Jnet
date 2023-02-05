@@ -71,4 +71,10 @@ public class HttpRequest
     {
         return body;
     }
+
+    @Override
+    public String toString()
+    {
+        return "HttpRequest{" + "method='" + method + '\'' + ", url='" + url + '\'' + ", version='" + version + '\'' + ", headers=" + headers + ", contentLength=" + contentLength + ", body='" + body + '\'' + '}';
+    }
 }

@@ -77,10 +77,17 @@ public class HttpRequestDecoder extends AbstractDecoder
             {
                 if (decodeObject.getContentLength() != 0)
                 {
-                    IoBuffer requestBody = accumulation.slice(decodeObject.getContentLength());
-                    String   body        = StandardCharsets.UTF_8.decode(requestBody.readableByteBuffer()).toString();
-                    decodeObject.setBody(body);
-                    requestBody.free();
+                    if (accumulation.remainRead() < decodeObject.getContentLength())
+                    {
+                        return;
+                    }
+                    else
+                    {
+                        IoBuffer requestBody = accumulation.slice(decodeObject.getContentLength());
+                        String   body        = StandardCharsets.UTF_8.decode(requestBody.readableByteBuffer()).toString();
+                        decodeObject.setBody(body);
+                        requestBody.free();
+                    }
                 }
                 next.fireRead(decodeObject);
                 decodeObject = null;
