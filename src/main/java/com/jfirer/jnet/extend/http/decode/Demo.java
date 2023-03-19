@@ -5,6 +5,8 @@ import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.util.ChannelConfig;
 import com.jfirer.jnet.server.AioServer;
 
+import java.io.FileInputStream;
+
 public class Demo
 {
     public static void main(String[] args)
@@ -15,11 +17,19 @@ public class Demo
             Pipeline pipeline = channelContext.pipeline();
             pipeline.addReadProcessor(new HttpRequestDecoder(channelConfig.getAllocator()));
             pipeline.addReadProcessor((HttpRequest httpRequest, ReadProcessorNode next) -> {
-                HttpResponse response = new HttpResponse();
-                response.setBody("""
-                                 {"name":"林斌","age":12}
-                                 """);
-                pipeline.fireWrite(response);
+                try
+                {
+                    HttpResponse response = new HttpResponse();
+                    response.setContentType(ContentType.STREAM);
+                    response.getHeaders().put(ContentType.DISPOSITION, "attachment; filename=\"国家医疗保障疾病诊断相关分组（CHS-DRG）细分组（1.0版）.pdf\"");
+                    FileInputStream fileInputStream = new FileInputStream("/Users/linbin/SynologyDrive/附件/357/参考材料/技术规范类/国家医疗保障疾病诊断相关分组（CHS-DRG）细分组（1.0版）.pdf");
+                    response.setBodyStream(fileInputStream.readAllBytes());
+                    pipeline.fireWrite(response);
+                }
+                catch (Throwable e)
+                {
+                    e.printStackTrace();
+                }
             });
             pipeline.addWriteProcessor(new HttpResponseEncoder(channelConfig.getAllocator()));
         });

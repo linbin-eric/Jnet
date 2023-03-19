@@ -7,7 +7,18 @@ public class HttpResponse
 {
     private Map<String, String> headers = new HashMap<>();
     private String              body;
+    private byte[]              bodyStream;
     private String              contentType;
+
+    public void addHeader(String header, String value)
+    {
+        headers.put(header, value);
+    }
+
+    public Map<String, String> getHeaders()
+    {
+        return headers;
+    }
 
     public String getBody()
     {
@@ -19,6 +30,16 @@ public class HttpResponse
         this.body = body;
     }
 
+    public byte[] getBodyStream()
+    {
+        return bodyStream;
+    }
+
+    public void setBodyStream(byte[] bodyStream)
+    {
+        this.bodyStream = bodyStream;
+    }
+
     public String getContentType()
     {
         return contentType;
@@ -27,10 +48,5 @@ public class HttpResponse
     public void setContentType(String contentType)
     {
         this.contentType = contentType;
-    }
-
-    public Map<String, String> getHeaders()
-    {
-        return headers;
     }
 }

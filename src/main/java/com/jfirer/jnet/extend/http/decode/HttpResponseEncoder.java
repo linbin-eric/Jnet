@@ -21,16 +21,31 @@ public class HttpResponseEncoder implements WriteProcessor<HttpResponse>
     {
         IoBuffer buffer = allocator.ioBuffer(1024);
         buffer.put("HTTP/1.1 200 OK\r\n".getBytes(StandardCharsets.US_ASCII));
-        data.getHeaders().forEach((name, value) -> buffer.put((name + ": " + value + "\r\n").getBytes(StandardCharsets.US_ASCII)));
-        if (data.getBody() == null)
+        data.getHeaders().forEach((name, value) -> buffer.put((name + ": " + value + "\r\n").getBytes(StandardCharsets.UTF_8)));
+        if (data.getBody() == null && data.getBodyStream() == null)
         {
             buffer.put(("Content-Length: 0\r\n").getBytes(StandardCharsets.US_ASCII));
             buffer.put("\r\n".getBytes(StandardCharsets.US_ASCII));
         }
         else
         {
-            buffer.put("content-type: application/json;charset=utf8\r\n".getBytes(StandardCharsets.US_ASCII));
-            byte[] array = data.getBody().getBytes(StandardCharsets.UTF_8);
+            if (data.getContentType() != null && !"".equals(data.getContentType()))
+            {
+                buffer.put(("content-type: " + data.getContentType() + ";charset=utf8\n").getBytes(StandardCharsets.US_ASCII));
+            }
+            else
+            {
+                buffer.put("content-type: application/json;charset=utf8\r\n".getBytes(StandardCharsets.US_ASCII));
+            }
+            byte[] array;
+            if (data.getBodyStream() != null)
+            {
+                array = data.getBodyStream();
+            }
+            else
+            {
+                array = data.getBody().getBytes(StandardCharsets.UTF_8);
+            }
             buffer.put(("Content-Length: " + array.length + "\r\n").getBytes(StandardCharsets.US_ASCII));
             buffer.put("\r\n".getBytes(StandardCharsets.US_ASCII));
             buffer.put(array);
