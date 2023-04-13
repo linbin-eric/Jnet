@@ -18,9 +18,16 @@
             <version>1.7.0</version>
         </dependency>
         <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.24</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>1.7.25</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.jctools</groupId>
@@ -63,12 +70,12 @@
         <repository>
             <id>nexus3</id>
             <name>nexus</name>
-            <url>http://backupnas.jfirer.com:8082/repository/maven-releases/</url>
+            <url>http://yynas.cn:8081/repository/maven-releases/</url>
         </repository>
         <snapshotRepository>
             <id>nexus3</id>
             <name>nexus</name>
-            <url>http://backupnas.jfirer.com:8082/repository/maven-snapshots/</url>
+            <url>http://yynas.cn:8081/repository/maven-snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
     <build>
@@ -77,9 +84,8 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>19</source>
-                    <target>19</target>
-                    <compilerArgument>--enable-preview</compilerArgument>
+                    <source>17</source>
+                    <target>17</target>
                 </configuration>
             </plugin>
             <plugin>
