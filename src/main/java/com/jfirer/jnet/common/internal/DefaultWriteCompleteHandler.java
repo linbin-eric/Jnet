@@ -115,6 +115,7 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
                     return;
                 }
             }
+            sendingData.free();
             sendingData = null;
             rest();
         }

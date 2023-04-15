@@ -12,6 +12,7 @@ public class CapacityStat
     {
         freeBytes += chunk.getFreeBytes();
         chunkCapacity += chunk.getChunkSize();
+        numOfChunk += 1;
     }
 
     public int getFreeBytes()
@@ -27,5 +28,11 @@ public class CapacityStat
     public int getNumOfChunk()
     {
         return numOfChunk;
+    }
+
+    @Override
+    public String toString()
+    {
+        return "CapacityStat{" + "freeBytes=" + freeBytes + ", chunkCapacity=" + chunkCapacity + ", numOfChunk=" + numOfChunk + '}';
     }
 }

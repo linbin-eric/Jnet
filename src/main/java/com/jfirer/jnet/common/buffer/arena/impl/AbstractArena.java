@@ -287,7 +287,10 @@ public abstract class AbstractArena<T> implements Arena<T>
                             removeFromArena(subPage);
                             synchronized (this)
                             {
-                                chunkListNode.getParent().free(chunkListNode, (int) handle);
+                                if (chunkListNode.getParent().free(chunkListNode, (int) handle))
+                                {
+                                    destoryChunk(chunkListNode);
+                                }
                             }
                         }
                     }
@@ -297,7 +300,10 @@ public abstract class AbstractArena<T> implements Arena<T>
             {
                 synchronized (this)
                 {
-                    chunkListNode.getParent().free(chunkListNode, (int) handle);
+                    if (chunkListNode.getParent().free(chunkListNode, (int) handle))
+                    {
+                        destoryChunk(chunkListNode);
+                    }
                 }
             }
         }
