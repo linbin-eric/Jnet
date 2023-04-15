@@ -13,19 +13,19 @@ import java.nio.channels.AsynchronousSocketChannel;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AdaptiveReadCompletionHandler implements ReadCompletionHandler<IoBuffer>
+public class AdaptiveReadCompletionHandler implements ReadCompletionHandler
 {
-    protected final      AsynchronousSocketChannel socketChannel;
-    protected final      BufferAllocator           allocator;
-    protected            ChannelContext            channelContext;
-    static final         int[]                     sizeTable;
-    private              int                       minIndex;
-    private              int                       maxIndex;
-    private              int                       index;
-    private static final int                       DECR_COUNT_MAX = 10;
-    private              int                       decrCount      = DECR_COUNT_MAX;
-    private              InternalPipeline          pipeline;
-    private              IoBuffer                  ioBuffer;
+    protected final AsynchronousSocketChannel socketChannel;
+    protected final BufferAllocator           allocator;
+    protected       ChannelContext            channelContext;
+    static final    int[]                     sizeTable;
+    private         int                       minIndex;
+    private         int                       maxIndex;
+    private         int                       index;
+    private final   int                       DECR_COUNT_MAX;
+    private         int                       decrCount;
+    private         InternalPipeline          pipeline;
+    private         IoBuffer                  ioBuffer;
     static
     {
         List<Integer> list = new ArrayList<>();
@@ -68,6 +68,8 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler<IoBu
     public AdaptiveReadCompletionHandler(ChannelContext channelContext)
     {
         this.channelContext = channelContext;
+        DECR_COUNT_MAX = channelContext.channelConfig().getDecrCountMax();
+        decrCount = DECR_COUNT_MAX;
         pipeline = (InternalPipeline) channelContext.pipeline();
         socketChannel = channelContext.socketChannel();
         ChannelConfig config = channelContext.channelConfig();

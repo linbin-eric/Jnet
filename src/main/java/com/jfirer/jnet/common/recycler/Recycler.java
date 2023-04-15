@@ -9,7 +9,8 @@ import java.lang.ref.WeakReference;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
+import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 
 public class Recycler<T>
 {
@@ -26,33 +27,29 @@ public class Recycler<T>
     final               FastThreadLocal<Stack>                      currentStack                = FastThreadLocal.withInitializeValue(() -> new Stack());
     final               long                                        LINK_NEXT_OFFSET            = UNSAFE.getFieldOffset("next", Link.class);
     private final       WeakOrderQueue                              DUMMY                       = new WeakOrderQueue();
-    private final       RecycleHandler                              NO_OP                       = new RecycleHandler()
-    {
-        @Override
-        public void recycle(Object value)
-        {
-        }
-    };
     /////////////////////////////////
-    private             int                                         maxCachedInstanceCapacity;
-    private             int                                         stackInitSize               = 2048;
-    private             int                                         maxDelayQueueNum;
-    private             int                                         linkSize;
-    private             int                                         maxSharedCapacity;
-    protected           Function<Function<T, RecycleHandler<T>>, T> function;
+    private final       int                                         stackInitSize;
+    private final       int                                         maxCachedInstanceCapacity;
+    private final       int                                         linkSize;
+    private final       int                                         maxDelayQueueNum;
+    private final       int                                         maxSharedCapacity;
+    private final       Supplier<T>                                 supplier;
+    private final       BiConsumer<T, RecycleHandler<T>>            biConsumer;
 
-    public Recycler(Function<Function<T, RecycleHandler<T>>, T> function)
+    public Recycler(Supplier<T> supplier, BiConsumer<T, RecycleHandler<T>> biConsumer)
     {
-        this(MAX_CACHE_INSTANCE_CAPACITY, MAX_DELAY_QUEUE_NUM, LINK_SIZE, MAX_SHARED_CAPACITY, function);
+        this(MAX_CACHE_INSTANCE_CAPACITY, MAX_DELAY_QUEUE_NUM, LINK_SIZE, MAX_SHARED_CAPACITY, supplier, biConsumer);
     }
 
-    public Recycler(int maxCachedInstanceCapcity, int maxDelayQueueNum, int linkSize, int maxShadCapacity, Function<Function<T, RecycleHandler<T>>, T> function)
+    public Recycler(int maxCachedInstanceCapcity, int maxDelayQueueNum, int linkSize, int maxShadCapacity, Supplier<T> supplier, BiConsumer<T, RecycleHandler<T>> biConsumer)
     {
         this.maxCachedInstanceCapacity = maxCachedInstanceCapcity;
         this.maxDelayQueueNum = maxDelayQueueNum;
         this.linkSize = linkSize;
         this.maxSharedCapacity = maxShadCapacity;
-        this.function = function;
+        this.supplier = supplier;
+        this.biConsumer = biConsumer;
+        stackInitSize = Math.min(maxCachedInstanceCapcity, 2048);
     }
 
     /**
@@ -92,15 +89,14 @@ public class Recycler<T>
     @SuppressWarnings("unchecked")
     public T get()
     {
-        if (maxCachedInstanceCapacity == 0)
-        {
-            return function.apply((Function<T, RecycleHandler<T>>) (T t) -> NO_OP);
-        }
         Stack          stack = currentStack.get();
         DefaultHandler pop   = stack.pop();
         if (pop == null)
         {
-            return function.apply((Function<T, RecycleHandler<T>>) (T t) -> new DefaultHandler(t, stack));
+            T              originStance   = supplier.get();
+            DefaultHandler defaultHandler = new DefaultHandler(originStance, stack);
+            biConsumer.accept(originStance, defaultHandler);
+            return originStance;
         }
         else
         {
@@ -350,8 +346,7 @@ public class Recycler<T>
 
         public WeakOrderQueue()
         {
-            linkSize = 0;
-            maxCachedInstanceCapacity = 0;
+            ;
         }
 
         public WeakOrderQueue(AtomicInteger sharedCapacity, Thread currentThread)

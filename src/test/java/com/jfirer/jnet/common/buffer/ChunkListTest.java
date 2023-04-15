@@ -1,10 +1,10 @@
 package com.jfirer.jnet.common.buffer;
 
 import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
+import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.arena.Chunk;
-import com.jfirer.jnet.common.buffer.arena.impl.AbstractArena;
-import com.jfirer.jnet.common.buffer.arena.impl.ChunkList;
-import com.jfirer.jnet.common.buffer.arena.impl.ChunkListNode;
+import com.jfirer.jnet.common.buffer.arena.ChunkList;
+import com.jfirer.jnet.common.buffer.arena.ChunkListNode;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.util.UNSAFE;
 import org.junit.Test;
@@ -17,12 +17,12 @@ import static org.junit.Assert.*;
 public class ChunkListTest
 {
     PooledBufferAllocator allocator = new PooledBufferAllocator("test");
-    private long c100Offset = UNSAFE.getFieldOffset("c100", AbstractArena.class);
-    private long c075Offset = UNSAFE.getFieldOffset("c075", AbstractArena.class);
-    private long c050Offset = UNSAFE.getFieldOffset("c050", AbstractArena.class);
-    private long c025Offset = UNSAFE.getFieldOffset("c025", AbstractArena.class);
-    private long c000Offset = UNSAFE.getFieldOffset("c000", AbstractArena.class);
-    private long cIntOffset = UNSAFE.getFieldOffset("cInt", AbstractArena.class);
+    private long c100Offset = UNSAFE.getFieldOffset("c100", Arena.class);
+    private long c075Offset = UNSAFE.getFieldOffset("c075", Arena.class);
+    private long c050Offset = UNSAFE.getFieldOffset("c050", Arena.class);
+    private long c025Offset = UNSAFE.getFieldOffset("c025", Arena.class);
+    private long c000Offset = UNSAFE.getFieldOffset("c000", Arena.class);
+    private long cIntOffset = UNSAFE.getFieldOffset("cInt", Arena.class);
 
     @Test
     public void test0()
@@ -44,9 +44,9 @@ public class ChunkListTest
                 buffers.add(buffer);
             }
         }
-        AbstractArena<?> arena  = (AbstractArena<?>) allocator.currentArena(preferDirect);
-        ChunkList<?>     c100   = (ChunkList<?>) UNSAFE.getObject(arena, c100Offset);
-        ChunkListNode    chunk1 = c100.head();
+        Arena         arena  = (Arena) allocator.currentArena(preferDirect);
+        ChunkList     c100   = (ChunkList) UNSAFE.getObject(arena, c100Offset);
+        ChunkListNode chunk1 = c100.head();
         for (int i = 0; i < 4; i++)
         {
             IoBuffer buffer = allocator.ioBuffer(size, preferDirect);
@@ -64,12 +64,12 @@ public class ChunkListTest
         assertTrue(chunk2.getNext() == chunk1);
         allocator.ioBuffer(size, preferDirect);
         allocator.ioBuffer(size, preferDirect);
-        assertEquals(75, chunk2.getChunk().usage());
+        assertEquals(75, chunk2.usage());
         allocator.ioBuffer(size << 1, preferDirect);
-        assertEquals(75, chunk1.getChunk().usage());
+        assertEquals(75, chunk1.usage());
         allocator.ioBuffer(size << 1, preferDirect);
         ChunkList c000   = (ChunkList) UNSAFE.getObject(arena, c000Offset);
-        Chunk<?>  chunk3 = c000.head().getChunk();
+        Chunk     chunk3 = c000.head();
         assertNotNull(chunk3);
         assertEquals(50, chunk3.usage());
     }

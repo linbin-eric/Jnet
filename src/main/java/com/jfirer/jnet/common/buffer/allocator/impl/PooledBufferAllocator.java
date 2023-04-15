@@ -2,22 +2,16 @@ package com.jfirer.jnet.common.buffer.allocator.impl;
 
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.arena.Arena;
-import com.jfirer.jnet.common.buffer.arena.impl.AbstractArena;
-import com.jfirer.jnet.common.buffer.arena.impl.DirectArena;
-import com.jfirer.jnet.common.buffer.arena.impl.HeapArena;
+import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
-import com.jfirer.jnet.common.buffer.buffer.impl.CacheablePoolableBuffer;
-import com.jfirer.jnet.common.buffer.buffer.impl.CacheablePoolableHeapBuffer;
-import com.jfirer.jnet.common.buffer.buffer.impl.CacheablePoolableUnsafeBuffer;
-import com.jfirer.jnet.common.buffer.buffer.impl.PoolableBuffer;
-import com.jfirer.jnet.common.recycler.RecycleHandler;
+import com.jfirer.jnet.common.buffer.buffer.impl.AbstractBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.PooledBuffer;
 import com.jfirer.jnet.common.recycler.Recycler;
 import com.jfirer.jnet.common.thread.FastThreadLocal;
 import com.jfirer.jnet.common.util.CapacityStat;
 import com.jfirer.jnet.common.util.MathUtil;
 import com.jfirer.jnet.common.util.SystemPropertyUtil;
 
-import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class PooledBufferAllocator implements BufferAllocator
@@ -37,24 +31,14 @@ public class PooledBufferAllocator implements BufferAllocator
         PREFER_DIRECT = SystemPropertyUtil.getBoolean("io.jnet.PooledBufferAllocator.preferDirect", true);
         DEFAULT = new PooledBufferAllocator(PAGESIZE, MAXLEVEL, NUM_OF_ARENA, PREFER_DIRECT, "PooledBufferAllocator_Default");
     }
-    protected boolean                                       preferDirect;
-    protected int                                           pagesize;
-    protected int                                           maxLevel;
-    protected String                                        name;
-    protected ArenaUseCount[]                               heapArenaUseCount;
-    protected ArenaUseCount[]                               directArenaUseCount;
-    protected Recycler<CacheablePoolableBuffer<ByteBuffer>> DIRECT_BUFFER_ALLOCATOR = new Recycler<>(function -> {
-        CacheablePoolableBuffer<ByteBuffer>                 buffer  = new CacheablePoolableUnsafeBuffer();
-        RecycleHandler<CacheablePoolableBuffer<ByteBuffer>> handler = function.apply(buffer);
-        buffer.setRecycleHandler(handler);
-        return buffer;
-    });
-    protected Recycler<CacheablePoolableBuffer<byte[]>>     HEAP_BUFFER_ALLOCATOR   = new Recycler<>(function -> {
-        CacheablePoolableBuffer<byte[]>                 buffer  = new CacheablePoolableHeapBuffer();
-        RecycleHandler<CacheablePoolableBuffer<byte[]>> handler = function.apply(buffer);
-        buffer.setRecycleHandler(handler);
-        return buffer;
-    });
+    protected boolean                preferDirect;
+    protected int                    pagesize;
+    protected int                    maxLevel;
+    protected String                 name;
+    protected ArenaUseCount[]        heapArenaUseCount;
+    protected ArenaUseCount[]        directArenaUseCount;
+    private   Recycler<PooledBuffer> DIRECT_BUFFER_ALLOCATOR = new Recycler<>(() -> new PooledBuffer(BufferType.UNSAFE), AbstractBuffer::setRecycleHandler);
+    private   Recycler<PooledBuffer> HEAP_BUFFER_ALLOCATOR   = new Recycler<>(() -> new PooledBuffer(BufferType.HEAP), AbstractBuffer::setRecycleHandler);
 
     public int pagesize()
     {
@@ -66,10 +50,10 @@ public class PooledBufferAllocator implements BufferAllocator
         return maxLevel;
     }
 
-    record ArenaUseCount(AtomicInteger use, Arena<?> arena) {}
+    record ArenaUseCount(AtomicInteger use, Arena arena) {}
 
-    protected final FastThreadLocal<DirectArena> directArenaFastThreadLocal = FastThreadLocal.withInitializeValue(() -> (DirectArena) leastUseArena(directArenaUseCount));
-    protected final FastThreadLocal<HeapArena>   heapArenaFastThreadLocal   = FastThreadLocal.withInitializeValue(() -> (HeapArena) leastUseArena(heapArenaUseCount));
+    protected final FastThreadLocal<Arena> directArenaFastThreadLocal = FastThreadLocal.withInitializeValue(() -> leastUseArena(directArenaUseCount));
+    protected final FastThreadLocal<Arena> heapArenaFastThreadLocal   = FastThreadLocal.withInitializeValue(() -> leastUseArena(heapArenaUseCount));
 
     public PooledBufferAllocator(String name)
     {
@@ -86,15 +70,15 @@ public class PooledBufferAllocator implements BufferAllocator
         this.name = name;
         for (int i = 0; i < numOfArena; i++)
         {
-            heapArenaUseCount[i] = new ArenaUseCount(new AtomicInteger(0), new HeapArena(maxLevel, pagesize, "HeapArena-" + i));
+            heapArenaUseCount[i] = new ArenaUseCount(new AtomicInteger(0), new Arena(maxLevel, pagesize, "HeapArena-" + i, BufferType.HEAP));
         }
         for (int i = 0; i < numOfArena; i++)
         {
-            directArenaUseCount[i] = new ArenaUseCount(new AtomicInteger(0), new DirectArena(maxLevel, pagesize, "DirectArena-" + i));
+            directArenaUseCount[i] = new ArenaUseCount(new AtomicInteger(0), new Arena(maxLevel, pagesize, "DirectArena-" + i, BufferType.UNSAFE));
         }
     }
 
-    private Arena<?> leastUseArena(ArenaUseCount[] arenaUseCounts)
+    private Arena leastUseArena(ArenaUseCount[] arenaUseCounts)
     {
         ArenaUseCount leastUseArena = arenaUseCounts[0];
         for (ArenaUseCount each : arenaUseCounts)
@@ -111,8 +95,8 @@ public class PooledBufferAllocator implements BufferAllocator
     @Override
     public IoBuffer heapBuffer(int initializeCapacity)
     {
-        PoolableBuffer<byte[]> pooledHeapBuffer = HEAP_BUFFER_ALLOCATOR.get();
-        HeapArena              heapArena        = heapArenaFastThreadLocal.get();
+        PooledBuffer pooledHeapBuffer = HEAP_BUFFER_ALLOCATOR.get();
+        Arena        heapArena        = heapArenaFastThreadLocal.get();
         heapArena.allocate(initializeCapacity, pooledHeapBuffer);
         return pooledHeapBuffer;
     }
@@ -120,8 +104,8 @@ public class PooledBufferAllocator implements BufferAllocator
     @Override
     public IoBuffer unsafeBuffer(int initializeCapacity)
     {
-        PoolableBuffer<ByteBuffer> pooledDirectBuffer = DIRECT_BUFFER_ALLOCATOR.get();
-        DirectArena                arena              = directArenaFastThreadLocal.get();
+        PooledBuffer pooledDirectBuffer = DIRECT_BUFFER_ALLOCATOR.get();
+        Arena        arena              = directArenaFastThreadLocal.get();
         arena.allocate(initializeCapacity, pooledDirectBuffer);
         return pooledDirectBuffer;
     }
@@ -139,7 +123,7 @@ public class PooledBufferAllocator implements BufferAllocator
         }
     }
 
-    public Arena<?> currentArena(boolean preferDirect)
+    public Arena currentArena(boolean preferDirect)
     {
         if (preferDirect)
         {
@@ -174,7 +158,7 @@ public class PooledBufferAllocator implements BufferAllocator
     {
         for (ArenaUseCount each : heapArenaUseCount)
         {
-            ((AbstractArena) each.arena).capacityStat(stat);
+            ((Arena) each.arena).capacityStat(stat);
         }
     }
 
@@ -182,7 +166,7 @@ public class PooledBufferAllocator implements BufferAllocator
     {
         for (ArenaUseCount each : directArenaUseCount)
         {
-            ((AbstractArena) each.arena).capacityStat(stat);
+            ((Arena) each.arena).capacityStat(stat);
         }
     }
 }

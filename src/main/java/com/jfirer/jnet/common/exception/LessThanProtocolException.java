@@ -7,7 +7,6 @@ package com.jfirer.jnet.common.exception;
  */
 public class LessThanProtocolException extends JnetException
 {
-
     public static final  LessThanProtocolException instance         = new LessThanProtocolException();
     /**
      *

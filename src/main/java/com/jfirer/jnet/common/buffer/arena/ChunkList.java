@@ -1,19 +1,17 @@
-package com.jfirer.jnet.common.buffer.arena.impl;
+package com.jfirer.jnet.common.buffer.arena;
 
-import com.jfirer.jnet.common.buffer.arena.Arena;
-import com.jfirer.jnet.common.buffer.arena.Chunk;
-import com.jfirer.jnet.common.buffer.buffer.impl.PoolableBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.PooledBuffer;
 import com.jfirer.jnet.common.util.CapacityStat;
 
-public class ChunkList<T>
+public class ChunkList
 {
     final int   maxUsage;
     final int   minUsage;
     final int   maxReqCapacity;
     final Arena arena;
-    ChunkList<T>     prevList;
-    ChunkList<T>     nextList;
-    ChunkListNode<T> head;
+    ChunkList     prevList;
+    ChunkList     nextList;
+    ChunkListNode head;
 
     /**
      * 两个边界都是闭区间。也就是大于等于最小使用率，小于等于最大使用率都在这个List中
@@ -23,7 +21,7 @@ public class ChunkList<T>
      * @param next
      * @param chunkSize
      */
-    public ChunkList(int minUsage, int maxUsage, ChunkList<T> next, int chunkSize, Arena arena)
+    public ChunkList(int minUsage, int maxUsage, ChunkList next, int chunkSize, Arena arena)
     {
         this.maxUsage = maxUsage;
         this.minUsage = minUsage;
@@ -48,12 +46,12 @@ public class ChunkList<T>
         }
     }
 
-    public void setPrevList(ChunkList<T> prevList)
+    public void setPrevList(ChunkList prevList)
     {
         this.prevList = prevList;
     }
 
-    public boolean allocate(int normalizeSize, PoolableBuffer<T> buffer)
+    public boolean allocate(int normalizeSize, PooledBuffer buffer)
     {
         if (head == null || normalizeSize > maxReqCapacity)
         {
@@ -62,10 +60,10 @@ public class ChunkList<T>
         ChunkListNode node = head;
         do
         {
-            Chunk.MemoryArea<T> allocate = node.getChunk().allocate(normalizeSize);
+            Chunk.MemoryArea allocate = node.allocate(normalizeSize);
             if (allocate != null)
             {
-                int usage = node.getChunk().usage();
+                int usage = node.usage();
                 if (usage > maxUsage)
                 {
                     remove(node);
@@ -79,13 +77,13 @@ public class ChunkList<T>
         return false;
     }
 
-    public SubPage<T> allocateSubpage(int normalizeCapacity)
+    public SubPage allocateSubpage(int normalizeCapacity)
     {
         if (head == null)
         {
             return null;
         }
-        ChunkListNode<T> node = head;
+        ChunkListNode node = head;
         do
         {
             SubPage subPage = node.allocateSubPage(normalizeCapacity);
@@ -111,10 +109,10 @@ public class ChunkList<T>
      * @param handle
      * @return
      */
-    public boolean free(ChunkListNode<T> node, int handle)
+    public boolean free(ChunkListNode node, int handle)
     {
-        node.getChunk().free(handle);
-        int usage = node.getChunk().usage();
+        node.free(handle);
+        int usage = node.usage();
         if (usage < minUsage)
         {
             remove(node);
@@ -123,9 +121,9 @@ public class ChunkList<T>
         return false;
     }
 
-    void remove(ChunkListNode<T> node)
+    void remove(ChunkListNode node)
     {
-        ChunkListNode<T> head = this.head;
+        ChunkListNode head = this.head;
         if (node == head)
         {
             head = node.getNext();
@@ -153,7 +151,7 @@ public class ChunkList<T>
      * @param usage
      * @return
      */
-    boolean addFromNext(ChunkListNode<T> node, int usage)
+    boolean addFromNext(ChunkListNode node, int usage)
     {
         if (usage < minUsage)
         {
@@ -170,7 +168,7 @@ public class ChunkList<T>
         return true;
     }
 
-    public void add(ChunkListNode<T> node)
+    public void add(ChunkListNode node)
     {
         node.setParent(this);
         if (head == null)
@@ -200,15 +198,15 @@ public class ChunkList<T>
 
     public void stat(CapacityStat stat)
     {
-        ChunkListNode<T> cursor = head;
+        ChunkListNode cursor = head;
         if (cursor == null)
         {
             return;
         }
-        stat.add(cursor.getChunk());
+        stat.add(cursor);
         while ((cursor = cursor.getNext()) != null)
         {
-            stat.add(cursor.getChunk());
+            stat.add(cursor);
         }
     }
 
@@ -217,7 +215,7 @@ public class ChunkList<T>
         return arena;
     }
 
-    public ChunkListNode<T> head()
+    public ChunkListNode head()
     {
         return head;
     }

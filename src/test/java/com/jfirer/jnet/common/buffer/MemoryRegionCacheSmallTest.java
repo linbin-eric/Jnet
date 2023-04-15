@@ -3,7 +3,7 @@ package com.jfirer.jnet.common.buffer;
 import com.jfirer.jnet.common.buffer.allocator.impl.CachedPooledBufferAllocator;
 import com.jfirer.jnet.common.buffer.arena.Chunk;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
-import com.jfirer.jnet.common.buffer.buffer.impl.PoolableBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.PooledBuffer;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -48,12 +48,12 @@ public class MemoryRegionCacheSmallTest
         int                   smallCacheSize = CachedPooledBufferAllocator.NUM_OF_CACHE;
         int                   useBytes       = smallCacheSize * size;
         final Queue<IoBuffer> buffers        = new LinkedList<>();
-        Set<Chunk<?>>         chunkSet       = new HashSet<>();
+        Set<Chunk>            chunkSet       = new HashSet<>();
         for (int i = 0; i < smallCacheSize; i++)
         {
-            IoBuffer<?> buffer = allocator.ioBuffer(size, preferDirect);
+            IoBuffer buffer = allocator.ioBuffer(size, preferDirect);
             buffers.add(buffer);
-            chunkSet.add(((PoolableBuffer<?>) buffer).chunk());
+            chunkSet.add(((PooledBuffer) buffer).chunk());
         }
         int allChunkUsedBytes = chunkSet.stream().map(chunk -> chunk.getChunkSize() - chunk.getFreeBytes()).reduce(Integer::sum).get();
         Assert.assertTrue("allChunkUsedBytes:" + allChunkUsedBytes + ",useBytes:" + useBytes, allChunkUsedBytes >= useBytes);

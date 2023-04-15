@@ -78,9 +78,7 @@ public class SpscLinkedQueue<E> extends BaseLinkQueue implements Queue<E>
     @Override
     public Iterator<E> iterator()
     {
-
         throw new UnsupportedOperationException();
-
     }
 
     @Override

@@ -1,43 +1,40 @@
 package com.jfirer.jnet.common.buffer;
 
 import com.jfirer.jnet.common.buffer.arena.Arena;
-import com.jfirer.jnet.common.buffer.arena.impl.ChunkListNode;
+import com.jfirer.jnet.common.buffer.arena.ChunkListNode;
 import com.jfirer.jnet.common.buffer.buffer.Bits;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
-import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
-import com.jfirer.jnet.common.buffer.buffer.impl.CacheablePoolableBuffer;
-import com.jfirer.jnet.common.buffer.buffer.impl.PoolableBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.CacheablePooledBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.PooledBuffer;
 import com.jfirer.jnet.common.util.MathUtil;
 import com.jfirer.jnet.common.util.PlatFormFunction;
 import com.jfirer.jnet.common.util.ReflectUtil;
 
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-public class ThreadCache<T>
+public class ThreadCache
 {
-    public static class MemoryCached<T>
+    public static class MemoryCached
     {
-        public Arena<T>         arena;
-        public ChunkListNode<T> chunkListNode;
-        public int              capacity;
-        public int              offset;
-        public long             handle;
-        public int              bitMapIndex;
+        public Arena         arena;
+        public ChunkListNode chunkListNode;
+        public int           capacity;
+        public int           offset;
+        public long          handle;
+        public int           bitMapIndex;
         int regionIndex;
     }
 
-    static final int                 smallestMask = ~15;
-    final        int                 numOfCached;
-    private      Arena<T>            arena;
-    private      MemoryCached<T>[][] regionCaches;
-    private      long[][]            bitMaps;
-    private      int[]               numOfAvails;
-    private      int[]               nextAvails;
+    static final int              smallestMask = ~15;
+    final        int              numOfCached;
+    private      Arena            arena;
+    private      MemoryCached[][] regionCaches;
+    private      long[][]         bitMaps;
+    private      int[]            numOfAvails;
+    private      int[]            nextAvails;
 
-    public ThreadCache(int numOfCached, int maxCachedCapacity, Arena<T> arena)
+    public ThreadCache(int numOfCached, int maxCachedCapacity, Arena arena)
     {
         this.arena = arena;
         this.numOfCached = numOfCached;
@@ -55,13 +52,13 @@ public class ThreadCache<T>
         }
     }
 
-    public void reAllocate(MemoryCached<T> oldMemoryCache, int newReqCapacity, CacheablePoolableBuffer<T> buffer)
+    public void reAllocate(MemoryCached oldMemoryCache, int newReqCapacity, CacheablePooledBuffer buffer)
     {
-        int oldReadPosi  = buffer.getReadPosi();
-        int oldWritePosi = buffer.getWritePosi();
-        int oldCapacity  = buffer.capacity();
-        int oldOffset    = buffer.offset();
-        T   oldMemory    = buffer.memory();
+        int    oldReadPosi  = buffer.getReadPosi();
+        int    oldWritePosi = buffer.getWritePosi();
+        int    oldCapacity  = buffer.capacity();
+        int    oldOffset    = buffer.offset();
+        Object oldMemory    = buffer.memory();
         if (newReqCapacity > oldCapacity)
         {
             allocate(newReqCapacity, buffer);
@@ -82,14 +79,14 @@ public class ThreadCache<T>
         free(oldMemoryCache);
     }
 
-    public void allocate(int capacity, CacheablePoolableBuffer<T> buffer)
+    public void allocate(int capacity, CacheablePooledBuffer buffer)
     {
         int size  = normalizeCapacity(capacity);
         int index = MathUtil.log2(size) - 4;
         if (index < regionCaches.length)
         {
-            MemoryCached<T>[] regionCach = regionCaches[index];
-            long[]            bitMap     = bitMaps[index];
+            MemoryCached[] regionCach = regionCaches[index];
+            long[]         bitMap     = bitMaps[index];
             synchronized (regionCach)
             {
                 int bitMapIndex = findAvail(index);
@@ -102,12 +99,12 @@ public class ThreadCache<T>
                 int col = bitMapIndex & 63;
                 bitMap[row] |= 1L << col;
                 numOfAvails[index] -= 1;
-                MemoryCached<T> memoryCached = regionCach[bitMapIndex];
+                MemoryCached memoryCached = regionCach[bitMapIndex];
                 if (memoryCached == null)
                 {
-                    MemoryFetch memoryFetch = new MemoryFetch();
+                    MemoryFetch memoryFetch = new MemoryFetch(buffer.bufferType());
                     arena.allocate(size, memoryFetch);
-                    memoryCached = new MemoryCached<>();
+                    memoryCached = new MemoryCached();
                     memoryCached.arena = arena;
                     memoryCached.chunkListNode = memoryFetch.fetchNode();
                     memoryCached.capacity = size;
@@ -166,10 +163,10 @@ public class ThreadCache<T>
         }
     }
 
-    public void free(MemoryCached<T> memoryCached)
+    public void free(MemoryCached memoryCached)
     {
-        int               regionIndex = memoryCached.regionIndex;
-        MemoryCached<T>[] regionCach  = regionCaches[regionIndex];
+        int            regionIndex = memoryCached.regionIndex;
+        MemoryCached[] regionCach  = regionCaches[regionIndex];
         synchronized (regionCach)
         {
             nextAvails[regionIndex] = memoryCached.bitMapIndex;
@@ -191,9 +188,14 @@ public class ThreadCache<T>
         return MathUtil.normalizeSize(reqCapacity);
     }
 
-    class MemoryFetch extends PoolableBuffer<T>
+    class MemoryFetch extends PooledBuffer
     {
-        public ChunkListNode<T> fetchNode()
+        public MemoryFetch(BufferType bufferType)
+        {
+            super(bufferType);
+        }
+
+        public ChunkListNode fetchNode()
         {
             return chunkListNode;
         }
@@ -208,95 +210,5 @@ public class ThreadCache<T>
             return offset;
         }
 
-        @Override
-        public BufferType bufferType()
-        {
-            Type actualTypeArgument = ((ParameterizedType) this.getClass().getGenericSuperclass()).getActualTypeArguments()[0];
-            if (actualTypeArgument == ByteBuffer.class)
-            {
-                return BufferType.DIRECT;
-            }
-            else
-            {
-                return BufferType.HEAP;
-            }
-        }
-
-        @Override
-        public IoBuffer put(IoBuffer buffer, int len)
-        {
-            return null;
-        }
-
-        @Override
-        public ByteBuffer readableByteBuffer()
-        {
-            return null;
-        }
-
-        @Override
-        public ByteBuffer writableByteBuffer()
-        {
-            return null;
-        }
-
-        @Override
-        protected void put0(int posi, byte value)
-        {
-        }
-
-        @Override
-        protected void put0(byte[] content, int off, int len, int posi)
-        {
-        }
-
-        @Override
-        protected void putInt0(int posi, int value)
-        {
-        }
-
-        @Override
-        protected void putShort0(int posi, short value)
-        {
-        }
-
-        @Override
-        protected void putLong0(int posi, long value)
-        {
-        }
-
-        @Override
-        protected byte get0(int posi)
-        {
-            return 0;
-        }
-
-        @Override
-        protected void get0(byte[] content, int off, int len, int posi)
-        {
-        }
-
-        @Override
-        protected int getInt0(int posi)
-        {
-            return 0;
-        }
-
-        @Override
-        protected short getShort0(int posi)
-        {
-            return 0;
-        }
-
-        @Override
-        protected long getLong0(int posi)
-        {
-            return 0;
-        }
-
-        @Override
-        protected void compact0(int length)
-        {
-        }
     }
 }

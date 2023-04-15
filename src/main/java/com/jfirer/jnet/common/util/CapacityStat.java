@@ -6,13 +6,14 @@ public class CapacityStat
 {
     private int freeBytes;
     private int chunkCapacity;
-    private int numOfChunk;
+    private int numOfPooledChunk;
+    private int numOfUnPooledChunk;
 
     public void add(Chunk chunk)
     {
         freeBytes += chunk.getFreeBytes();
         chunkCapacity += chunk.getChunkSize();
-        numOfChunk += 1;
+        numOfPooledChunk += 1;
     }
 
     public int getFreeBytes()
@@ -25,14 +26,32 @@ public class CapacityStat
         return chunkCapacity;
     }
 
-    public int getNumOfChunk()
+    public int getNumOfPooledChunk()
     {
-        return numOfChunk;
+        return numOfPooledChunk;
+    }
+
+    public int getNumOfUnPooledChunk()
+    {
+        return numOfUnPooledChunk;
+    }
+
+    public void clear()
+    {
+        freeBytes = 0;
+        chunkCapacity = 0;
+        numOfPooledChunk = 0;
+        numOfUnPooledChunk = 0;
+    }
+
+    public void setNumOfUnPooledChunk(int numOfUnPooledChunk)
+    {
+        this.numOfUnPooledChunk = numOfUnPooledChunk;
     }
 
     @Override
     public String toString()
     {
-        return "CapacityStat{" + "freeBytes=" + freeBytes + ", chunkCapacity=" + chunkCapacity + ", numOfChunk=" + numOfChunk + '}';
+        return "CapacityStat{" + "freeBytes=" + freeBytes + ", chunkCapacity=" + chunkCapacity + ", numOfPooledChunk=" + numOfPooledChunk + ", numOfUnPooledChunk=" + numOfUnPooledChunk + '}';
     }
 }

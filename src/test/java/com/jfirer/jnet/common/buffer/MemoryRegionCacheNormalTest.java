@@ -1,9 +1,9 @@
 package com.jfirer.jnet.common.buffer;
 
 import com.jfirer.jnet.common.buffer.allocator.impl.CachedPooledBufferAllocator;
-import com.jfirer.jnet.common.buffer.arena.impl.AbstractArena;
-import com.jfirer.jnet.common.buffer.arena.impl.ChunkList;
-import com.jfirer.jnet.common.buffer.arena.impl.ChunkListNode;
+import com.jfirer.jnet.common.buffer.arena.Arena;
+import com.jfirer.jnet.common.buffer.arena.ChunkList;
+import com.jfirer.jnet.common.buffer.arena.ChunkListNode;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.util.UNSAFE;
 import org.junit.Assert;
@@ -16,12 +16,12 @@ import java.util.*;
 @RunWith(Parameterized.class)
 public class MemoryRegionCacheNormalTest
 {
-    private long c100Offset = UNSAFE.getFieldOffset("c100", AbstractArena.class);
-    private long c075Offset = UNSAFE.getFieldOffset("c075", AbstractArena.class);
-    private long c050Offset = UNSAFE.getFieldOffset("c050", AbstractArena.class);
-    private long c025Offset = UNSAFE.getFieldOffset("c025", AbstractArena.class);
-    private long c000Offset = UNSAFE.getFieldOffset("c000", AbstractArena.class);
-    private long cIntOffset = UNSAFE.getFieldOffset("cInt", AbstractArena.class);
+    private long c100Offset = UNSAFE.getFieldOffset("c100", Arena.class);
+    private long c075Offset = UNSAFE.getFieldOffset("c075", Arena.class);
+    private long c050Offset = UNSAFE.getFieldOffset("c050", Arena.class);
+    private long c025Offset = UNSAFE.getFieldOffset("c025", Arena.class);
+    private long c000Offset = UNSAFE.getFieldOffset("c000", Arena.class);
+    private long cIntOffset = UNSAFE.getFieldOffset("cInt", Arena.class);
     CachedPooledBufferAllocator allocator = new CachedPooledBufferAllocator("test");
     private boolean preferDirect;
 
@@ -42,12 +42,12 @@ public class MemoryRegionCacheNormalTest
     @Test
     public void test()
     {
-        Queue<IoBuffer<?>> queue = new LinkedList<>();
+        Queue<IoBuffer> queue = new LinkedList<>();
         queue.add(allocator.ioBuffer(allocator.pagesize(), preferDirect));
-        AbstractArena<?> arena     = (AbstractArena<?>) allocator.currentArena(preferDirect);
-        ChunkList<?>     chunkList = (ChunkList<?>) UNSAFE.getObject(arena, cIntOffset);
-        int              total     = 1 << allocator.maxLevel();
-        ChunkListNode<?> head      = chunkList.head();
+        Arena         arena     = (Arena) allocator.currentArena(preferDirect);
+        ChunkList     chunkList = (ChunkList) UNSAFE.getObject(arena, cIntOffset);
+        int           total     = 1 << allocator.maxLevel();
+        ChunkListNode head      = chunkList.head();
         for (int i = 1; i < total; i++)
         {
             queue.add(allocator.ioBuffer(allocator.pagesize(), preferDirect));

@@ -1,12 +1,11 @@
 package com.jfirer.jnet.common.buffer.buffer;
 
 import com.jfirer.jnet.common.buffer.buffer.impl.AbstractBuffer;
-import com.jfirer.jnet.common.buffer.buffer.impl.SliceDirectBuffer;
-import com.jfirer.jnet.common.buffer.buffer.impl.SliceHeapBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.SliceBuffer;
 
 import java.nio.ByteBuffer;
 
-public interface IoBuffer<T>
+public interface IoBuffer
 {
     /**
      * 返回当前Buffer的大小，该数值并不是固定值。因为Buffer是会随着写入自动扩容
@@ -191,8 +190,6 @@ public interface IoBuffer<T>
 
     /**
      * 当前Buffer进行压缩。将剩余的读取数据拷贝至buffer的最前端。调整新读取位置为0。新写入位置为调整为旧写入位置减去移动的长度。
-     *
-     * @return
      */
     IoBuffer compact();
 
@@ -326,19 +323,20 @@ public interface IoBuffer<T>
      */
     default IoBuffer slice(int length)
     {
-        switch (bufferType())
-        {
-            case HEAP ->
-            {
-                return SliceHeapBuffer.slice((AbstractBuffer<byte[]>) this, length);
-            }
-            case UNSAFE ->
-            {
-                return SliceDirectBuffer.slice((AbstractBuffer<ByteBuffer>) this, length);
-            }
-            case DIRECT, MEMORY -> throw new UnsupportedOperationException();
-            default -> throw new IllegalStateException("Unexpected value: " + bufferType());
-        }
+        return SliceBuffer.slice((AbstractBuffer) this, length);
+//        switch (bufferType())
+//        {
+//            case HEAP ->
+//            {
+//                return SliceBuffer.slice((AbstractBuffer) this, length);
+//            }
+//            case UNSAFE ->
+//            {
+//                return SliceDirectBuffer.slice((AbstractBuffer) this, length);
+//            }
+//            case DIRECT, MEMORY -> throw new UnsupportedOperationException();
+//            default -> throw new IllegalStateException("Unexpected value: " + bufferType());
+//        }
     }
 
     /**
@@ -350,5 +348,5 @@ public interface IoBuffer<T>
 
     int offset();
 
-    T memory();
+    Object memory();
 }

@@ -1,23 +1,43 @@
 package com.jfirer.jnet.common.buffer.buffer.impl;
 
+import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
+import com.jfirer.jnet.common.buffer.buffer.RwDelegation;
+import com.jfirer.jnet.common.buffer.buffer.impl.rw.HeapRw;
+import com.jfirer.jnet.common.buffer.buffer.impl.rw.UnsafeRw;
 import com.jfirer.jnet.common.recycler.RecycleHandler;
 import com.jfirer.jnet.common.util.UNSAFE;
 
-public abstract class AbstractBuffer<T> implements IoBuffer<T>
-{
-    protected          T              memory;
-    protected          int            capacity;
-    protected          int            readPosi;
-    protected          int            writePosi;
-    protected          int            offset;
-    // 当是堆外内存的时候才会有值，0是非法值，不应该使用
-    protected          long           nativeAddress;
-    protected volatile int            refCount;
-    static final       long           REF_COUNT_OFFSET = UNSAFE.getFieldOffset("refCount", AbstractBuffer.class);
-    protected          RecycleHandler recycleHandler;
+import java.nio.ByteBuffer;
 
-    public void init(T memory, int capacity, int offset)
+public abstract class AbstractBuffer implements IoBuffer
+{
+    protected          Object                         memory;
+    protected          int                            capacity;
+    protected          int                            readPosi;
+    protected          int                            writePosi;
+    protected          int                            offset;
+    // 当是堆外内存的时候才会有值，0是非法值，不应该使用
+    protected          long                           nativeAddress;
+    protected volatile int                            refCount;
+    static final       long                           REF_COUNT_OFFSET = UNSAFE.getFieldOffset("refCount", AbstractBuffer.class);
+    protected          RecycleHandler<AbstractBuffer> recycleHandler;
+    protected final    BufferType                     bufferType;
+    protected final    RwDelegation                   rwDelegation;
+
+    protected AbstractBuffer(BufferType bufferType)
+    {
+        this.bufferType = bufferType;
+        switch (bufferType)
+        {
+            case HEAP -> rwDelegation = HeapRw.INSTANCE;
+            case DIRECT, MEMORY -> throw new UnsupportedOperationException();
+            case UNSAFE -> rwDelegation = UnsafeRw.INSTANCE;
+            default -> throw new IllegalStateException("Unexpected value: " + bufferType);
+        }
+    }
+
+    public void init(Object memory, int capacity, int offset, long nativeAddress)
     {
         this.memory = memory;
         this.capacity = capacity;
@@ -25,14 +45,18 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
         readPosi = writePosi = 0;
         // 由于该方法可能会扩容方法所调用，所以需要区分不同的情况。如果是第一次初始化，这refCount是代表自身，需要从0设置为1；否则的话，不需要修改。
         refCount = refCount == 0 ? 1 : refCount;
-        switch (bufferType())
+        this.nativeAddress = nativeAddress;
+        if (bufferType != BufferType.HEAP && nativeAddress == 0)
         {
-            case UNSAFE, DIRECT, MEMORY -> nativeAddress = getNativeAddress(memory);
-            case HEAP -> nativeAddress = 0;
+            throw new IllegalArgumentException();
         }
     }
 
-    protected abstract long getNativeAddress(T memory);
+    @Override
+    public BufferType bufferType()
+    {
+        return bufferType;
+    }
 
     @Override
     public int capacity()
@@ -65,11 +89,9 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
     public IoBuffer put(byte b)
     {
         int posi = nextWritePosi(1);
-        put0(posi, b);
+        rwDelegation.put0(posi, b, memory, offset, nativeAddress);
         return this;
     }
-
-    protected abstract void put0(int posi, byte value);
 
     void checkWritePosi(int posi, int length)
     {
@@ -84,7 +106,7 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
     public IoBuffer put(byte b, int posi)
     {
         checkWritePosi(posi, 1);
-        put0(posi, b);
+        rwDelegation.put0(posi, b, memory, offset, nativeAddress);
         return this;
     }
 
@@ -93,17 +115,15 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
     {
         int length = content.length;
         int posi   = nextWritePosi(length);
-        put0(content, 0, length, posi);
+        rwDelegation.put0(content, 0, length, posi, memory, offset, nativeAddress);
         return this;
     }
-
-    protected abstract void put0(byte[] content, int off, int len, int posi);
 
     @Override
     public IoBuffer put(byte[] content, int off, int len)
     {
         int posi = nextWritePosi(len);
-        put0(content, off, len, posi);
+        rwDelegation.put0(content, off, len, posi, memory, offset, nativeAddress);
         return this;
     }
 
@@ -117,17 +137,15 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
     public IoBuffer putInt(int i)
     {
         int posi = nextWritePosi(4);
-        putInt0(posi, i);
+        rwDelegation.putInt0(posi, i, memory, offset, nativeAddress);
         return this;
     }
-
-    protected abstract void putInt0(int posi, int value);
 
     @Override
     public IoBuffer putInt(int value, int posi)
     {
         checkWritePosi(posi, 4);
-        putInt0(posi, value);
+        rwDelegation.putInt0(posi, value, memory, offset, nativeAddress);
         return this;
     }
 
@@ -135,27 +153,25 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
     public IoBuffer putShort(short value, int posi)
     {
         checkWritePosi(posi, 2);
-        putShort0(posi, value);
+        rwDelegation.putShort0(posi, value, memory, offset, nativeAddress);
         return this;
     }
-
-    protected abstract void putShort0(int posi, short value);
+//    protected abstract void putShort0(int posi, short value);
 
     @Override
     public IoBuffer putLong(long value, int posi)
     {
         checkWritePosi(posi, 8);
-        putLong0(posi, value);
+        rwDelegation.putLong0(posi, value, memory, offset, nativeAddress);
         return this;
     }
-
-    protected abstract void putLong0(int posi, long value);
+//    protected abstract void putLong0(int posi, long value);
 
     @Override
     public IoBuffer putShort(short s)
     {
         int posi = nextWritePosi(2);
-        putShort0(posi, s);
+        rwDelegation.putShort0(posi, s, memory, offset, nativeAddress);
         return this;
     }
 
@@ -163,7 +179,7 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
     public IoBuffer putLong(long l)
     {
         int posi = nextWritePosi(8);
-        putLong0(posi, l);
+        rwDelegation.putLong0(posi, l, memory, offset, nativeAddress);
         return this;
     }
 
@@ -205,7 +221,7 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
     {
         for (int i = 0; i < capacity; i++)
         {
-            put0(i, (byte) 0);
+            rwDelegation.put0(i, (byte) 0, memory, offset, nativeAddress);
         }
         readPosi = writePosi = 0;
         return this;
@@ -227,10 +243,9 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
     public byte get()
     {
         int posi = nextReadPosi(1);
-        return get0(posi);
+        return rwDelegation.get0(posi, memory, offset, nativeAddress);
     }
-
-    protected abstract byte get0(int posi);
+//    protected abstract byte get0(int posi);
 
     void checkReadPosi(int posi, int len)
     {
@@ -245,7 +260,7 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
     public byte get(int posi)
     {
         checkReadPosi(posi, 1);
-        return get0(posi);
+        return rwDelegation.get0(posi, memory, offset, nativeAddress);
     }
 
     @Override
@@ -261,18 +276,28 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
     }
 
     @Override
+    public ByteBuffer writableByteBuffer()
+    {
+        return rwDelegation.writableByteBuffer(memory, offset, nativeAddress, writePosi, capacity);
+    }
+
+    @Override
+    public ByteBuffer readableByteBuffer()
+    {
+        return rwDelegation.readableByteBuffer(memory, offset, nativeAddress, readPosi, writePosi);
+    }
+
+    @Override
     public IoBuffer get(byte[] content)
     {
         return get(content, 0, content.length);
     }
 
-    protected abstract void get0(byte[] content, int off, int len, int posi);
-
     @Override
     public IoBuffer get(byte[] content, int off, int len)
     {
         int posi = nextReadPosi(len);
-        get0(content, off, len, posi);
+        rwDelegation.get0(content, off, len, posi, memory, offset, nativeAddress);
         return this;
     }
 
@@ -342,49 +367,43 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
     public int getInt()
     {
         int posi = nextReadPosi(4);
-        return getInt0(posi);
+        return rwDelegation.getInt0(posi, memory, offset, nativeAddress);
     }
-
-    protected abstract int getInt0(int posi);
 
     @Override
     public short getShort()
     {
         int posi = nextReadPosi(2);
-        return getShort0(posi);
+        return rwDelegation.getShort0(posi, memory, offset, nativeAddress);
     }
-
-    protected abstract short getShort0(int posi);
 
     @Override
     public long getLong()
     {
         int posi = nextReadPosi(8);
-        return getLong0(posi);
+        return rwDelegation.getLong0(posi, memory, offset, nativeAddress);
     }
 
     @Override
     public int getInt(int posi)
     {
         checkReadPosi(posi, 4);
-        return getInt0(posi);
+        return rwDelegation.getInt0(posi, memory, offset, nativeAddress);
     }
 
     @Override
     public short getShort(int posi)
     {
         checkReadPosi(posi, 2);
-        return getShort0(posi);
+        return rwDelegation.getShort0(posi, memory, offset, nativeAddress);
     }
 
     @Override
     public long getLong(int posi)
     {
         checkReadPosi(posi, 4);
-        return getLong0(posi);
+        return rwDelegation.getLong0(posi, memory, offset, nativeAddress);
     }
-
-    protected abstract long getLong0(int posi);
 
     int incrRef()
     {
@@ -448,7 +467,7 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
     }
 
     @Override
-    public T memory()
+    public Object memory()
     {
         return memory;
     }
@@ -477,10 +496,28 @@ public abstract class AbstractBuffer<T> implements IoBuffer<T>
         }
         else
         {
-            compact0(length);
+            rwDelegation.compact0(memory, offset, nativeAddress, readPosi, length);
+            readPosi = 0;
+            writePosi = length;
         }
         return this;
     }
 
-    protected abstract void compact0(int length);
+    @Override
+    public IoBuffer put(IoBuffer buf, int len)
+    {
+        if (buf.remainRead() < len)
+        {
+            throw new IllegalArgumentException("剩余读取长度不足");
+        }
+        int posi = nextWritePosi(len);
+        rwDelegation.put(memory, offset, nativeAddress, posi, buf, len);
+        return this;
+    }
+
+    @Override
+    public String toString()
+    {
+        return "AbstractBuffer{" + "capacity=" + capacity + ", readPosi=" + readPosi + ", writePosi=" + writePosi + ", refCount=" + refCount + '}';
+    }
 }

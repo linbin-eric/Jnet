@@ -7,7 +7,6 @@ package com.jfirer.jnet.common.exception;
  */
 public class NotFitProtocolException extends JnetException
 {
-
     public static final  NotFitProtocolException instance         = new NotFitProtocolException();
     /**
      *

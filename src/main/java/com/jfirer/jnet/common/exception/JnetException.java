@@ -2,7 +2,6 @@ package com.jfirer.jnet.common.exception;
 
 public abstract class JnetException extends RuntimeException
 {
-
     /**
      *
      */

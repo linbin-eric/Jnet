@@ -1,13 +1,19 @@
 package com.jfirer.jnet.common.buffer.buffer.impl;
 
 import com.jfirer.jnet.common.buffer.ThreadCache;
+import com.jfirer.jnet.common.buffer.buffer.BufferType;
 
-public abstract class CacheablePoolableBuffer<T> extends PoolableBuffer<T>
+public class CacheablePooledBuffer extends PooledBuffer
 {
-    protected ThreadCache<T>              cache;
-    protected ThreadCache.MemoryCached<T> memoryCached;
+    protected ThreadCache              cache;
+    protected ThreadCache.MemoryCached memoryCached;
 
-    public void init(ThreadCache.MemoryCached<T> memoryCached, ThreadCache<T> cache)
+    public CacheablePooledBuffer(BufferType bufferType)
+    {
+        super(bufferType);
+    }
+
+    public void init(ThreadCache.MemoryCached memoryCached, ThreadCache cache)
     {
         this.cache = cache;
         this.memoryCached = memoryCached;
@@ -23,8 +29,8 @@ public abstract class CacheablePoolableBuffer<T> extends PoolableBuffer<T>
         }
         else
         {
-            ThreadCache.MemoryCached<T> oldMemoryCached = this.memoryCached;
-            ThreadCache<T>              oldCache        = this.cache;
+            ThreadCache.MemoryCached oldMemoryCached = this.memoryCached;
+            ThreadCache              oldCache        = this.cache;
             cache = null;
             memoryCached = null;
             oldCache.reAllocate(oldMemoryCached, reqCapacity, this);

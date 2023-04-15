@@ -46,11 +46,7 @@ public class RecycleTest
     @Before
     public void before()
     {
-        recycler = new Recycler<Entry>(entryRecycleHandlerFunction -> {
-            Entry entry = new Entry();
-            entry.handler = entryRecycleHandlerFunction.apply(entry);
-            return entry;
-        });
+        recycler = new Recycler<>(Entry::new, (entry, handler) -> entry.handler = handler);
     }
 
     @Test
@@ -363,7 +359,7 @@ public class RecycleTest
 
     class Entry
     {
-        RecycleHandler handler;
-        String         value;
+        RecycleHandler<Entry> handler;
+        String                value;
     }
 }

@@ -2,7 +2,6 @@ package com.jfirer.jnet.common.exception;
 
 public class EndOfStreamException extends JnetException
 {
-
     public static final  EndOfStreamException instance         = new EndOfStreamException();
     /**
      *

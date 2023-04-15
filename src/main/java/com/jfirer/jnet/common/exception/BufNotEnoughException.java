@@ -11,7 +11,7 @@ public class BufNotEnoughException extends JnetException
      *
      */
     private static final long serialVersionUID = 1L;
-    private int needSize;
+    private              int  needSize;
 
     public BufNotEnoughException(int needSize)
     {

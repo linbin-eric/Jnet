@@ -13,7 +13,6 @@ public class PlatFormFunction
 //        address = UNSAFE.getFieldOffset("address", Buffer.class);
         address = UnsafeAccess.fieldOffset(Buffer.class, "address");
     }
-
     public static long bytebufferOffsetAddress(ByteBuffer buffer)
     {
 //        System.out.println("调用");

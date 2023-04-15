@@ -13,6 +13,7 @@ import java.util.concurrent.ThreadFactory;
 public class ChannelConfig
 {
     private BufferAllocator          allocator       = PooledBufferAllocator.DEFAULT;
+    private int                      decrCountMax    = 2;
     private int                      minReceiveSize  = 16;
     private int                      maxReceiveSize  = 1024 * 1024 * 8;
     private int                      initReceiveSize = 1024;
@@ -149,5 +150,15 @@ public class ChannelConfig
     public void setWorkerGroup(WorkerGroup workerGroup)
     {
         this.workerGroup = workerGroup;
+    }
+
+    public int getDecrCountMax()
+    {
+        return decrCountMax;
+    }
+
+    public void setDecrCountMax(int decrCountMax)
+    {
+        this.decrCountMax = decrCountMax;
     }
 }

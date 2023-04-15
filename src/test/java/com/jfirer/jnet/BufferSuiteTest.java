@@ -19,6 +19,7 @@ import org.junit.runners.Suite.SuiteClasses;
         MemoryRegionCacheNormalTest.class, //
         UnPooledBufferRWTest.class, //
         SliceBufferTest.class,//
+        UnPooledBufferRWTest.class
 })
 @RunWith(Suite.class)
 public class BufferSuiteTest

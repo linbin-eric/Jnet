@@ -7,7 +7,6 @@ package com.jfirer.jnet.common.exception;
  */
 public class SelfCloseException extends JnetException
 {
-
     /**
      *
      */

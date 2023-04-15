@@ -1,17 +1,21 @@
 package com.jfirer.jnet.common.util;
 
 import io.github.karlatemp.unsafeaccessor.Unsafe;
+import org.jctools.util.UnsafeAccess;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 
 public class UNSAFE
 {
     private static final Unsafe  unsafe;
     private static final boolean hasUnsafe;
+    static final         long    ByteBufferAddress;
     static
     {
+        ByteBufferAddress = UnsafeAccess.fieldOffset(Buffer.class, "address");
         hasUnsafe = true;
         unsafe = Unsafe.getUnsafe();
     }
@@ -348,5 +352,10 @@ public class UNSAFE
     public static long getLongUnaligned(long address)
     {
         return unsafe.getLongUnaligned(null, address, true);
+    }
+
+    public static long bytebufferOffsetAddress(ByteBuffer buffer)
+    {
+        return unsafe.getLong(buffer, ByteBufferAddress);
     }
 }

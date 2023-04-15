@@ -1,11 +1,11 @@
 package com.jfirer.jnet.common.buffer.allocator.impl;
 
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
+import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
-import com.jfirer.jnet.common.buffer.buffer.impl.unpool.UnPoolDirectBuffer;
-import com.jfirer.jnet.common.buffer.buffer.impl.unpool.UnPoolHeapBuffer;
-import com.jfirer.jnet.common.buffer.buffer.impl.unpool.UnPoolUnsafeBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.UnPooledBuffer;
 import com.jfirer.jnet.common.util.SystemPropertyUtil;
+import com.jfirer.jnet.common.util.UNSAFE;
 
 import java.nio.ByteBuffer;
 
@@ -35,25 +35,26 @@ public class UnPoolBufferAllocator implements BufferAllocator
     @Override
     public IoBuffer heapBuffer(int initializeCapacity)
     {
-        UnPoolHeapBuffer buffer = new UnPoolHeapBuffer();
-        buffer.init(new byte[initializeCapacity], initializeCapacity, 0);
+        UnPooledBuffer buffer = new UnPooledBuffer(BufferType.HEAP);
+        buffer.init(new byte[initializeCapacity], initializeCapacity, 0, 0);
         return buffer;
     }
 
     @Override
-    public UnPoolUnsafeBuffer unsafeBuffer(int initializeCapacity)
+    public UnPooledBuffer unsafeBuffer(int initializeCapacity)
     {
-        UnPoolUnsafeBuffer buffer = new UnPoolUnsafeBuffer();
-        buffer.init(ByteBuffer.allocateDirect(initializeCapacity), initializeCapacity, 0);
+        UnPooledBuffer buffer     = new UnPooledBuffer(BufferType.UNSAFE);
+        ByteBuffer     byteBuffer = ByteBuffer.allocateDirect(initializeCapacity);
+        buffer.init(byteBuffer, initializeCapacity, 0, UNSAFE.bytebufferOffsetAddress(byteBuffer));
         return buffer;
     }
-
-    public UnPoolDirectBuffer directByteBuffer(int initializeCapacity)
-    {
-        UnPoolDirectBuffer buffer = new UnPoolDirectBuffer();
-        buffer.init(ByteBuffer.allocateDirect(initializeCapacity), initializeCapacity, 0);
-        return buffer;
-    }
+//    public UnPoolDirectBuffer directByteBuffer(int initializeCapacity)
+//    {
+//        UnPoolDirectBuffer buffer     = new UnPoolDirectBuffer();
+//        ByteBuffer         byteBuffer = ByteBuffer.allocateDirect(initializeCapacity);
+//        buffer.init(byteBuffer, initializeCapacity, 0, PlatFormFunction.bytebufferOffsetAddress(byteBuffer));
+//        return buffer;
+//    }
 //    public UnPoolMemoryBuffer memoryBuffer(int initializeCapacity)
 //    {
 //        UnPoolMemoryBuffer buffer  = new UnPoolMemoryBuffer();

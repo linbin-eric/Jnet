@@ -7,7 +7,7 @@ public class BenchRwTest
 //    {
 //        UnPoolUnsafeBuffer unPoolUnsafeBuffer;
 //        UnPoolDirectBuffer unPoolDirectBuffer;
-//        UnPoolHeapBuffer   unPoolHeapBuffer;
+//        UnPooledBuffer   unPoolHeapBuffer;
 //        UnPoolMemoryBuffer unPoolMemoryBuffer;
 //        ByteBuffer         buffer     = ByteBuffer.allocateDirect(10);
 //        ByteBuffer         heapBuffer = ByteBuffer.allocate(10);
@@ -18,7 +18,7 @@ public class BenchRwTest
 //            UnPoolBufferAllocator allocator = new UnPoolBufferAllocator();
 //            unPoolUnsafeBuffer = allocator.unsafeBuffer(10);
 //            unPoolDirectBuffer = allocator.directByteBuffer(10);
-//            unPoolHeapBuffer = (UnPoolHeapBuffer) allocator.heapBuffer(10);
+//            unPoolHeapBuffer = (UnPooledBuffer) allocator.heapBuffer(10);
 //            unPoolMemoryBuffer = allocator.memoryBuffer(10);
 //        }
 //    }
@@ -37,9 +37,9 @@ public class BenchRwTest
 //    }
 //
 //    //    @Benchmark
-//    public UnPoolHeapBuffer heap(BufferWrapper wrapper)
+//    public UnPooledBuffer heap(BufferWrapper wrapper)
 //    {
-//        UnPoolHeapBuffer buffer = wrapper.unPoolHeapBuffer;
+//        UnPooledBuffer buffer = wrapper.unPoolHeapBuffer;
 //        buffer.put((byte) 1, 0);
 //        return buffer;
 //    }

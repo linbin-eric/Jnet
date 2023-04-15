@@ -1,31 +1,30 @@
-package com.jfirer.jnet.common.buffer.arena.impl;
+package com.jfirer.jnet.common.buffer.arena;
 
-import com.jfirer.jnet.common.buffer.arena.Chunk;
 import com.jfirer.jnet.common.util.ReflectUtil;
 
-public class SubPage<T>
+public class SubPage
 {
-    final         int              pageSize;
-    final         int              handle;
-    final         int              offset;
-    final         int              index;
-    final         long[]           bitMap;
-    private final ChunkListNode<T> node;
-    int        elementSize;
-    int        bitMapLength;
-    int        nextAvail;
-    int        maxNumAvail;
-    int        numAvail;
-    SubPage<T> prev;
-    SubPage<T> next;
+    final         int           pageSize;
+    final         int           handle;
+    final         int           offset;
+    final         int           index;
+    final         long[]        bitMap;
+    private final ChunkListNode node;
+    int     elementSize;
+    int     bitMapLength;
+    int     nextAvail;
+    int     maxNumAvail;
+    int     numAvail;
+    SubPage prev;
+    SubPage next;
 
-    public SubPage(ChunkListNode<T> node, int pageSize, int handle, int offset)
+    public SubPage(ChunkListNode node, int pageSize, int handle, int offset)
     {
         this.node = node;
         this.handle = handle;
         this.offset = offset;
         this.pageSize = pageSize;
-        index = handle ^ (1 << node.getChunk().maxLevle());
+        index = handle ^ (1 << node.maxLevel());
         // elementSize最小是16。一个long可以表达64个元素
         bitMap = new long[pageSize >> 4 >> 6];
     }
@@ -111,9 +110,9 @@ public class SubPage<T>
         numAvail++;
     }
 
-    public Chunk<T> chunk()
+    public Chunk chunk()
     {
-        return node.getChunk();
+        return node;
     }
 
     public int handle()
@@ -151,12 +150,12 @@ public class SubPage<T>
         return numAvail;
     }
 
-    public ChunkListNode<T> getChunkListNode()
+    public ChunkListNode getChunkListNode()
     {
         return node;
     }
 
-    public SubPage<T> getNext()
+    public SubPage getNext()
     {
         return next;
     }
