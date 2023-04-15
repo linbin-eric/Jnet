@@ -15,16 +15,17 @@ import java.util.List;
 
 public class AdaptiveReadCompletionHandler implements ReadCompletionHandler<IoBuffer>
 {
-    protected final AsynchronousSocketChannel socketChannel;
-    protected final BufferAllocator           allocator;
-    protected       ChannelContext            channelContext;
-    static final    int[]                     sizeTable;
-    private         int                       minIndex;
-    private         int                       maxIndex;
-    private         int                       index;
-    private         boolean                   shouldDecr = false;
-    private         InternalPipeline          pipeline;
-    private         IoBuffer                  ioBuffer;
+    protected final      AsynchronousSocketChannel socketChannel;
+    protected final      BufferAllocator           allocator;
+    protected            ChannelContext            channelContext;
+    static final         int[]                     sizeTable;
+    private              int                       minIndex;
+    private              int                       maxIndex;
+    private              int                       index;
+    private static final int                       DECR_COUNT_MAX = 10;
+    private              int                       decrCount      = DECR_COUNT_MAX;
+    private              InternalPipeline          pipeline;
+    private              IoBuffer                  ioBuffer;
     static
     {
         List<Integer> list = new ArrayList<>();
@@ -119,21 +120,17 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler<IoBu
             {
                 index += 1;
             }
-            shouldDecr = false;
+            decrCount = DECR_COUNT_MAX;
         }
         else
         {
             int needIndex = indexOf(real);
             if (index > needIndex && index != minIndex)
             {
-                if (shouldDecr == false)
-                {
-                    shouldDecr = true;
-                }
-                else
+                if (--decrCount < 0)
                 {
                     index -= 1;
-                    shouldDecr = false;
+                    decrCount = DECR_COUNT_MAX;
                 }
             }
         }

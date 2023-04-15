@@ -1,5 +1,7 @@
 package com.jfirer.jnet.extend.http.decode;
 
+import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -7,7 +9,7 @@ public class HttpResponse
 {
     private Map<String, String> headers = new HashMap<>();
     private String              body;
-    private byte[]              bodyStream;
+    private IoBuffer            bodyBuffer;
     private String              contentType;
 
     public void addHeader(String header, String value)
@@ -30,14 +32,14 @@ public class HttpResponse
         this.body = body;
     }
 
-    public byte[] getBodyStream()
+    public IoBuffer getBodyBuffer()
     {
-        return bodyStream;
+        return bodyBuffer;
     }
 
-    public void setBodyStream(byte[] bodyStream)
+    public void setBodyBuffer(IoBuffer bodyBuffer)
     {
-        this.bodyStream = bodyStream;
+        this.bodyBuffer = bodyBuffer;
     }
 
     public String getContentType()

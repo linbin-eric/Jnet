@@ -22,7 +22,7 @@ public class HttpResponseEncoder implements WriteProcessor<HttpResponse>
         IoBuffer buffer = allocator.ioBuffer(1024);
         buffer.put("HTTP/1.1 200 OK\r\n".getBytes(StandardCharsets.US_ASCII));
         data.getHeaders().forEach((name, value) -> buffer.put((name + ": " + value + "\r\n").getBytes(StandardCharsets.UTF_8)));
-        if (data.getBody() == null && data.getBodyStream() == null)
+        if (data.getBody() == null && data.getBodyBuffer() == null)
         {
             buffer.put(("Content-Length: 0\r\n").getBytes(StandardCharsets.US_ASCII));
             buffer.put("\r\n".getBytes(StandardCharsets.US_ASCII));
@@ -37,18 +37,20 @@ public class HttpResponseEncoder implements WriteProcessor<HttpResponse>
             {
                 buffer.put("content-type: application/json;charset=utf8\r\n".getBytes(StandardCharsets.US_ASCII));
             }
-            byte[] array;
-            if (data.getBodyStream() != null)
+            if (data.getBodyBuffer() != null)
             {
-                array = data.getBodyStream();
+                buffer.put(("Content-Length: " + data.getBodyBuffer().remainRead() + "\r\n").getBytes(StandardCharsets.US_ASCII));
+                buffer.put("\r\n".getBytes(StandardCharsets.US_ASCII));
+                buffer.put(data.getBodyBuffer());
+                data.getBodyBuffer().free();
             }
             else
             {
-                array = data.getBody().getBytes(StandardCharsets.UTF_8);
+                byte[] array = data.getBody().getBytes(StandardCharsets.UTF_8);
+                buffer.put(("Content-Length: " + array.length + "\r\n").getBytes(StandardCharsets.US_ASCII));
+                buffer.put("\r\n".getBytes(StandardCharsets.US_ASCII));
+                buffer.put(array);
             }
-            buffer.put(("Content-Length: " + array.length + "\r\n").getBytes(StandardCharsets.US_ASCII));
-            buffer.put("\r\n".getBytes(StandardCharsets.US_ASCII));
-            buffer.put(array);
         }
         next.fireWrite(buffer);
     }

@@ -41,7 +41,7 @@ public class HttpRequest
                 }
                 else
                 {
-                    map.put(v.substring(0, paramValueIndex), v.substring(index + 1));
+                    map.put(v.substring(0, paramValueIndex), v.substring(paramValueIndex + 1));
                 }
             });
             return new PathAndQueryParam(path, map);
