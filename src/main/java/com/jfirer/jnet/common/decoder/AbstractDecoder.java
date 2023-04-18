@@ -4,9 +4,7 @@ import com.jfirer.jnet.common.api.ReadProcessor;
 import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 public abstract class AbstractDecoder implements ReadProcessor
 {
     protected BufferAllocator allocator;

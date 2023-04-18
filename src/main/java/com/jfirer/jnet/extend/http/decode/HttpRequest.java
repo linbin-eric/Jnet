@@ -21,12 +21,14 @@ public class HttpRequest
 
     public record PathAndQueryParam(String path, Map<String, String> queryParams) {}
 
+    public static final Map<String, String> DUMMY = new HashMap<>();
+
     public PathAndQueryParam parsePathAndQueryParam()
     {
         int index = url.indexOf("?");
         if (index == -1)
         {
-            return new PathAndQueryParam(url, null);
+            return new PathAndQueryParam(url, DUMMY);
         }
         else
         {

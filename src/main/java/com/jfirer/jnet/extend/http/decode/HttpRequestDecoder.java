@@ -4,11 +4,9 @@ import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.decoder.AbstractDecoder;
-import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.StandardCharsets;
 
-@Slf4j
 public class HttpRequestDecoder extends AbstractDecoder
 {
     static final int         REQUEST_LINE   = 1;
@@ -81,6 +79,7 @@ public class HttpRequestDecoder extends AbstractDecoder
                 {
                     if (accumulation.remainRead() < decodeObject.getContentLength())
                     {
+                        accumulation.capacityReadyFor(decodeObject.getContentLength());
                         return;
                     }
                     else
