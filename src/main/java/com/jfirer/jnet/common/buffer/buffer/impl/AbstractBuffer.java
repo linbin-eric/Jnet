@@ -33,7 +33,8 @@ public abstract class AbstractBuffer implements IoBuffer
             case HEAP -> rwDelegation = HeapRw.INSTANCE;
             case DIRECT, MEMORY -> throw new UnsupportedOperationException();
             case UNSAFE -> rwDelegation = UnsafeRw.INSTANCE;
-            default -> throw new IllegalStateException("Unexpected value: " + bufferType);
+            default ->
+                    throw new IllegalStateException("Unexpected value: " + bufferType);
         }
     }
 
@@ -43,8 +44,16 @@ public abstract class AbstractBuffer implements IoBuffer
         this.capacity = capacity;
         this.offset = offset;
         readPosi = writePosi = 0;
-        // 由于该方法可能会扩容方法所调用，所以需要区分不同的情况。如果是第一次初始化，这refCount是代表自身，需要从0设置为1；否则的话，不需要修改。
-        refCount = refCount == 0 ? 1 : refCount;
+        //如果当前refCount等于0，意味着这是一个初始化的Buffer，不会有竞争可能性。
+        if (refCount == 0)
+        {
+            refCount = 1;
+        }
+        else
+        {
+            //如果refCount大于1，则有可能发生自身在扩容时，从自身slice的buffer进行free操作。从而导致sliceBuffer的free操作的refCount-1操作被这里的赋值操作给覆盖了。所以必须用csv方式进行。
+            add(0);
+        }
         this.nativeAddress = nativeAddress;
         if (bufferType != BufferType.HEAP && nativeAddress == 0)
         {
