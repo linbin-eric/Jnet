@@ -5,7 +5,10 @@ import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.buffer.buffer.RwDelegation;
 import com.jfirer.jnet.common.buffer.buffer.impl.rw.HeapRw;
 import com.jfirer.jnet.common.buffer.buffer.impl.rw.UnsafeRw;
+import com.jfirer.jnet.common.buffer.leakDetect.LeakDetecter;
+import com.jfirer.jnet.common.buffer.leakDetect.LeakTracker;
 import com.jfirer.jnet.common.recycler.RecycleHandler;
+import com.jfirer.jnet.common.util.ChannelConfig;
 import com.jfirer.jnet.common.util.UNSAFE;
 
 import java.nio.ByteBuffer;
@@ -24,6 +27,8 @@ public abstract class AbstractBuffer implements IoBuffer
     protected          RecycleHandler<AbstractBuffer> recycleHandler;
     protected final    BufferType                     bufferType;
     protected final    RwDelegation                   rwDelegation;
+    protected          LeakDetecter                   leakDetecter     = ChannelConfig.IoBufferLeakDetected;
+    protected          LeakTracker                    watch;
 
     protected AbstractBuffer(BufferType bufferType)
     {
@@ -48,6 +53,7 @@ public abstract class AbstractBuffer implements IoBuffer
         if (refCount == 0)
         {
             refCount = 1;
+            watch = leakDetecter.watch(this, 9);
         }
         else
         {
@@ -454,7 +460,9 @@ public abstract class AbstractBuffer implements IoBuffer
             return;
         }
         free0(capacity);
+        watch.close();
         memory = null;
+        watch = null;
         if (recycleHandler != null)
         {
             recycleHandler.recycle(this);

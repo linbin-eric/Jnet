@@ -105,6 +105,10 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler
                 ioBuffer.addWritePosi(read);
                 pipeline.fireRead(ioBuffer);
             }
+            else
+            {
+                System.err.println("读取到了0");
+            }
             ioBuffer = nextReadBuffer(except, read);
             socketChannel.read(ioBuffer.writableByteBuffer(), this, this);
         }
