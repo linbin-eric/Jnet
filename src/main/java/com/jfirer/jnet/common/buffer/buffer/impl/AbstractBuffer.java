@@ -1,12 +1,11 @@
 package com.jfirer.jnet.common.buffer.buffer.impl;
 
+import com.jfirer.jnet.common.buffer.LeakDetecter;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.buffer.buffer.RwDelegation;
 import com.jfirer.jnet.common.buffer.buffer.impl.rw.HeapRw;
 import com.jfirer.jnet.common.buffer.buffer.impl.rw.UnsafeRw;
-import com.jfirer.jnet.common.buffer.leakDetect.LeakDetecter;
-import com.jfirer.jnet.common.buffer.leakDetect.LeakTracker;
 import com.jfirer.jnet.common.recycler.RecycleHandler;
 import com.jfirer.jnet.common.util.ChannelConfig;
 import com.jfirer.jnet.common.util.UNSAFE;
@@ -15,6 +14,9 @@ import java.nio.ByteBuffer;
 
 public abstract class AbstractBuffer implements IoBuffer
 {
+    static final       long                           REF_COUNT_OFFSET = UNSAFE.getFieldOffset("refCount", AbstractBuffer.class);
+    protected final    BufferType                     bufferType;
+    protected final    RwDelegation                   rwDelegation;
     protected          Object                         memory;
     protected          int                            capacity;
     protected          int                            readPosi;
@@ -23,12 +25,9 @@ public abstract class AbstractBuffer implements IoBuffer
     // 当是堆外内存的时候才会有值，0是非法值，不应该使用
     protected          long                           nativeAddress;
     protected volatile int                            refCount;
-    static final       long                           REF_COUNT_OFFSET = UNSAFE.getFieldOffset("refCount", AbstractBuffer.class);
     protected          RecycleHandler<AbstractBuffer> recycleHandler;
-    protected final    BufferType                     bufferType;
-    protected final    RwDelegation                   rwDelegation;
     protected          LeakDetecter                   leakDetecter     = ChannelConfig.IoBufferLeakDetected;
-    protected          LeakTracker                    watch;
+    protected          LeakDetecter.LeakTracker       watch;
 
     protected AbstractBuffer(BufferType bufferType)
     {
@@ -502,6 +501,10 @@ public abstract class AbstractBuffer implements IoBuffer
     @Override
     public IoBuffer compact()
     {
+        if (refCount != 1)
+        {
+            throw new IllegalStateException();
+        }
         if (readPosi == 0)
         {
             return this;

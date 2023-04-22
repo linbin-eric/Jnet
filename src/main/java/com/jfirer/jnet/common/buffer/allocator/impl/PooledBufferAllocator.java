@@ -158,7 +158,7 @@ public class PooledBufferAllocator implements BufferAllocator
     {
         for (ArenaUseCount each : heapArenaUseCount)
         {
-            ((Arena) each.arena).capacityStat(stat);
+            each.arena.capacityStat(stat);
         }
     }
 
@@ -166,7 +166,7 @@ public class PooledBufferAllocator implements BufferAllocator
     {
         for (ArenaUseCount each : directArenaUseCount)
         {
-            ((Arena) each.arena).capacityStat(stat);
+            each.arena.capacityStat(stat);
         }
     }
 }
