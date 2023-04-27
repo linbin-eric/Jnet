@@ -2,7 +2,9 @@ package com.jfirer.jnet;
 
 import com.jfirer.jnet.client.DefaultClient;
 import com.jfirer.jnet.client.JnetClient;
-import com.jfirer.jnet.common.api.*;
+import com.jfirer.jnet.common.api.Pipeline;
+import com.jfirer.jnet.common.api.ReadProcessor;
+import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.allocator.impl.CachedPooledBufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
@@ -23,7 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.Assert.assertEquals;
 
 /**
- * 基本测试。用于验证代码的正确性
+ * 基本测试。用于验证代码的正确性。
  *
  * @author linbin
  */
@@ -44,7 +46,6 @@ public class BaseTest
     public BaseTest()
     {
         ChannelConfig channelConfig = new ChannelConfig();
-//        channelConfig.setAllocator(new CachedPooledBufferAllocator("baseTest"));
         this.bufferAllocator = channelConfig.getAllocator();
         clients = new JnetClient[numClients];
         results = new int[numClients][numPerThread];
@@ -53,31 +54,26 @@ public class BaseTest
             results[i] = new int[numPerThread];
             Arrays.fill(results[i], -2);
         }
-        ChannelContextInitializer initializer = new ChannelContextInitializer()
-        {
-            @Override
-            public void onChannelContextInit(final ChannelContext channelContext)
-            {
-                Pipeline pipeline = channelContext.pipeline();
-                pipeline.addReadProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024, bufferAllocator));
-                pipeline.addReadProcessor((ReadProcessor) (data, ctx) -> {
-                    count.incrementAndGet();
-                    ((IoBuffer) data).addReadPosi(-4);
-                    pipeline.fireWrite(data);
-                });
-            }
-        };
         channelConfig.setIp(ip);
         channelConfig.setPort(port);
-        aioServer = AioServer.newAioServer(channelConfig, initializer);
+        aioServer = AioServer.newAioServer(channelConfig, channelContext -> {
+            Pipeline pipeline = channelContext.pipeline();
+            pipeline.addReadProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024, channelContext.channelConfig().getAllocator()));
+            pipeline.addReadProcessor((ReadProcessor<IoBuffer>) (data, ctx) -> {
+                count.incrementAndGet();
+                data.addReadPosi(-4);
+                pipeline.fireWrite(data);
+            });
+        });
         aioServer.start();
         for (int i = 0; i < numClients; i++)
         {
             final int   index  = i;
             final int[] result = results[index];
-            ChannelContextInitializer childIniter = channelContext -> {
+            clients[i] = new DefaultClient();
+            clients[i].connect(channelConfig, channelContext -> {
                 Pipeline pipeline = channelContext.pipeline();
-                pipeline.addReadProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024 * 4, bufferAllocator));
+                pipeline.addReadProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024 * 4, channelContext.channelConfig().getAllocator()));
                 pipeline.addReadProcessor(new ReadProcessor()
                 {
                     int count = 0;
@@ -87,10 +83,6 @@ public class BaseTest
                     {
                         IoBuffer buffer = (IoBuffer) data;
                         int      j      = buffer.getInt();
-//                        if (result[j] != -2)
-//                        {
-//                            System.err.println("重复了"+j);
-//                        }
                         result[j] = j;
                         buffer.free();
                         count++;
@@ -100,8 +92,7 @@ public class BaseTest
                         }
                     }
                 });
-            };
-            clients[i] = new DefaultClient(channelConfig, childIniter);
+            });
         }
     }
 
@@ -113,45 +104,39 @@ public class BaseTest
         for (int i = 0; i < numClients; i++)
         {
             final int index = i;
-            new Thread(new Runnable()
-            {
-                @Override
-                public void run()
+            new Thread(() -> {
+                JnetClient client = clients[index];
+                try
                 {
-                    JnetClient client = clients[index];
+                    barrier.await();
+                }
+                catch (InterruptedException | BrokenBarrierException e1)
+                {
+                    e1.printStackTrace();
+                }
+                int batch = 5000;
+                for (int j = 0; j < numPerThread; )
+                {
+                    IoBuffer buffer = bufferAllocator.ioBuffer(8);
+                    int      num    = j;
+                    int      max    = num + batch > numPerThread ? numPerThread : num + batch;
+                    for (; num < max; num++)
+                    {
+                        buffer.putInt(8);
+                        buffer.putInt(num);
+                    }
+                    j = num;
                     try
                     {
-                        barrier.await();
+                        client.asyncWrite(buffer);
                     }
-                    catch (InterruptedException | BrokenBarrierException e1)
+                    catch (Exception e)
                     {
-                        e1.printStackTrace();
+                        e.printStackTrace();
+                        ;
                     }
-                    int      batch  = 5000;
-                    IoBuffer buffer = bufferAllocator.ioBuffer(8);
-                    for (int j = 0; j < numPerThread; )
-                    {
-                        int      num    = j;
-                        int      max    = num + batch > numPerThread ? numPerThread : num + batch;
-                        for (; num < max; num++)
-                        {
-                            buffer.putInt(8);
-                            buffer.putInt(num);
-                        }
-                        j = num;
-                        try
-                        {
-                            client.write(buffer);
-                        }
-                        catch (Exception e)
-                        {
-                            e.printStackTrace();
-                            ;
-                        }
-                        buffer.free();
-                    }
-                    finish.countDown();
                 }
+                finish.countDown();
             }).start();
         }
         try

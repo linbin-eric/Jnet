@@ -1,34 +1,31 @@
 package com.jfirer.jnet.client;
 
-import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
+import com.jfirer.jnet.common.api.ChannelContextInitializer;
+import com.jfirer.jnet.common.util.ChannelConfig;
 
 public interface JnetClient
 {
     /**
-     * 执行数据写出，如果通道关闭或者写完成器已经处于停止状态等，会抛出异常.使用默认的阻塞策略执行。<br/>
-     * 注意：不要在方法外部释放IoBuffer，方法内部会在合适的时机释放
-     *
-     * @param packet
-     * @throws Exception
-     */
-    void write(IoBuffer packet) throws Exception;
-
-    /**
-     * 执行数据写出，如果通道关闭或者写完成器已经处于停止状态等，会抛出异常.<br/>
-     * 注意：不要在方法外部释放IoBuffer，方法内部会在合适的时机释放
-     *
-     * @param packet
-     * @param block  为true时，会等待到数据写出或者抛出异常方法才会返回。为false时，数据会直接进入一个暂存队列，随后方法立刻返回。
-     * @throws Exception
-     */
-    void write(IoBuffer packet, boolean block) throws Exception;
-
-    void close();
-
-    /**
-     * 执行数据写出时是否倾向于阻塞方式
+     * 创建链接。重复调用无效，如果在该链接已经被关闭，调用该方法会抛出异常。
      *
      * @return
      */
-    boolean preferBlock();
+    boolean connect(ChannelConfig channelConfig, ChannelContextInitializer initializer);
+
+    /**
+     * 该客户端创建的链接是否还有有效。该方法需要在connect方法调用后再调用。
+     * 注意：这个状态可能是滞后的，只有链接被明确关闭后才会返回false。即，在返回true的情况下，链接也有可能已经失效了。
+     *
+     * @return
+     */
+    boolean alive();
+
+    /**
+     * 异步写出数据
+     *
+     * @param data
+     */
+    void asyncWrite(Object data);
+
+    void close();
 }

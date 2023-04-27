@@ -1,137 +1,96 @@
 package com.jfirer.jnet.client;
 
-import com.jfirer.jnet.common.api.ChannelContext;
-import com.jfirer.jnet.common.api.ChannelContextInitializer;
-import com.jfirer.jnet.common.api.InternalPipeline;
-import com.jfirer.jnet.common.api.ReadCompletionHandler;
-import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
+import com.jfirer.jnet.common.api.*;
 import com.jfirer.jnet.common.internal.AdaptiveReadCompletionHandler;
 import com.jfirer.jnet.common.internal.DefaultChannelContext;
 import com.jfirer.jnet.common.internal.DefaultPipeline;
 import com.jfirer.jnet.common.util.ChannelConfig;
-import com.jfirer.jnet.common.util.ReflectUtil;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.concurrent.Future;
 
 public class DefaultClient implements JnetClient
 {
-    private static final int                       NOT_INIT     = 1;
-    private static final int                       CONNECTED    = 2;
-    private static final int                       DISCONNECTED = 3;
-    private final        boolean                   preferBlock  = false;
-    private              ChannelContextInitializer initializer;
-    private              ChannelConfig             channelConfig;
-    private              ChannelContext            channelContext;
-    private              int                       state        = NOT_INIT;
-    private              InternalPipeline          pipeline;
+    private static final int              NOT_INIT     = 1;
+    private static final int              CONNECTED    = 2;
+    private static final int              DISCONNECTED = 3;
+    private volatile     int              state        = NOT_INIT;
+    private              InternalPipeline pipeline;
+    private              ChannelContext   channelContext;
 
-    public DefaultClient(ChannelConfig channelConfig, ChannelContextInitializer initializer)
+    @Override
+    public boolean connect(ChannelConfig channelConfig, ChannelContextInitializer initializer)
     {
-        this.channelConfig = channelConfig;
-        this.initializer = initializer;
+        switch (state)
+        {
+            case NOT_INIT ->
+            {
+                try
+                {
+                    AsynchronousSocketChannel asynchronousSocketChannel = AsynchronousSocketChannel.open(channelConfig.getChannelGroup());
+                    Future<Void>              future                    = asynchronousSocketChannel.connect(new InetSocketAddress(channelConfig.getIp(), channelConfig.getPort()));
+                    future.get();
+                    channelContext = new DefaultChannelContext(asynchronousSocketChannel, channelConfig);
+                    pipeline = new DefaultPipeline(channelConfig.getWorkerGroup().next(), channelContext);
+                    ((DefaultChannelContext) channelContext).setPipeline(pipeline);
+                    initializer.onChannelContextInit(channelContext);
+                    pipeline.addReadProcessor(new ReadProcessor<Object>()
+                    {
+                        @Override
+                        public void channelClose(ReadProcessorNode next)
+                        {
+                            state = DISCONNECTED;
+                            next.fireChannelClose();
+                        }
+
+                        @Override
+                        public void read(Object data, ReadProcessorNode next)
+                        {
+                            next.fireRead(data);
+                        }
+                    });
+                    pipeline.complete();
+                    ReadCompletionHandler readCompletionHandler = new AdaptiveReadCompletionHandler(channelContext);
+                    readCompletionHandler.start();
+                    state = CONNECTED;
+                    return true;
+                }
+                catch (Throwable e)
+                {
+                    state = DISCONNECTED;
+                    return false;
+                }
+            }
+            case CONNECTED ->
+            {
+                return true;
+            }
+            case DISCONNECTED ->
+            {
+                return false;
+            }
+            default ->
+                    throw new IllegalStateException("Unexpected value: " + state);
+        }
     }
 
     @Override
-    public void write(IoBuffer packet) throws Exception
+    public boolean alive()
     {
-        write(packet, preferBlock);
+        return state == CONNECTED;
     }
 
-    public void connectIfNecessary()
+    @Override
+    public void asyncWrite(Object data)
     {
-        if (state == NOT_INIT)
-        {
-            try
-            {
-                AsynchronousSocketChannel asynchronousSocketChannel = AsynchronousSocketChannel.open(channelConfig.getChannelGroup());
-                Future<Void>              future                    = asynchronousSocketChannel.connect(new InetSocketAddress(channelConfig.getIp(), channelConfig.getPort()));
-                future.get();
-                channelContext = new DefaultChannelContext(asynchronousSocketChannel, channelConfig);
-                pipeline = new DefaultPipeline(channelConfig.getWorkerGroup().next(), channelContext);
-                ((DefaultChannelContext) channelContext).setPipeline(pipeline);
-                initializer.onChannelContextInit(channelContext);
-                pipeline.complete();
-                ReadCompletionHandler readCompletionHandler = new AdaptiveReadCompletionHandler(channelContext);
-                readCompletionHandler.start();
-                state = CONNECTED;
-            }
-            catch (Exception e)
-            {
-                ReflectUtil.throwException(e);
-                return;
-            }
-        }
-        else if (state == DISCONNECTED)
-        {
-            throw new IllegalStateException("客户端已经关闭");
-        }
-    }
-
-    void blockWrite(IoBuffer buffer)
-    {
-        ByteBuffer readableByteBuffer = buffer.readableByteBuffer();
-        while (readableByteBuffer.hasRemaining())
-        {
-            try
-            {
-                channelContext.socketChannel().write(readableByteBuffer).get();
-            }
-            catch (Throwable e)
-            {
-                close();
-                ReflectUtil.throwException(e);
-            }
-        }
-        buffer.free();
-    }
-
-    void nonBlockWrite(IoBuffer buffer)
-    {
-        pipeline.fireWrite(buffer);
+        pipeline.fireWrite(data);
     }
 
     @Override
     public void close()
     {
-        if (state == NOT_INIT || state == DISCONNECTED)
-        {
-            return;
-        }
-        else
-        {
-            state = DISCONNECTED;
-            try
-            {
-                channelContext.socketChannel().close();
-            }
-            catch (IOException e)
-            {
-                ReflectUtil.throwException(e);
-            }
-        }
-    }
-
-    @Override
-    public void write(IoBuffer packet, boolean block) throws Exception
-    {
-        connectIfNecessary();
-        if (block)
-        {
-            blockWrite(packet);
-        }
-        else
-        {
-            nonBlockWrite(packet);
-        }
-    }
-
-    @Override
-    public boolean preferBlock()
-    {
-        return preferBlock;
+        channelContext.close();
+        state = DISCONNECTED;
     }
 }

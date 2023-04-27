@@ -5,7 +5,6 @@ import com.jfirer.jnet.common.api.InternalPipeline;
 import com.jfirer.jnet.common.api.Pipeline;
 import com.jfirer.jnet.common.util.ChannelConfig;
 
-import java.io.IOException;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -59,7 +58,7 @@ public class DefaultChannelContext extends AtomicInteger implements ChannelConte
         {
             socketChannel.close();
         }
-        catch (IOException e1)
+        catch (Throwable e1)
         {
             ;
         }
