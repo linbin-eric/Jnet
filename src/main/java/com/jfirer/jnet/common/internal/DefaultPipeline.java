@@ -3,7 +3,6 @@ package com.jfirer.jnet.common.internal;
 import com.jfirer.jnet.common.api.*;
 
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 public class DefaultPipeline implements InternalPipeline
 {
@@ -27,14 +26,14 @@ public class DefaultPipeline implements InternalPipeline
     @Override
     public void addReadProcessor(ReadProcessor<?> processor)
     {
-        addReadProcessor0(processor, () -> worker, node -> node.worker());
+        addReadProcessor0(processor, pre -> pre == null ? worker : pre.worker());
     }
 
-    private void addReadProcessor0(ReadProcessor<?> processor, Supplier<JnetWorker> supplier, Function<ReadProcessorNode, JnetWorker> function)
+    private void addReadProcessor0(ReadProcessor<?> processor, Function<ReadProcessorNode, JnetWorker> function)
     {
         if (readHead == null)
         {
-            readHead = new ReadProcessorNodeImpl(supplier.get(), processor, this);
+            readHead = new ReadProcessorNodeImpl(function.apply(null), processor, this);
         }
         else
         {
@@ -50,20 +49,20 @@ public class DefaultPipeline implements InternalPipeline
     @Override
     public void addReadProcessor(ReadProcessor<?> processor, WorkerGroup group)
     {
-        addReadProcessor0(processor, () -> group.next(), node -> group.next());
+        addReadProcessor0(processor, pre -> group.next());
     }
 
     @Override
     public void addWriteProcessor(WriteProcessor<?> processor)
     {
-        addWriteProcessor0(processor, () -> worker, node -> node.worker());
+        addWriteProcessor0(processor, pre -> pre == null ? worker : pre.worker());
     }
 
-    private void addWriteProcessor0(WriteProcessor<?> processor, Supplier<JnetWorker> supplier, Function<WriteProcessorNode, JnetWorker> function)
+    private void addWriteProcessor0(WriteProcessor<?> processor, Function<WriteProcessorNode, JnetWorker> function)
     {
         if (writeHead == null)
         {
-            writeHead = new WriteProcessorNodeImpl(supplier.get(), processor);
+            writeHead = new WriteProcessorNodeImpl(function.apply(null), processor);
         }
         else
         {
@@ -79,7 +78,7 @@ public class DefaultPipeline implements InternalPipeline
     @Override
     public void addWriteProcessor(WriteProcessor<?> processor, WorkerGroup group)
     {
-        addWriteProcessor0(processor, () -> group.next(), node -> group.next());
+        addWriteProcessor0(processor, pre -> group.next());
     }
 
     @Override
@@ -103,8 +102,8 @@ public class DefaultPipeline implements InternalPipeline
     @Override
     public void complete()
     {
-        addReadProcessor0(ReadProcessor.TAIL, () -> worker, node -> node.worker());
-        addWriteProcessor0(new TailWriteProcessorImpl(), () -> worker, node -> node.worker());
+        addReadProcessor(ReadProcessor.TAIL);
+        addWriteProcessor(new TailWriteProcessorImpl());
         readHead.firePipelineComplete();
         writeHead.firePipelineComplete(channelContext);
     }

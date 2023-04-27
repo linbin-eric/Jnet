@@ -316,6 +316,17 @@ public abstract class AbstractBuffer implements IoBuffer
     }
 
     @Override
+    public IoBuffer get(byte[] content, int off, int len, int from)
+    {
+        if (from + len > writePosi)
+        {
+            throw new IllegalArgumentException("尝试读取的内容过长，当前没有这么多数据");
+        }
+        rwDelegation.get0(content, off, len, from, memory, offset, nativeAddress);
+        return this;
+    }
+
+    @Override
     public IoBuffer addReadPosi(int add)
     {
         readPosi += add;

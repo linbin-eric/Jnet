@@ -212,6 +212,17 @@ public interface IoBuffer
     IoBuffer get(byte[] content, int off, int len);
 
     /**
+     * 从指定的位置读取数据填充入参数组，从参数数组的off位置开始，填充长度为len。该操作不增加读取位置。
+     *
+     * @param content
+     * @param off
+     * @param len
+     * @param from
+     * @return
+     */
+    IoBuffer get(byte[] content, int off, int len, int from);
+
+    /**
      * 读取位置增加add
      *
      * @param add

@@ -127,10 +127,10 @@ public class BaseTest
                     {
                         e1.printStackTrace();
                     }
-                    int batch = 5000;
+                    int      batch  = 5000;
+                    IoBuffer buffer = bufferAllocator.ioBuffer(8);
                     for (int j = 0; j < numPerThread; )
                     {
-                        IoBuffer buffer = bufferAllocator.ioBuffer(8);
                         int      num    = j;
                         int      max    = num + batch > numPerThread ? numPerThread : num + batch;
                         for (; num < max; num++)
@@ -148,6 +148,7 @@ public class BaseTest
                             e.printStackTrace();
                             ;
                         }
+                        buffer.free();
                     }
                     finish.countDown();
                 }
