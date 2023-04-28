@@ -96,7 +96,7 @@ public class HttpClientImpl implements HttpClient
             while (true);
         }
         clientWrapper.client.write(request);
-        Object poll = clientWrapper.sync.poll(5, TimeUnit.SECONDS);
+        Object poll = clientWrapper.sync.poll(5, TimeUnit.DAYS);
         if (poll == END_OF_CONNECTION)
         {
             throw new ClosedChannelException();

@@ -90,16 +90,16 @@ public class HeapRw implements RwDelegation
     }
 
     @Override
-    public void put(Object memory, int offset, long nativeAddress, int position, IoBuffer buf, int len)
+    public void put(Object destMemory, int destOffset, long destNativeAddress, int destPosi, IoBuffer srcBuf, int len)
     {
-        switch (buf.bufferType())
+        switch (srcBuf.bufferType())
         {
             case HEAP ->
-                    System.arraycopy(buf.memory(), buf.getReadPosi() + buf.offset(), memory, offset + position, len);
+                    System.arraycopy(srcBuf.memory(), srcBuf.getReadPosi() + srcBuf.offset(), destMemory, destOffset + destPosi, len);
             case DIRECT, UNSAFE ->
             {
-                AbstractBuffer buffer = (AbstractBuffer) buf;
-                Bits.copyToArray(buffer.nativeAddress() + buffer.offset() + buffer.getReadPosi(), (byte[]) memory, offset + position, len);
+                AbstractBuffer buffer = (AbstractBuffer) srcBuf;
+                Bits.copyToArray(buffer.nativeAddress() + buffer.offset() + buffer.getReadPosi(), (byte[]) destMemory, destOffset + destPosi, len);
             }
         }
     }

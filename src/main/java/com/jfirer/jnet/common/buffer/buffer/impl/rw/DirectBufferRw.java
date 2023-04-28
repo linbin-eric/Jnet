@@ -79,26 +79,26 @@ public class DirectBufferRw implements RwDelegation
     }
 
     @Override
-    public void put(Object memory, int offset, long nativeAddress, int position, IoBuffer buf, int len)
+    public void put(Object destMemory, int destOffset, long destNativeAddress, int destPosi, IoBuffer srcBuf, int len)
     {
-        switch (buf.bufferType())
+        switch (srcBuf.bufferType())
         {
             case HEAP ->
             {
-                byte[] src       = (byte[]) buf.memory();
-                int    srcOffset = buf.offset() + buf.getReadPosi();
-                ((ByteBuffer) memory).put(position, src, srcOffset, len);
+                byte[] src       = (byte[]) srcBuf.memory();
+                int    srcOffset = srcBuf.offset() + srcBuf.getReadPosi();
+                ((ByteBuffer) destMemory).put(destPosi, src, srcOffset, len);
             }
             case DIRECT, UNSAFE ->
             {
-                ByteBuffer src       = (ByteBuffer) buf.memory();
-                int        srcOffset = buf.offset() + buf.getReadPosi();
-                ((ByteBuffer) memory).put(position, src, srcOffset, len);
+                ByteBuffer src       = (ByteBuffer) srcBuf.memory();
+                int        srcOffset = srcBuf.offset() + srcBuf.getReadPosi();
+                ((ByteBuffer) destMemory).put(destPosi, src, srcOffset, len);
             }
 //            case MEMORY ->
 //            {
 //                ByteBuffer srcBuffer = buffer.readableByteBuffer();
-//                memory.put(posi, srcBuffer, srcBuffer.position(), len);
+//                destMemory.put(posi, srcBuffer, srcBuffer.destPosi(), len);
 //            }
         }
     }

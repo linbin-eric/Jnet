@@ -24,7 +24,7 @@ public class ChannelConfig
     private             int                      backLog              = 50;
     private             AsynchronousChannelGroup channelGroup;
     private             WorkerGroup              workerGroup;
-    public static final LeakDetecter             IoBufferLeakDetected = new LeakDetecter(System.getProperty("Leak.Detect.IoBuffer") == null ? LeakDetecter.WatchLevel.none : LeakDetecter.WatchLevel.valueOf(System.getProperty("Leak.Detect.IoBuffer")));
+    public static final LeakDetecter             IoBufferLeakDetected = new LeakDetecter(System.getProperty("Leak.Detect.IoBuffer") == null ? LeakDetecter.WatchLevel.all : LeakDetecter.WatchLevel.valueOf(System.getProperty("Leak.Detect.IoBuffer")));
     public static final AsynchronousChannelGroup DEFAULT_CHANNEL_GROUP;
     public static final WorkerGroup              DEFAULT_WORKER_GROUP = new DefaultWorkerGroup();
     static

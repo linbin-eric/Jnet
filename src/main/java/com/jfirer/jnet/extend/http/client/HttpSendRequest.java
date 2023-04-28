@@ -1,19 +1,16 @@
 package com.jfirer.jnet.extend.http.client;
 
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
+import com.jfirer.jnet.extend.http.decode.ContentType;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
 @Data
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
+@Accessors(chain = true)
 public class HttpSendRequest
 {
     private String              url;
@@ -30,10 +27,29 @@ public class HttpSendRequest
         headers.put(name, value);
     }
 
-    public void setBody(String body)
+    public HttpSendRequest setBody(String body)
     {
         byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
         this.body = HttpClient.ALLOCATOR.ioBuffer(bytes.length);
         this.body.put(bytes);
+        return this;
+    }
+
+    public HttpSendRequest getRequest()
+    {
+        method = "GET";
+        return this;
+    }
+
+    public HttpSendRequest postRequest()
+    {
+        method = "POST";
+        return this;
+    }
+
+    public HttpSendRequest applicationJsonType()
+    {
+        contentType = ContentType.APPLICATION_JSON;
+        return this;
     }
 }

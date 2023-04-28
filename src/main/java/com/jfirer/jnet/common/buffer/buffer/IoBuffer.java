@@ -67,6 +67,15 @@ public interface IoBuffer
     IoBuffer put(IoBuffer buffer, int len);
 
     /**
+     * 将内容写入到buffer中，写入长度为len。写入后，读取位置增加len；
+     *
+     * @param buffer
+     * @param len
+     * @return
+     */
+    IoBuffer get(IoBuffer buffer, int len);
+
+    /**
      * 在当前位置写入一个int
      *
      * @param i

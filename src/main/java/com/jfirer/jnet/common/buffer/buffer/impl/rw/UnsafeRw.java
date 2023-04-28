@@ -94,16 +94,16 @@ public class UnsafeRw implements RwDelegation
     }
 
     @Override
-    public void put(Object memory, int offset, long nativeAddress, int position, IoBuffer buf, int len)
+    public void put(Object destMemory, int destOffset, long destNativeAddress, int destPosi, IoBuffer srcBuf, int len)
     {
-        switch (buf.bufferType())
+        switch (srcBuf.bufferType())
         {
             case HEAP ->
-                    Bits.copyFromByteArray((byte[]) buf.memory(), buf.offset() + buf.getReadPosi(), offset + nativeAddress + position, len);
+                    Bits.copyFromByteArray((byte[]) srcBuf.memory(), srcBuf.offset() + srcBuf.getReadPosi(), destOffset + destNativeAddress + destPosi, len);
             case DIRECT, UNSAFE, MEMORY ->
             {
-                AbstractBuffer buffer = (AbstractBuffer) buf;
-                Bits.copyDirectMemory(buffer.nativeAddress() + buffer.offset() + buffer.getReadPosi(), offset + nativeAddress + position, len);
+                AbstractBuffer buffer = (AbstractBuffer) srcBuf;
+                Bits.copyDirectMemory(buffer.nativeAddress() + buffer.offset() + buffer.getReadPosi(), destOffset + destNativeAddress + destPosi, len);
             }
         }
     }

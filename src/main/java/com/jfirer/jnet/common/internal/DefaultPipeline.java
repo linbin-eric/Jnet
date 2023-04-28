@@ -82,6 +82,12 @@ public class DefaultPipeline implements InternalPipeline
     }
 
     @Override
+    public ChannelContext channelContext()
+    {
+        return channelContext;
+    }
+
+    @Override
     public void fireRead(Object data)
     {
         readHead.fireRead(data);

@@ -12,6 +12,8 @@ public interface Pipeline
 
     void addWriteProcessor(WriteProcessor<?> processor, WorkerGroup group);
 
+    ChannelContext channelContext();
+
     static void invokeMethodIgnoreException(Runnable runnable)
     {
         try

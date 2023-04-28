@@ -547,6 +547,14 @@ public abstract class AbstractBuffer implements IoBuffer
     }
 
     @Override
+    public IoBuffer get(IoBuffer buffer, int len)
+    {
+        buffer.put(this, len);
+        addReadPosi(len);
+        return this;
+    }
+
+    @Override
     public String toString()
     {
         return "AbstractBuffer{" + "capacity=" + capacity + ", readPosi=" + readPosi + ", writePosi=" + writePosi + ", refCount=" + refCount + '}';

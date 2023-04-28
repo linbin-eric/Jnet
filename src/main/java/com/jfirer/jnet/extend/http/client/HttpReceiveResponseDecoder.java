@@ -1,7 +1,9 @@
 package com.jfirer.jnet.extend.http.client;
 
 import com.jfirer.jnet.common.api.ReadProcessorNode;
+import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.decoder.AbstractDecoder;
+import com.jfirer.jnet.extend.http.decode.ContentType;
 
 import java.nio.charset.StandardCharsets;
 
@@ -11,6 +13,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
     private              ParseState          state     = ParseState.RESPONSE_LINE;
     private              int                 lastCheck = -1;
     private              byte[]              httpCode  = new byte[3];
+    private              int                 bodyRead  = 0;
     private static final byte                re        = "\r".getBytes(StandardCharsets.US_ASCII)[0];
     private static final byte                nl        = "\n".getBytes(StandardCharsets.US_ASCII)[0];
 
@@ -50,6 +53,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
                 }
                 if (state == ParseState.HEADER)
                 {
+                    System.out.println();
                     accumulation.get(httpCode, 0, 3, accumulation.getReadPosi() + 9);
                     receiveResponse.setHttpCode(Integer.parseInt(new String(httpCode, StandardCharsets.US_ASCII)));
                     accumulation.setReadPosi(lastCheck);
@@ -101,25 +105,50 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
                     receiveResponse.getHeaders().entrySet().stream().filter(entry -> entry.getKey().equalsIgnoreCase("content-length")).findFirst().ifPresent(v -> receiveResponse.setContentLength(Integer.parseInt(v.getValue())));
                     receiveResponse.getHeaders().entrySet().stream().filter(entry -> entry.getKey().equalsIgnoreCase("content-type")).findFirst().ifPresent(v -> receiveResponse.setContentType(v.getValue()));
                     accumulation.addReadPosi(2);
-                    accumulation.capacityReadyFor(receiveResponse.getContentLength());
+                    accumulation.capacityReadyFor(1024 * 1024 * 2);
+                    if (receiveResponse.getContentType().equalsIgnoreCase(ContentType.STREAM))
+                    {
+                        next.fireRead(receiveResponse);
+                    }
                     process0(next);
                 }
             }
             case BODY ->
             {
-                if (accumulation.remainRead() >= receiveResponse.getContentLength())
+                if (receiveResponse.getContentType().equalsIgnoreCase(ContentType.STREAM))
                 {
-                    receiveResponse.setBody(accumulation.slice(receiveResponse.getContentLength()));
-                    next.fireRead(receiveResponse);
-                    receiveResponse = null;
-                    lastCheck = -1;
-                    state = ParseState.RESPONSE_LINE;
-                    compactIfNeed();
-                    process0(next);
+                    IoBuffer fragment = allocator.ioBuffer(accumulation.remainRead());
+                    accumulation.get(fragment, accumulation.remainRead());
+                    accumulation.compact();
+                    receiveResponse.getStream().offer(fragment);
+                    bodyRead += fragment.getWritePosi();
+                    if (bodyRead >= receiveResponse.getContentLength())
+                    {
+                        bodyRead = 0;
+                        receiveResponse.getStream().offer(HttpReceiveResponse.END_OF_STREAM);
+                        receiveResponse = null;
+                        lastCheck = -1;
+                        state = ParseState.RESPONSE_LINE;
+                        compactIfNeed();
+                        process0(next);
+                    }
                 }
                 else
                 {
-                    ;
+                    if (accumulation.remainRead() >= receiveResponse.getContentLength())
+                    {
+                        receiveResponse.setBody(accumulation.slice(receiveResponse.getContentLength()));
+                        next.fireRead(receiveResponse);
+                        receiveResponse = null;
+                        lastCheck = -1;
+                        state = ParseState.RESPONSE_LINE;
+                        compactIfNeed();
+                        process0(next);
+                    }
+                    else
+                    {
+                        ;
+                    }
                 }
             }
         }

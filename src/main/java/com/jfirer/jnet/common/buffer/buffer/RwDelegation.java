@@ -30,5 +30,5 @@ public interface RwDelegation
 
     void compact0(Object memory, int offset, long nativeAddress, int readPosition, int length);
 
-    void put(Object memory, int offset, long nativeAddress, int position, IoBuffer buf, int len);
+    void put(Object destMemory, int destOffset, long destNativeAddress, int destPosi, IoBuffer srcBuf, int len);
 }
