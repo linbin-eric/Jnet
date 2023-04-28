@@ -25,7 +25,31 @@ public class ChannelConfig
     private             AsynchronousChannelGroup channelGroup;
     private             WorkerGroup              workerGroup;
     public static final LeakDetecter             IoBufferLeakDetected = new LeakDetecter(System.getProperty("Leak.Detect.IoBuffer") == null ? LeakDetecter.WatchLevel.none : LeakDetecter.WatchLevel.valueOf(System.getProperty("Leak.Detect.IoBuffer")));
+    public static final AsynchronousChannelGroup DEFAULT_CHANNEL_GROUP;
+    public static final WorkerGroup              DEFAULT_WORKER_GROUP = new DefaultWorkerGroup();
+    static
+    {
+        AsynchronousChannelGroup channelGroup;
+        try
+        {
+            channelGroup = AsynchronousChannelGroup.withFixedThreadPool(Runtime.getRuntime().availableProcessors(), new ThreadFactory()
+            {
+                int i = 1;
 
+                @Override
+                public Thread newThread(Runnable r)
+                {
+                    return new FastThreadLocalThread(r, "AioServer_IoWorker-" + (i++));
+                }
+            });
+        }
+        catch (IOException e)
+        {
+            channelGroup = null;
+            ReflectUtil.throwException(e);
+        }
+        DEFAULT_CHANNEL_GROUP = channelGroup;
+    }
     public AsynchronousChannelGroup getChannelGroup()
     {
         if (channelGroup == null)
@@ -144,7 +168,7 @@ public class ChannelConfig
     {
         if (workerGroup == null)
         {
-            workerGroup = new DefaultWorkerGroup();
+            workerGroup = DEFAULT_WORKER_GROUP;
         }
         return workerGroup;
     }

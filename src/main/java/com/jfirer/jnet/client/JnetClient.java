@@ -20,12 +20,7 @@ public interface JnetClient
      */
     boolean alive();
 
-    /**
-     * 异步写出数据
-     *
-     * @param data
-     */
-    void asyncWrite(Object data);
+    void write(Object data);
 
     void close();
 }

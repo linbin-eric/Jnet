@@ -128,7 +128,7 @@ public class BaseTest
                     j = num;
                     try
                     {
-                        client.asyncWrite(buffer);
+                        client.write(buffer);
                     }
                     catch (Exception e)
                     {

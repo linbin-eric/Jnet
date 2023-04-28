@@ -12,12 +12,16 @@ import java.util.concurrent.Future;
 
 public class DefaultClient implements JnetClient
 {
-    private static final int              NOT_INIT     = 1;
-    private static final int              CONNECTED    = 2;
-    private static final int              DISCONNECTED = 3;
-    private volatile     int              state        = NOT_INIT;
-    private              InternalPipeline pipeline;
-    private              ChannelContext   channelContext;
+    enum ConnectedState
+    {
+        NOT_INIT,
+        CONNECTED,
+        DISCONNECTED
+    }
+
+    private volatile ConnectedState   state = ConnectedState.NOT_INIT;
+    private          InternalPipeline pipeline;
+    private          ChannelContext   channelContext;
 
     @Override
     public boolean connect(ChannelConfig channelConfig, ChannelContextInitializer initializer)
@@ -40,7 +44,7 @@ public class DefaultClient implements JnetClient
                         @Override
                         public void channelClose(ReadProcessorNode next)
                         {
-                            state = DISCONNECTED;
+                            state = ConnectedState.DISCONNECTED;
                             next.fireChannelClose();
                         }
 
@@ -53,12 +57,12 @@ public class DefaultClient implements JnetClient
                     pipeline.complete();
                     ReadCompletionHandler readCompletionHandler = new AdaptiveReadCompletionHandler(channelContext);
                     readCompletionHandler.start();
-                    state = CONNECTED;
+                    state = ConnectedState.CONNECTED;
                     return true;
                 }
                 catch (Throwable e)
                 {
-                    state = DISCONNECTED;
+                    state = ConnectedState.DISCONNECTED;
                     return false;
                 }
             }
@@ -78,11 +82,11 @@ public class DefaultClient implements JnetClient
     @Override
     public boolean alive()
     {
-        return state == CONNECTED;
+        return state == ConnectedState.CONNECTED;
     }
 
     @Override
-    public void asyncWrite(Object data)
+    public void write(Object data)
     {
         pipeline.fireWrite(data);
     }
@@ -90,7 +94,7 @@ public class DefaultClient implements JnetClient
     @Override
     public void close()
     {
+        state = ConnectedState.DISCONNECTED;
         channelContext.close();
-        state = DISCONNECTED;
     }
 }

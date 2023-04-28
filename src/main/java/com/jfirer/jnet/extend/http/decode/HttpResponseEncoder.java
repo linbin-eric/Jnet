@@ -10,7 +10,8 @@ import java.nio.charset.StandardCharsets;
 
 public class HttpResponseEncoder implements WriteProcessor<HttpResponse>
 {
-    private BufferAllocator allocator;
+    private              BufferAllocator allocator;
+    private static final byte[]          RESPONSE_LINE = "HTTP/1.1 200 OK\r\n".getBytes(StandardCharsets.US_ASCII);
 
     public HttpResponseEncoder(BufferAllocator allocator)
     {
@@ -23,8 +24,8 @@ public class HttpResponseEncoder implements WriteProcessor<HttpResponse>
         IoBuffer buffer = allocator.ioBuffer(1024);
         try
         {
-            buffer.put("HTTP/1.1 200 OK\r\n".getBytes(StandardCharsets.US_ASCII));
-            data.getHeaders().forEach((name, value) -> buffer.put((name + ": " + value + "\r\n").getBytes(StandardCharsets.UTF_8)));
+            buffer.put(RESPONSE_LINE);
+            data.getHeaders().forEach((name, value) -> buffer.put((name + ": " + value + "\r\n").getBytes(StandardCharsets.US_ASCII)));
             if (data.getBody() == null && data.getBodyBuffer() == null)
             {
                 buffer.put(("Content-Length: 0\r\n").getBytes(StandardCharsets.US_ASCII));
