@@ -6,6 +6,7 @@ import com.jfirer.jnet.common.decoder.AbstractDecoder;
 import com.jfirer.jnet.extend.http.decode.ContentType;
 
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.LinkedBlockingDeque;
 
 public class HttpReceiveResponseDecoder extends AbstractDecoder
 {
@@ -108,6 +109,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
                     accumulation.capacityReadyFor(1024 * 1024 * 2);
                     if (receiveResponse.getContentType().equalsIgnoreCase(ContentType.STREAM))
                     {
+                        receiveResponse.setStream(new LinkedBlockingDeque<>());
                         next.fireRead(receiveResponse);
                     }
                     process0(next);
@@ -152,5 +154,22 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
                 }
             }
         }
+    }
+
+    @Override
+    public void readClose(ReadProcessorNode next)
+    {
+        try
+        {
+            if (receiveResponse != null)
+            {
+                receiveResponse.close();
+            }
+        }
+        catch (Exception e)
+        {
+            ;
+        }
+        super.readClose(next);
     }
 }
