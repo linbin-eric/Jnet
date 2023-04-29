@@ -15,14 +15,18 @@ import java.util.concurrent.BlockingQueue;
 public class HttpReceiveResponse implements AutoCloseable
 {
     private              int                     httpCode;
-    private              Map<String, String>     headers       = new HashMap<>();
+    private              Map<String, String>     headers          = new HashMap<>();
     private              int                     contentLength;
     private              String                  contentType;
     private              IoBuffer                body;
     private              BlockingQueue<IoBuffer> stream;
-    public static final  IoBuffer                END_OF_STREAM = new UnPooledBuffer(BufferType.HEAP);
-    private volatile     int                     closed        = 1;
-    private static final long                    CLOSED_OFFSET = UNSAFE.getFieldOffset("closed", HttpReceiveResponse.class);
+    public static final  IoBuffer                END_OF_STREAM    = new UnPooledBuffer(BufferType.HEAP);
+    public static final  IoBuffer                CLOSE_OF_CHANNEL = new UnPooledBuffer(BufferType.HEAP);
+    /**
+     * 1代表使用中，0代表已关闭
+     */
+    private volatile     int                     closed           = 1;
+    private static final long                    CLOSED_OFFSET    = UNSAFE.getFieldOffset("closed", HttpReceiveResponse.class);
 
     public void putHeader(String name, String value)
     {
@@ -38,15 +42,35 @@ public class HttpReceiveResponse implements AutoCloseable
             {
                 body.free();
             }
-            if (stream != null)
-            {
-                stream.offer(END_OF_STREAM);
-            }
+            clearStream();
         }
     }
 
     public String getUTF8Body()
     {
         return StandardCharsets.UTF_8.decode(body.readableByteBuffer()).toString();
+    }
+
+    public boolean isClosed()
+    {
+        return closed == 0;
+    }
+
+    /**
+     * 释放Stream内的Buffer
+     */
+    public void clearStream()
+    {
+        if (stream != null)
+        {
+            IoBuffer buffer;
+            while ((buffer = stream.poll()) != null)
+            {
+                if (buffer != END_OF_STREAM || buffer != CLOSE_OF_CHANNEL)
+                {
+                    buffer.free();
+                }
+            }
+        }
     }
 }

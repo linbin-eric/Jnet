@@ -6,6 +6,7 @@ import com.jfirer.jnet.common.decoder.AbstractDecoder;
 import com.jfirer.jnet.extend.http.decode.ContentType;
 
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 
 public class HttpReceiveResponseDecoder extends AbstractDecoder
@@ -127,6 +128,11 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
                     if (bodyRead >= receiveResponse.getContentLength())
                     {
                         bodyRead = 0;
+                        //应用程序已经提前关闭了流，则此时流里可能存在Buffer，需要清空
+                        if (receiveResponse.isClosed())
+                        {
+                            receiveResponse.clearStream();
+                        }
                         receiveResponse.getStream().offer(HttpReceiveResponse.END_OF_STREAM);
                         receiveResponse = null;
                         lastCheck = -1;
@@ -157,19 +163,24 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
     }
 
     @Override
-    public void readClose(ReadProcessorNode next)
+    public void channelClose(ReadProcessorNode next)
     {
         try
         {
             if (receiveResponse != null)
             {
                 receiveResponse.close();
+                BlockingQueue<IoBuffer> stream = receiveResponse.getStream();
+                if (stream != null)
+                {
+                    stream.offer(HttpReceiveResponse.CLOSE_OF_CHANNEL);
+                }
             }
         }
         catch (Exception e)
         {
             ;
         }
-        super.readClose(next);
+        super.channelClose(next);
     }
 }

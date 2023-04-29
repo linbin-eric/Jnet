@@ -58,12 +58,13 @@ public abstract class AbstractDecoder implements ReadProcessor
     }
 
     @Override
-    public void readClose(ReadProcessorNode next)
+    public void channelClose(ReadProcessorNode next)
     {
         if (accumulation != null)
         {
             accumulation.free();
             accumulation = null;
         }
+        next.fireChannelClose();
     }
 }
