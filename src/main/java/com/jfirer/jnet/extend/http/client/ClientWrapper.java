@@ -4,17 +4,17 @@ import com.jfirer.jnet.client.JnetClient;
 import com.jfirer.jnet.common.recycler.RecycleHandler;
 import lombok.Data;
 
-import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.BlockingQueue;
 
 @Data
 public class ClientWrapper
 {
     JnetClient                    client;
-    SynchronousQueue<Object>      sync;
+    BlockingQueue<Object>         sync;
     long                          lastRespoonseTime;
     RecycleHandler<ClientWrapper> handler;
 
-    public ClientWrapper(JnetClient client, SynchronousQueue<Object> sync)
+    public ClientWrapper(JnetClient client, BlockingQueue<Object> sync)
     {
         this.client = client;
         this.sync = sync;

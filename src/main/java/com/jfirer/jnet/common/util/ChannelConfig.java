@@ -54,23 +54,7 @@ public class ChannelConfig
     {
         if (channelGroup == null)
         {
-            try
-            {
-                channelGroup = AsynchronousChannelGroup.withFixedThreadPool(Runtime.getRuntime().availableProcessors(), new ThreadFactory()
-                {
-                    int i = 1;
-
-                    @Override
-                    public Thread newThread(Runnable r)
-                    {
-                        return new FastThreadLocalThread(r, "AioServer_IoWorker-" + (i++));
-                    }
-                });
-            }
-            catch (IOException e)
-            {
-                ReflectUtil.throwException(e);
-            }
+            channelGroup = DEFAULT_CHANNEL_GROUP;
         }
         return channelGroup;
     }

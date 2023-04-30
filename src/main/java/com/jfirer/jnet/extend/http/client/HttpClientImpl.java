@@ -10,10 +10,7 @@ import com.jfirer.jnet.common.util.ReflectUtil;
 
 import java.net.ConnectException;
 import java.nio.channels.ClosedChannelException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class HttpClientImpl implements HttpClient
 {
@@ -21,7 +18,7 @@ public class HttpClientImpl implements HttpClient
 
     private              ConcurrentMap<Connection, Recycler<ClientWrapper>> map               = new ConcurrentHashMap<>();
     private static final Object                                             END_OF_CONNECTION = new Object();
-    private static final long                                               KEEP_ALIVE_TIME   = 1000 * 30;
+    private static final long                                               KEEP_ALIVE_TIME   = 1000 * 60 * 5;
 
     @Override
     public HttpReceiveResponse newCall(HttpSendRequest request) throws Exception
@@ -48,11 +45,10 @@ public class HttpClientImpl implements HttpClient
         Recycler<ClientWrapper> recycler = map.computeIfAbsent(connection, c -> new Recycler<>(() -> {
             DefaultClient defaultClient = new DefaultClient();
             ChannelConfig channelConfig = new ChannelConfig();
-            System.out.println("创建");
             channelConfig.setIp(c.domain);
             channelConfig.setPort(c.port);
-            SynchronousQueue<Object> sync = new SynchronousQueue<>();
-            if (defaultClient.connect(channelConfig, channelContext -> {
+            BlockingQueue<Object> sync = new LinkedBlockingDeque<>();
+            if (!defaultClient.connect(channelConfig, channelContext -> {
                 Pipeline pipeline = channelContext.pipeline();
                 pipeline.addReadProcessor(new HttpReceiveResponseDecoder());
                 pipeline.addReadProcessor(new ReadProcessor<HttpReceiveResponse>()
@@ -60,6 +56,7 @@ public class HttpClientImpl implements HttpClient
                     @Override
                     public void channelClose(ReadProcessorNode next)
                     {
+                        System.out.println("通道关闭");
                         sync.offer(END_OF_CONNECTION);
                     }
 
@@ -70,7 +67,7 @@ public class HttpClientImpl implements HttpClient
                     }
                 });
                 pipeline.addWriteProcessor(new HttpSendRequestEncoder());
-            }) == false)
+            }))
             {
                 ReflectUtil.throwException(new ConnectException("无法连接:" + c.domain + ":" + c.port));
             }
@@ -81,6 +78,7 @@ public class HttpClientImpl implements HttpClient
         {
             clientWrapper.client.close();
             System.out.println("过期");
+            new RuntimeException().printStackTrace();
             do
             {
                 clientWrapper = recycler.get();
@@ -103,8 +101,11 @@ public class HttpClientImpl implements HttpClient
         }
         else
         {
-            clientWrapper.lastRespoonseTime = System.currentTimeMillis();
-            clientWrapper.handler.recycle(clientWrapper);
+            ClientWrapper finalClientWrapper = clientWrapper;
+            ((HttpReceiveResponse) poll).setOnClose(v -> {
+                finalClientWrapper.lastRespoonseTime = System.currentTimeMillis();
+                finalClientWrapper.handler.recycle(finalClientWrapper);
+            });
             return (HttpReceiveResponse) poll;
         }
     }

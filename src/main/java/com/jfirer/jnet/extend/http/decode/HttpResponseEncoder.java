@@ -35,7 +35,7 @@ public class HttpResponseEncoder implements WriteProcessor<HttpResponse>
             {
                 if (data.getContentType() != null && !"".equals(data.getContentType()))
                 {
-                    buffer.put(("content-type: " + data.getContentType() + ";charset=utf8\n").getBytes(StandardCharsets.US_ASCII));
+                    buffer.put(("content-type: " + data.getContentType() + "\r\n").getBytes(StandardCharsets.US_ASCII));
                 }
                 else
                 {
