@@ -70,8 +70,7 @@ public class BaseTest
         {
             final int   index  = i;
             final int[] result = results[index];
-            clients[i] = new DefaultClient();
-            clients[i].connect(channelConfig, channelContext -> {
+            clients[i] = new DefaultClient(channelConfig, channelContext -> {
                 Pipeline pipeline = channelContext.pipeline();
                 pipeline.addReadProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024 * 4, channelContext.channelConfig().getAllocator()));
                 pipeline.addReadProcessor(new ReadProcessor()
@@ -93,6 +92,7 @@ public class BaseTest
                     }
                 });
             });
+            clients[i].connect();
         }
     }
 

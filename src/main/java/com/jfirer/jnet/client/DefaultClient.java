@@ -9,6 +9,7 @@ import com.jfirer.jnet.common.util.ChannelConfig;
 import java.net.InetSocketAddress;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 public class DefaultClient implements JnetClient
 {
@@ -19,12 +20,20 @@ public class DefaultClient implements JnetClient
         DISCONNECTED
     }
 
-    private volatile ConnectedState   state = ConnectedState.NOT_INIT;
-    private          InternalPipeline pipeline;
-    private          ChannelContext   channelContext;
+    private volatile ConnectedState            state = ConnectedState.NOT_INIT;
+    private          InternalPipeline          pipeline;
+    private          ChannelContext            channelContext;
+    private          ChannelConfig             channelConfig;
+    private          ChannelContextInitializer initializer;
+
+    public DefaultClient(ChannelConfig channelConfig, ChannelContextInitializer initializer)
+    {
+        this.channelConfig = channelConfig;
+        this.initializer = initializer;
+    }
 
     @Override
-    public boolean connect(ChannelConfig channelConfig, ChannelContextInitializer initializer)
+    public boolean connect()
     {
         switch (state)
         {
@@ -34,12 +43,12 @@ public class DefaultClient implements JnetClient
                 {
                     AsynchronousSocketChannel asynchronousSocketChannel = AsynchronousSocketChannel.open(channelConfig.getChannelGroup());
                     Future<Void>              future                    = asynchronousSocketChannel.connect(new InetSocketAddress(channelConfig.getIp(), channelConfig.getPort()));
-                    future.get();
+                    future.get(30, TimeUnit.SECONDS);
                     channelContext = new DefaultChannelContext(asynchronousSocketChannel, channelConfig);
                     pipeline = new DefaultPipeline(channelConfig.getWorkerGroup().next(), channelContext);
                     ((DefaultChannelContext) channelContext).setPipeline(pipeline);
                     initializer.onChannelContextInit(channelContext);
-                    pipeline.addReadProcessor(new ReadProcessor<Object>()
+                    pipeline.addReadProcessor(new ReadProcessor<>()
                     {
                         @Override
                         public void channelClose(ReadProcessorNode next)

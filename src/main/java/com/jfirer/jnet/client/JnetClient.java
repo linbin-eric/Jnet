@@ -1,8 +1,5 @@
 package com.jfirer.jnet.client;
 
-import com.jfirer.jnet.common.api.ChannelContextInitializer;
-import com.jfirer.jnet.common.util.ChannelConfig;
-
 public interface JnetClient
 {
     /**
@@ -10,7 +7,7 @@ public interface JnetClient
      *
      * @return
      */
-    boolean connect(ChannelConfig channelConfig, ChannelContextInitializer initializer);
+    boolean connect();
 
     /**
      * 该客户端创建的链接是否还有有效。该方法需要在connect方法调用后再调用。

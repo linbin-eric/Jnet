@@ -18,8 +18,8 @@ public class TimeoutTest
         ChannelConfig config = new ChannelConfig();
         config.setIp("127.0.0.1");
         config.setPort(8080);
-        DefaultClient client = new DefaultClient();
-        client.connect(channelConfig, channelContext -> {});
+        DefaultClient client = new DefaultClient(channelConfig, channelContext -> {});
+        client.connect();
         Thread.sleep(1000);
     }
 }

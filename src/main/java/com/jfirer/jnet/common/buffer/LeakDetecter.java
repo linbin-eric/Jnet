@@ -2,6 +2,7 @@ package com.jfirer.jnet.common.buffer;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.lang.ref.PhantomReference;
 import java.lang.ref.ReferenceQueue;
@@ -10,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
+@Slf4j
 public class LeakDetecter
 {
     public enum WatchLevel
@@ -44,13 +46,11 @@ public class LeakDetecter
                     {
                         if (reference.getSource() != null)
                         {
-                            System.err.println("*******发现资源泄露，泄露资源的创建栈如下：*******");
-                            System.err.println(reference.getSource());
-                            System.err.println("*******发现资源泄露*******");
+                            log.error("发现资源泄露，泄露资源的创建栈如下:\r\n{}", reference.getSource());
                         }
                         else
                         {
-                            System.err.println("发现资源泄露");
+                            log.error("发现资源泄露");
                         }
                     }
                     reference.clear();
@@ -71,11 +71,9 @@ public class LeakDetecter
         switch (watchLevel)
         {
             case none -> tracker = leakDummy;
-            case sample ->
-                    tracker = ThreadLocalRandom.current().nextInt(100) == 0 ? buildTracker(entity, stackTraceLevel) : leakDummy;
+            case sample -> tracker = ThreadLocalRandom.current().nextInt(100) == 0 ? buildTracker(entity, stackTraceLevel) : leakDummy;
             case all -> tracker = buildTracker(entity, stackTraceLevel);
-            default ->
-                    throw new IllegalStateException("Unexpected value: " + watchLevel);
+            default -> throw new IllegalStateException("Unexpected value: " + watchLevel);
         }
         return tracker;
     }
