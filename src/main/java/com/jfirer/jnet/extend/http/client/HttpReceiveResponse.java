@@ -15,20 +15,20 @@ import java.util.function.Consumer;
 @Data
 public class HttpReceiveResponse implements AutoCloseable
 {
-    private              int                           httpCode;
-    private              Map<String, String>           headers          = new HashMap<>();
-    private              int                           contentLength;
-    private              String                        contentType;
-    private              IoBuffer                      body;
-    private              BlockingQueue<IoBuffer>       stream;
-    public static final  IoBuffer                      END_OF_STREAM    = new UnPooledBuffer(BufferType.HEAP);
-    public static final  IoBuffer                      CLOSE_OF_CHANNEL = new UnPooledBuffer(BufferType.HEAP);
+    private             int                           httpCode;
+    private             Map<String, String>           headers          = new HashMap<>();
+    private             int                           contentLength;
+    private             String                        contentType;
+    private             IoBuffer                      body;
+    private             BlockingQueue<IoBuffer>       stream;
+    private             Consumer<HttpReceiveResponse> onClose;
     /**
      * 1代表使用中，0代表已关闭
      */
-    private volatile     int                           closed           = 1;
-    private static final long                          CLOSED_OFFSET    = UNSAFE.getFieldOffset("closed", HttpReceiveResponse.class);
-    private              Consumer<HttpReceiveResponse> onClose;
+    private volatile    int                           closed           = 1;
+    public static final long                          CLOSED_OFFSET    = UNSAFE.getFieldOffset("closed", HttpReceiveResponse.class);
+    public static final IoBuffer                      END_OF_STREAM    = new UnPooledBuffer(BufferType.HEAP);
+    public static final IoBuffer                      CLOSE_OF_CHANNEL = new UnPooledBuffer(BufferType.HEAP);
 
     public void putHeader(String name, String value)
     {

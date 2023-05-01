@@ -104,6 +104,9 @@ public class DefaultClient implements JnetClient
     public void close()
     {
         state = ConnectedState.DISCONNECTED;
-        channelContext.close();
+        if (channelContext != null)
+        {
+            channelContext.close();
+        }
     }
 }
