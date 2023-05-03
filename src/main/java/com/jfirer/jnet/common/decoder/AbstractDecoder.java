@@ -5,7 +5,7 @@ import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 
-public abstract class AbstractDecoder implements ReadProcessor
+public abstract class AbstractDecoder implements ReadProcessor<IoBuffer>
 {
     protected BufferAllocator allocator;
     protected IoBuffer        accumulation;
@@ -15,18 +15,18 @@ public abstract class AbstractDecoder implements ReadProcessor
         this.allocator = allocator;
     }
 
-    public void read(Object data, ReadProcessorNode next)
+    public void read(IoBuffer data, ReadProcessorNode next)
     {
         try
         {
             if (accumulation == null)
             {
-                accumulation = (IoBuffer) data;
+                accumulation = data;
             }
             else
             {
-                accumulation.put((IoBuffer) data);
-                ((IoBuffer) data).free();
+                accumulation.put(data);
+                data.free();
             }
             process0(next);
         }

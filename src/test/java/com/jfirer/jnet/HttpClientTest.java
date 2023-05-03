@@ -23,7 +23,7 @@ public class HttpClientTest
         HttpClient      httpClient = new HttpClientImpl();
         String          url        = "http://localhost:10086/config/endpoint";
         String          url2       = "http://47.97.109.181:2000/health";
-        HttpSendRequest request    = new HttpSendRequest().setUrl(url2).getRequest();
+        HttpSendRequest request    = new HttpSendRequest().setUrl(url).getRequest();
         for (int i = 0; i < 50; i++)
         {
             try (HttpReceiveResponse receiveResponse = httpClient.newCall(request))
@@ -49,16 +49,25 @@ public class HttpClientTest
             FileChannel fileChannel = FileChannel.open(file.toPath(), StandardOpenOption.WRITE);
             IoBuffer    buffer;
             int         maxBytes    = 0;
-            while ((buffer = receiveResponse.getChunked().take()) != HttpReceiveResponse.END_OF_CHUNKED)
+            do
             {
-                int write = fileChannel.write(buffer.readableByteBuffer());
-                if (write > maxBytes)
+                buffer = receiveResponse.getChunked().take();
+                if (receiveResponse.isEndOfChunked(buffer))
                 {
-                    maxBytes = write;
-                    System.out.println(maxBytes);
+                    break;
                 }
-                buffer.free();
+                else
+                {
+                    int write = fileChannel.write(buffer.readableByteBuffer());
+                    if (write > maxBytes)
+                    {
+                        maxBytes = write;
+                        System.out.println(maxBytes);
+                    }
+                    buffer.free();
+                }
             }
+            while (true);
             receiveResponse.close();
             System.out.println("文件" + i);
         }

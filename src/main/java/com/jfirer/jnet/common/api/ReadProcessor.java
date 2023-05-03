@@ -5,7 +5,7 @@ import java.nio.channels.ShutdownChannelGroupException;
 
 public interface ReadProcessor<T>
 {
-    ReadProcessor TAIL = new ReadProcessor()
+    ReadProcessor<Object> TAIL = new ReadProcessor<>()
     {
         @Override
         public void read(Object data, ReadProcessorNode next)
@@ -26,7 +26,7 @@ public interface ReadProcessor<T>
         @Override
         public void exceptionCatch(Throwable e, ReadProcessorNode next)
         {
-            if (e instanceof ClosedChannelException == false && e instanceof ShutdownChannelGroupException == false)
+            if (!(e instanceof ClosedChannelException) && !(e instanceof ShutdownChannelGroupException))
             {
                 e.printStackTrace();
             }

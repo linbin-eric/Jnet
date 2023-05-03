@@ -1,11 +1,11 @@
 package com.jfirer.jnet.extend.http.client;
 
 import com.jfirer.jnet.common.api.ReadProcessorNode;
-import com.jfirer.jnet.common.decoder.AbstractDecoder;
+import com.jfirer.jnet.extend.http.common.HttpDecoder;
 
 import java.nio.charset.StandardCharsets;
 
-public class HttpReceiveResponseDecoder extends AbstractDecoder
+public class HttpReceiveResponseDecoder extends HttpDecoder
 {
     private              HttpReceiveResponse receiveResponse;
     private              ParseState          state     = ParseState.RESPONSE_LINE;
@@ -143,7 +143,8 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
         }
         if (state == ParseState.BODY)
         {
-            findAllHeaders();
+            findAllHeaders(receiveResponse::putHeader);
+//            findAllHeaders();
             parseBodyType();
             next.fireRead(receiveResponse);
             return true;
@@ -156,8 +157,8 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
 
     private void parseBodyType()
     {
-        receiveResponse.getHeaders().entrySet().stream().filter(entry -> entry.getKey().equalsIgnoreCase("content-length")).findFirst().ifPresent(v -> receiveResponse.setContentLength(Integer.parseInt(v.getValue())));
-        receiveResponse.getHeaders().entrySet().stream().filter(entry -> entry.getKey().equalsIgnoreCase("Content-Type")).findFirst().ifPresent(v -> receiveResponse.setContentType(v.getValue()));
+        findContentType(receiveResponse.getHeaders(), receiveResponse::setContentType);
+        findContentLength(receiveResponse.getHeaders(), receiveResponse::setContentLength);
         if (receiveResponse.getContentLength() == 0)
         {
             if (receiveResponse.getHeaders().entrySet().stream().noneMatch(entry -> entry.getKey().equalsIgnoreCase("Transfer-Encoding")))
@@ -170,34 +171,6 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
         {
             state = ParseState.BODY_FIX_LENGTH;
         }
-    }
-
-    private void findAllHeaders()
-    {
-        String headerName = null, headerValue = null;
-        while (accumulation.get(accumulation.getReadPosi()) != '\r' || accumulation.get(accumulation.getReadPosi() + 1) != '\n')
-        {
-            for (int i = accumulation.getReadPosi(); i < accumulation.getWritePosi(); i++)
-            {
-                if (accumulation.get(i) == ':')
-                {
-                    headerName = StandardCharsets.US_ASCII.decode(accumulation.readableByteBuffer(i)).toString();
-                    accumulation.setReadPosi(i + 2);
-                    break;
-                }
-            }
-            for (int i = accumulation.getReadPosi(); i < accumulation.getWritePosi(); i++)
-            {
-                if (accumulation.get(i) == '\r')
-                {
-                    headerValue = StandardCharsets.US_ASCII.decode(accumulation.readableByteBuffer(i)).toString();
-                    accumulation.setReadPosi(i + 2);
-                    break;
-                }
-            }
-            receiveResponse.putHeader(headerName, headerValue);
-        }
-        accumulation.addReadPosi(2);
     }
 
     private boolean decodeResponseLine()

@@ -8,6 +8,8 @@ import com.jfirer.jnet.extend.http.decode.*;
 import com.jfirer.jnet.server.AioServer;
 
 import java.io.FileInputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 public class DownloadServerDemo
 {
@@ -23,7 +25,7 @@ public class DownloadServerDemo
                 {
                     HttpResponse response = new HttpResponse();
                     response.setContentType(ContentType.STREAM);
-                    response.getHeaders().put(ContentType.DISPOSITION, "attachment; filename=\"国家医疗保障疾病诊断相关分组（CHS-DRG）细分组（1.0版）.pdf\"");
+                    response.getHeaders().put(ContentType.DISPOSITION, "attachment; filename*=UTF-8''" + URLEncoder.encode("国家医疗保障疾病诊断相关分组（CHS-DRG）细分组（1.0版）.pdf", StandardCharsets.UTF_8));
                     FileInputStream fileInputStream = new FileInputStream("/Users/linbin/SynologyDrive/附件/357/参考材料/技术规范类/国家医疗保障疾病诊断相关分组（CHS-DRG）细分组（1.0版）.pdf");
                     response.setBodyBuffer(PooledBufferAllocator.DEFAULT.ioBuffer(1024).put(fileInputStream.readAllBytes()));
                     pipeline.fireWrite(response);
