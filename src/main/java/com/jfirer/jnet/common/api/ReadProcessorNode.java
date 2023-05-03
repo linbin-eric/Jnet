@@ -10,7 +10,7 @@ public interface ReadProcessorNode
 
     void fireReadClose();
 
-    void fireChannelClose();
+    void fireChannelClose(Throwable e);
 
     void setNext(ReadProcessorNode next);
 

@@ -6,6 +6,7 @@ import com.jfirer.jnet.common.api.Pipeline;
 import com.jfirer.jnet.common.api.ReadCompletionHandler;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
+import com.jfirer.jnet.common.exception.EndOfStreamException;
 import com.jfirer.jnet.common.util.ChannelConfig;
 import com.jfirer.jnet.common.util.MathUtil;
 
@@ -15,17 +16,17 @@ import java.util.List;
 
 public class AdaptiveReadCompletionHandler implements ReadCompletionHandler
 {
-    protected final AsynchronousSocketChannel socketChannel;
-    protected final BufferAllocator           allocator;
-    protected       ChannelContext            channelContext;
-    static final    int[]                     sizeTable;
-    private         int                       minIndex;
-    private         int                       maxIndex;
-    private         int                       index;
-    private final   int                       DECR_COUNT_MAX;
-    private         int                       decrCount;
-    private         InternalPipeline          pipeline;
-    private         IoBuffer                  ioBuffer;
+    public static final int[]                     sizeTable;
+    protected final     AsynchronousSocketChannel socketChannel;
+    protected final     BufferAllocator           allocator;
+    private final       int                       minIndex;
+    private final       int                       maxIndex;
+    private final       int                       DECR_COUNT_MAX;
+    private final       InternalPipeline          pipeline;
+    private             int                       index;
+    protected           ChannelContext            channelContext;
+    private             int                       decrCount;
+    private             IoBuffer                  ioBuffer;
     static
     {
         List<Integer> list = new ArrayList<>();
@@ -33,7 +34,7 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler
         {
             list.add(i);
         }
-        for (int i = 512; i < Integer.MAX_VALUE && i > 0; i <<= 1)
+        for (int i = 512; i > 0; i <<= 1)
         {
             list.add(i);
         }
@@ -60,8 +61,7 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler
         }
         else
         {
-            int i = MathUtil.log2(MathUtil.normalizeSize(num)) + 22;
-            return i;
+            return MathUtil.log2(MathUtil.normalizeSize(num)) + 22;
         }
     }
 
@@ -77,7 +77,7 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler
         minIndex = indexOf(config.getMinReceiveSize());
         maxIndex = indexOf(config.getMaxReceiveSize());
         index = indexOf(config.getInitReceiveSize());
-        index = index < minIndex ? minIndex : index;
+        index = Math.max(index, minIndex);
     }
 
     @Override
@@ -93,8 +93,8 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler
         if (read == -1)
         {
             ioBuffer.free();
-            Pipeline.invokeMethodIgnoreException(() -> pipeline.fireReadClose());
-            channelContext.close();
+            Pipeline.invokeMethodIgnoreException(pipeline::fireReadClose);
+            channelContext.close(new EndOfStreamException());
             return;
         }
         int except = ioBuffer.capacity();
@@ -151,7 +151,7 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler
             ioBuffer.free();
         }
         Pipeline.invokeMethodIgnoreException(() -> pipeline.fireExceptionCatch(e));
-        Pipeline.invokeMethodIgnoreException(() -> pipeline.fireReadClose());
+        Pipeline.invokeMethodIgnoreException(pipeline::fireReadClose);
         channelContext.close(e);
     }
 }

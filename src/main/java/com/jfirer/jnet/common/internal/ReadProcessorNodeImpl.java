@@ -56,9 +56,9 @@ public class ReadProcessorNodeImpl implements ReadProcessorNode
     }
 
     @Override
-    public void fireChannelClose()
+    public void fireChannelClose(Throwable e)
     {
-        doWork(() -> processor.channelClose(next));
+        doWork(() -> processor.channelClose(next, e));
     }
 
     @Override

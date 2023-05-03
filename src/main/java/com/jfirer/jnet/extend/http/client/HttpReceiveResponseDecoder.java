@@ -7,7 +7,6 @@ import com.jfirer.jnet.extend.http.decode.ContentType;
 
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingDeque;
 
 public class HttpReceiveResponseDecoder extends AbstractDecoder
 {
@@ -83,13 +82,15 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
         }
         else if (chunkSize > 0)
         {
-            receiveResponse.getBody().put(accumulation, chunkSize);
-            accumulation.addReadPosi(chunkSize + 2);
+            receiveResponse.getChunked().offer(accumulation.slice(chunkSize));
+//            receiveResponse.getBody().put(accumulation, chunkSize);
+            accumulation.addReadPosi(2);
             chunkSize = -1;
             return false;
         }
         else if (chunkSize == 0)
         {
+            receiveResponse.getChunked().offer(HttpReceiveResponse.END_OF_STREAM);
             next.fireRead(receiveResponse);
             receiveResponse = null;
             lastCheck = -1;
@@ -112,7 +113,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
             IoBuffer fragment = allocator.ioBuffer(accumulation.remainRead());
             accumulation.get(fragment, accumulation.remainRead());
             accumulation.compact();
-            receiveResponse.getStream().offer(fragment);
+            receiveResponse.getChunked().offer(fragment);
             bodyRead += fragment.getWritePosi();
             if (bodyRead >= receiveResponse.getContentLength())
             {
@@ -120,9 +121,9 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
                 //应用程序已经提前关闭了流，则此时流里可能存在Buffer，需要清空
                 if (receiveResponse.isClosed())
                 {
-                    receiveResponse.clearStream();
+                    receiveResponse.clearChunked();
                 }
-                receiveResponse.getStream().offer(HttpReceiveResponse.END_OF_STREAM);
+                receiveResponse.getChunked().offer(HttpReceiveResponse.END_OF_STREAM);
                 receiveResponse = null;
                 streamBody = false;
                 lastCheck = -1;
@@ -139,7 +140,8 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
         {
             if (accumulation.remainRead() >= receiveResponse.getContentLength())
             {
-                receiveResponse.setBody(accumulation.slice(receiveResponse.getContentLength()));
+                receiveResponse.getChunked().offer(accumulation.slice(receiveResponse.getContentLength()));
+                receiveResponse.getChunked().offer(HttpReceiveResponse.END_OF_STREAM);
                 next.fireRead(receiveResponse);
                 receiveResponse = null;
                 lastCheck = -1;
@@ -173,7 +175,6 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
             {
                 streamBody = true;
                 accumulation.capacityReadyFor(1024 * 1024 * 2);
-                receiveResponse.setStream(new LinkedBlockingDeque<>());
                 next.fireRead(receiveResponse);
             }
             return true;
@@ -195,7 +196,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
                 throw new IllegalStateException("无法读取到响应体长度也不是分块传输");
             }
             state = ParseState.BODY_CHUNKED;
-            receiveResponse.setBody(allocator.ioBuffer(1024));
+//            receiveResponse.setBody(allocator.ioBuffer(1024));
         }
         else
         {
@@ -263,24 +264,24 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
     }
 
     @Override
-    public void channelClose(ReadProcessorNode next)
+    public void channelClose(ReadProcessorNode next, Throwable e)
     {
         try
         {
             if (receiveResponse != null)
             {
                 receiveResponse.close();
-                BlockingQueue<IoBuffer> stream = receiveResponse.getStream();
+                BlockingQueue<IoBuffer> stream = receiveResponse.getChunked();
                 if (stream != null)
                 {
                     stream.offer(HttpReceiveResponse.CLOSE_OF_CHANNEL);
                 }
             }
         }
-        catch (Exception e)
+        catch (Exception e1)
         {
             ;
         }
-        super.channelClose(next);
+        super.channelClose(next, e);
     }
 }

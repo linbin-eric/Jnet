@@ -37,7 +37,7 @@ public class Demo
             file.createNewFile();
             FileChannel fileChannel = FileChannel.open(file.toPath(), StandardOpenOption.WRITE);
             IoBuffer    buffer;
-            while ((buffer = receiveResponse.getStream().take()) != HttpReceiveResponse.END_OF_STREAM)
+            while ((buffer = receiveResponse.getChunked().take()) != HttpReceiveResponse.END_OF_STREAM)
             {
                 fileChannel.write(buffer.readableByteBuffer());
                 buffer.free();

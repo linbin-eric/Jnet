@@ -11,22 +11,15 @@ import java.nio.channels.AsynchronousSocketChannel;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-public class DefaultClient implements JnetClient
+public class ClientChannelImpl implements ClientChannel
 {
-    enum ConnectedState
-    {
-        NOT_INIT,
-        CONNECTED,
-        DISCONNECTED
-    }
-
     private volatile ConnectedState            state = ConnectedState.NOT_INIT;
     private          InternalPipeline          pipeline;
     private          ChannelContext            channelContext;
     private          ChannelConfig             channelConfig;
     private          ChannelContextInitializer initializer;
 
-    public DefaultClient(ChannelConfig channelConfig, ChannelContextInitializer initializer)
+    public ClientChannelImpl(ChannelConfig channelConfig, ChannelContextInitializer initializer)
     {
         this.channelConfig = channelConfig;
         this.initializer = initializer;
@@ -51,10 +44,10 @@ public class DefaultClient implements JnetClient
                     pipeline.addReadProcessor(new ReadProcessor<>()
                     {
                         @Override
-                        public void channelClose(ReadProcessorNode next)
+                        public void channelClose(ReadProcessorNode next, Throwable e)
                         {
                             state = ConnectedState.DISCONNECTED;
-                            next.fireChannelClose();
+                            next.fireChannelClose(e);
                         }
 
                         @Override

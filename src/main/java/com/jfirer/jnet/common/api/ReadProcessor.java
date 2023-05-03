@@ -19,7 +19,7 @@ public interface ReadProcessor<T>
         }
 
         @Override
-        public void channelClose(ReadProcessorNode next)
+        public void channelClose(ReadProcessorNode next, Throwable e)
         {
         }
 
@@ -61,9 +61,9 @@ public interface ReadProcessor<T>
      *
      * @param next
      */
-    default void channelClose(ReadProcessorNode next)
+    default void channelClose(ReadProcessorNode next, Throwable e)
     {
-        next.fireChannelClose();
+        next.fireChannelClose(e);
     }
 
     /**

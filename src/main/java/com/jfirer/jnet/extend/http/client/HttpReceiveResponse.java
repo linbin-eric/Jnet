@@ -3,13 +3,18 @@ package com.jfirer.jnet.extend.http.client;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.buffer.buffer.impl.UnPooledBuffer;
+import com.jfirer.jnet.common.util.ReflectUtil;
 import com.jfirer.jnet.common.util.UNSAFE;
+import lombok.AccessLevel;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.function.Consumer;
 
 @Data
@@ -19,13 +24,16 @@ public class HttpReceiveResponse implements AutoCloseable
     private             Map<String, String>           headers          = new HashMap<>();
     private             int                           contentLength;
     private             String                        contentType;
-    private             IoBuffer                      body;
-    private             BlockingQueue<IoBuffer>       stream;
+    private             BlockingQueue<IoBuffer>       chunked          = new LinkedBlockingDeque<>();
     private             Consumer<HttpReceiveResponse> onClose;
     /**
      * 1代表使用中，0代表已关闭
      */
     private volatile    int                           closed           = 1;
+    private volatile    boolean                       consumered       = false;
+    @Setter(AccessLevel.NONE)
+    @Getter(AccessLevel.NONE)
+    private             IoBuffer                      aggregation;
     public static final long                          CLOSED_OFFSET    = UNSAFE.getFieldOffset("closed", HttpReceiveResponse.class);
     public static final IoBuffer                      END_OF_STREAM    = new UnPooledBuffer(BufferType.HEAP);
     public static final IoBuffer                      CLOSE_OF_CHANNEL = new UnPooledBuffer(BufferType.HEAP);
@@ -40,11 +48,11 @@ public class HttpReceiveResponse implements AutoCloseable
     {
         if (closed == 1 && UNSAFE.compareAndSwapInt(this, CLOSED_OFFSET, 1, 0))
         {
-            if (body != null)
+            if (aggregation != null)
             {
-                body.free();
+                aggregation.free();
             }
-            clearStream();
+            clearChunked();
             if (onClose != null)
             {
                 onClose.accept(this);
@@ -52,9 +60,65 @@ public class HttpReceiveResponse implements AutoCloseable
         }
     }
 
+    public IoBuffer waitForAllBodyPart()
+    {
+        if (consumered)
+        {
+            throw new IllegalStateException("不能重复消费，当前已经消费过该响应内容体");
+        }
+        consumered = true;
+        try
+        {
+            aggregation = chunked.take();
+        }
+        catch (InterruptedException e)
+        {
+            ReflectUtil.throwException(e);
+        }
+        if (aggregation != END_OF_STREAM && aggregation != CLOSE_OF_CHANNEL)
+        {
+            do
+            {
+                IoBuffer another = null;
+                try
+                {
+                    another = chunked.take();
+                }
+                catch (InterruptedException e)
+                {
+                    aggregation.free();
+                    ReflectUtil.throwException(e);
+                }
+                if (another != END_OF_STREAM && another != CLOSE_OF_CHANNEL)
+                {
+                    aggregation.put(another);
+                    another.free();
+                }
+                else
+                {
+                    break;
+                }
+            }
+            while (true);
+            return aggregation;
+        }
+        else
+        {
+            return null;
+        }
+    }
+
     public String getUTF8Body()
     {
-        return StandardCharsets.UTF_8.decode(body.readableByteBuffer()).toString();
+        IoBuffer body = waitForAllBodyPart();
+        if (body != null)
+        {
+            return StandardCharsets.UTF_8.decode(body.readableByteBuffer()).toString();
+        }
+        else
+        {
+            return null;
+        }
     }
 
     public boolean isClosed()
@@ -70,12 +134,12 @@ public class HttpReceiveResponse implements AutoCloseable
     /**
      * 释放Stream内的Buffer
      */
-    public void clearStream()
+    public void clearChunked()
     {
-        if (stream != null)
+        if (chunked != null)
         {
             IoBuffer buffer;
-            while ((buffer = stream.poll()) != null)
+            while ((buffer = chunked.poll()) != null)
             {
                 if (buffer != END_OF_STREAM || buffer != CLOSE_OF_CHANNEL)
                 {

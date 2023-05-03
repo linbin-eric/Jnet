@@ -4,7 +4,7 @@ public interface InternalPipeline extends Pipeline
 {
     void fireRead(Object data);
 
-    void fireChannelClose();
+    void fireChannelClose(Throwable e);
 
     void fireExceptionCatch(Throwable e);
 

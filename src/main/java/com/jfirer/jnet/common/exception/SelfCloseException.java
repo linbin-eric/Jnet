@@ -1,5 +1,8 @@
 package com.jfirer.jnet.common.exception;
 
+import java.util.Arrays;
+import java.util.stream.Collectors;
+
 /**
  * 如果程序自己关闭连接并没有什么异常的时候，就选择这个异常
  *
@@ -14,6 +17,6 @@ public class SelfCloseException extends JnetException
 
     public SelfCloseException()
     {
-        super("代码己关闭了连接");
+        super("代码自己关闭了连接，调用链路为:\r\n" + Arrays.stream(Thread.currentThread().getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining("\r\n")));
     }
 }

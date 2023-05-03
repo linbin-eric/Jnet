@@ -94,9 +94,9 @@ public class DefaultPipeline implements InternalPipeline
     }
 
     @Override
-    public void fireChannelClose()
+    public void fireChannelClose(Throwable e)
     {
-        readHead.fireChannelClose();
+        readHead.fireChannelClose(e);
     }
 
     @Override

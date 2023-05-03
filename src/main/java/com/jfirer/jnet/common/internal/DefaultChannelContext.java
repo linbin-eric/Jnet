@@ -3,6 +3,7 @@ package com.jfirer.jnet.common.internal;
 import com.jfirer.jnet.common.api.ChannelContext;
 import com.jfirer.jnet.common.api.InternalPipeline;
 import com.jfirer.jnet.common.api.Pipeline;
+import com.jfirer.jnet.common.exception.SelfCloseException;
 import com.jfirer.jnet.common.util.ChannelConfig;
 
 import java.nio.channels.AsynchronousSocketChannel;
@@ -12,8 +13,8 @@ public class DefaultChannelContext extends AtomicInteger implements ChannelConte
 {
     private static final int                       OPEN  = 1;
     private static final int                       CLOSE = 0;
-    private              AsynchronousSocketChannel socketChannel;
-    private              ChannelConfig             channelConfig;
+    private final        AsynchronousSocketChannel socketChannel;
+    private final        ChannelConfig             channelConfig;
     private              InternalPipeline          pipeline;
 
     public DefaultChannelContext(AsynchronousSocketChannel socketChannel, ChannelConfig channelConfig)
@@ -21,6 +22,7 @@ public class DefaultChannelContext extends AtomicInteger implements ChannelConte
         this.socketChannel = socketChannel;
         this.channelConfig = channelConfig;
         set(OPEN);
+        pipeline = new DefaultPipeline(channelConfig.getWorkerGroup().next(), this);
     }
 
     @Override
@@ -44,13 +46,13 @@ public class DefaultChannelContext extends AtomicInteger implements ChannelConte
     @Override
     public void close()
     {
-        close(null);
+        close(new SelfCloseException());
     }
 
     @Override
     public void close(Throwable e)
     {
-        if (compareAndSet(OPEN, CLOSE) == false)
+        if (!compareAndSet(OPEN, CLOSE))
         {
             return;
         }
@@ -58,11 +60,11 @@ public class DefaultChannelContext extends AtomicInteger implements ChannelConte
         {
             socketChannel.close();
         }
-        catch (Throwable e1)
+        catch (Throwable ignored)
         {
             ;
         }
-        pipeline.fireChannelClose();
+        pipeline.fireChannelClose(e);
     }
 
     public void setPipeline(InternalPipeline pipeline)

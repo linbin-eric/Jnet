@@ -1,6 +1,7 @@
 package com.jfirer.jnet.extend.http.client;
 
-import com.jfirer.jnet.client.DefaultClient;
+import com.jfirer.jnet.client.ClientChannel;
+import com.jfirer.jnet.client.ClientChannelImpl;
 import com.jfirer.jnet.common.api.Pipeline;
 import com.jfirer.jnet.common.api.ReadProcessor;
 import com.jfirer.jnet.common.api.ReadProcessorNode;
@@ -10,60 +11,52 @@ import com.jfirer.jnet.common.util.ReflectUtil;
 
 import java.net.ConnectException;
 import java.nio.channels.ClosedChannelException;
-import java.util.concurrent.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.LinkedBlockingDeque;
 
 public class HttpClientImpl implements HttpClient
 {
     record Connection(String domain, int port) {}
 
-    private              ConcurrentMap<Connection, Recycler<ClientWrapper>> map               = new ConcurrentHashMap<>();
-    private static final Object                                             END_OF_CONNECTION = new Object();
-    private static final long                                               KEEP_ALIVE_TIME   = 1000 * 60 * 5;
+    private ConcurrentMap<Connection, Recycler<ClientConnection>> map = new ConcurrentHashMap<>();
 
     @Override
     public HttpReceiveResponse newCall(HttpSendRequest request) throws Exception
     {
         perfect(request);
-        Connection              connection    = new Connection(request.getDoMain(), request.getPort());
-        Recycler<ClientWrapper> recycler      = findRecycler(connection);
-        ClientWrapper           clientWrapper = getAvailableClient(request, recycler);
-        return writeAndWaitForResponse(request, clientWrapper);
+        Connection                 connection       = new Connection(request.getDoMain(), request.getPort());
+        Recycler<ClientConnection> recycler         = findRecycler(connection);
+        ClientConnection           clientConnection = getAvailableClient(request, recycler);
+        return writeAndWaitForResponse(request, clientConnection);
     }
 
-    private static HttpReceiveResponse writeAndWaitForResponse(HttpSendRequest request, ClientWrapper clientWrapper) throws InterruptedException, ClosedChannelException
+    private static HttpReceiveResponse writeAndWaitForResponse(HttpSendRequest request, ClientConnection clientConnection) throws InterruptedException, ClosedChannelException
     {
-        clientWrapper.client.write(request);
-        Object poll = clientWrapper.sync.poll(5, TimeUnit.DAYS);
-        if (poll == END_OF_CONNECTION)
-        {
-            throw new ClosedChannelException();
-        }
-        else
-        {
-            ((HttpReceiveResponse) poll).setOnClose(v -> {
-                clientWrapper.lastRespoonseTime = System.currentTimeMillis();
-                clientWrapper.handler.recycle(clientWrapper);
-            });
-            return (HttpReceiveResponse) poll;
-        }
+        clientConnection.client.write(request);
+        HttpReceiveResponse response = clientConnection.waitForResponse();
+        response.setOnClose(v -> clientConnection.recycle());
+        return response;
     }
 
-    private Recycler<ClientWrapper> findRecycler(Connection connection)
+    private Recycler<ClientConnection> findRecycler(Connection connection)
     {
-        Recycler<ClientWrapper> recycler = map.computeIfAbsent(connection, c -> new Recycler<>(() -> {
+        return map.computeIfAbsent(connection, c -> new Recycler<>(() -> {
             ChannelConfig channelConfig = new ChannelConfig();
             channelConfig.setIp(c.domain);
             channelConfig.setPort(c.port);
-            BlockingQueue<Object> sync = new LinkedBlockingDeque<>();
-            DefaultClient defaultClient = new DefaultClient(channelConfig, channelContext -> {
+            BlockingQueue<HttpReceiveResponse> sync = new LinkedBlockingDeque<>();
+            ClientChannel clientChannel = new ClientChannelImpl(channelConfig, channelContext -> {
                 Pipeline pipeline = channelContext.pipeline();
                 pipeline.addReadProcessor(new HttpReceiveResponseDecoder());
                 pipeline.addReadProcessor(new ReadProcessor<HttpReceiveResponse>()
                 {
                     @Override
-                    public void channelClose(ReadProcessorNode next)
+                    public void channelClose(ReadProcessorNode next, Throwable e)
                     {
-                        sync.offer(END_OF_CONNECTION);
+                        sync.offer(ClientConnection.CLOSE_OF_CONNECTION);
+                        e.printStackTrace();
                     }
 
                     @Override
@@ -74,41 +67,53 @@ public class HttpClientImpl implements HttpClient
                 });
                 pipeline.addWriteProcessor(new HttpSendRequestEncoder());
             });
-            return new ClientWrapper(defaultClient, sync);
-        }, (clientWrapper, handler) -> clientWrapper.handler = handler));
-        return recycler;
+            if (!clientChannel.connect())
+            {
+                ReflectUtil.throwException(new ConnectException("无法连接" + connection.domain + ":" + connection.port));
+            }
+            return new ClientConnection(clientChannel, sync);
+        }, ClientConnection::setHandler));
     }
 
-    private ClientWrapper getAvailableClient(HttpSendRequest request, Recycler<ClientWrapper> recycler)
+    private ClientConnection getAvailableClient(HttpSendRequest request, Recycler<ClientConnection> recycler)
     {
-        ClientWrapper clientWrapper = recycler.get();
-        if (!clientWrapper.client.connect())
+        ClientConnection clientConnection = null;
+        try
         {
-            if (request.getBody() != null)
-            {
-                request.getBody().free();
-            }
-            clientWrapper.client.close();
-            ReflectUtil.throwException(new ConnectException("无法连接:" + request.getDoMain() + ":" + request.getPort()));
+            clientConnection = recycler.get();
         }
-        if (!clientWrapper.client.alive() || (System.currentTimeMillis() - clientWrapper.lastRespoonseTime) > KEEP_ALIVE_TIME)
+        catch (Exception e)
         {
-            clientWrapper.client.close();
+            ReflectUtil.throwException(e);
+        }
+        if (clientConnection.isConnectionClosed())
+        {
+            clientConnection.client.close();
             do
             {
-                clientWrapper = recycler.get();
-                if (!clientWrapper.client.alive() || (System.currentTimeMillis() - clientWrapper.lastRespoonseTime) > KEEP_ALIVE_TIME)
+                try
                 {
-                    clientWrapper.client.close();
+                    clientConnection = recycler.get();
+                }
+                catch (Throwable e)
+                {
+                    ReflectUtil.throwException(e);
+                }
+                if (clientConnection.isConnectionClosed())
+                {
+                    clientConnection.client.close();
                 }
                 else
                 {
-                    break;
+                    return clientConnection;
                 }
             }
             while (true);
         }
-        return clientWrapper;
+        else
+        {
+            return clientConnection;
+        }
     }
 
     private static void perfect(HttpSendRequest request)

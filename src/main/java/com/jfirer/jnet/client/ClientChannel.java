@@ -1,6 +1,6 @@
 package com.jfirer.jnet.client;
 
-public interface JnetClient
+public interface ClientChannel
 {
     /**
      * 创建链接。重复调用无效，如果在该链接已经被关闭，调用该方法会抛出异常。
@@ -20,4 +20,11 @@ public interface JnetClient
     void write(Object data);
 
     void close();
+
+    enum ConnectedState
+    {
+        NOT_INIT,
+        CONNECTED,
+        DISCONNECTED
+    }
 }

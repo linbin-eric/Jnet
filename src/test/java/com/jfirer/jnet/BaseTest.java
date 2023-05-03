@@ -1,7 +1,7 @@
 package com.jfirer.jnet;
 
-import com.jfirer.jnet.client.DefaultClient;
-import com.jfirer.jnet.client.JnetClient;
+import com.jfirer.jnet.client.ClientChannel;
+import com.jfirer.jnet.client.ClientChannelImpl;
 import com.jfirer.jnet.common.api.Pipeline;
 import com.jfirer.jnet.common.api.ReadProcessor;
 import com.jfirer.jnet.common.api.ReadProcessorNode;
@@ -37,7 +37,7 @@ public class BaseTest
     private              int             port         = 7598;
     private              int             numPerThread = 20000000;
     private              int             numClients   = 4;
-    private              JnetClient[]    clients;
+    private              ClientChannel[] clients;
     private              CountDownLatch  latch        = new CountDownLatch(numClients);
     private              int[][]         results;
     private              BufferAllocator bufferAllocator;
@@ -47,7 +47,7 @@ public class BaseTest
     {
         ChannelConfig channelConfig = new ChannelConfig();
         this.bufferAllocator = channelConfig.getAllocator();
-        clients = new JnetClient[numClients];
+        clients = new ClientChannel[numClients];
         results = new int[numClients][numPerThread];
         for (int i = 0; i < numClients; i++)
         {
@@ -70,7 +70,7 @@ public class BaseTest
         {
             final int   index  = i;
             final int[] result = results[index];
-            clients[i] = new DefaultClient(channelConfig, channelContext -> {
+            clients[i] = new ClientChannelImpl(channelConfig, channelContext -> {
                 Pipeline pipeline = channelContext.pipeline();
                 pipeline.addReadProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024 * 4, channelContext.channelConfig().getAllocator()));
                 pipeline.addReadProcessor(new ReadProcessor()
@@ -105,7 +105,7 @@ public class BaseTest
         {
             final int index = i;
             new Thread(() -> {
-                JnetClient client = clients[index];
+                ClientChannel client = clients[index];
                 try
                 {
                     barrier.await();
@@ -158,7 +158,7 @@ public class BaseTest
             }
         }
         System.out.println("验证通过");
-        for (JnetClient each : clients)
+        for (ClientChannel each : clients)
         {
             each.close();
         }
