@@ -6,7 +6,6 @@ import com.jfirer.jnet.common.decoder.AbstractDecoder;
 import com.jfirer.jnet.extend.http.decode.ContentType;
 
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.BlockingQueue;
 
 public class HttpReceiveResponseDecoder extends AbstractDecoder
 {
@@ -82,15 +81,13 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
         }
         else if (chunkSize > 0)
         {
-            receiveResponse.getChunked().offer(accumulation.slice(chunkSize));
-//            receiveResponse.getBody().put(accumulation, chunkSize);
+            receiveResponse.addChunked(accumulation.slice(chunkSize));
             accumulation.addReadPosi(2);
             chunkSize = -1;
             return false;
         }
         else if (chunkSize == 0)
         {
-            receiveResponse.getChunked().offer(HttpReceiveResponse.END_OF_STREAM);
             next.fireRead(receiveResponse);
             receiveResponse = null;
             lastCheck = -1;
@@ -113,7 +110,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
             IoBuffer fragment = allocator.ioBuffer(accumulation.remainRead());
             accumulation.get(fragment, accumulation.remainRead());
             accumulation.compact();
-            receiveResponse.getChunked().offer(fragment);
+            receiveResponse.addChunked(fragment);
             bodyRead += fragment.getWritePosi();
             if (bodyRead >= receiveResponse.getContentLength())
             {
@@ -123,7 +120,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
                 {
                     receiveResponse.clearChunked();
                 }
-                receiveResponse.getChunked().offer(HttpReceiveResponse.END_OF_STREAM);
+                receiveResponse.addChunked(HttpReceiveResponse.END_OF_CHUNKED);
                 receiveResponse = null;
                 streamBody = false;
                 lastCheck = -1;
@@ -140,8 +137,8 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
         {
             if (accumulation.remainRead() >= receiveResponse.getContentLength())
             {
-                receiveResponse.getChunked().offer(accumulation.slice(receiveResponse.getContentLength()));
-                receiveResponse.getChunked().offer(HttpReceiveResponse.END_OF_STREAM);
+                receiveResponse.addChunked(accumulation.slice(receiveResponse.getContentLength()));
+                receiveResponse.addChunked(HttpReceiveResponse.END_OF_CHUNKED);
                 next.fireRead(receiveResponse);
                 receiveResponse = null;
                 lastCheck = -1;
@@ -191,7 +188,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
         receiveResponse.getHeaders().entrySet().stream().filter(entry -> entry.getKey().equalsIgnoreCase("Content-Type")).findFirst().ifPresent(v -> receiveResponse.setContentType(v.getValue()));
         if (receiveResponse.getContentLength() == 0)
         {
-            if (!receiveResponse.getHeaders().entrySet().stream().anyMatch(entry -> entry.getKey().equalsIgnoreCase("Transfer-Encoding")))
+            if (receiveResponse.getHeaders().entrySet().stream().noneMatch(entry -> entry.getKey().equalsIgnoreCase("Transfer-Encoding")))
             {
                 throw new IllegalStateException("无法读取到响应体长度也不是分块传输");
             }
@@ -271,14 +268,9 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
             if (receiveResponse != null)
             {
                 receiveResponse.close();
-                BlockingQueue<IoBuffer> stream = receiveResponse.getChunked();
-                if (stream != null)
-                {
-                    stream.offer(HttpReceiveResponse.CLOSE_OF_CHANNEL);
-                }
             }
         }
-        catch (Exception e1)
+        catch (Exception ignored)
         {
             ;
         }

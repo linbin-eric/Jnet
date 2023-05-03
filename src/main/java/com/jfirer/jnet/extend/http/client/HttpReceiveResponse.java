@@ -35,7 +35,7 @@ public class HttpReceiveResponse implements AutoCloseable
     @Getter(AccessLevel.NONE)
     private             IoBuffer                      aggregation;
     public static final long                          CLOSED_OFFSET    = UNSAFE.getFieldOffset("closed", HttpReceiveResponse.class);
-    public static final IoBuffer                      END_OF_STREAM    = new UnPooledBuffer(BufferType.HEAP);
+    public static final IoBuffer                      END_OF_CHUNKED   = new UnPooledBuffer(BufferType.HEAP);
     public static final IoBuffer                      CLOSE_OF_CHANNEL = new UnPooledBuffer(BufferType.HEAP);
 
     public void putHeader(String name, String value)
@@ -53,6 +53,7 @@ public class HttpReceiveResponse implements AutoCloseable
                 aggregation.free();
             }
             clearChunked();
+            chunked.add(CLOSE_OF_CHANNEL);
             if (onClose != null)
             {
                 onClose.accept(this);
@@ -75,7 +76,7 @@ public class HttpReceiveResponse implements AutoCloseable
         {
             ReflectUtil.throwException(e);
         }
-        if (aggregation != END_OF_STREAM && aggregation != CLOSE_OF_CHANNEL)
+        if (aggregation != END_OF_CHUNKED && aggregation != CLOSE_OF_CHANNEL)
         {
             do
             {
@@ -89,7 +90,7 @@ public class HttpReceiveResponse implements AutoCloseable
                     aggregation.free();
                     ReflectUtil.throwException(e);
                 }
-                if (another != END_OF_STREAM && another != CLOSE_OF_CHANNEL)
+                if (another != END_OF_CHUNKED && another != CLOSE_OF_CHANNEL)
                 {
                     aggregation.put(another);
                     another.free();
@@ -141,11 +142,21 @@ public class HttpReceiveResponse implements AutoCloseable
             IoBuffer buffer;
             while ((buffer = chunked.poll()) != null)
             {
-                if (buffer != END_OF_STREAM || buffer != CLOSE_OF_CHANNEL)
+                if (buffer != END_OF_CHUNKED || buffer != CLOSE_OF_CHANNEL)
                 {
                     buffer.free();
                 }
             }
         }
+    }
+
+    public void addChunked(IoBuffer buffer)
+    {
+        chunked.add(buffer);
+    }
+
+    public void endChunked()
+    {
+        chunked.add(END_OF_CHUNKED);
     }
 }

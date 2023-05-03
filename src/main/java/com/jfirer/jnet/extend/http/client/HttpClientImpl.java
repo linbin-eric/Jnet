@@ -20,27 +20,26 @@ public class HttpClientImpl implements HttpClient
 {
     record Connection(String domain, int port) {}
 
-    private ConcurrentMap<Connection, Recycler<ClientConnection>> map = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Connection, Recycler<HttpConnection>> map = new ConcurrentHashMap<>();
 
     @Override
     public HttpReceiveResponse newCall(HttpSendRequest request) throws Exception
     {
         perfect(request);
-        Connection                 connection       = new Connection(request.getDoMain(), request.getPort());
-        Recycler<ClientConnection> recycler         = findRecycler(connection);
-        ClientConnection           clientConnection = getAvailableClient(request, recycler);
-        return writeAndWaitForResponse(request, clientConnection);
+        Recycler<HttpConnection> recycler       = findRecycler(new Connection(request.getDoMain(), request.getPort()));
+        HttpConnection           httpConnection = getAvailableClient(request, recycler);
+        return writeAndWaitForResponse(request, httpConnection);
     }
 
-    private static HttpReceiveResponse writeAndWaitForResponse(HttpSendRequest request, ClientConnection clientConnection) throws InterruptedException, ClosedChannelException
+    private static HttpReceiveResponse writeAndWaitForResponse(HttpSendRequest request, HttpConnection httpConnection) throws InterruptedException, ClosedChannelException
     {
-        clientConnection.client.write(request);
-        HttpReceiveResponse response = clientConnection.waitForResponse();
-        response.setOnClose(v -> clientConnection.recycle());
+        httpConnection.client.write(request);
+        HttpReceiveResponse response = httpConnection.waitForResponse();
+        response.setOnClose(v -> httpConnection.recycle());
         return response;
     }
 
-    private Recycler<ClientConnection> findRecycler(Connection connection)
+    private Recycler<HttpConnection> findRecycler(Connection connection)
     {
         return map.computeIfAbsent(connection, c -> new Recycler<>(() -> {
             ChannelConfig channelConfig = new ChannelConfig();
@@ -55,7 +54,7 @@ public class HttpClientImpl implements HttpClient
                     @Override
                     public void channelClose(ReadProcessorNode next, Throwable e)
                     {
-                        sync.offer(ClientConnection.CLOSE_OF_CONNECTION);
+                        sync.offer(HttpConnection.CLOSE_OF_CONNECTION);
                         e.printStackTrace();
                     }
 
@@ -71,48 +70,48 @@ public class HttpClientImpl implements HttpClient
             {
                 ReflectUtil.throwException(new ConnectException("无法连接" + connection.domain + ":" + connection.port));
             }
-            return new ClientConnection(clientChannel, sync);
-        }, ClientConnection::setHandler));
+            return new HttpConnection(clientChannel, sync);
+        }, HttpConnection::setHandler));
     }
 
-    private ClientConnection getAvailableClient(HttpSendRequest request, Recycler<ClientConnection> recycler)
+    private HttpConnection getAvailableClient(HttpSendRequest request, Recycler<HttpConnection> recycler)
     {
-        ClientConnection clientConnection = null;
+        HttpConnection httpConnection = null;
         try
         {
-            clientConnection = recycler.get();
+            httpConnection = recycler.get();
         }
         catch (Exception e)
         {
             ReflectUtil.throwException(e);
         }
-        if (clientConnection.isConnectionClosed())
+        if (httpConnection.isConnectionClosed())
         {
-            clientConnection.client.close();
+            httpConnection.client.close();
             do
             {
                 try
                 {
-                    clientConnection = recycler.get();
+                    httpConnection = recycler.get();
                 }
                 catch (Throwable e)
                 {
                     ReflectUtil.throwException(e);
                 }
-                if (clientConnection.isConnectionClosed())
+                if (httpConnection.isConnectionClosed())
                 {
-                    clientConnection.client.close();
+                    httpConnection.client.close();
                 }
                 else
                 {
-                    return clientConnection;
+                    return httpConnection;
                 }
             }
             while (true);
         }
         else
         {
-            return clientConnection;
+            return httpConnection;
         }
     }
 

@@ -30,14 +30,14 @@ public class Demo
 //            System.out.println((count++) + ":" + StandardCharsets.UTF_8.decode(body.readableByteBuffer()).toString());
 //            httpReceiveResponse.close();
 //        }
-        for (int i = 0; i < 50; i++)
+        for (int i = 0; i < 10; i++)
         {
             HttpReceiveResponse receiveResponse = httpClient.newCall(new HttpSendRequest().setUrl("http://yynas.cn:5678/operation2.sql").getRequest());
             File                file            = new File("/Users/linbin/Downloads/" + System.currentTimeMillis());
             file.createNewFile();
             FileChannel fileChannel = FileChannel.open(file.toPath(), StandardOpenOption.WRITE);
             IoBuffer    buffer;
-            while ((buffer = receiveResponse.getChunked().take()) != HttpReceiveResponse.END_OF_STREAM)
+            while ((buffer = receiveResponse.getChunked().take()) != HttpReceiveResponse.END_OF_CHUNKED)
             {
                 fileChannel.write(buffer.readableByteBuffer());
                 buffer.free();
