@@ -302,6 +302,16 @@ public abstract class AbstractBuffer implements IoBuffer
     }
 
     @Override
+    public ByteBuffer readableByteBuffer(int posi)
+    {
+        if (posi <= readPosi || posi > writePosi)
+        {
+            throw new IllegalArgumentException("posi超出了允许范围，只能在[" + readPosi + "," + writePosi + ")内");
+        }
+        return rwDelegation.readableByteBuffer(memory, offset, nativeAddress, readPosi, posi);
+    }
+
+    @Override
     public IoBuffer get(byte[] content)
     {
         return get(content, 0, content.length);

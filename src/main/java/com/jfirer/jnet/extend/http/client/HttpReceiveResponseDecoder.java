@@ -1,26 +1,20 @@
 package com.jfirer.jnet.extend.http.client;
 
 import com.jfirer.jnet.common.api.ReadProcessorNode;
-import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.decoder.AbstractDecoder;
-import com.jfirer.jnet.extend.http.decode.ContentType;
 
 import java.nio.charset.StandardCharsets;
 
 public class HttpReceiveResponseDecoder extends AbstractDecoder
 {
     private              HttpReceiveResponse receiveResponse;
-    private              ParseState          state      = ParseState.RESPONSE_LINE;
-    private              int                 lastCheck  = -1;
-    private final        byte[]              httpCode   = new byte[3];
-    private              int                 bodyRead   = 0;
-    private              int                 chunkSize  = -1;
-    /**
-     * 响应体类型是二进制数据
-     */
-    private              boolean             streamBody = false;
-    private static final byte                re         = "\r".getBytes(StandardCharsets.US_ASCII)[0];
-    private static final byte                nl         = "\n".getBytes(StandardCharsets.US_ASCII)[0];
+    private              ParseState          state     = ParseState.RESPONSE_LINE;
+    private              int                 lastCheck = -1;
+    private final        byte[]              httpCode  = new byte[3];
+    private              int                 bodyRead  = 0;
+    private              int                 chunkSize = -1;
+    private static final byte                re        = "\r".getBytes(StandardCharsets.US_ASCII)[0];
+    private static final byte                nl        = "\n".getBytes(StandardCharsets.US_ASCII)[0];
 
     public HttpReceiveResponseDecoder()
     {
@@ -43,113 +37,96 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
         {
             receiveResponse = new HttpReceiveResponse();
         }
-        boolean nextRound = false;
+        boolean goToNextState = false;
         do
         {
             switch (state)
             {
-                case RESPONSE_LINE -> nextRound = decodeResponseLine();
-                case HEADER -> nextRound = decodeHeader(next);
+                case RESPONSE_LINE -> goToNextState = decodeResponseLine();
+                case HEADER -> goToNextState = decodeHeader(next);
                 case BODY_FIX_LENGTH ->
-                        nextRound = decodeBodyWithFixLength(next);
-                case BODY_CHUNKED -> nextRound = decodeBodyWithChunked(next);
-            }
-        }
-        while (nextRound);
-    }
-
-    private boolean decodeBodyWithChunked(ReadProcessorNode next)
-    {
-        if (chunkSize == -1)
-        {
-            for (int i = accumulation.getReadPosi(); i < accumulation.getWritePosi(); i++)
-            {
-                if (accumulation.get(i) == '\r' && accumulation.get(i + 1) == '\n')
                 {
-                    int mark = accumulation.getWritePosi();
-                    accumulation.setWritePosi(i);
-                    chunkSize = Integer.parseInt(StandardCharsets.US_ASCII.decode(accumulation.readableByteBuffer()).toString(), 16);
-                    accumulation.setWritePosi(mark);
-                    accumulation.setReadPosi(i + 2);
-                    break;
+                    decodeBodyWithFixLength();
+                    return;
+                }
+                case BODY_CHUNKED ->
+                {
+                    decodeBodyWithChunked();
+                    return;
                 }
             }
         }
-        if (chunkSize == -1 || (chunkSize > 0 && accumulation.remainRead() < chunkSize + 2))
-        {
-            return false;
-        }
-        else if (chunkSize > 0)
-        {
-            receiveResponse.addChunked(accumulation.slice(chunkSize));
-            accumulation.addReadPosi(2);
-            chunkSize = -1;
-            return false;
-        }
-        else if (chunkSize == 0)
-        {
-            next.fireRead(receiveResponse);
-            receiveResponse = null;
-            lastCheck = -1;
-            chunkSize = -1;
-            state = ParseState.RESPONSE_LINE;
-            accumulation.addReadPosi(2);
-            compactIfNeed();
-            return true;
-        }
-        else
-        {
-            return false;
-        }
+        while (goToNextState);
     }
 
-    private boolean decodeBodyWithFixLength(ReadProcessorNode next)
+    private void decodeBodyWithChunked()
     {
-        if (streamBody)
+        do
         {
-            IoBuffer fragment = allocator.ioBuffer(accumulation.remainRead());
-            accumulation.get(fragment, accumulation.remainRead());
-            accumulation.compact();
-            receiveResponse.addChunked(fragment);
-            bodyRead += fragment.getWritePosi();
-            if (bodyRead >= receiveResponse.getContentLength())
+            if (chunkSize == -1)
             {
-                bodyRead = 0;
-                //应用程序已经提前关闭了流，则此时流里可能存在Buffer，需要清空
+                for (int i = accumulation.getReadPosi(); i < accumulation.getWritePosi(); i++)
+                {
+                    if (accumulation.get(i) == '\r' && accumulation.get(i + 1) == '\n')
+                    {
+                        chunkSize = Integer.parseInt(StandardCharsets.US_ASCII.decode(accumulation.readableByteBuffer(i)).toString(), 16);
+                        accumulation.setReadPosi(i + 2);
+                        break;
+                    }
+                }
+            }
+            if (chunkSize == -1 || (chunkSize > 0 && accumulation.remainRead() < chunkSize + 2))
+            {
+                return;
+            }
+            else if (chunkSize > 0)
+            {
+                receiveResponse.addChunked(accumulation.slice(chunkSize));
+                accumulation.addReadPosi(2);
+                chunkSize = -1;
+                if (accumulation.getReadPosi() >= (1 << 22))
+                {
+                    compactIfNeed();
+                }
+            }
+            else if (chunkSize == 0)
+            {
                 if (receiveResponse.isClosed())
                 {
                     receiveResponse.clearChunked();
                 }
-                receiveResponse.addChunked(HttpReceiveResponse.END_OF_CHUNKED);
+                receiveResponse.endChunked();
                 receiveResponse = null;
-                streamBody = false;
-                lastCheck = -1;
+                chunkSize = -1;
                 state = ParseState.RESPONSE_LINE;
-                compactIfNeed();
-                return true;
+                accumulation.free();
+                accumulation = null;
+                return;
             }
             else
             {
-                return false;
+                return;
             }
         }
-        else
+        while (true);
+    }
+
+    private void decodeBodyWithFixLength()
+    {
+        bodyRead += accumulation.remainRead();
+        receiveResponse.addChunked(accumulation);
+        accumulation = null;
+        if (bodyRead >= receiveResponse.getContentLength())
         {
-            if (accumulation.remainRead() >= receiveResponse.getContentLength())
+            bodyRead = 0;
+            //应用程序已经提前关闭了流，则此时流里可能存在Buffer，需要清空
+            if (receiveResponse.isClosed())
             {
-                receiveResponse.addChunked(accumulation.slice(receiveResponse.getContentLength()));
-                receiveResponse.addChunked(HttpReceiveResponse.END_OF_CHUNKED);
-                next.fireRead(receiveResponse);
-                receiveResponse = null;
-                lastCheck = -1;
-                state = ParseState.RESPONSE_LINE;
-                compactIfNeed();
-                return true;
+                receiveResponse.clearChunked();
             }
-            else
-            {
-                return false;
-            }
+            receiveResponse.endChunked();
+            receiveResponse = null;
+            state = ParseState.RESPONSE_LINE;
         }
     }
 
@@ -159,7 +136,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
         {
             if (accumulation.get(lastCheck) == '\r' && accumulation.get(lastCheck + 1) == '\n' && accumulation.get(lastCheck + 2) == '\r' && accumulation.get(lastCheck + 3) == '\n')
             {
-                lastCheck += 4;
+                lastCheck = -1;
                 state = ParseState.BODY;
                 break;
             }
@@ -168,12 +145,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
         {
             findAllHeaders();
             parseBodyType();
-            if (receiveResponse.getContentType().toLowerCase().startsWith(ContentType.STREAM))
-            {
-                streamBody = true;
-                accumulation.capacityReadyFor(1024 * 1024 * 2);
-                next.fireRead(receiveResponse);
-            }
+            next.fireRead(receiveResponse);
             return true;
         }
         else
@@ -193,7 +165,6 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
                 throw new IllegalStateException("无法读取到响应体长度也不是分块传输");
             }
             state = ParseState.BODY_CHUNKED;
-//            receiveResponse.setBody(allocator.ioBuffer(1024));
         }
         else
         {
@@ -210,10 +181,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
             {
                 if (accumulation.get(i) == ':')
                 {
-                    int mark = accumulation.getWritePosi();
-                    accumulation.setWritePosi(i);
-                    headerName = StandardCharsets.US_ASCII.decode(accumulation.readableByteBuffer()).toString();
-                    accumulation.setWritePosi(mark);
+                    headerName = StandardCharsets.US_ASCII.decode(accumulation.readableByteBuffer(i)).toString();
                     accumulation.setReadPosi(i + 2);
                     break;
                 }
@@ -222,10 +190,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
             {
                 if (accumulation.get(i) == '\r')
                 {
-                    int mark = accumulation.getWritePosi();
-                    accumulation.setWritePosi(i);
-                    headerValue = StandardCharsets.US_ASCII.decode(accumulation.readableByteBuffer()).toString();
-                    accumulation.setWritePosi(mark);
+                    headerValue = StandardCharsets.US_ASCII.decode(accumulation.readableByteBuffer(i)).toString();
                     accumulation.setReadPosi(i + 2);
                     break;
                 }

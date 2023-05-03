@@ -1,14 +1,15 @@
-package com.jfirer.jnet.extend.http.decode;
+package com.jfirer.jnet;
 
 import com.jfirer.jnet.common.api.Pipeline;
 import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 import com.jfirer.jnet.common.util.ChannelConfig;
+import com.jfirer.jnet.extend.http.decode.*;
 import com.jfirer.jnet.server.AioServer;
 
 import java.io.FileInputStream;
 
-public class Demo
+public class DownloadServerDemo
 {
     public static void main(String[] args)
     {

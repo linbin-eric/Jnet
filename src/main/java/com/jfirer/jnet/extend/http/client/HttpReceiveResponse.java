@@ -21,22 +21,21 @@ import java.util.function.Consumer;
 public class HttpReceiveResponse implements AutoCloseable
 {
     private             int                           httpCode;
-    private             Map<String, String>           headers          = new HashMap<>();
+    private             Map<String, String>           headers        = new HashMap<>();
     private             int                           contentLength;
     private             String                        contentType;
-    private             BlockingQueue<IoBuffer>       chunked          = new LinkedBlockingDeque<>();
+    private             BlockingQueue<IoBuffer>       chunked        = new LinkedBlockingDeque<>();
     private             Consumer<HttpReceiveResponse> onClose;
     /**
      * 1代表使用中，0代表已关闭
      */
-    private volatile    int                           closed           = 1;
-    private volatile    boolean                       consumered       = false;
+    private volatile    int                           closed         = 1;
+    private volatile    boolean                       consumered     = false;
     @Setter(AccessLevel.NONE)
     @Getter(AccessLevel.NONE)
     private             IoBuffer                      aggregation;
-    public static final long                          CLOSED_OFFSET    = UNSAFE.getFieldOffset("closed", HttpReceiveResponse.class);
-    public static final IoBuffer                      END_OF_CHUNKED   = new UnPooledBuffer(BufferType.HEAP);
-    public static final IoBuffer                      CLOSE_OF_CHANNEL = new UnPooledBuffer(BufferType.HEAP);
+    public static final long                          CLOSED_OFFSET  = UNSAFE.getFieldOffset("closed", HttpReceiveResponse.class);
+    public static final IoBuffer                      END_OF_CHUNKED = new UnPooledBuffer(BufferType.HEAP);
 
     public void putHeader(String name, String value)
     {
@@ -53,7 +52,7 @@ public class HttpReceiveResponse implements AutoCloseable
                 aggregation.free();
             }
             clearChunked();
-            chunked.add(CLOSE_OF_CHANNEL);
+            chunked.add(END_OF_CHUNKED);
             if (onClose != null)
             {
                 onClose.accept(this);
@@ -63,6 +62,10 @@ public class HttpReceiveResponse implements AutoCloseable
 
     public IoBuffer waitForAllBodyPart()
     {
+        if (isClosed())
+        {
+            throw new IllegalStateException("已经关闭，不能");
+        }
         if (consumered)
         {
             throw new IllegalStateException("不能重复消费，当前已经消费过该响应内容体");
@@ -76,7 +79,7 @@ public class HttpReceiveResponse implements AutoCloseable
         {
             ReflectUtil.throwException(e);
         }
-        if (aggregation != END_OF_CHUNKED && aggregation != CLOSE_OF_CHANNEL)
+        if (aggregation != END_OF_CHUNKED)
         {
             do
             {
@@ -90,7 +93,7 @@ public class HttpReceiveResponse implements AutoCloseable
                     aggregation.free();
                     ReflectUtil.throwException(e);
                 }
-                if (another != END_OF_CHUNKED && another != CLOSE_OF_CHANNEL)
+                if (another != END_OF_CHUNKED)
                 {
                     aggregation.put(another);
                     another.free();
@@ -142,7 +145,7 @@ public class HttpReceiveResponse implements AutoCloseable
             IoBuffer buffer;
             while ((buffer = chunked.poll()) != null)
             {
-                if (buffer != END_OF_CHUNKED || buffer != CLOSE_OF_CHANNEL)
+                if (buffer != END_OF_CHUNKED)
                 {
                     buffer.free();
                 }

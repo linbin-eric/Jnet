@@ -300,11 +300,20 @@ public interface IoBuffer
 
     /**
      * 返回一个处于读模式的ByteBuffer。该ByteBuffer的可读内容为[readPosi,writePosi)之间。<br/>
-     * 该ByteBuffer共享了IoBuffer的内容空间。任何对该Buffer的写入操作都会反映在IoBuffer上
+     * 该ByteBuffer共享了IoBuffer的内容空间。任何对该Buffer的写入操作都会反映在IoBuffer上。
      *
      * @return
      */
     ByteBuffer readableByteBuffer();
+
+    /**
+     * 返回一个处于读模式的ByteBuffer。该ByteBuffer的可读内容为[readPosi,posi)之间。<br/>
+     * 该ByteBuffer共享了IoBuffer的内容空间。任何对该Buffer的写入操作都会反映在IoBuffer上。
+     *
+     * @param posi
+     * @return
+     */
+    ByteBuffer readableByteBuffer(int posi);
 
     /**
      * 返回一个处于写模式的ByteBuffer。该ByteBuffer的可写范围是[writePosi,capacity).<br/>

@@ -9,7 +9,9 @@ import com.jfirer.jnet.common.recycler.Recycler;
 import com.jfirer.jnet.common.util.ChannelConfig;
 import com.jfirer.jnet.common.util.ReflectUtil;
 
+import java.io.IOException;
 import java.net.ConnectException;
+import java.net.StandardSocketOptions;
 import java.nio.channels.ClosedChannelException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -65,6 +67,14 @@ public class HttpClientImpl implements HttpClient
                     }
                 });
                 pipeline.addWriteProcessor(new HttpSendRequestEncoder());
+                try
+                {
+                    pipeline.channelContext().socketChannel().setOption(StandardSocketOptions.SO_RCVBUF, 512 * 1024);
+                }
+                catch (IOException ignored)
+                {
+                    ;
+                }
             });
             if (!clientChannel.connect())
             {
