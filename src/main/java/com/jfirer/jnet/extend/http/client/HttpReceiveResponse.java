@@ -179,7 +179,7 @@ public class HttpReceiveResponse implements AutoCloseable
         return chunked.take();
     }
 
-    public boolean isEndOfChunked(IoBuffer buffer)
+    public static boolean isEndOfChunked(IoBuffer buffer)
     {
         return buffer == END_OF_CHUNKED;
     }

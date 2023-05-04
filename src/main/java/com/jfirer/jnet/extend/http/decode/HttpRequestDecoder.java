@@ -2,11 +2,12 @@ package com.jfirer.jnet.extend.http.decode;
 
 import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
-import com.jfirer.jnet.extend.http.common.HttpDecoder;
+import com.jfirer.jnet.common.decoder.AbstractDecoder;
+import com.jfirer.jnet.common.util.HttpDecodeUtil;
 
 import java.nio.charset.StandardCharsets;
 
-public class HttpRequestDecoder extends HttpDecoder
+public class HttpRequestDecoder extends AbstractDecoder
 {
     enum ParseState
     {
@@ -143,9 +144,8 @@ public class HttpRequestDecoder extends HttpDecoder
 
     private void decodeHeaders()
     {
-        findAllHeaders(decodeObject::addHeader);
-        findContentType(decodeObject.getHeaders(), decodeObject::setContentType);
-        findContentLength(decodeObject.getHeaders(), decodeObject::setContentLength);
+        HttpDecodeUtil.findAllHeaders(accumulation, decodeObject::addHeader);
+        HttpDecodeUtil.findContentType(decodeObject.getHeaders(), decodeObject::setContentType);
+        HttpDecodeUtil.findContentLength(decodeObject.getHeaders(), decodeObject::setContentLength);
     }
-
 }

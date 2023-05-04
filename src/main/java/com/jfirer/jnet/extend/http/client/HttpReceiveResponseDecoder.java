@@ -1,11 +1,12 @@
 package com.jfirer.jnet.extend.http.client;
 
 import com.jfirer.jnet.common.api.ReadProcessorNode;
-import com.jfirer.jnet.extend.http.common.HttpDecoder;
+import com.jfirer.jnet.common.decoder.AbstractDecoder;
+import com.jfirer.jnet.common.util.HttpDecodeUtil;
 
 import java.nio.charset.StandardCharsets;
 
-public class HttpReceiveResponseDecoder extends HttpDecoder
+public class HttpReceiveResponseDecoder extends AbstractDecoder
 {
     private              HttpReceiveResponse receiveResponse;
     private              ParseState          state     = ParseState.RESPONSE_LINE;
@@ -143,8 +144,7 @@ public class HttpReceiveResponseDecoder extends HttpDecoder
         }
         if (state == ParseState.BODY)
         {
-            findAllHeaders(receiveResponse::putHeader);
-//            findAllHeaders();
+            HttpDecodeUtil.findAllHeaders(accumulation, receiveResponse::putHeader);
             parseBodyType();
             next.fireRead(receiveResponse);
             return true;
@@ -157,8 +157,8 @@ public class HttpReceiveResponseDecoder extends HttpDecoder
 
     private void parseBodyType()
     {
-        findContentType(receiveResponse.getHeaders(), receiveResponse::setContentType);
-        findContentLength(receiveResponse.getHeaders(), receiveResponse::setContentLength);
+        HttpDecodeUtil.findContentType(receiveResponse.getHeaders(), receiveResponse::setContentType);
+        HttpDecodeUtil.findContentLength(receiveResponse.getHeaders(), receiveResponse::setContentLength);
         if (receiveResponse.getContentLength() == 0)
         {
             if (receiveResponse.getHeaders().entrySet().stream().noneMatch(entry -> entry.getKey().equalsIgnoreCase("Transfer-Encoding")))

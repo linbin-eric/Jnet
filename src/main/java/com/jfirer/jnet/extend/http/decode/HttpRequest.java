@@ -1,9 +1,13 @@
 package com.jfirer.jnet.extend.http.decode;
 
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
+import com.jfirer.jnet.common.util.HttpDecodeUtil;
+import lombok.AccessLevel;
 import lombok.Data;
+import lombok.Setter;
 import lombok.ToString;
 
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
@@ -14,14 +18,16 @@ public class HttpRequest
     private String              method;
     private String              url;
     private String              version;
-    private Map<String, String> headers = new HashMap<>();
-    private int                 contentLength;
+    private Map<String, String> headers       = new HashMap<>();
+    private int                 contentLength = 0;
     private String              contentType;
     private IoBuffer            body;
 
     public record PathAndQueryParam(String path, Map<String, String> queryParams) {}
 
-    public static final Map<String, String> DUMMY = new HashMap<>();
+    public static final Map<String, String> DUMMY         = new HashMap<>();
+    public static final byte[]              HEADER_END    = "/r/n/r/n".getBytes(StandardCharsets.US_ASCII);
+    public static final int[]               HEADER_PREFIX = HttpDecodeUtil.computePrefix(HEADER_END);
 
     public PathAndQueryParam parsePathAndQueryParam()
     {
@@ -50,139 +56,103 @@ public class HttpRequest
         }
     }
 
-    public int matchBoundary(IoBuffer buffer, byte[] boundary)
-    {
-        int start = buffer.getReadPosi();
-        int end   = buffer.getWritePosi() - boundary.length;
-        for (int i = start; i < end; i++)
-        {
-            boolean found = true;
-            for (int j = 0; j < boundary.length; j++)
-            {
-                if (buffer.get(i + j) != boundary[j])
-                {
-                    found = false;
-                    break;
-                }
-            }
-            if (found)
-            {
-                return i;
-            }
-        }
-        return -1;
-    }
-
     @Data
-    public static class BoundaryData
+    public static class BoundaryPart
     {
-        private String   name;
-        private String   value;
-        private String   fileName;
-        private IoBuffer binaryData;
-        private boolean  isBinary;
-    }
+        @Setter(AccessLevel.NONE)
+        private Map<String, String> headers  = new HashMap<>();
+        private String              contentType;
+        private String              fileName;
+        private String              fieldName;
+        private IoBuffer            data;
+        private boolean             isBinary = false;
 
-    public List<BoundaryData> parseMultipart()
-    {
-        if (contentType.toLowerCase().startsWith("multipart/form-data"))
+        public void putHeader(String header, String value)
         {
-            try
-            {
-                byte[]         boundary      = ("--" + contentType.substring(contentType.indexOf("boundary=") + 9)).getBytes(StandardCharsets.US_ASCII);
-                IoBuffer       buffer        = body;
-                List<IoBuffer> elements      = new ArrayList<>();
-                int            boundaryIndex = matchBoundary(buffer, boundary);
-                if (boundaryIndex != 0)
-                {
-                    throw new IllegalArgumentException();
-                }
-                buffer.addReadPosi(boundary.length + 2);
-                while (true)
-                {
-                    boundaryIndex = matchBoundary(buffer, boundary);
-                    if (boundaryIndex != -1)
-                    {
-                        IoBuffer slice = buffer.slice(boundaryIndex - buffer.getReadPosi());
-                        buffer.addReadPosi(boundary.length + 2);
-                        elements.add(slice);
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-                buffer.free();
-                List<BoundaryData> boundaryDataList = new ArrayList<>();
-                for (IoBuffer element : elements)
-                {
-                    int contentLineEnd = 0;
-                    for (int i = 0; ; i++)
-                    {
-                        if (element.get(i) == '\r' && element.get(i + 1) == '\n' && element.get(i + 2) == '\r' && element.get(i + 3) == '\n')
-                        {
-                            contentLineEnd = i + 2;
-                            break;
-                        }
-                    }
-                    BoundaryData boundaryData = new BoundaryData();
-                    for (int i = 0; i < contentLineEnd; i++)
-                    {
-                        if (element.get(i) == '\r' && element.get(i + 1) == '\n')
-                        {
-                            IoBuffer slice    = element.slice(i - element.getReadPosi());
-                            String   fragment = StandardCharsets.UTF_8.decode(slice.readableByteBuffer()).toString();
-                            if (fragment.startsWith("Content-Disposition"))
-                            {
-                                int    left = fragment.indexOf("\"", fragment.indexOf("name="));
-                                String name = fragment.substring(left + 1, fragment.indexOf("\"", left + 1));
-                                boundaryData.setName(name);
-                                int index = fragment.indexOf("filename=");
-                                if (index != -1)
-                                {
-                                    boundaryData.setFileName(fragment.substring(index + 10, fragment.indexOf("\"", index + 10)));
-                                    boundaryData.setBinary(true);
-                                }
-                            }
-                            else if (fragment.startsWith("Content-Type:"))
-                            {
-                                if (fragment.contains("application/zip") || fragment.contains("application/java-archive") || fragment.contains("text/plain") || fragment.contains("text/x-yaml") || fragment.contains("application/octet-stream"))
-                                {
-                                    boundaryData.setBinary(true);
-                                }
-                            }
-                            slice.free();
-                            element.addReadPosi(2);
-                        }
-                    }
-                    IoBuffer slice = element.addReadPosi(2).slice(element.remainRead() - 2);
-                    if (boundaryData.isBinary)
-                    {
-                        boundaryData.setBinaryData(slice);
-                    }
-                    else
-                    {
-                        boundaryData.setValue(StandardCharsets.UTF_8.decode(slice.readableByteBuffer()).toString());
-                        slice.free();
-                    }
-                    element.free();
-                    boundaryDataList.add(boundaryData);
-                }
-                return boundaryDataList;
-            }
-            catch (Throwable e)
-            {
-                throw e;
-            }
+            headers.put(header, value);
         }
-        else
+
+        public String getUTF8Value()
         {
-            throw new IllegalArgumentException("not multipart");
+            String value = StandardCharsets.UTF_8.decode(data.readableByteBuffer()).toString();
+            data.free();
+            data = null;
+            return value;
+        }
+
+        public void analysisHeaders()
+        {
+            HttpDecodeUtil.findContentType(headers, this::setContentType);
+            if (contentType == null)
+            {
+                contentType = "text/plain";
+            }
+            switch (contentType)
+            {
+                case "application/java-archive", "application/zip", ContentType.STREAM ->
+                        isBinary = true;
+            }
+            String value       = headers.get("Content-Disposition");
+            int    indexOfName = value.indexOf("name=");
+            int    endOfIndex  = value.indexOf('"', indexOfName + 6);
+            fieldName = value.substring(indexOfName + 6, endOfIndex);
+            int index = value.indexOf("filename=");
+            if (index != -1)
+            {
+                fileName = value.substring(index + 10, value.indexOf('"', index + 11));
+                isBinary = true;
+            }
+            if ((index = value.indexOf("filename*=UTF-8''")) != -1)
+            {
+                fileName = URLDecoder.decode(value.substring(index + 17), StandardCharsets.UTF_8);
+                isBinary = true;
+            }
         }
     }
 
     public void addHeader(String name, String value)
     {
         headers.put(name, value);
+    }
+
+    public List<BoundaryPart> parseMultipart()
+    {
+        if (contentType.toLowerCase().startsWith("multipart/form-data"))
+        {
+            byte[]   boundary      = ("--" + contentType.substring(contentType.indexOf("boundary=") + 9)).getBytes(StandardCharsets.US_ASCII);
+            int[]    prefix        = HttpDecodeUtil.computePrefix(boundary);
+            IoBuffer buffer        = body;
+            int      boundaryIndex = HttpDecodeUtil.findSubArray(buffer, boundary, prefix);
+            if (boundaryIndex != buffer.getReadPosi())
+            {
+                throw new IllegalArgumentException();
+            }
+            buffer.addReadPosi(boundary.length + 2);
+            List<BoundaryPart> boundaryPartList = new ArrayList<>();
+            while (true)
+            {
+                boundaryIndex = HttpDecodeUtil.findSubArray(buffer, boundary, prefix);
+                if (boundaryIndex != -1)
+                {
+                    IoBuffer     slice        = buffer.slice(boundaryIndex - buffer.getReadPosi());
+                    BoundaryPart boundaryPart = new BoundaryPart();
+                    HttpDecodeUtil.findAllHeaders(slice, boundaryPart::putHeader);
+                    boundaryPart.setData(slice);
+                    boundaryPart.analysisHeaders();
+                    boundaryPartList.add(boundaryPart);
+                    buffer.addReadPosi(boundary.length + 2);
+                }
+                else
+                {
+                    break;
+                }
+            }
+            buffer.free();
+            return boundaryPartList;
+        }
+        else
+        {
+            throw new IllegalArgumentException("not multipart");
+        }
     }
 }
