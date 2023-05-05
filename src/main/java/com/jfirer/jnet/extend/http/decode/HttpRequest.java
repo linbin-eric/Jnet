@@ -134,13 +134,14 @@ public class HttpRequest
                 boundaryIndex = HttpDecodeUtil.findSubArray(buffer, boundary, prefix);
                 if (boundaryIndex != -1)
                 {
-                    IoBuffer     slice        = buffer.slice(boundaryIndex - buffer.getReadPosi());
+                    //数据范围需要将回车换行去掉
+                    IoBuffer     slice        = buffer.slice(boundaryIndex - buffer.getReadPosi() - 2);
                     BoundaryPart boundaryPart = new BoundaryPart();
                     HttpDecodeUtil.findAllHeaders(slice, boundaryPart::putHeader);
                     boundaryPart.setData(slice);
                     boundaryPart.analysisHeaders();
                     boundaryPartList.add(boundaryPart);
-                    buffer.addReadPosi(boundary.length + 2);
+                    buffer.addReadPosi(2 + boundary.length + 2);
                 }
                 else
                 {
