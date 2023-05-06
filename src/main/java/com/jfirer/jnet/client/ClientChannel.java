@@ -21,6 +21,8 @@ public interface ClientChannel
 
     void close();
 
+    void close(Throwable e);
+
     enum ConnectedState
     {
         NOT_INIT,

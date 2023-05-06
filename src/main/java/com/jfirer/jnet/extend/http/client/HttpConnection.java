@@ -11,10 +11,10 @@ import java.util.concurrent.TimeUnit;
 @Data
 public class HttpConnection
 {
-    ClientChannel                      client;
-    BlockingQueue<HttpReceiveResponse> sync;
-    long                               lastRespoonseTime;
-    RecycleHandler<HttpConnection>     handler;
+    ClientChannel client;
+    final BlockingQueue<HttpReceiveResponse> sync;
+    long                           lastRespoonseTime;
+    RecycleHandler<HttpConnection> handler;
     public static final HttpReceiveResponse CLOSE_OF_CONNECTION = new HttpReceiveResponse();
     public static final long                KEEP_ALIVE_TIME     = 1000 * 60 * 5;
 
@@ -35,14 +35,25 @@ public class HttpConnection
         HttpReceiveResponse response = null;
         try
         {
-            response = sync.poll(1, TimeUnit.DAYS);
+            response = sync.poll(20, TimeUnit.SECONDS);
         }
         catch (InterruptedException e)
         {
+            client.close();
             throw new ClosedChannelException();
         }
-        if (response == CLOSE_OF_CONNECTION)
+        if (response == null || response == CLOSE_OF_CONNECTION)
         {
+            if (response == null)
+            {
+                System.err.println("超时没有响应");
+                client.close(new NullPointerException("没有response"));
+            }
+            else
+            {
+                System.err.println("连接被关闭");
+                client.close();
+            }
             throw new ClosedChannelException();
         }
         else

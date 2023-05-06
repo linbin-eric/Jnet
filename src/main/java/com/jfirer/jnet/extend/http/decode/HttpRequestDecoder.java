@@ -39,39 +39,32 @@ public class HttpRequestDecoder extends AbstractDecoder
             {
                 case REQUEST_LINE -> goToNextState = parseRequestLine();
                 case REQUEST_HEADER -> goToNextState = parseRequestHeader();
-                case REQUEST_BODY ->
-                {
-                    parseRequestBody(next);
-                    return;
-                }
+                case REQUEST_BODY -> goToNextState = parseRequestBody(next);
             }
         }
         while (goToNextState);
     }
 
-    private void parseRequestBody(ReadProcessorNode next)
+    private boolean parseRequestBody(ReadProcessorNode next)
     {
         if (decodeObject.getContentLength() != 0)
         {
             if (accumulation.remainRead() < decodeObject.getContentLength())
             {
                 accumulation.capacityReadyFor(decodeObject.getContentLength());
-                return;
+                return false;
             }
             else
             {
-                decodeObject.setBody(accumulation);
+                decodeObject.setBody(accumulation.slice(decodeObject.getContentLength()));
             }
         }
-        else
-        {
-            accumulation.free();
-        }
         next.fireRead(decodeObject);
-        accumulation = null;
         decodeObject = null;
         state = ParseState.REQUEST_LINE;
+        compactIfNeed();
         lastCheck = -1;
+        return true;
     }
 
     private boolean parseRequestHeader()

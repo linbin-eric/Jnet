@@ -8,4 +8,6 @@ public interface HttpClient
     BufferAllocator ALLOCATOR = new PooledBufferAllocator("HttpClient");
 
     HttpReceiveResponse newCall(HttpSendRequest request) throws Exception;
+
+    void asyncCall(HttpSendRequest request);
 }

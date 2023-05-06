@@ -4,7 +4,6 @@ import com.jfirer.jnet.common.api.WorkerGroup;
 import com.jfirer.jnet.common.buffer.LeakDetecter;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
-import com.jfirer.jnet.common.internal.DefaultWorkerGroup;
 import com.jfirer.jnet.common.thread.FastThreadLocalThread;
 
 import java.io.IOException;
@@ -26,7 +25,6 @@ public class ChannelConfig
     private             WorkerGroup              workerGroup;
     public static final LeakDetecter             IoBufferLeakDetected = new LeakDetecter(System.getProperty("Leak.Detect.IoBuffer") == null ? LeakDetecter.WatchLevel.none : LeakDetecter.WatchLevel.valueOf(System.getProperty("Leak.Detect.IoBuffer")));
     public static final AsynchronousChannelGroup DEFAULT_CHANNEL_GROUP;
-    public static final WorkerGroup              DEFAULT_WORKER_GROUP = new DefaultWorkerGroup();
     static
     {
         AsynchronousChannelGroup channelGroup;
@@ -148,12 +146,8 @@ public class ChannelConfig
         this.initReceiveSize = initReceiveSize;
     }
 
-    public synchronized WorkerGroup getWorkerGroup()
+    public WorkerGroup getWorkerGroup()
     {
-        if (workerGroup == null)
-        {
-            workerGroup = DEFAULT_WORKER_GROUP;
-        }
         return workerGroup;
     }
 

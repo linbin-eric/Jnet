@@ -102,4 +102,14 @@ public class ClientChannelImpl implements ClientChannel
             channelContext.close();
         }
     }
+
+    @Override
+    public void close(Throwable e)
+    {
+        state = ConnectedState.DISCONNECTED;
+        if (channelContext != null)
+        {
+            channelContext.close(e);
+        }
+    }
 }

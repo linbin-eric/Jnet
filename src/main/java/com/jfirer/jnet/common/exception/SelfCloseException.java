@@ -19,4 +19,9 @@ public class SelfCloseException extends JnetException
     {
         super("代码自己关闭了连接，调用链路为:\r\n" + Arrays.stream(Thread.currentThread().getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining("\r\n")));
     }
+
+    public SelfCloseException(Throwable cause)
+    {
+        super("代码自己关闭了连接，调用链路为:\r\n" + Arrays.stream(Thread.currentThread().getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining("\r\n")), cause);
+    }
 }

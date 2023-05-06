@@ -34,33 +34,34 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
     @Override
     protected void process0(ReadProcessorNode next)
     {
-        if (receiveResponse == null)
+        try
         {
-            receiveResponse = new HttpReceiveResponse();
-        }
-        boolean goToNextState = false;
-        do
-        {
-            switch (state)
+            if (receiveResponse == null)
             {
-                case RESPONSE_LINE -> goToNextState = decodeResponseLine();
-                case HEADER -> goToNextState = decodeHeader(next);
-                case BODY_FIX_LENGTH ->
+                receiveResponse = new HttpReceiveResponse();
+            }
+            boolean goToNextState = false;
+            do
+            {
+                switch (state)
                 {
-                    decodeBodyWithFixLength();
-                    return;
-                }
-                case BODY_CHUNKED ->
-                {
-                    decodeBodyWithChunked();
-                    return;
+                    case RESPONSE_LINE -> goToNextState = decodeResponseLine();
+                    case HEADER -> goToNextState = decodeHeader(next);
+                    case BODY_FIX_LENGTH ->
+                            goToNextState = decodeBodyWithFixLength();
+                    case BODY_CHUNKED ->
+                            goToNextState = decodeBodyWithChunked();
                 }
             }
+            while (goToNextState);
         }
-        while (goToNextState);
+        catch (Throwable e)
+        {
+            e.printStackTrace();
+        }
     }
 
-    private void decodeBodyWithChunked()
+    private boolean decodeBodyWithChunked()
     {
         do
         {
@@ -78,7 +79,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
             }
             if (chunkSize == -1 || (chunkSize > 0 && accumulation.remainRead() < chunkSize + 2))
             {
-                return;
+                return false;
             }
             else if (chunkSize > 0)
             {
@@ -89,6 +90,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
                 {
                     compactIfNeed();
                 }
+                return true;
             }
             else if (chunkSize == 0)
             {
@@ -100,25 +102,31 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
                 receiveResponse = null;
                 chunkSize = -1;
                 state = ParseState.RESPONSE_LINE;
-                accumulation.free();
-                accumulation = null;
-                return;
+                compactIfNeed();
+                return true;
             }
             else
             {
-                return;
+                throw new IllegalArgumentException();
             }
         }
         while (true);
     }
 
-    private void decodeBodyWithFixLength()
+    private boolean decodeBodyWithFixLength()
     {
-        bodyRead += accumulation.remainRead();
-        receiveResponse.addChunked(accumulation);
-        accumulation = null;
-        if (bodyRead >= receiveResponse.getContentLength())
+        int left = receiveResponse.getContentLength() - bodyRead;
+        if (left > accumulation.remainRead())
         {
+            bodyRead += accumulation.remainRead();
+            receiveResponse.addChunked(accumulation);
+            accumulation = null;
+            return false;
+        }
+        else
+        {
+            receiveResponse.addChunked(accumulation.slice(left));
+            compactIfNeed();
             bodyRead = 0;
             //应用程序已经提前关闭了流，则此时流里可能存在Buffer，需要清空
             if (receiveResponse.isClosed())
@@ -128,6 +136,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
             receiveResponse.endChunked();
             receiveResponse = null;
             state = ParseState.RESPONSE_LINE;
+            return accumulation.remainRead() > 0;
         }
     }
 
@@ -178,7 +187,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
         lastCheck = lastCheck == -1 ? accumulation.getReadPosi() : lastCheck;
         for (; lastCheck + 1 < accumulation.getWritePosi(); lastCheck++)
         {
-            if (accumulation.get(lastCheck) == re && accumulation.get(lastCheck + 1) == nl)
+            if (accumulation.get(lastCheck) == '\r' && accumulation.get(lastCheck + 1) == '\n')
             {
                 lastCheck += 2;
                 state = ParseState.HEADER;

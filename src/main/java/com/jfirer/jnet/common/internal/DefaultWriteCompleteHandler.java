@@ -46,23 +46,30 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
     @Override
     public void write(IoBuffer buffer)
     {
-        if (buffer == null)
+        try
         {
-            throw new NullPointerException();
+            if (buffer == null)
+            {
+                throw new NullPointerException();
+            }
+            queueCapacity.addAndGet(buffer.remainRead());
+            queue.offer(buffer);
+            int now = state;
+            if (now == IDLE && changeToWork())
+            {
+                if (queue.isEmpty() == false)
+                {
+                    writeQueuedBuffer();
+                }
+                else
+                {
+                    rest();
+                }
+            }
         }
-        queueCapacity.addAndGet(buffer.remainRead());
-        queue.offer(buffer);
-        int now = state;
-        if (now == IDLE && changeToWork())
+        catch (Throwable e)
         {
-            if (queue.isEmpty() == false)
-            {
-                writeQueuedBuffer();
-            }
-            else
-            {
-                rest();
-            }
+            e.printStackTrace();
         }
     }
 
@@ -157,16 +164,23 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
     @Override
     public void failed(Throwable e, ByteBuffer byteBuffer)
     {
-        if (sendingData != null)
+        try
         {
-            sendingData.free();
-            sendingData = null;
+            if (sendingData != null)
+            {
+                sendingData.free();
+                sendingData = null;
+            }
+            prepareTermination();
+            InternalPipeline pipeline = (InternalPipeline) channelContext.pipeline();
+            Pipeline.invokeMethodIgnoreException(() -> pipeline.fireExceptionCatch(e));
+            Pipeline.invokeMethodIgnoreException(() -> pipeline.fireWriteClose());
+            channelContext.close(e);
         }
-        prepareTermination();
-        InternalPipeline pipeline = (InternalPipeline) channelContext.pipeline();
-        Pipeline.invokeMethodIgnoreException(() -> pipeline.fireExceptionCatch(e));
-        Pipeline.invokeMethodIgnoreException(() -> pipeline.fireWriteClose());
-        channelContext.close(e);
+        catch (Throwable e1)
+        {
+            e1.printStackTrace();
+        }
     }
 
     protected void prepareTermination()

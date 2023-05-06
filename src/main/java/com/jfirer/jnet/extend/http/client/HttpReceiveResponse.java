@@ -14,7 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
@@ -25,7 +25,7 @@ public class HttpReceiveResponse implements AutoCloseable
     private              Map<String, String>           headers        = new HashMap<>();
     private              int                           contentLength;
     private              String                        contentType;
-    private              BlockingQueue<IoBuffer>       chunked        = new LinkedBlockingDeque<>();
+    private              BlockingQueue<IoBuffer>       chunked        = new LinkedBlockingQueue<>();
     private              Consumer<HttpReceiveResponse> onClose;
     /**
      * 1代表使用中，0代表已关闭
