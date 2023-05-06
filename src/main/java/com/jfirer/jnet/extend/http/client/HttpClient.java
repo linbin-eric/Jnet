@@ -9,5 +9,4 @@ public interface HttpClient
 
     HttpReceiveResponse newCall(HttpSendRequest request) throws Exception;
 
-    void asyncCall(HttpSendRequest request);
 }
