@@ -8,6 +8,7 @@ import com.jfirer.jnet.common.util.ChannelConfig;
 
 import java.net.InetSocketAddress;
 import java.nio.channels.AsynchronousSocketChannel;
+import java.nio.channels.ClosedChannelException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -40,7 +41,6 @@ public class ClientChannelImpl implements ClientChannel
                     channelContext = new DefaultChannelContext(asynchronousSocketChannel, channelConfig);
                     pipeline = new DefaultPipeline(channelConfig.getWorkerGroup().next(), channelContext);
                     ((DefaultChannelContext) channelContext).setPipeline(pipeline);
-                    initializer.onChannelContextInit(channelContext);
                     pipeline.addReadProcessor(new ReadProcessor<>()
                     {
                         @Override
@@ -56,6 +56,7 @@ public class ClientChannelImpl implements ClientChannel
                             next.fireRead(data);
                         }
                     });
+                    initializer.onChannelContextInit(channelContext);
                     pipeline.complete();
                     ReadCompletionHandler readCompletionHandler = new AdaptiveReadCompletionHandler(channelContext);
                     readCompletionHandler.start();
@@ -88,8 +89,12 @@ public class ClientChannelImpl implements ClientChannel
     }
 
     @Override
-    public void write(Object data)
+    public void write(Object data) throws ClosedChannelException
     {
+        if (!alive())
+        {
+            throw new ClosedChannelException();
+        }
         pipeline.fireWrite(data);
     }
 

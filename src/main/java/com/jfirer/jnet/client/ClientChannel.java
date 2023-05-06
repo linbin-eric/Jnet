@@ -1,5 +1,7 @@
 package com.jfirer.jnet.client;
 
+import java.nio.channels.ClosedChannelException;
+
 public interface ClientChannel
 {
     /**
@@ -17,7 +19,7 @@ public interface ClientChannel
      */
     boolean alive();
 
-    void write(Object data);
+    void write(Object data) throws ClosedChannelException;
 
     void close();
 
