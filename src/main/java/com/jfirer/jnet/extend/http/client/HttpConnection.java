@@ -94,6 +94,7 @@ public class HttpConnection
         }
         else
         {
+            response.setOnClose(v -> recycle());
             return response;
         }
     }

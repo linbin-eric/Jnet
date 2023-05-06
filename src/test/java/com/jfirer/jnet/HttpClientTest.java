@@ -2,7 +2,6 @@ package com.jfirer.jnet;
 
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.extend.http.client.HttpClient;
-import com.jfirer.jnet.extend.http.client.HttpClientImpl;
 import com.jfirer.jnet.extend.http.client.HttpReceiveResponse;
 import com.jfirer.jnet.extend.http.client.HttpSendRequest;
 
@@ -20,13 +19,12 @@ public class HttpClientTest
 
     private static void getInfo()
     {
-        HttpClient      httpClient = new HttpClientImpl();
         String          url        = "http://localhost:10086/config/endpoint";
         String          url2       = "http://47.97.109.181:2000/health";
         HttpSendRequest request    = new HttpSendRequest().setUrl(url).getRequest();
         for (int i = 0; i < 50; i++)
         {
-            try (HttpReceiveResponse receiveResponse = httpClient.newCall(request))
+            try (HttpReceiveResponse receiveResponse = HttpClient.newCall(request))
             {
                 String utf8Body = receiveResponse.getUTF8Body();
                 System.out.println(i + "   :   " + utf8Body);
@@ -40,10 +38,9 @@ public class HttpClientTest
 
     private static void downloadFile() throws Exception
     {
-        HttpClient httpClient = new HttpClientImpl();
         for (int i = 0; i < 5; i++)
         {
-            HttpReceiveResponse receiveResponse = httpClient.newCall(new HttpSendRequest().setUrl("http://yynas.cn:5678/operation2.sql").getRequest());
+            HttpReceiveResponse receiveResponse = HttpClient.newCall(new HttpSendRequest().setUrl("http://yynas.cn:5678/operation2.sql").getRequest());
             File                file            = new File("/Users/linbin/Downloads/" + System.currentTimeMillis());
             file.createNewFile();
             FileChannel fileChannel = FileChannel.open(file.toPath(), StandardOpenOption.WRITE);
