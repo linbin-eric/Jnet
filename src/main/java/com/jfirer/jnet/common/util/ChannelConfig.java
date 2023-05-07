@@ -4,11 +4,10 @@ import com.jfirer.jnet.common.api.WorkerGroup;
 import com.jfirer.jnet.common.buffer.LeakDetecter;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
-import com.jfirer.jnet.common.thread.FastThreadLocalThread;
 
 import java.io.IOException;
 import java.nio.channels.AsynchronousChannelGroup;
-import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.Executors;
 
 public class ChannelConfig
 {
@@ -24,35 +23,19 @@ public class ChannelConfig
     private             AsynchronousChannelGroup channelGroup;
     private             WorkerGroup              workerGroup;
     public static final LeakDetecter             IoBufferLeakDetected = new LeakDetecter(System.getProperty("Leak.Detect.IoBuffer") == null ? LeakDetecter.WatchLevel.none : LeakDetecter.WatchLevel.valueOf(System.getProperty("Leak.Detect.IoBuffer")));
-    public static final AsynchronousChannelGroup DEFAULT_CHANNEL_GROUP;
-    static
-    {
-        AsynchronousChannelGroup channelGroup;
-        try
-        {
-            channelGroup = AsynchronousChannelGroup.withFixedThreadPool(Runtime.getRuntime().availableProcessors(), new ThreadFactory()
-            {
-                int i = 1;
 
-                @Override
-                public Thread newThread(Runnable r)
-                {
-                    return new FastThreadLocalThread(r, "AioServer_IoWorker-" + (i++));
-                }
-            });
-        }
-        catch (IOException e)
-        {
-            channelGroup = null;
-            ReflectUtil.throwException(e);
-        }
-        DEFAULT_CHANNEL_GROUP = channelGroup;
-    }
     public AsynchronousChannelGroup getChannelGroup()
     {
         if (channelGroup == null)
         {
-            channelGroup = DEFAULT_CHANNEL_GROUP;
+            try
+            {
+                channelGroup = AsynchronousChannelGroup.withThreadPool(Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()));
+            }
+            catch (IOException e)
+            {
+                throw new RuntimeException(e);
+            }
         }
         return channelGroup;
     }
