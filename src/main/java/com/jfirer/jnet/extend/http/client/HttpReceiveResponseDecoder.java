@@ -94,6 +94,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
             }
             else if (chunkSize == 0)
             {
+                accumulation.addReadPosi(2);
                 if (receiveResponse.isClosed())
                 {
                     receiveResponse.clearChunked();

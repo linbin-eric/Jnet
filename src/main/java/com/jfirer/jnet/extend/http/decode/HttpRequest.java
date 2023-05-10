@@ -15,44 +15,55 @@ import java.util.*;
 @ToString(exclude = "body")
 public class HttpRequest
 {
-    private String              method;
-    private String              url;
-    private String              version;
-    private Map<String, String> headers       = new HashMap<>();
-    private int                 contentLength = 0;
-    private String              contentType;
-    private IoBuffer            body;
+    protected           String              method;
+    protected           String              url;
+    protected           String              version;
+    protected           Map<String, String> headers       = new HashMap<>();
+    protected           int                 contentLength = 0;
+    protected           String              contentType;
+    protected           IoBuffer            body;
+    protected           List<BoundaryPart>  parts         = DUMMY_PARTS;
+    public static final List<BoundaryPart>  DUMMY_PARTS   = new LinkedList<>();
 
-    public record PathAndQueryParam(String path, Map<String, String> queryParams) {}
-
-    public static final Map<String, String> DUMMY         = new HashMap<>();
-    public static final byte[]              HEADER_END    = "/r/n/r/n".getBytes(StandardCharsets.US_ASCII);
-    public static final int[]               HEADER_PREFIX = HttpDecodeUtil.computePrefix(HEADER_END);
-
-    public PathAndQueryParam parsePathAndQueryParam()
+    public void close()
     {
-        int index = url.indexOf("?");
-        if (index == -1)
+        if (body != null)
         {
-            return new PathAndQueryParam(url, DUMMY);
+            body.free();
         }
-        else
+        parts.forEach(each -> each.close());
+    }
+
+    public void parseMaybeMutliparts()
+    {
+        if (contentType.toLowerCase().startsWith("multipart/form-data"))
         {
-            String              path               = url.substring(0, index);
-            String[]            paramNameAndValues = url.substring(index + 1).split("&");
-            Map<String, String> map                = new HashMap<>();
-            Arrays.stream(paramNameAndValues).forEach(v -> {
-                int paramValueIndex = v.indexOf("=");
-                if (paramValueIndex == -1)
+            byte[]   boundary      = ("--" + contentType.substring(contentType.indexOf("boundary=") + 9)).getBytes(StandardCharsets.US_ASCII);
+            int[]    prefix        = HttpDecodeUtil.computePrefix(boundary);
+            IoBuffer buffer        = body;
+            int      boundaryIndex = HttpDecodeUtil.findSubArray(buffer, boundary, prefix);
+            if (boundaryIndex != buffer.getReadPosi())
+            {
+                throw new IllegalArgumentException();
+            }
+            buffer.addReadPosi(boundary.length + 2);
+            parts = new ArrayList<>();
+            while (true)
+            {
+                boundaryIndex = HttpDecodeUtil.findSubArray(buffer, boundary, prefix);
+                if (boundaryIndex != -1)
                 {
-                    map.put(v, "");
+                    //数据范围需要将回车换行去掉
+                    IoBuffer slice = buffer.slice(boundaryIndex - buffer.getReadPosi() - 2);
+                    parts.add(new BoundaryPart(slice));
+                    buffer.addReadPosi(2 + boundary.length + 2);
                 }
                 else
                 {
-                    map.put(v.substring(0, paramValueIndex), v.substring(paramValueIndex + 1));
+                    break;
                 }
-            });
-            return new PathAndQueryParam(path, map);
+            }
+            buffer.free();
         }
     }
 
@@ -66,21 +77,40 @@ public class HttpRequest
         private String              fieldName;
         private IoBuffer            data;
         private boolean             isBinary = false;
+        private String              utf8Value;
+
+        public BoundaryPart(IoBuffer slice)
+        {
+            HttpDecodeUtil.findAllHeaders(slice, this::putHeader);
+            this.data = slice;
+            analysisHeaders();
+            mayBeUtf8Value();
+        }
 
         public void putHeader(String header, String value)
         {
             headers.put(header, value);
         }
 
-        public String getUTF8Value()
+        public void close()
         {
-            String value = StandardCharsets.UTF_8.decode(data.readableByteBuffer()).toString();
-            data.free();
-            data = null;
-            return value;
+            if (data != null)
+            {
+                data.free();
+            }
         }
 
-        public void analysisHeaders()
+        private void mayBeUtf8Value()
+        {
+            if (isBinary)
+            {
+                utf8Value = StandardCharsets.UTF_8.decode(data.readableByteBuffer()).toString();
+                data.free();
+                data = null;
+            }
+        }
+
+        private void analysisHeaders()
         {
             HttpDecodeUtil.findContentType(headers, this::setContentType);
             if (contentType == null)
@@ -113,47 +143,5 @@ public class HttpRequest
     public void addHeader(String name, String value)
     {
         headers.put(name, value);
-    }
-
-    public List<BoundaryPart> parseMultipart()
-    {
-        if (contentType.toLowerCase().startsWith("multipart/form-data"))
-        {
-            byte[]   boundary      = ("--" + contentType.substring(contentType.indexOf("boundary=") + 9)).getBytes(StandardCharsets.US_ASCII);
-            int[]    prefix        = HttpDecodeUtil.computePrefix(boundary);
-            IoBuffer buffer        = body;
-            int      boundaryIndex = HttpDecodeUtil.findSubArray(buffer, boundary, prefix);
-            if (boundaryIndex != buffer.getReadPosi())
-            {
-                throw new IllegalArgumentException();
-            }
-            buffer.addReadPosi(boundary.length + 2);
-            List<BoundaryPart> boundaryPartList = new ArrayList<>();
-            while (true)
-            {
-                boundaryIndex = HttpDecodeUtil.findSubArray(buffer, boundary, prefix);
-                if (boundaryIndex != -1)
-                {
-                    //数据范围需要将回车换行去掉
-                    IoBuffer     slice        = buffer.slice(boundaryIndex - buffer.getReadPosi() - 2);
-                    BoundaryPart boundaryPart = new BoundaryPart();
-                    HttpDecodeUtil.findAllHeaders(slice, boundaryPart::putHeader);
-                    boundaryPart.setData(slice);
-                    boundaryPart.analysisHeaders();
-                    boundaryPartList.add(boundaryPart);
-                    buffer.addReadPosi(2 + boundary.length + 2);
-                }
-                else
-                {
-                    break;
-                }
-            }
-            buffer.free();
-            return boundaryPartList;
-        }
-        else
-        {
-            throw new IllegalArgumentException("not multipart");
-        }
     }
 }

@@ -59,6 +59,7 @@ public class HttpRequestDecoder extends AbstractDecoder
                 decodeObject.setBody(accumulation.slice(decodeObject.getContentLength()));
             }
         }
+        decodeObject.parseMaybeMutliparts();
         next.fireRead(decodeObject);
         decodeObject = null;
         state = ParseState.REQUEST_LINE;
