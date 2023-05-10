@@ -13,7 +13,7 @@ import java.util.*;
 
 @Data
 @ToString(exclude = "body")
-public class HttpRequest
+public class HttpRequest implements AutoCloseable
 {
     protected           String              method;
     protected           String              url;
@@ -36,34 +36,34 @@ public class HttpRequest
 
     public void parseMaybeMutliparts()
     {
-        if (contentType.toLowerCase().startsWith("multipart/form-data"))
+        if (contentType != null && contentType.toLowerCase().startsWith("multipart/form-data"))
         {
-            byte[]   boundary      = ("--" + contentType.substring(contentType.indexOf("boundary=") + 9)).getBytes(StandardCharsets.US_ASCII);
-            int[]    prefix        = HttpDecodeUtil.computePrefix(boundary);
-            IoBuffer buffer        = body;
-            int      boundaryIndex = HttpDecodeUtil.findSubArray(buffer, boundary, prefix);
-            if (boundaryIndex != buffer.getReadPosi())
+            byte[] boundary      = ("--" + contentType.substring(contentType.indexOf("boundary=") + 9)).getBytes(StandardCharsets.US_ASCII);
+            int[]  prefix        = HttpDecodeUtil.computePrefix(boundary);
+            int    boundaryIndex = HttpDecodeUtil.findSubArray(body, boundary, prefix);
+            if (boundaryIndex != body.getReadPosi())
             {
                 throw new IllegalArgumentException();
             }
-            buffer.addReadPosi(boundary.length + 2);
+            body.addReadPosi(boundary.length + 2);
             parts = new ArrayList<>();
             while (true)
             {
-                boundaryIndex = HttpDecodeUtil.findSubArray(buffer, boundary, prefix);
+                boundaryIndex = HttpDecodeUtil.findSubArray(body, boundary, prefix);
                 if (boundaryIndex != -1)
                 {
                     //数据范围需要将回车换行去掉
-                    IoBuffer slice = buffer.slice(boundaryIndex - buffer.getReadPosi() - 2);
+                    IoBuffer slice = body.slice(boundaryIndex - body.getReadPosi() - 2);
                     parts.add(new BoundaryPart(slice));
-                    buffer.addReadPosi(2 + boundary.length + 2);
+                    body.addReadPosi(2 + boundary.length + 2);
                 }
                 else
                 {
                     break;
                 }
             }
-            buffer.free();
+            body.free();
+            body = null;
         }
     }
 
@@ -102,7 +102,7 @@ public class HttpRequest
 
         private void mayBeUtf8Value()
         {
-            if (isBinary)
+            if (!isBinary)
             {
                 utf8Value = StandardCharsets.UTF_8.decode(data.readableByteBuffer()).toString();
                 data.free();
