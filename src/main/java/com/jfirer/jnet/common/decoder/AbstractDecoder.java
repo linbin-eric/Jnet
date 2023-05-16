@@ -32,6 +32,8 @@ public abstract class AbstractDecoder implements ReadProcessor<IoBuffer>
         }
         catch (Exception e)
         {
+            System.err.println(this.getClass());
+            e.printStackTrace();
             next.fireExceptionCatch(e);
         }
     }
@@ -40,10 +42,10 @@ public abstract class AbstractDecoder implements ReadProcessor<IoBuffer>
 
     protected void compactIfNeed()
     {
-        if (accumulation.remainRead() > (accumulation.capacity() >> 1))
-        {
-            return;
-        }
+//        if (accumulation.remainRead() > (accumulation.capacity() >> 1))
+//        {
+//            return;
+//        }
         if (accumulation.refCount() > 1 || accumulation.capacity() > 1024 * 16)
         {
             IoBuffer newAcc = allocator.ioBuffer(accumulation.remainRead() + 512);

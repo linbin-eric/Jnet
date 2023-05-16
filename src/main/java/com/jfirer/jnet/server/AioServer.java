@@ -8,7 +8,6 @@ import com.jfirer.jnet.common.util.ReflectUtil;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.AsynchronousServerSocketChannel;
-import java.util.concurrent.TimeUnit;
 
 public class AioServer
 {
@@ -49,7 +48,7 @@ public class AioServer
         try
         {
             serverSocketChannel.close();
-            channelConfig.getChannelGroup().shutdown();
+//            channelConfig.getChannelGroup().shutdown();
         }
         catch (Exception e)
         {
@@ -62,8 +61,8 @@ public class AioServer
         try
         {
             serverSocketChannel.close();
-            channelConfig.getChannelGroup().shutdownNow();
-            channelConfig.getChannelGroup().awaitTermination(10, TimeUnit.SECONDS);
+//            channelConfig.getChannelGroup().shutdownNow();
+//            channelConfig.getChannelGroup().awaitTermination(10, TimeUnit.SECONDS);
         }
         catch (Throwable e)
         {

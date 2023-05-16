@@ -64,7 +64,6 @@ public class DefaultChannelContext extends AtomicInteger implements ChannelConte
         {
             ;
         }
-        pipeline.fireChannelClose(e);
     }
 
     public void setPipeline(InternalPipeline pipeline)

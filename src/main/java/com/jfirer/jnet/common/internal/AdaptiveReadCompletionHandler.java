@@ -94,7 +94,9 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler
         {
             ioBuffer.free();
             Pipeline.invokeMethodIgnoreException(pipeline::fireReadClose);
-            channelContext.close(new EndOfStreamException());
+            EndOfStreamException exception = new EndOfStreamException();
+            channelContext.close(exception);
+            pipeline.fireChannelClose(exception);
             return;
         }
         int except = ioBuffer.capacity();
@@ -153,5 +155,6 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler
         Pipeline.invokeMethodIgnoreException(() -> pipeline.fireExceptionCatch(e));
         Pipeline.invokeMethodIgnoreException(pipeline::fireReadClose);
         channelContext.close(e);
+        pipeline.fireChannelClose(e);
     }
 }

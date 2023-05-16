@@ -23,19 +23,25 @@ public class ChannelConfig
     private             AsynchronousChannelGroup channelGroup;
     private             WorkerGroup              workerGroup;
     public static final LeakDetecter             IoBufferLeakDetected = new LeakDetecter(System.getProperty("Leak.Detect.IoBuffer") == null ? LeakDetecter.WatchLevel.none : LeakDetecter.WatchLevel.valueOf(System.getProperty("Leak.Detect.IoBuffer")));
-
+    public static final AsynchronousChannelGroup DEFAULT_CHANNEL_GROUP;
+    static
+    {
+        AsynchronousChannelGroup channelGroup = null;
+        try
+        {
+            channelGroup = AsynchronousChannelGroup.withThreadPool(Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()));
+        }
+        catch (IOException e)
+        {
+            ReflectUtil.throwException(e);
+        }
+        DEFAULT_CHANNEL_GROUP = channelGroup;
+    }
     public AsynchronousChannelGroup getChannelGroup()
     {
         if (channelGroup == null)
         {
-            try
-            {
-                channelGroup = AsynchronousChannelGroup.withThreadPool(Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()));
-            }
-            catch (IOException e)
-            {
-                throw new RuntimeException(e);
-            }
+            channelGroup = DEFAULT_CHANNEL_GROUP;
         }
         return channelGroup;
     }
