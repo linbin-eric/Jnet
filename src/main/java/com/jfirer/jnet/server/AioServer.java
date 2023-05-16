@@ -33,7 +33,7 @@ public class AioServer
     {
         try
         {
-            serverSocketChannel = AsynchronousServerSocketChannel.open(channelConfig.getChannelGroup());
+            serverSocketChannel = channelConfig.getChannelGroup() == null ? AsynchronousServerSocketChannel.open() : AsynchronousServerSocketChannel.open(channelConfig.getChannelGroup());
             serverSocketChannel.bind(new InetSocketAddress(channelConfig.getIp(), channelConfig.getPort()), channelConfig.getBackLog());
             serverSocketChannel.accept(serverSocketChannel, new AcceptHandler(channelConfig, initializer));
         }
@@ -48,7 +48,6 @@ public class AioServer
         try
         {
             serverSocketChannel.close();
-//            channelConfig.getChannelGroup().shutdown();
         }
         catch (Exception e)
         {
@@ -61,8 +60,6 @@ public class AioServer
         try
         {
             serverSocketChannel.close();
-//            channelConfig.getChannelGroup().shutdownNow();
-//            channelConfig.getChannelGroup().awaitTermination(10, TimeUnit.SECONDS);
         }
         catch (Throwable e)
         {

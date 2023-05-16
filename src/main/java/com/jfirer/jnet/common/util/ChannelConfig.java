@@ -5,9 +5,7 @@ import com.jfirer.jnet.common.buffer.LeakDetecter;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 
-import java.io.IOException;
 import java.nio.channels.AsynchronousChannelGroup;
-import java.util.concurrent.Executors;
 
 public class ChannelConfig
 {
@@ -23,26 +21,9 @@ public class ChannelConfig
     private             AsynchronousChannelGroup channelGroup;
     private             WorkerGroup              workerGroup;
     public static final LeakDetecter             IoBufferLeakDetected = new LeakDetecter(System.getProperty("Leak.Detect.IoBuffer") == null ? LeakDetecter.WatchLevel.none : LeakDetecter.WatchLevel.valueOf(System.getProperty("Leak.Detect.IoBuffer")));
-    public static final AsynchronousChannelGroup DEFAULT_CHANNEL_GROUP;
-    static
-    {
-        AsynchronousChannelGroup channelGroup = null;
-        try
-        {
-            channelGroup = AsynchronousChannelGroup.withThreadPool(Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()));
-        }
-        catch (IOException e)
-        {
-            ReflectUtil.throwException(e);
-        }
-        DEFAULT_CHANNEL_GROUP = channelGroup;
-    }
+
     public AsynchronousChannelGroup getChannelGroup()
     {
-        if (channelGroup == null)
-        {
-            channelGroup = DEFAULT_CHANNEL_GROUP;
-        }
         return channelGroup;
     }
 
