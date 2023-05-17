@@ -13,6 +13,7 @@ import com.jfirer.jnet.common.util.MathUtil;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class AdaptiveReadCompletionHandler implements ReadCompletionHandler
 {
@@ -23,6 +24,7 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler
     private final       int                       maxIndex;
     private final       int                       DECR_COUNT_MAX;
     private final       InternalPipeline          pipeline;
+    private final       long                      msOfReadTimeout;
     private             int                       index;
     protected           ChannelContext            channelContext;
     private             int                       decrCount;
@@ -68,6 +70,7 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler
     public AdaptiveReadCompletionHandler(ChannelContext channelContext)
     {
         this.channelContext = channelContext;
+        msOfReadTimeout = channelContext.channelConfig().getMsOfReadTimeout();
         DECR_COUNT_MAX = channelContext.channelConfig().getDecrCountMax();
         decrCount = DECR_COUNT_MAX;
         pipeline = (InternalPipeline) channelContext.pipeline();
@@ -84,7 +87,7 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler
     public void start()
     {
         ioBuffer = allocator.ioBuffer(sizeTable[index]);
-        socketChannel.read(ioBuffer.writableByteBuffer(), this, this);
+        socketChannel.read(ioBuffer.writableByteBuffer(), msOfReadTimeout, TimeUnit.MILLISECONDS, this, this);
     }
 
     @Override
@@ -112,7 +115,7 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler
                 System.err.println("读取到了0");
             }
             ioBuffer = nextReadBuffer(except, read);
-            socketChannel.read(ioBuffer.writableByteBuffer(), this, this);
+            socketChannel.read(ioBuffer.writableByteBuffer(), msOfReadTimeout, TimeUnit.MILLISECONDS, this, this);
         }
         catch (Throwable e)
         {
