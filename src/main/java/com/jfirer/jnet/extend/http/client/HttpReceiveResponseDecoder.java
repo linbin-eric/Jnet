@@ -3,9 +3,11 @@ package com.jfirer.jnet.extend.http.client;
 import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.decoder.AbstractDecoder;
 import com.jfirer.jnet.common.util.HttpDecodeUtil;
+import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.StandardCharsets;
 
+@Slf4j
 public class HttpReceiveResponseDecoder extends AbstractDecoder
 {
     private              HttpReceiveResponse receiveResponse;
@@ -47,10 +49,8 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
                 {
                     case RESPONSE_LINE -> goToNextState = decodeResponseLine();
                     case HEADER -> goToNextState = decodeHeader(next);
-                    case BODY_FIX_LENGTH ->
-                            goToNextState = decodeBodyWithFixLength();
-                    case BODY_CHUNKED ->
-                            goToNextState = decodeBodyWithChunked();
+                    case BODY_FIX_LENGTH -> goToNextState = decodeBodyWithFixLength();
+                    case BODY_CHUNKED -> goToNextState = decodeBodyWithChunked();
                 }
             }
             while (goToNextState);
@@ -218,9 +218,9 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
                 receiveResponse.close();
             }
         }
-        catch (Exception ignored)
+        catch (Throwable e1)
         {
-            ;
+            log.error("HttpReceiveResponseDecoder关闭的时候异常", e1);
         }
         super.channelClose(next, e);
     }

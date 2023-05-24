@@ -56,11 +56,11 @@ public class ClientChannelImpl implements ClientChannel
                             next.fireRead(data);
                         }
                     });
+                    state = ConnectedState.CONNECTED;
                     initializer.onChannelContextInit(channelContext);
                     pipeline.complete();
                     ReadCompletionHandler readCompletionHandler = new AdaptiveReadCompletionHandler(channelContext);
                     readCompletionHandler.start();
-                    state = ConnectedState.CONNECTED;
                     return true;
                 }
                 catch (Throwable e)

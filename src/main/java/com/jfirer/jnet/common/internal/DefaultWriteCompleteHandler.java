@@ -1,8 +1,6 @@
 package com.jfirer.jnet.common.internal;
 
 import com.jfirer.jnet.common.api.ChannelContext;
-import com.jfirer.jnet.common.api.InternalPipeline;
-import com.jfirer.jnet.common.api.Pipeline;
 import com.jfirer.jnet.common.api.WriteCompletionHandler;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
@@ -172,9 +170,6 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
                 sendingData = null;
             }
             prepareTermination();
-            InternalPipeline pipeline = (InternalPipeline) channelContext.pipeline();
-            Pipeline.invokeMethodIgnoreException(() -> pipeline.fireExceptionCatch(e));
-            Pipeline.invokeMethodIgnoreException(() -> pipeline.fireWriteClose());
             channelContext.close(e);
         }
         catch (Throwable e1)

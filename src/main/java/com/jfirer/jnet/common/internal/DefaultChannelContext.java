@@ -16,6 +16,7 @@ public class DefaultChannelContext extends AtomicInteger implements ChannelConte
     private final        AsynchronousSocketChannel socketChannel;
     private final        ChannelConfig             channelConfig;
     private              InternalPipeline          pipeline;
+    private              Object                    attach;
 
     public DefaultChannelContext(AsynchronousSocketChannel socketChannel, ChannelConfig channelConfig)
     {
@@ -56,6 +57,10 @@ public class DefaultChannelContext extends AtomicInteger implements ChannelConte
         {
             return;
         }
+        Pipeline.invokeMethodIgnoreException(pipeline::fireReadClose);
+        Pipeline.invokeMethodIgnoreException(pipeline::fireWriteClose);
+        Pipeline.invokeMethodIgnoreException(() -> pipeline.fireExceptionCatch(e));
+        pipeline.fireChannelClose(e);
         try
         {
             socketChannel.close();
@@ -64,6 +69,18 @@ public class DefaultChannelContext extends AtomicInteger implements ChannelConte
         {
             ;
         }
+    }
+
+    @Override
+    public void setAttach(Object attach)
+    {
+        this.attach = attach;
+    }
+
+    @Override
+    public Object getAttach()
+    {
+        return attach;
     }
 
     public void setPipeline(InternalPipeline pipeline)

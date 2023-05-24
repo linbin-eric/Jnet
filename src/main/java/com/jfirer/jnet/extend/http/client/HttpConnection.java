@@ -13,14 +13,17 @@ import com.jfirer.jnet.common.util.ReflectUtil;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.net.ConnectException;
+import java.net.SocketTimeoutException;
 import java.nio.channels.ClosedChannelException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 @Data
+@Slf4j
 public class HttpConnection
 {
     @Setter(AccessLevel.NONE)
@@ -70,7 +73,7 @@ public class HttpConnection
         return !clientChannel.alive() || responseSync.peek() == CLOSE_OF_CONNECTION || (System.currentTimeMillis() - lastRespoonseTime) > KEEP_ALIVE_TIME;
     }
 
-    public HttpReceiveResponse write(HttpSendRequest request) throws ClosedChannelException
+    public HttpReceiveResponse write(HttpSendRequest request) throws ClosedChannelException, SocketTimeoutException
     {
         if (isConnectionClosed())
         {
@@ -87,8 +90,16 @@ public class HttpConnection
             clientChannel.close();
             throw new ClosedChannelException();
         }
-        if (response == null || response == CLOSE_OF_CONNECTION)
+        if (response == null)
         {
+            log.debug("超时等待20秒，没有收到响应，关闭Http链接");
+            String msg = clientChannel.alive() ? "通道仍然alive" : "通道已经失效";
+            clientChannel.close();
+            throw new SocketTimeoutException(msg);
+        }
+        if (response == CLOSE_OF_CONNECTION)
+        {
+            log.debug("收到链接终止响应");
             clientChannel.close();
             throw new ClosedChannelException();
         }

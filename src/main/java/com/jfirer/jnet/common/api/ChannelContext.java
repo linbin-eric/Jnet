@@ -15,4 +15,8 @@ public interface ChannelContext
     void close();
 
     void close(Throwable e);
+
+    void setAttach(Object attach);
+
+    Object getAttach();
 }
