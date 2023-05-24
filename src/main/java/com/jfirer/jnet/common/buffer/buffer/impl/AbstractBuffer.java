@@ -357,6 +357,10 @@ public abstract class AbstractBuffer implements IoBuffer
     @Override
     public IoBuffer capacityReadyFor(int newCapacity)
     {
+        if (refCount > 1)
+        {
+            throw new IllegalStateException("当前存在slice的部分，无法进行扩容");
+        }
         if (newCapacity <= capacity)
         {
             ;
