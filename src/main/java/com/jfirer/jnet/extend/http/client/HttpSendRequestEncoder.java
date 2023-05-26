@@ -22,16 +22,17 @@ public class HttpSendRequestEncoder implements WriteProcessor<HttpSendRequest>
         request.putHeader("User-Agent", "JnetHttpClient");
         request.putHeader("Accept", "*/*");
         request.getHeaders().forEach((name, value) -> {
-            buffer.put((name+": "+value+"\r\n").getBytes(StandardCharsets.US_ASCII));
-//            buffer.put(name.getBytes(StandardCharsets.US_ASCII)).put(HEADER_INTERVAL).put(value.getBytes(StandardCharsets.US_ASCII)).put(NEW_LINE);
+            buffer.put((name + ": " + value + "\r\n").getBytes(StandardCharsets.US_ASCII));
         });
+        if (request.getContentType() != null)
+        {
+            buffer.put(("Content-Type: " + request.getContentType() + "\r\n").getBytes(StandardCharsets.UTF_8));
+        }
         IoBuffer body = request.getBody();
         if (body != null)
         {
-            buffer.put(("Content-Length: "+String.valueOf(body.remainRead())+"\r\n").getBytes(StandardCharsets.US_ASCII));
+            buffer.put(("Content-Length: " + String.valueOf(body.remainRead()) + "\r\n").getBytes(StandardCharsets.US_ASCII));
             buffer.put(NEW_LINE);
-//            buffer.put(CONTENT_LENGTH).put(HEADER_INTERVAL).put(String.valueOf(body.remainRead()).getBytes(StandardCharsets.US_ASCII)).put(NEW_LINE);
-//            buffer.put(NEW_LINE);
             buffer.put(body);
             body.free();
         }
