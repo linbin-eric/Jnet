@@ -26,6 +26,7 @@ public class HttpReceiveResponse implements AutoCloseable
     private              int                           contentLength;
     private              String                        contentType;
     private              BlockingQueue<IoBuffer>       chunked        = new LinkedBlockingQueue<>();
+    private              String                        utf8Body;
     private              Consumer<HttpReceiveResponse> onClose;
     /**
      * 1代表使用中，0代表已关闭
@@ -48,12 +49,14 @@ public class HttpReceiveResponse implements AutoCloseable
     {
         if (closed == 1 && UNSAFE.compareAndSwapInt(this, CLOSED_OFFSET, 1, 0))
         {
-            if (aggregation != null)
+            if (consumered == false)
             {
-                aggregation.free();
+                IoBuffer buffer = waitForAllBodyPart();
+                if (buffer != null)
+                {
+                    buffer.free();
+                }
             }
-            clearChunked();
-            chunked.add(END_OF_CHUNKED);
             if (onClose != null)
             {
                 onClose.accept(this);
@@ -63,10 +66,6 @@ public class HttpReceiveResponse implements AutoCloseable
 
     public IoBuffer waitForAllBodyPart()
     {
-        if (isClosed())
-        {
-            throw new IllegalStateException("已经关闭，不能");
-        }
         if (consumered)
         {
             throw new IllegalStateException("不能重复消费，当前已经消费过该响应内容体");
@@ -107,20 +106,27 @@ public class HttpReceiveResponse implements AutoCloseable
 
     public String getUTF8Body()
     {
-        IoBuffer body = waitForAllBodyPart();
-        if (body != null)
+        if (utf8Body != null)
         {
-            return StandardCharsets.UTF_8.decode(body.readableByteBuffer()).toString();
+            return utf8Body;
+        }
+        if (consumered == false)
+        {
+            IoBuffer body = waitForAllBodyPart();
+            if (body != null)
+            {
+                utf8Body = StandardCharsets.UTF_8.decode(body.readableByteBuffer()).toString();
+                return utf8Body;
+            }
+            else
+            {
+                return null;
+            }
         }
         else
         {
             return null;
         }
-    }
-
-    public boolean isClosed()
-    {
-        return closed == 0;
     }
 
     public boolean isSuccessful()

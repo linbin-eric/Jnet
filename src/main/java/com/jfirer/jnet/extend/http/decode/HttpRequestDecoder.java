@@ -115,6 +115,11 @@ public class HttpRequestDecoder extends AbstractDecoder
         }
         else
         {
+            log.debug("读取到数据，但是无法解析请求头，当前已经读取的数据长度为:{}", accumulation.remainRead());
+            if (accumulation.remainRead() > 30)
+            {
+                log.debug("当前已经能读取到的前20的内容是:{}", StandardCharsets.UTF_8.decode(accumulation.readableByteBuffer(accumulation.getReadPosi() + 30)).toString());
+            }
             return false;
         }
     }

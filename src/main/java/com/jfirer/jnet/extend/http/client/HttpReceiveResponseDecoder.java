@@ -95,10 +95,6 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
             else if (chunkSize == 0)
             {
                 accumulation.addReadPosi(2);
-                if (receiveResponse.isClosed())
-                {
-                    receiveResponse.clearChunked();
-                }
                 receiveResponse.endChunked();
                 receiveResponse = null;
                 chunkSize = -1;
@@ -130,10 +126,6 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
             compactIfNeed();
             bodyRead = 0;
             //应用程序已经提前关闭了流，则此时流里可能存在Buffer，需要清空
-            if (receiveResponse.isClosed())
-            {
-                receiveResponse.clearChunked();
-            }
             receiveResponse.endChunked();
             receiveResponse = null;
             state = ParseState.RESPONSE_LINE;

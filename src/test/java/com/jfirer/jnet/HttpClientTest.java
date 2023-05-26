@@ -19,15 +19,15 @@ public class HttpClientTest
 
     private static void getInfo()
     {
-        String          url        = "http://localhost:10086/config/endpoint";
-        String          url2       = "http://47.97.109.181:2000/health";
-        HttpSendRequest request    = new HttpSendRequest().setUrl(url).getRequest();
+        String          url     = "http://op.yynas.cn:2000/health";
+        String          url2    = "http://47.97.109.181:2000/health";
+        HttpSendRequest request = new HttpSendRequest().setUrl(url).getRequest();
         for (int i = 0; i < 50; i++)
         {
             try (HttpReceiveResponse receiveResponse = HttpClient.newCall(request))
             {
-                String utf8Body = receiveResponse.getUTF8Body();
-                System.out.println(i + "   :   " + utf8Body);
+//                String utf8Body = receiveResponse.getUTF8Body();
+//                System.out.println(i + "   :   " + utf8Body);
             }
             catch (Throwable e)
             {

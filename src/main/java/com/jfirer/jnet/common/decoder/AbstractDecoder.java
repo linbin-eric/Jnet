@@ -4,7 +4,9 @@ import com.jfirer.jnet.common.api.ReadProcessor;
 import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public abstract class AbstractDecoder implements ReadProcessor<IoBuffer>
 {
     protected BufferAllocator allocator;
@@ -30,11 +32,11 @@ public abstract class AbstractDecoder implements ReadProcessor<IoBuffer>
             }
             process0(next);
         }
-        catch (Exception e)
+        catch (Throwable e)
         {
             System.err.println(this.getClass());
-            e.printStackTrace();
-            next.fireExceptionCatch(e);
+            log.error("解码过程中发生未知异常", e);
+            next.pipeline().channelContext().close(e);
         }
     }
 
