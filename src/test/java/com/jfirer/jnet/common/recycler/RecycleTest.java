@@ -7,16 +7,19 @@ import org.junit.Test;
 
 import java.lang.reflect.Field;
 import java.util.*;
-import java.util.concurrent.BrokenBarrierException;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.*;
 
 public class RecycleTest
 {
+    class Entry
+    {
+        RecycleHandler<Entry> handler;
+        String                value;
+    }
+
     Recycler<Entry> recycler;
     private Field recycleIdField;
     private Field lastRecycleIdField;
@@ -347,19 +350,40 @@ public class RecycleTest
         for (int i = 0; i < size; i++)
         {
             recycler.get();
-            if (i == 0)
-            {
-                assertEquals(Recycler.MAX_SHARED_CAPACITY - Recycler.LINK_SIZE, stack.sharedCapacity.get());
-            }
+            assertEquals(Recycler.MAX_SHARED_CAPACITY - Recycler.LINK_SIZE, stack.sharedCapacity.get());
         }
         assertEquals(Recycler.MAX_SHARED_CAPACITY - Recycler.LINK_SIZE, stack.sharedCapacity.get());
         recycler.get();
         assertEquals(Recycler.MAX_SHARED_CAPACITY, stack.sharedCapacity.get());
     }
 
-    class Entry
+    /**
+     * 测试回收多个WeakOrderQueue，是否会有死循环
+     */
+    @Test
+    public void test9() throws InterruptedException
     {
-        RecycleHandler<Entry> handler;
-        String                value;
+        int          size  = 10;
+        Queue<Entry> queue = new LinkedTransferQueue<>();
+        for (int i = 0; i < size; i++)
+        {
+            queue.add(recycler.get());
+        }
+        ExecutorService executorService = Executors.newFixedThreadPool(3);
+        CountDownLatch  latch           = new CountDownLatch(1);
+        executorService.submit(() -> {
+            for (int i = 0; i < 5; i++)
+            {
+                Entry poll = queue.poll();
+                poll.handler.recycle(poll);
+            }
+            latch.countDown();
+        });
+        latch.await();
+        for (int i = 0; i < 5; i++)
+        {
+            recycler.get();
+        }
+        recycler.get();
     }
 }

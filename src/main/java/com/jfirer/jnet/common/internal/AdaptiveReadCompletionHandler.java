@@ -2,6 +2,7 @@ package com.jfirer.jnet.common.internal;
 
 import com.jfirer.jnet.common.api.ChannelContext;
 import com.jfirer.jnet.common.api.InternalPipeline;
+import com.jfirer.jnet.common.api.Pipeline;
 import com.jfirer.jnet.common.api.ReadCompletionHandler;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
@@ -95,7 +96,9 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler
         if (read == -1)
         {
             ioBuffer.free();
-            channelContext.close(new EndOfStreamException());
+            EndOfStreamException exception = new EndOfStreamException();
+            channelContext.close(exception);
+            pipelineClose(exception);
             return;
         }
         int except = ioBuffer.capacity();
@@ -153,5 +156,14 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler
             ioBuffer.free();
         }
         channelContext.close(e);
+        pipelineClose(e);
+    }
+
+    private void pipelineClose(Throwable e)
+    {
+        Pipeline.invokeMethodIgnoreException(pipeline::fireReadClose);
+        Pipeline.invokeMethodIgnoreException(pipeline::fireWriteClose);
+        Pipeline.invokeMethodIgnoreException(() -> pipeline.fireExceptionCatch(e));
+        Pipeline.invokeMethodIgnoreException(() -> pipeline.fireChannelClose(e));
     }
 }

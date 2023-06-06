@@ -110,7 +110,6 @@ public class Recycler<T>
         RecycleHandler[]      buffer;
         volatile WeakOrderQueue head;
         WeakOrderQueue cursor;
-        WeakOrderQueue prev;
         /**
          * 当前可以写入的位置
          */
@@ -128,16 +127,27 @@ public class Recycler<T>
 
         synchronized void setHead(WeakOrderQueue queue)
         {
-            queue.next = head;
+            if (head != null)
+            {
+                head.prev = queue;
+                queue.next = head;
+            }
             head = queue;
         }
 
-        synchronized void removeHead(WeakOrderQueue queue)
+        synchronized void removeHead()
         {
-            if (queue == head)
+            WeakOrderQueue originHead = head;
+            WeakOrderQueue next       = originHead.next;
+            if (next == null)
             {
-                head = queue.next;
-                queue.next = queue;
+                head = null;
+            }
+            else
+            {
+                next.prev = null;
+                originHead.next = null;
+                head = next;
             }
         }
 
@@ -189,40 +199,49 @@ public class Recycler<T>
                 if (cursor == null)
                 {
                     cursor = head;
-                    if (cursor == null)
+                    if (cursor == null || cursor == anchor)
                     {
                         return;
                     }
                     else
                     {
-                        prev = null;
-                        anchor = null;
+                        ;
                     }
                 }
-                if (cursor.transfer(this))
+                if (cursor.moveToStack(this))
                 {
                     return;
                 }
                 else if (cursor.ownerThread.get() == null)
                 {
                     // 做最后一次数据迁移尝试
-                    cursor.transfer(this);
+                    cursor.moveToStack(this);
                     cursor.returnResidueSpace();
-                    if (prev == null)
+                    if (cursor == head)
                     {
-                        removeHead(cursor);
+                        removeHead();
+                        if (anchor == cursor)
+                        {
+                            anchor = null;
+                        }
                         cursor = null;
                     }
                     else
                     {
-                        prev.next = cursor.next;
+                        WeakOrderQueue prev = cursor.prev;
+                        WeakOrderQueue next = cursor.next;
+                        prev.next = next;
+                        if (next != null)
+                        {
+                            next.prev = prev;
+                        }
+                        cursor.next = cursor.prev = null;
                         if (anchor == cursor)
                         {
-                            anchor = cursor.next;
+                            anchor = prev;
                         }
-                        cursor = cursor.next;
+                        cursor = next;
                     }
-                    continue;
                 }
                 else
                 {
@@ -275,7 +294,7 @@ public class Recycler<T>
                     map.put(this, DUMMY);
                     return;
                 }
-                if (reserveSpace(linkSize, sharedCapacity) == false)
+                if (!reserveSpace(linkSize, sharedCapacity))
                 {
                     return;
                 }
@@ -343,6 +362,7 @@ public class Recycler<T>
         AtomicInteger         sharedCapacity;
         WeakReference<Thread> ownerThread;
         WeakOrderQueue        next;
+        WeakOrderQueue        prev;
 
         public WeakOrderQueue()
         {
@@ -353,7 +373,7 @@ public class Recycler<T>
         {
             this.sharedCapacity = sharedCapacity;
             cursor = tail = new Link();
-            ownerThread = new WeakReference<Thread>(currentThread);
+            ownerThread = new WeakReference<>(currentThread);
         }
 
         boolean add(DefaultHandler handler)
@@ -393,7 +413,7 @@ public class Recycler<T>
          * @param stack
          */
         @SuppressWarnings("unchecked")
-        boolean transfer(Stack stack)
+        boolean moveToStack(Stack stack)
         {
             boolean success = false;
             do
@@ -465,7 +485,7 @@ public class Recycler<T>
 
         public Link()
         {
-            buffer = new RecycleHandler[LINK_SIZE];
+            buffer = new RecycleHandler[linkSize];
         }
 
         @SuppressWarnings("unchecked")

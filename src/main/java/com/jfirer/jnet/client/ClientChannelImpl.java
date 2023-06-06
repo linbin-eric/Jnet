@@ -53,6 +53,10 @@ public class ClientChannelImpl implements ClientChannel
                         @Override
                         public void read(Object data, ReadProcessorNode next)
                         {
+                            if (data == null)
+                            {
+                                System.err.println("数据为空");
+                            }
                             next.fireRead(data);
                         }
                     });

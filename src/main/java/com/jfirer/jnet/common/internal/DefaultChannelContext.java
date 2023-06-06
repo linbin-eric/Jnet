@@ -57,10 +57,6 @@ public class DefaultChannelContext extends AtomicInteger implements ChannelConte
         {
             return;
         }
-        Pipeline.invokeMethodIgnoreException(pipeline::fireReadClose);
-        Pipeline.invokeMethodIgnoreException(pipeline::fireWriteClose);
-        Pipeline.invokeMethodIgnoreException(() -> pipeline.fireExceptionCatch(e));
-        pipeline.fireChannelClose(e);
         try
         {
             socketChannel.close();

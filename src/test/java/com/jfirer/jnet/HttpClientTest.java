@@ -26,8 +26,8 @@ public class HttpClientTest
         {
             try (HttpReceiveResponse receiveResponse = HttpClient.newCall(request))
             {
-//                String utf8Body = receiveResponse.getUTF8Body();
-//                System.out.println(i + "   :   " + utf8Body);
+                String utf8Body = receiveResponse.getUTF8Body();
+                System.out.println(i + "   :   " + utf8Body);
             }
             catch (Throwable e)
             {
@@ -48,7 +48,7 @@ public class HttpClientTest
             int         maxBytes    = 0;
             do
             {
-                buffer = receiveResponse.getChunked().take();
+                buffer = receiveResponse.pollChunk();
                 if (receiveResponse.isEndOfChunked(buffer))
                 {
                     break;

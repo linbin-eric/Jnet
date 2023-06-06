@@ -67,7 +67,8 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
         }
         catch (Throwable e)
         {
-            e.printStackTrace();
+            System.out.println("发生不应该的异常");
+            System.exit(-1);
         }
     }
 
@@ -162,20 +163,13 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
     @Override
     public void failed(Throwable e, ByteBuffer byteBuffer)
     {
-        try
+        if (sendingData != null)
         {
-            if (sendingData != null)
-            {
-                sendingData.free();
-                sendingData = null;
-            }
-            prepareTermination();
-            channelContext.close(e);
+            sendingData.free();
+            sendingData = null;
         }
-        catch (Throwable e1)
-        {
-            e1.printStackTrace();
-        }
+        prepareTermination();
+        channelContext.close(e);
     }
 
     protected void prepareTermination()

@@ -57,7 +57,7 @@ public class LeakDetecter
                 }
                 catch (Throwable e)
                 {
-                    e.printStackTrace();
+                    log.error("资源泄露监测发生异常", e);
                 }
             }
         }).start();
@@ -71,9 +71,11 @@ public class LeakDetecter
         switch (watchLevel)
         {
             case none -> tracker = leakDummy;
-            case sample -> tracker = ThreadLocalRandom.current().nextInt(100) == 0 ? buildTracker(entity, stackTraceLevel) : leakDummy;
+            case sample ->
+                    tracker = ThreadLocalRandom.current().nextInt(100) == 0 ? buildTracker(entity, stackTraceLevel) : leakDummy;
             case all -> tracker = buildTracker(entity, stackTraceLevel);
-            default -> throw new IllegalStateException("Unexpected value: " + watchLevel);
+            default ->
+                    throw new IllegalStateException("Unexpected value: " + watchLevel);
         }
         return tracker;
     }

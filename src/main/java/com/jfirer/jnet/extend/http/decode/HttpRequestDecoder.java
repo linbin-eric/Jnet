@@ -4,11 +4,9 @@ import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.decoder.AbstractDecoder;
 import com.jfirer.jnet.common.util.HttpDecodeUtil;
-import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.StandardCharsets;
 
-@Slf4j
 public class HttpRequestDecoder extends AbstractDecoder
 {
     enum ParseState
@@ -53,7 +51,6 @@ public class HttpRequestDecoder extends AbstractDecoder
         {
             if (accumulation.remainRead() < decodeObject.getContentLength())
             {
-                log.debug("{}解析内容体长度不足，长度需求为:{}", decodeObject.getUrl(), decodeObject.getContentLength());
                 accumulation.capacityReadyFor(decodeObject.getContentLength());
                 return false;
             }
@@ -62,10 +59,8 @@ public class HttpRequestDecoder extends AbstractDecoder
                 decodeObject.setBody(accumulation.slice(decodeObject.getContentLength()));
             }
         }
-        log.debug("{}可以发送内容体", decodeObject.getUrl());
         decodeObject.parseMaybeMutliparts();
         next.fireRead(decodeObject);
-        log.debug("{}处理完成", decodeObject.getUrl());
         decodeObject = null;
         state = ParseState.REQUEST_LINE;
         compactIfNeed();
@@ -86,7 +81,6 @@ public class HttpRequestDecoder extends AbstractDecoder
         }
         if (state == ParseState.REQUEST_BODY)
         {
-            log.debug("{}请求准备解析请求头", decodeObject.getUrl());
             decodeHeaders();
             return true;
         }
@@ -115,11 +109,6 @@ public class HttpRequestDecoder extends AbstractDecoder
         }
         else
         {
-            log.debug("读取到数据，但是无法解析请求头，当前已经读取的数据长度为:{}", accumulation.remainRead());
-            if (accumulation.remainRead() > 30)
-            {
-                log.debug("当前已经能读取到的前20的内容是:{}", StandardCharsets.UTF_8.decode(accumulation.readableByteBuffer(accumulation.getReadPosi() + 30)).toString());
-            }
             return false;
         }
     }
@@ -144,7 +133,6 @@ public class HttpRequestDecoder extends AbstractDecoder
                 break;
             }
         }
-        log.debug("本次请求URL为:{}", decodeObject.getUrl());
         accumulation.setReadPosi(lastCheck);
     }
 

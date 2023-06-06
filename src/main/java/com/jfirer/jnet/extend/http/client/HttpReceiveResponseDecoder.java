@@ -3,11 +3,9 @@ package com.jfirer.jnet.extend.http.client;
 import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.decoder.AbstractDecoder;
 import com.jfirer.jnet.common.util.HttpDecodeUtil;
-import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.StandardCharsets;
 
-@Slf4j
 public class HttpReceiveResponseDecoder extends AbstractDecoder
 {
     private              HttpReceiveResponse receiveResponse;
@@ -36,29 +34,23 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
     @Override
     protected void process0(ReadProcessorNode next)
     {
-        try
+        if (receiveResponse == null)
         {
-            if (receiveResponse == null)
-            {
-                receiveResponse = new HttpReceiveResponse();
-            }
-            boolean goToNextState = false;
-            do
-            {
-                switch (state)
-                {
-                    case RESPONSE_LINE -> goToNextState = decodeResponseLine();
-                    case HEADER -> goToNextState = decodeHeader(next);
-                    case BODY_FIX_LENGTH -> goToNextState = decodeBodyWithFixLength();
-                    case BODY_CHUNKED -> goToNextState = decodeBodyWithChunked();
-                }
-            }
-            while (goToNextState);
+            receiveResponse = new HttpReceiveResponse();
         }
-        catch (Throwable e)
+        boolean goToNextState = false;
+        do
         {
-            e.printStackTrace();
+            switch (state)
+            {
+                case RESPONSE_LINE -> goToNextState = decodeResponseLine();
+                case HEADER -> goToNextState = decodeHeader(next);
+                case BODY_FIX_LENGTH ->
+                        goToNextState = decodeBodyWithFixLength();
+                case BODY_CHUNKED -> goToNextState = decodeBodyWithChunked();
+            }
         }
+        while (goToNextState);
     }
 
     private boolean decodeBodyWithChunked()
@@ -203,16 +195,9 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
     @Override
     public void channelClose(ReadProcessorNode next, Throwable e)
     {
-        try
+        if (receiveResponse != null)
         {
-            if (receiveResponse != null)
-            {
-                receiveResponse.close();
-            }
-        }
-        catch (Throwable e1)
-        {
-            log.error("HttpReceiveResponseDecoder关闭的时候异常", e1);
+            receiveResponse.close();
         }
         super.channelClose(next, e);
     }

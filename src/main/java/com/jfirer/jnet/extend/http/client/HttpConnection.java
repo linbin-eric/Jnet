@@ -105,7 +105,7 @@ public class HttpConnection
         }
         else
         {
-            response.setOnClose(v -> recycle());
+            response.setOnClose(this::recycle);
             return response;
         }
     }

@@ -5,7 +5,6 @@ import com.jfirer.jnet.common.api.InternalPipeline;
 import com.jfirer.jnet.common.api.ReadCompletionHandler;
 import com.jfirer.jnet.common.util.ChannelConfig;
 
-import java.io.IOException;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
@@ -25,8 +24,6 @@ public class AcceptHandler implements CompletionHandler<AsynchronousSocketChanne
     public void completed(AsynchronousSocketChannel socketChannel, AsynchronousServerSocketChannel serverChannel)
     {
         DefaultChannelContext channelContext = new DefaultChannelContext(socketChannel, channelConfig);
-//        DefaultPipeline       pipeline       = new DefaultPipeline(channelConfig.getWorkerGroup().next(), channelContext);
-//        channelContext.setPipeline(pipeline);
         channelContextInitializer.onChannelContextInit(channelContext);
         ((InternalPipeline) channelContext.pipeline()).complete();
         ReadCompletionHandler readCompletionHandler = new AdaptiveReadCompletionHandler(channelContext);
@@ -41,9 +38,9 @@ public class AcceptHandler implements CompletionHandler<AsynchronousSocketChanne
         {
             serverChannel.close();
         }
-        catch (IOException e)
+        catch (Throwable e)
         {
-            e.printStackTrace();
+            ;
         }
     }
 }
