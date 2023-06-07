@@ -52,6 +52,6 @@ public class CapacityStat
     @Override
     public String toString()
     {
-        return "CapacityStat{" + "freeBytes=" + freeBytes + ", chunkCapacity=" + chunkCapacity + ", numOfPooledChunk=" + numOfPooledChunk + ", numOfUnPooledChunk=" + numOfUnPooledChunk + '}';
+        return "CapacityStat{" + "freeBytes=" + freeBytes + ",usedBytes=" + (chunkCapacity - freeBytes) + ", chunkCapacity=" + chunkCapacity + ", numOfPooledChunk=" + numOfPooledChunk + ", numOfUnPooledChunk=" + numOfUnPooledChunk + '}';
     }
 }
