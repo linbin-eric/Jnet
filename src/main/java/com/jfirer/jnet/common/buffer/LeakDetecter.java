@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.lang.ref.PhantomReference;
 import java.lang.ref.ReferenceQueue;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
@@ -25,7 +26,7 @@ public class LeakDetecter
     //Refence对象如果自身被GC了，就不会被放入到队列中。因此需要有一个地方持有他们的强引用。
     private final ConcurrentHashMap<LeakTracker, Object> map       = new ConcurrentHashMap<>();
     final         Object                                 dummy     = new Object();
-    final         LeakTracker                            leakDummy = new LeakTracker(null, null);
+    final         LeakTracker                            leakDummy = new LeakTracker(null, null, map);
 
     public LeakDetecter(WatchLevel watchLevel)
     {
@@ -82,7 +83,7 @@ public class LeakDetecter
 
     private LeakTracker buildTracker(Object entity, int stackTraceLevel)
     {
-        LeakTracker tracker = new LeakTracker(entity, queue);
+        LeakTracker tracker = new LeakTracker(entity, queue, map);
         map.put(tracker, dummy);
         tracker.setSource(Arrays.stream(Thread.currentThread().getStackTrace()).skip(3).limit(stackTraceLevel).map(stackTraceElement -> stackTraceElement.getClassName() + "." + stackTraceElement.getMethodName() + ":" + stackTraceElement.getLineNumber()).collect(Collectors.joining("\r\n")));
         return tracker;
@@ -92,17 +93,20 @@ public class LeakDetecter
     @Getter
     public static class LeakTracker extends PhantomReference<Object>
     {
-        private String  source;
-        private boolean close = false;
+        private String                   source;
+        private boolean                  close = false;
+        private Map<LeakTracker, Object> map;
 
-        public LeakTracker(Object referent, ReferenceQueue<Object> q)
+        public LeakTracker(Object referent, ReferenceQueue<Object> q, Map<LeakTracker, Object> map)
         {
             super(referent, q);
+            this.map = map;
         }
 
         public void close()
         {
             close = true;
+            map.remove(this);
         }
     }
 }
