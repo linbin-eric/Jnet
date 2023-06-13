@@ -1,13 +1,16 @@
 package com.jfirer.jnet.common.util;
 
 import com.jfirer.jnet.common.buffer.arena.Chunk;
+import lombok.Data;
 
+@Data
 public class CapacityStat
 {
     private int freeBytes;
     private int chunkCapacity;
     private int numOfPooledChunk;
     private int numOfUnPooledChunk;
+    private int usedAllocate;
 
     public void add(Chunk chunk)
     {
@@ -16,42 +19,11 @@ public class CapacityStat
         numOfPooledChunk += 1;
     }
 
-    public int getFreeBytes()
-    {
-        return freeBytes;
-    }
-
-    public int getChunkCapacity()
-    {
-        return chunkCapacity;
-    }
-
-    public int getNumOfPooledChunk()
-    {
-        return numOfPooledChunk;
-    }
-
-    public int getNumOfUnPooledChunk()
-    {
-        return numOfUnPooledChunk;
-    }
-
     public void clear()
     {
         freeBytes = 0;
         chunkCapacity = 0;
         numOfPooledChunk = 0;
         numOfUnPooledChunk = 0;
-    }
-
-    public void setNumOfUnPooledChunk(int numOfUnPooledChunk)
-    {
-        this.numOfUnPooledChunk = numOfUnPooledChunk;
-    }
-
-    @Override
-    public String toString()
-    {
-        return "CapacityStat{" + "freeBytes=" + freeBytes + ",usedBytes=" + (chunkCapacity - freeBytes) + ", chunkCapacity=" + chunkCapacity + ", numOfPooledChunk=" + numOfPooledChunk + ", numOfUnPooledChunk=" + numOfUnPooledChunk + '}';
     }
 }

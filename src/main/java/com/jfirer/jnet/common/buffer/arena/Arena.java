@@ -10,6 +10,7 @@ import com.jfirer.jnet.common.util.PlatFormFunction;
 import com.jfirer.jnet.common.util.ReflectUtil;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Arena
 {
@@ -32,9 +33,10 @@ public class Arena
     /**
      * 统计相关
      **/
-    int    newChunkCount  = 0;
-    int    hugeChunkCount = 0;
-    String name;
+    int           newChunkCount  = 0;
+    int           hugeChunkCount = 0;
+    AtomicInteger usedAllocate   = new AtomicInteger();
+    String        name;
 
     @SuppressWarnings("unchecked")
     public Arena(int maxLevel, int pageSize, final String name, BufferType bufferType)
@@ -96,6 +98,7 @@ public class Arena
                     {
                         removeFromArena(succeed);
                     }
+                    usedAllocate.incrementAndGet();
                     return;
                 }
             }
@@ -105,10 +108,12 @@ public class Arena
                 addToArena(subPage, head);
                 initSubPageBuffer(subPage, buffer);
             }
+            usedAllocate.incrementAndGet();
         }
         else if (normalizeCapacity <= chunkSize)
         {
             allocateNormal(normalizeCapacity, buffer);
+            usedAllocate.incrementAndGet();
         }
         else
         {
@@ -234,7 +239,8 @@ public class Arena
     {
         switch (bufferType)
         {
-            case HEAP -> System.arraycopy(src, srcOffset, desc, destOffset, oldWritePosi);
+            case HEAP ->
+                    System.arraycopy(src, srcOffset, desc, destOffset, oldWritePosi);
             case DIRECT, MEMORY -> throw new IllegalArgumentException();
             case UNSAFE ->
                     Bits.copyDirectMemory(PlatFormFunction.bytebufferOffsetAddress((ByteBuffer) src) + srcOffset, PlatFormFunction.bytebufferOffsetAddress((ByteBuffer) desc) + destOffset, oldWritePosi);
@@ -267,6 +273,7 @@ public class Arena
         }
         else
         {
+            usedAllocate.decrementAndGet();
             if (isSmall(capacity))
             {
                 SubPage head = subPageHeads[smallIdx(capacity)];
@@ -325,5 +332,6 @@ public class Arena
         c075.stat(capacityStat);
         c100.stat(capacityStat);
         capacityStat.setNumOfUnPooledChunk(capacityStat.getNumOfUnPooledChunk() + hugeChunkCount);
+        capacityStat.setUsedAllocate(capacityStat.getUsedAllocate() + usedAllocate.get());
     }
 }
