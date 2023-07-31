@@ -80,7 +80,13 @@ public class HttpReceiveResponse implements AutoCloseable
         }
     }
 
-    private IoBuffer waitForAllBodyPart() throws InterruptedException
+    /**
+     * 阻塞等待整个响应体的数据读取完毕。
+     * 注意：该方法读取后，响应体就没有数据了。默认情况下，使用方法getUTF8Body会在内部调用该方法。
+     * @return
+     * @throws InterruptedException
+     */
+    public IoBuffer waitForAllBodyPart() throws InterruptedException
     {
         long     timeoutInMs = bodyReadTimeout;
         long     t0          = System.currentTimeMillis();

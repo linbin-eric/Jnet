@@ -10,6 +10,7 @@ public class HttpResponse
     private Map<String, String> headers = new HashMap<>();
     private String              body;
     private IoBuffer            bodyBuffer;
+    private byte[]              bytes_body;
     private String              contentType;
 
     public void addHeader(String header, String value)
@@ -50,5 +51,15 @@ public class HttpResponse
     public void setContentType(String contentType)
     {
         this.contentType = contentType;
+    }
+
+    public byte[] getBytes_body()
+    {
+        return bytes_body;
+    }
+
+    public void setBytes_body(byte[] bytes_body)
+    {
+        this.bytes_body = bytes_body;
     }
 }

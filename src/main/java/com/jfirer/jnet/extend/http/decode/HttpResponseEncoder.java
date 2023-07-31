@@ -26,7 +26,7 @@ public class HttpResponseEncoder implements WriteProcessor<HttpResponse>
         {
             buffer.put(RESPONSE_LINE);
             data.getHeaders().forEach((name, value) -> buffer.put((name + ": " + value + "\r\n").getBytes(StandardCharsets.US_ASCII)));
-            if (data.getBody() == null && data.getBodyBuffer() == null)
+            if (data.getBody() == null && data.getBodyBuffer() == null && data.getBytes_body() == null)
             {
                 buffer.put(("Content-Length: 0\r\n").getBytes(StandardCharsets.US_ASCII));
                 buffer.put("\r\n".getBytes(StandardCharsets.US_ASCII));
@@ -50,7 +50,7 @@ public class HttpResponseEncoder implements WriteProcessor<HttpResponse>
                 }
                 else
                 {
-                    byte[] array = data.getBody().getBytes(StandardCharsets.UTF_8);
+                    byte[] array = data.getBytes_body() != null ? data.getBytes_body() : data.getBody().getBytes(StandardCharsets.UTF_8);
                     buffer.put(("Content-Length: " + array.length + "\r\n").getBytes(StandardCharsets.US_ASCII));
                     buffer.put("\r\n".getBytes(StandardCharsets.US_ASCII));
                     buffer.put(array);

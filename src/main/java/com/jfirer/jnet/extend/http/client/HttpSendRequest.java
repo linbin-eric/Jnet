@@ -35,6 +35,12 @@ public class HttpSendRequest
         return this;
     }
 
+    public HttpSendRequest setBody(IoBuffer buffer)
+    {
+        this.body = buffer;
+        return this;
+    }
+
     public HttpSendRequest getRequest()
     {
         method = "GET";
