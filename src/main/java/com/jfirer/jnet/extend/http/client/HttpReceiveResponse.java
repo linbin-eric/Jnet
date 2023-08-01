@@ -14,6 +14,20 @@ import java.util.concurrent.TimeUnit;
 
 public class HttpReceiveResponse implements AutoCloseable
 {
+
+    class ChunkOfBody
+    {
+        /**
+         * 1：代表这是一个完整的，明确总长度的消息体的任意部分。
+         * 2：代表这是一个不明确长度的消息体的一个完整 Chunk。
+         * 3：代表这是一个表达消息体已经结束的特定对象。该对象本身没有消息体数据。
+         * 一个 Http 响应的带数据的消息体的类型只会全部是 1 或者 2.
+         */
+        private int      type;
+        private IoBuffer data;
+        private
+    }
+
     private              long                    bodyReadTimeout   = 1000 * 30;
     private              int                     httpCode;
     private              Map<String, String>     headers           = new HashMap<>();
@@ -74,8 +88,7 @@ public class HttpReceiveResponse implements AutoCloseable
                 {
                     return;
                 }
-                default ->
-                        throw new IllegalStateException("Unexpected value: " + state);
+                default -> throw new IllegalStateException("Unexpected value: " + state);
             }
         }
     }
@@ -83,6 +96,7 @@ public class HttpReceiveResponse implements AutoCloseable
     /**
      * 阻塞等待整个响应体的数据读取完毕。
      * 注意：该方法读取后，响应体就没有数据了。默认情况下，使用方法getUTF8Body会在内部调用该方法。
+     *
      * @return
      * @throws InterruptedException
      */
@@ -186,8 +200,7 @@ public class HttpReceiveResponse implements AutoCloseable
                     onClose.run();
                     return;
                 }
-                default ->
-                        throw new IllegalStateException("Unexpected value: " + state);
+                default -> throw new IllegalStateException("Unexpected value: " + state);
             }
         }
     }
