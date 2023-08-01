@@ -15,17 +15,47 @@ import java.util.concurrent.TimeUnit;
 public class HttpReceiveResponse implements AutoCloseable
 {
 
-    class ChunkOfBody
+    class PartOfBody
     {
         /**
          * 1：代表这是一个完整的，明确总长度的消息体的任意部分。
-         * 2：代表这是一个不明确长度的消息体的一个完整 Chunk。
+         * 2：代表这是一个不明确长度，即响应的类型是 Transfer-Encoding：chunked 的消息体的一个完整 Chunk。
          * 3：代表这是一个表达消息体已经结束的特定对象。该对象本身没有消息体数据。
          * 一个 Http 响应的带数据的消息体的类型只会全部是 1 或者 2.
          */
         private int      type;
-        private IoBuffer data;
-        private
+        private IoBuffer originData;
+        /**
+         * 在类型 2 的情况下，完整 chunk 的头行的长度（包含头行尾部的/r/n）
+         */
+        private int      chunkHeaderLength;
+        /**
+         * 在类型 2 的情况下，完整 chunk 的内容体的长度（不包含代表 chunk 结尾的/r/n）
+         */
+        private int      chunkSize;
+
+        public IoBuffer getEffectiveContent()
+        {
+            if (type == 1)
+            {
+                return originData;
+            }
+            else if (type == 2)
+            {
+                originData.addReadPosi(chunkHeaderLength);
+                originData.addWritePosi(-2);
+                return originData;
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public IoBuffer getFullOriginData()
+        {
+            return originData;
+        }
     }
 
     private              long                    bodyReadTimeout   = 1000 * 30;

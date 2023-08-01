@@ -14,6 +14,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
     private final        byte[]              httpCode  = new byte[3];
     private              int                 bodyRead  = 0;
     private              int                 chunkSize = -1;
+    private              int                 chunkHeaderLength;
     private static final byte                re        = "\r".getBytes(StandardCharsets.US_ASCII)[0];
     private static final byte                nl        = "\n".getBytes(StandardCharsets.US_ASCII)[0];
 
@@ -45,8 +46,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
             {
                 case RESPONSE_LINE -> goToNextState = decodeResponseLine();
                 case HEADER -> goToNextState = decodeHeader(next);
-                case BODY_FIX_LENGTH ->
-                        goToNextState = decodeBodyWithFixLength();
+                case BODY_FIX_LENGTH -> goToNextState = decodeBodyWithFixLength();
                 case BODY_CHUNKED -> goToNextState = decodeBodyWithChunked();
             }
         }
@@ -64,7 +64,9 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
                     if (accumulation.get(i) == '\r' && accumulation.get(i + 1) == '\n')
                     {
                         chunkSize = Integer.parseInt(StandardCharsets.US_ASCII.decode(accumulation.readableByteBuffer(i)).toString(), 16);
+                        chunkHeaderLength=i+2-accumulation.getReadPosi();
                         accumulation.setReadPosi(i + 2);
+
                         break;
                     }
                 }
@@ -89,8 +91,8 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
                 accumulation.addReadPosi(2);
                 receiveResponse.endChunked();
                 receiveResponse = null;
-                chunkSize = -1;
-                state = ParseState.RESPONSE_LINE;
+                chunkSize       = -1;
+                state           = ParseState.RESPONSE_LINE;
                 compactIfNeed();
                 return true;
             }
@@ -120,7 +122,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
             //应用程序已经提前关闭了流，则此时流里可能存在Buffer，需要清空
             receiveResponse.endChunked();
             receiveResponse = null;
-            state = ParseState.RESPONSE_LINE;
+            state           = ParseState.RESPONSE_LINE;
             return accumulation.remainRead() > 0;
         }
     }
@@ -132,7 +134,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
             if (accumulation.get(lastCheck) == '\r' && accumulation.get(lastCheck + 1) == '\n' && accumulation.get(lastCheck + 2) == '\r' && accumulation.get(lastCheck + 3) == '\n')
             {
                 lastCheck = -1;
-                state = ParseState.BODY;
+                state     = ParseState.BODY;
                 break;
             }
         }
