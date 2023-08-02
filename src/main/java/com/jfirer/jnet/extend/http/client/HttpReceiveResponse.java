@@ -1,9 +1,10 @@
 package com.jfirer.jnet.extend.http.client;
 
-import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
-import com.jfirer.jnet.common.buffer.buffer.impl.UnPooledBuffer;
 import com.jfirer.jnet.common.util.UNSAFE;
+import lombok.AccessLevel;
+import lombok.Data;
+import lombok.Getter;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -11,81 +12,145 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.locks.LockSupport;
 
+/**
+ * 非线程并发安全的类。使用消息体的方法均只能由一个线程来使用。
+ */
+@Data
 public class HttpReceiveResponse implements AutoCloseable
 {
 
-    class PartOfBody
-    {
-        /**
-         * 1：代表这是一个完整的，明确总长度的消息体的任意部分。
-         * 2：代表这是一个不明确长度，即响应的类型是 Transfer-Encoding：chunked 的消息体的一个完整 Chunk。
-         * 3：代表这是一个表达消息体已经结束的特定对象。该对象本身没有消息体数据。
-         * 一个 Http 响应的带数据的消息体的类型只会全部是 1 或者 2.
-         */
-        private int      type;
-        private IoBuffer originData;
-        /**
-         * 在类型 2 的情况下，完整 chunk 的头行的长度（包含头行尾部的/r/n）
-         */
-        private int      chunkHeaderLength;
-        /**
-         * 在类型 2 的情况下，完整 chunk 的内容体的长度（不包含代表 chunk 结尾的/r/n）
-         */
-        private int      chunkSize;
 
-        public IoBuffer getEffectiveContent()
-        {
-            if (type == 1)
-            {
-                return originData;
-            }
-            else if (type == 2)
-            {
-                originData.addReadPosi(chunkHeaderLength);
-                originData.addWritePosi(-2);
-                return originData;
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        public IoBuffer getFullOriginData()
-        {
-            return originData;
-        }
-    }
-
-    private              long                    bodyReadTimeout   = 1000 * 30;
-    private              int                     httpCode;
-    private              Map<String, String>     headers           = new HashMap<>();
-    private              int                     contentLength;
-    private              String                  contentType;
-    private              BlockingQueue<IoBuffer> chunked           = new LinkedBlockingQueue<>();
-    private              String                  utf8Body;
-    private              Runnable                onClose;
-    private volatile     boolean                 generatedUTF8Body = false;
-    private volatile     int                     state             = PARSE_UN_FINISH;
-    private static final int                     PARSE_UN_FINISH   = 0;
-    private static final int                     PARSE_FINISH      = 1;
-    private static final int                     CLOSE             = 2;
-    private static final long                    STATE_OFFSET      = UNSAFE.getFieldOffset("state", HttpReceiveResponse.class);
-    private static final IoBuffer                END_OF_CHUNKED    = new UnPooledBuffer(BufferType.HEAP)
-    {
-        @Override
-        public void free()
-        {
-            ;
-        }
-    };
+    private static final long                      bodyReadTimeout                 = 1000 * 30;
+    private final        HttpConnection            connection;
+    private              int                       httpCode;
+    private              Map<String, String>       headers                         = new HashMap<>();
+    /**
+     * 值的取值范围有：
+     * -1：代表这个响应的消息体是个不定长的以Transfer-Encoding:chunked 编码的消息体。
+     * 0：代表没有响应体。
+     * 正数：代表响应的消息体的字节长度。
+     */
+    private              int                       contentLength;
+    private              String                    contentType;
+    private              BlockingQueue<PartOfBody> body                            = new LinkedBlockingQueue<>();
+    @Getter(AccessLevel.NONE)
+    private              String                    decodedUTF8Body;
+    private volatile     boolean                   generatedUTF8Body               = false;
+    private volatile     Thread                    waitForReceiveFinshThread;
+    private volatile     int                       state                           = RECEIVE_UN_FINISH_AND_NOT_CLOSE;
+    private static final int                       RECEIVE_UN_FINISH_AND_NOT_CLOSE = 0b00;
+    private static final int                       RECEIVE_UN_FINISH_AND_CLOSE     = 0b01;
+    private static final int                       RECEIVE_FINISH_AND_NOT_CLOSE    = 0b10;
+    private static final int                       RECEIVE_FINISH_AND_CLOSE        = 0b11;
+    private static final long                      STATE_OFFSET                    = UNSAFE.getFieldOffset("state", HttpReceiveResponse.class);
 
     public void putHeader(String name, String value)
     {
         headers.put(name, value);
     }
 
+    public void addPartOfBody(PartOfBody partOfBody)
+    {
+        body.add(partOfBody);
+    }
+
+    public void endOfBody()
+    {
+        body.add(PartOfBody.END_OF_BODY);
+        while (true)
+        {
+            switch (state)
+            {
+                case RECEIVE_UN_FINISH_AND_NOT_CLOSE ->
+                {
+                    if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, RECEIVE_UN_FINISH_AND_NOT_CLOSE, RECEIVE_FINISH_AND_NOT_CLOSE))
+                    {
+                        LockSupport.unpark(waitForReceiveFinshThread);
+                        return;
+                    }
+                    else
+                    {
+                        ;
+                    }
+                }
+                case RECEIVE_UN_FINISH_AND_CLOSE ->
+                {
+                    if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, RECEIVE_UN_FINISH_AND_CLOSE, RECEIVE_FINISH_AND_CLOSE))
+                    {
+                        PartOfBody needClose;
+                        while ((needClose = body.poll()) != null)
+                        {
+                            needClose.freeBuffer();
+                        }
+                        return;
+                    }
+                    else
+                    {
+                        ;
+                    }
+                }
+                default ->
+                        throw new IllegalStateException("endOfBody 方法只能由解码器调用，在调用这个方法的时候，消息体流的状态应该是为未解析完成");
+            }
+        }
+    }
+
+    /**
+     * 这是因为通道关闭而终止响应。与客户端主动调用的 close 是不同的。
+     */
+    public void terminate()
+    {
+        body.add(PartOfBody.TERMINATE_OF_BODY);
+        while (true)
+        {
+            switch (state)
+            {
+                case RECEIVE_UN_FINISH_AND_NOT_CLOSE ->
+                {
+                    if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, RECEIVE_UN_FINISH_AND_NOT_CLOSE, RECEIVE_FINISH_AND_NOT_CLOSE))
+                    {
+                        PartOfBody needClose;
+                        while ((needClose = body.poll()) != null)
+                        {
+                            needClose.freeBuffer();
+                        }
+                        body.add(PartOfBody.TERMINATE_OF_BODY);
+                        LockSupport.unpark(waitForReceiveFinshThread);
+                        return;
+                    }
+                    else
+                    {
+                        ;
+                    }
+                }
+                case RECEIVE_UN_FINISH_AND_CLOSE ->
+                {
+                    if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, RECEIVE_UN_FINISH_AND_CLOSE, RECEIVE_FINISH_AND_CLOSE))
+                    {
+                        PartOfBody needClose;
+                        while ((needClose = body.poll()) != null)
+                        {
+                            needClose.freeBuffer();
+                        }
+                        body.add(PartOfBody.TERMINATE_OF_BODY);
+                        return;
+                    }
+                    else
+                    {
+                        ;
+                    }
+                }
+                default -> throw new IllegalStateException("terminate 方法调用的时候，流应该是没有解析完全的状态");
+            }
+        }
+    }
+
+    /**
+     * 客户端代码消费完毕响应后关闭该响应。该方法应该只能由客户端代码来调用。
+     */
     @Override
     public void close()
     {
@@ -93,129 +158,9 @@ public class HttpReceiveResponse implements AutoCloseable
         {
             switch (state)
             {
-                case PARSE_UN_FINISH ->
+                case RECEIVE_UN_FINISH_AND_NOT_CLOSE ->
                 {
-                    if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, PARSE_UN_FINISH, CLOSE))
-                    {
-                        return;
-                    }
-                    else
-                    {
-                    }
-                }
-                case PARSE_FINISH ->
-                {
-                    if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, PARSE_FINISH, CLOSE))
-                    {
-                        chunked.forEach(IoBuffer::free);
-                        onClose.run();
-                    }
-                    else
-                    {
-                    }
-                }
-                case CLOSE ->
-                {
-                    return;
-                }
-                default -> throw new IllegalStateException("Unexpected value: " + state);
-            }
-        }
-    }
-
-    /**
-     * 阻塞等待整个响应体的数据读取完毕。
-     * 注意：该方法读取后，响应体就没有数据了。默认情况下，使用方法getUTF8Body会在内部调用该方法。
-     *
-     * @return
-     * @throws InterruptedException
-     */
-    public IoBuffer waitForAllBodyPart() throws InterruptedException
-    {
-        long     timeoutInMs = bodyReadTimeout;
-        long     t0          = System.currentTimeMillis();
-        IoBuffer buffer      = chunked.poll(timeoutInMs, TimeUnit.MILLISECONDS);
-        if (buffer == END_OF_CHUNKED)
-        {
-            return buffer;
-        }
-        while (true)
-        {
-            timeoutInMs = bodyReadTimeout - (System.currentTimeMillis() - t0);
-            if (timeoutInMs < 0)
-            {
-                buffer.free();
-                throw new InterruptedException("readBodyTimeout is reach");
-            }
-            IoBuffer poll = null;
-            try
-            {
-                poll = chunked.poll(timeoutInMs, TimeUnit.MILLISECONDS);
-            }
-            catch (InterruptedException e)
-            {
-                buffer.free();
-                throw e;
-            }
-            if (poll != END_OF_CHUNKED)
-            {
-                buffer.put(poll);
-                poll.free();
-            }
-            else
-            {
-                return buffer;
-            }
-        }
-    }
-
-    public String getUTF8Body() throws InterruptedException
-    {
-        if (utf8Body != null)
-        {
-            return utf8Body;
-        }
-        if (generatedUTF8Body == false)
-        {
-            IoBuffer body = waitForAllBodyPart();
-            generatedUTF8Body = true;
-            if (body == END_OF_CHUNKED)
-            {
-                return null;
-            }
-            else
-            {
-                utf8Body = StandardCharsets.UTF_8.decode(body.readableByteBuffer()).toString();
-                body.free();
-                return utf8Body;
-            }
-        }
-        else
-        {
-            return null;
-        }
-    }
-
-    public boolean isSuccessful()
-    {
-        return httpCode == 200;
-    }
-
-    public void addChunked(IoBuffer buffer)
-    {
-        chunked.add(buffer);
-    }
-
-    public void endChunked()
-    {
-        chunked.add(END_OF_CHUNKED);
-        while (true)
-        {
-            switch (state)
-            {
-                case PARSE_UN_FINISH ->
-                {
-                    if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, PARSE_UN_FINISH, PARSE_FINISH))
+                    if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, RECEIVE_UN_FINISH_AND_NOT_CLOSE, RECEIVE_UN_FINISH_AND_CLOSE))
                     {
                         return;
                     }
@@ -224,79 +169,103 @@ public class HttpReceiveResponse implements AutoCloseable
                         ;
                     }
                 }
-                case CLOSE ->
+                case RECEIVE_FINISH_AND_NOT_CLOSE ->
                 {
-                    chunked.forEach(IoBuffer::free);
-                    onClose.run();
-                    return;
+                    if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, RECEIVE_FINISH_AND_NOT_CLOSE, RECEIVE_FINISH_AND_CLOSE))
+                    {
+                        PartOfBody needClose;
+                        while ((needClose = body.poll()) != null)
+                        {
+                            needClose.freeBuffer();
+                        }
+                        return;
+                    }
+                    else
+                    {
+                        ;
+                    }
                 }
-                default -> throw new IllegalStateException("Unexpected value: " + state);
+                default ->
+                        throw new IllegalStateException("close 方法只能由客户端消费响应后调用，因此状态应该为 not_close 状态");
             }
         }
     }
 
-    public IoBuffer pollChunk() throws InterruptedException
+    /**
+     * 超时等待消息体被接收完整。如果超时时间到达仍未接收完整，则抛出异常。
+     *
+     * @throws TimeoutException
+     */
+    public void waitForReceiveFinish() throws TimeoutException
     {
-        return chunked.poll(bodyReadTimeout, TimeUnit.MILLISECONDS);
+        if (state == RECEIVE_UN_FINISH_AND_NOT_CLOSE)
+        {
+            long timeoutInMs = bodyReadTimeout;
+            long t0          = System.currentTimeMillis();
+            waitForReceiveFinshThread = Thread.currentThread();
+            while (state == RECEIVE_UN_FINISH_AND_NOT_CLOSE)
+            {
+                LockSupport.park(timeoutInMs);
+                timeoutInMs = bodyReadTimeout - (System.currentTimeMillis() - t0);
+                if (timeoutInMs < 0)
+                {
+                    throw new TimeoutException("wait for receive finish timeout!");
+                }
+            }
+        }
+        else if (state == RECEIVE_FINISH_AND_NOT_CLOSE)
+        {
+            ;
+        }
+        else
+        {
+            throw new IllegalStateException("作为消费线程，不应该在关闭响应后仍然调用该方法");
+        }
     }
 
-    public static boolean isEndOfChunked(IoBuffer buffer)
+    public String getCachedUTF8Body() throws TimeoutException
     {
-        return buffer == END_OF_CHUNKED;
+        if (generatedUTF8Body == false)
+        {
+            waitForReceiveFinish();
+            generatedUTF8Body = true;
+            IoBuffer   ioBuffer = HttpClient.ALLOCATOR.ioBuffer(512);
+            PartOfBody needClose;
+            while ((needClose = body.poll()) != null && !needClose.isEndOrTerminateOfBody())
+            {
+                ioBuffer.put(needClose.getEffectiveContent());
+                needClose.freeBuffer();
+            }
+            decodedUTF8Body = StandardCharsets.UTF_8.decode(ioBuffer.readableByteBuffer()).toString();
+            ioBuffer.free();
+        }
+        return decodedUTF8Body;
     }
 
-    public long getBodyReadTimeout()
+
+    /**
+     * 基于超时时间进行的消息体数据提取。如果在超时时间到达前读取到数据则返回，否则返回 null。
+     *
+     * @return
+     * @throws InterruptedException
+     */
+    public PartOfBody pollChunk() throws InterruptedException
     {
-        return bodyReadTimeout;
+        return body.poll(bodyReadTimeout, TimeUnit.MILLISECONDS);
     }
 
-    public void setBodyReadTimeout(long bodyReadTimeout)
+    public static boolean isEndOrTerminateOfBody(PartOfBody partOfBody)
     {
-        this.bodyReadTimeout = bodyReadTimeout;
+        return partOfBody == PartOfBody.END_OF_BODY || partOfBody == PartOfBody.TERMINATE_OF_BODY;
     }
 
-    public int getHttpCode()
+    public static boolean isEndOfBody(PartOfBody partOfBody)
     {
-        return httpCode;
+        return partOfBody == PartOfBody.END_OF_BODY;
     }
 
-    public void setHttpCode(int httpCode)
+    public static boolean isTerminateOfBody(PartOfBody partOfBody)
     {
-        this.httpCode = httpCode;
-    }
-
-    public int getContentLength()
-    {
-        return contentLength;
-    }
-
-    public void setContentLength(int contentLength)
-    {
-        this.contentLength = contentLength;
-    }
-
-    public String getContentType()
-    {
-        return contentType;
-    }
-
-    public void setContentType(String contentType)
-    {
-        this.contentType = contentType;
-    }
-
-    public Map<String, String> getHeaders()
-    {
-        return headers;
-    }
-
-    public Runnable getOnClose()
-    {
-        return onClose;
-    }
-
-    public void setOnClose(Runnable onClose)
-    {
-        this.onClose = onClose;
+        return partOfBody == PartOfBody.TERMINATE_OF_BODY;
     }
 }

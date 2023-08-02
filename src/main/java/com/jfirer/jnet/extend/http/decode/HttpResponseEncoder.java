@@ -43,16 +43,22 @@ public class HttpResponseEncoder implements WriteProcessor<HttpResponse>
                 }
                 if (data.getBodyBuffer() != null)
                 {
-                    buffer.put(("Content-Length: " + data.getBodyBuffer().remainRead() + "\r\n").getBytes(StandardCharsets.US_ASCII));
-                    buffer.put("\r\n".getBytes(StandardCharsets.US_ASCII));
+                    if (data.isAutoSetContentLength())
+                    {
+                        buffer.put(("Content-Length: " + data.getBodyBuffer().remainRead() + "\r\n").getBytes(StandardCharsets.US_ASCII));
+                        buffer.put("\r\n".getBytes(StandardCharsets.US_ASCII));
+                    }
                     buffer.put(data.getBodyBuffer());
                     data.getBodyBuffer().free();
                 }
                 else
                 {
                     byte[] array = data.getBytes_body() != null ? data.getBytes_body() : data.getBody().getBytes(StandardCharsets.UTF_8);
-                    buffer.put(("Content-Length: " + array.length + "\r\n").getBytes(StandardCharsets.US_ASCII));
-                    buffer.put("\r\n".getBytes(StandardCharsets.US_ASCII));
+                    if (data.isAutoSetContentLength())
+                    {
+                        buffer.put(("Content-Length: " + array.length + "\r\n").getBytes(StandardCharsets.US_ASCII));
+                        buffer.put("\r\n".getBytes(StandardCharsets.US_ASCII));
+                    }
                     buffer.put(array);
                 }
             }

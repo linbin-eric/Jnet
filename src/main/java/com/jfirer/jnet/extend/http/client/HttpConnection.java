@@ -10,9 +10,7 @@ import com.jfirer.jnet.common.internal.DefaultWorkerGroup;
 import com.jfirer.jnet.common.recycler.RecycleHandler;
 import com.jfirer.jnet.common.util.ChannelConfig;
 import com.jfirer.jnet.common.util.ReflectUtil;
-import lombok.AccessLevel;
 import lombok.Data;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.ConnectException;
@@ -26,13 +24,11 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class HttpConnection
 {
-    @Setter(AccessLevel.NONE)
-    private             BlockingQueue<HttpReceiveResponse> responseSync        = new LinkedBlockingQueue<>();
-    @Setter(AccessLevel.NONE)
-    private             ClientChannel                      clientChannel;
-    private             long                               lastRespoonseTime;
+    private final       BlockingQueue<HttpReceiveResponse> responseSync        = new LinkedBlockingQueue<>();
+    private final       ClientChannel                      clientChannel;
+    private             long                               lastResponseTime;
     private             RecycleHandler<HttpConnection>     handler;
-    public static final HttpReceiveResponse                CLOSE_OF_CONNECTION = new HttpReceiveResponse();
+    public static final HttpReceiveResponse                CLOSE_OF_CONNECTION = new HttpReceiveResponse(null);
     public static final long                               KEEP_ALIVE_TIME     = 1000 * 60 * 5;
     public static final WorkerGroup                        HTTP_WORKER_GROUP   = new DefaultWorkerGroup();
 
@@ -42,9 +38,10 @@ public class HttpConnection
         channelConfig.setIp(domain);
         channelConfig.setPort(port);
         channelConfig.setWorkerGroup(HTTP_WORKER_GROUP);
-        clientChannel = new ClientChannelImpl(channelConfig, channelContext -> {
+        clientChannel = new ClientChannelImpl(channelConfig, channelContext ->
+        {
             Pipeline pipeline = channelContext.pipeline();
-            pipeline.addReadProcessor(new HttpReceiveResponseDecoder());
+            pipeline.addReadProcessor(new HttpReceiveResponseDecoder(this));
             pipeline.addReadProcessor(new ReadProcessor<HttpReceiveResponse>()
             {
                 @Override
@@ -65,12 +62,12 @@ public class HttpConnection
         {
             ReflectUtil.throwException(new ConnectException("无法连接" + domain + ":" + port));
         }
-        lastRespoonseTime = System.currentTimeMillis();
+        lastResponseTime = System.currentTimeMillis();
     }
 
     public boolean isConnectionClosed()
     {
-        return !clientChannel.alive() || responseSync.peek() == CLOSE_OF_CONNECTION || (System.currentTimeMillis() - lastRespoonseTime) > KEEP_ALIVE_TIME;
+        return !clientChannel.alive() || responseSync.peek() == CLOSE_OF_CONNECTION || (System.currentTimeMillis() - lastResponseTime) > KEEP_ALIVE_TIME;
     }
 
     public HttpReceiveResponse write(HttpSendRequest request) throws ClosedChannelException, SocketTimeoutException
@@ -105,7 +102,6 @@ public class HttpConnection
         }
         else
         {
-            response.setOnClose(this::recycle);
             return response;
         }
     }
@@ -117,7 +113,7 @@ public class HttpConnection
 
     public void recycle()
     {
-        lastRespoonseTime = System.currentTimeMillis();
+        lastResponseTime = System.currentTimeMillis();
         handler.recycle(this);
     }
 }

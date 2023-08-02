@@ -1,9 +1,9 @@
 package com.jfirer.jnet;
 
-import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.extend.http.client.HttpClient;
 import com.jfirer.jnet.extend.http.client.HttpReceiveResponse;
 import com.jfirer.jnet.extend.http.client.HttpSendRequest;
+import com.jfirer.jnet.extend.http.client.PartOfBody;
 
 import java.io.File;
 import java.nio.channels.FileChannel;
@@ -20,14 +20,14 @@ public class HttpClientTest
     private static void getInfo()
     {
         String          url     = "http://op.yynas.cn:2000/health";
-        String          url2    = "http://47.97.109.181:2000/health";
-        HttpSendRequest request = new HttpSendRequest().setUrl(url).getRequest();
+        String url2 = "http://127.0.0.1:10086/config/all";
+        HttpSendRequest request = new HttpSendRequest().setUrl(url2).getRequest();
         for (int i = 0; i < 50; i++)
         {
             try (HttpReceiveResponse receiveResponse = HttpClient.newCall(request))
             {
-                String utf8Body = receiveResponse.getUTF8Body();
-                System.out.println(i + "   :   " + utf8Body);
+                String utf8Body = receiveResponse.getCachedUTF8Body();
+                System.out.println(i + "   :   " + utf8Body+"，"+receiveResponse.getCachedUTF8Body());
             }
             catch (Throwable e)
             {
@@ -38,30 +38,30 @@ public class HttpClientTest
 
     private static void downloadFile() throws Exception
     {
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < 10; i++)
         {
-            HttpReceiveResponse receiveResponse = HttpClient.newCall(new HttpSendRequest().setUrl("http://yynas.cn:5678/operation2.sql").getRequest());
+            HttpReceiveResponse receiveResponse = HttpClient.newCall(new HttpSendRequest().setUrl("http://yynas.cn:5678/1662645602015.jpg").getRequest());
             File                file            = new File("/Users/linbin/Downloads/" + System.currentTimeMillis());
             file.createNewFile();
             FileChannel fileChannel = FileChannel.open(file.toPath(), StandardOpenOption.WRITE);
-            IoBuffer    buffer;
+            PartOfBody  partOfBody;
             int         maxBytes    = 0;
             do
             {
-                buffer = receiveResponse.pollChunk();
-                if (receiveResponse.isEndOfChunked(buffer))
+                partOfBody = receiveResponse.pollChunk();
+                if (partOfBody.isEndOrTerminateOfBody())
                 {
                     break;
                 }
                 else
                 {
-                    int write = fileChannel.write(buffer.readableByteBuffer());
+                    int write = fileChannel.write(partOfBody.getEffectiveContent().readableByteBuffer());
                     if (write > maxBytes)
                     {
                         maxBytes = write;
                         System.out.println(maxBytes);
                     }
-                    buffer.free();
+                    partOfBody.freeBuffer();
                 }
             }
             while (true);

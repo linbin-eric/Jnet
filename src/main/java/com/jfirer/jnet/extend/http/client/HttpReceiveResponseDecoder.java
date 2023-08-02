@@ -15,12 +15,14 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
     private              int                 bodyRead  = 0;
     private              int                 chunkSize = -1;
     private              int                 chunkHeaderLength;
+    private final        HttpConnection      httpConnection;
     private static final byte                re        = "\r".getBytes(StandardCharsets.US_ASCII)[0];
     private static final byte                nl        = "\n".getBytes(StandardCharsets.US_ASCII)[0];
 
-    public HttpReceiveResponseDecoder()
+    public HttpReceiveResponseDecoder(HttpConnection httpConnection)
     {
         super(HttpClient.ALLOCATOR);
+        this.httpConnection = httpConnection;
     }
 
     enum ParseState
@@ -37,7 +39,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
     {
         if (receiveResponse == null)
         {
-            receiveResponse = new HttpReceiveResponse();
+            receiveResponse = new HttpReceiveResponse(httpConnection);
         }
         boolean goToNextState = false;
         do
@@ -63,22 +65,20 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
                 {
                     if (accumulation.get(i) == '\r' && accumulation.get(i + 1) == '\n')
                     {
-                        chunkSize = Integer.parseInt(StandardCharsets.US_ASCII.decode(accumulation.readableByteBuffer(i)).toString(), 16);
-                        chunkHeaderLength=i+2-accumulation.getReadPosi();
-                        accumulation.setReadPosi(i + 2);
-
+                        chunkSize         = Integer.parseInt(StandardCharsets.US_ASCII.decode(accumulation.readableByteBuffer(i)).toString(), 16);
+                        chunkHeaderLength = i + 2 - accumulation.getReadPosi();
+//                        accumulation.setReadPosi(i + 2);
                         break;
                     }
                 }
             }
-            if (chunkSize == -1 || (chunkSize > 0 && accumulation.remainRead() < chunkSize + 2))
+            if (chunkSize == -1 || (chunkSize > 0 && accumulation.remainRead() < chunkHeaderLength + chunkSize + 2))
             {
                 return false;
             }
             else if (chunkSize > 0)
             {
-                receiveResponse.addChunked(accumulation.slice(chunkSize));
-                accumulation.addReadPosi(2);
+                receiveResponse.addPartOfBody(new PartOfBody(2, accumulation.slice(chunkHeaderLength + chunkSize + 2), chunkHeaderLength, chunkSize));
                 chunkSize = -1;
                 if (accumulation.getReadPosi() >= (1 << 22))
                 {
@@ -88,8 +88,9 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
             }
             else if (chunkSize == 0)
             {
-                accumulation.addReadPosi(2);
-                receiveResponse.endChunked();
+                receiveResponse.addPartOfBody(new PartOfBody(2, accumulation.slice(chunkHeaderLength + 2), chunkHeaderLength, 0));
+//                accumulation.addReadPosi(2);
+                receiveResponse.endOfBody();
                 receiveResponse = null;
                 chunkSize       = -1;
                 state           = ParseState.RESPONSE_LINE;
@@ -110,17 +111,17 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
         if (left > accumulation.remainRead())
         {
             bodyRead += accumulation.remainRead();
-            receiveResponse.addChunked(accumulation);
+            receiveResponse.addPartOfBody(new PartOfBody(1, accumulation, 0, 0));
             accumulation = null;
             return false;
         }
         else
         {
-            receiveResponse.addChunked(accumulation.slice(left));
+            receiveResponse.addPartOfBody(new PartOfBody(1, accumulation.slice(left), 0, 0));
             compactIfNeed();
             bodyRead = 0;
             //应用程序已经提前关闭了流，则此时流里可能存在Buffer，需要清空
-            receiveResponse.endChunked();
+            receiveResponse.endOfBody();
             receiveResponse = null;
             state           = ParseState.RESPONSE_LINE;
             return accumulation.remainRead() > 0;
@@ -161,6 +162,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
             {
                 throw new IllegalStateException("无法读取到响应体长度也不是分块传输");
             }
+            receiveResponse.setContentLength(-1);
             state = ParseState.BODY_CHUNKED;
         }
         else
