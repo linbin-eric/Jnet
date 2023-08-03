@@ -1,13 +1,26 @@
 package com.jfirer.jnet.common.buffer.buffer.impl;
 
+import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
+import com.jfirer.jnet.common.exception.RelocateNotAllowException;
+import com.jfirer.jnet.common.recycler.RecycleHandler;
+import lombok.Setter;
 
 import java.nio.ByteBuffer;
 
-public class SliceSupportGlowBuffer implements IoBuffer
+public class SliceSupportReAllocateBuffer implements IoBuffer
 {
-    private PooledBuffer delegation;
+    private PooledBuffer                                 delegation;
+    private PooledBufferAllocator                        allocator;
+    @Setter
+    private RecycleHandler<SliceSupportReAllocateBuffer> handler;
+
+    public void resetDelegation(PooledBuffer delegation, PooledBufferAllocator allocator)
+    {
+        this.delegation = delegation;
+        this.allocator  = allocator;
+    }
 
     @Override
     public int capacity()
@@ -18,7 +31,14 @@ public class SliceSupportGlowBuffer implements IoBuffer
     @Override
     public IoBuffer put(byte b)
     {
-        return delegation.put(b);
+        try
+        {
+            return delegation.put(b);
+        }
+        catch (RelocateNotAllowException e)
+        {
+            allocator.iobu
+        }
     }
 
     @Override
@@ -259,6 +279,8 @@ public class SliceSupportGlowBuffer implements IoBuffer
     public void free()
     {
         delegation.free();
+        delegation = null;
+        handler.recycle(this);
     }
 
     @Override
