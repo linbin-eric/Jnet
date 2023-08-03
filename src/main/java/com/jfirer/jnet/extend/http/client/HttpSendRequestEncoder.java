@@ -21,25 +21,25 @@ public class HttpSendRequestEncoder implements WriteProcessor<HttpSendRequest>
         request.putHeader("Connection", "keep-alive");
         request.putHeader("User-Agent", "JnetHttpClient");
         request.putHeader("Accept", "*/*");
-        request.getHeaders().forEach((name, value) -> {
-            buffer.put((name + ": " + value + "\r\n").getBytes(StandardCharsets.US_ASCII));
-        });
         if (request.getContentType() != null)
         {
-            buffer.put(("Content-Type: " + request.getContentType() + "\r\n").getBytes(StandardCharsets.UTF_8));
+            request.putHeader("Content-Type", request.getContentType());
         }
         IoBuffer body = request.getBody();
         if (body != null)
         {
-            buffer.put(("Content-Length: " + String.valueOf(body.remainRead()) + "\r\n").getBytes(StandardCharsets.US_ASCII));
-            buffer.put(NEW_LINE);
-            buffer.put(body);
-            body.free();
+            request.putHeader("Content-Length", String.valueOf(body.remainRead()));
         }
         else
         {
-            buffer.put(("Content-Length: 0\r\n".getBytes(StandardCharsets.US_ASCII)));
-            buffer.put(NEW_LINE);
+            request.putHeader("Content-Length", "0");
+        }
+        request.getHeaders().forEach((name, value) -> buffer.put((name + ": " + value + "\r\n").getBytes(StandardCharsets.US_ASCII)));
+        buffer.put(NEW_LINE);
+        if (body != null)
+        {
+            buffer.put(body);
+            body.free();
         }
         next.fireWrite(buffer);
     }

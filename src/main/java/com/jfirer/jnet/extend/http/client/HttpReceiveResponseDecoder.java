@@ -67,7 +67,6 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
                     {
                         chunkSize         = Integer.parseInt(StandardCharsets.US_ASCII.decode(accumulation.readableByteBuffer(i)).toString(), 16);
                         chunkHeaderLength = i + 2 - accumulation.getReadPosi();
-//                        accumulation.setReadPosi(i + 2);
                         break;
                     }
                 }
