@@ -18,4 +18,5 @@ public class HttpResponse
      * 是否自动设置消息体长度，默认为 true
      */
     private boolean             autoSetContentLength = true;
+    private boolean             autoSetContentType   = true;
 }

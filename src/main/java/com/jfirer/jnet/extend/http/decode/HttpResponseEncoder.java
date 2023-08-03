@@ -33,13 +33,16 @@ public class HttpResponseEncoder implements WriteProcessor<HttpResponse>
             }
             else
             {
-                if (data.getContentType() != null && !"".equals(data.getContentType()))
+                if (data.isAutoSetContentType())
                 {
-                    buffer.put(("content-type: " + data.getContentType() + "\r\n").getBytes(StandardCharsets.US_ASCII));
-                }
-                else
-                {
-                    buffer.put("content-type: application/json;charset=utf8\r\n".getBytes(StandardCharsets.US_ASCII));
+                    if (data.getContentType() != null && !"".equals(data.getContentType()))
+                    {
+                        buffer.put(("content-type: " + data.getContentType() + "\r\n").getBytes(StandardCharsets.US_ASCII));
+                    }
+                    else
+                    {
+                        buffer.put("content-type: application/json;charset=utf8\r\n".getBytes(StandardCharsets.US_ASCII));
+                    }
                 }
                 if (data.getBodyBuffer() != null)
                 {
