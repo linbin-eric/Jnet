@@ -6,6 +6,7 @@ import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.buffer.buffer.RwDelegation;
 import com.jfirer.jnet.common.buffer.buffer.impl.rw.HeapRw;
 import com.jfirer.jnet.common.buffer.buffer.impl.rw.UnsafeRw;
+import com.jfirer.jnet.common.exception.RelocateNotAllowException;
 import com.jfirer.jnet.common.recycler.RecycleHandler;
 import com.jfirer.jnet.common.util.ChannelConfig;
 import com.jfirer.jnet.common.util.UNSAFE;
@@ -90,7 +91,7 @@ public abstract class AbstractBuffer implements IoBuffer
             }
             else
             {
-                throw new IllegalStateException("当前存在slice的部分，无法进行扩容");
+                throw new RelocateNotAllowException("当前存在slice的部分，无法进行扩容");
             }
         }
         writePosi = posi;
