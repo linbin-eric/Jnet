@@ -16,8 +16,8 @@ public class RecycleTest
 {
     class Entry
     {
-        RecycleHandler<Entry> handler;
-        String                value;
+        RecycleHandler handler;
+        String         value;
     }
 
     Recycler<Entry> recycler;
@@ -334,7 +334,8 @@ public class RecycleTest
             queue.add(recycler.get());
         }
         final CountDownLatch latch = new CountDownLatch(1);
-        new Thread(() -> {
+        new Thread(() ->
+        {
             for (Entry each : queue)
             {
                 each.handler.recycle(each);
@@ -371,7 +372,8 @@ public class RecycleTest
         }
         ExecutorService executorService = Executors.newFixedThreadPool(3);
         CountDownLatch  latch           = new CountDownLatch(1);
-        executorService.submit(() -> {
+        executorService.submit(() ->
+        {
             for (int i = 0; i < 5; i++)
             {
                 Entry poll = queue.poll();

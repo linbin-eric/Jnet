@@ -15,12 +15,12 @@ import java.util.Collection;
 import static org.junit.Assert.*;
 
 @RunWith(Parameterized.class)
-public class UnPooledBufferRWTest
+public class BasicBufferRWTest
 {
     private IoBuffer buffer;
     private IoBuffer paramBuffer;
 
-    public UnPooledBufferRWTest(IoBuffer buffer, IoBuffer paramBuffer)
+    public BasicBufferRWTest(IoBuffer buffer, IoBuffer paramBuffer)
     {
         this.buffer = buffer;
         this.paramBuffer = paramBuffer;

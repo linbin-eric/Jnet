@@ -6,7 +6,7 @@ import com.jfirer.jnet.common.buffer.arena.ChunkList;
 import com.jfirer.jnet.common.buffer.arena.ChunkListNode;
 import com.jfirer.jnet.common.buffer.arena.SubPage;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
-import com.jfirer.jnet.common.buffer.buffer.impl.AbstractBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.BasicBuffer;
 import com.jfirer.jnet.common.util.MathUtil;
 import com.jfirer.jnet.common.util.UNSAFE;
 import org.junit.Test;
@@ -76,7 +76,7 @@ public class SmallAllocateTest
         {
             for (int elementIdx = 0; elementIdx < elementNum; elementIdx++)
             {
-                AbstractBuffer buffer = (AbstractBuffer) allocator.ioBuffer(reqCapacity, direct);
+                BasicBuffer buffer = (BasicBuffer) allocator.ioBuffer(reqCapacity, direct);
                 buffers.add((IoBuffer) buffer);
                 int offset = i * pagesize + elementIdx * reqCapacity;
                 assertEquals(reqCapacity, buffer.capacity());

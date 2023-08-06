@@ -3,7 +3,7 @@ package com.jfirer.jnet.common.util;
 import com.jfirer.jnet.common.api.WorkerGroup;
 import com.jfirer.jnet.common.buffer.LeakDetecter;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
-import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
+import com.jfirer.jnet.common.buffer.allocator.impl.CachedBufferAllocator;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.Getter;
@@ -32,7 +32,7 @@ public class ChannelConfig
     {
         if (allocator == null)
         {
-            allocator = PooledBufferAllocator.DEFAULT;
+            allocator = CachedBufferAllocator.DEFAULT;
         }
         return allocator;
     }

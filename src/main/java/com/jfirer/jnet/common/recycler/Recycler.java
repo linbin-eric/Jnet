@@ -34,22 +34,22 @@ public class Recycler<T>
     private final       int                                         maxDelayQueueNum;
     private final       int                                         maxSharedCapacity;
     private final       Supplier<T>                                 supplier;
-    private final       BiConsumer<T, RecycleHandler<T>>            biConsumer;
+    private final       BiConsumer<T, RecycleHandler>            biConsumer;
 
-    public Recycler(Supplier<T> supplier, BiConsumer<T, RecycleHandler<T>> biConsumer)
+    public Recycler(Supplier<T> supplier, BiConsumer<T, RecycleHandler> biConsumer)
     {
         this(MAX_CACHE_INSTANCE_CAPACITY, MAX_DELAY_QUEUE_NUM, LINK_SIZE, MAX_SHARED_CAPACITY, supplier, biConsumer);
     }
 
-    public Recycler(int maxCachedInstanceCapcity, int maxDelayQueueNum, int linkSize, int maxShadCapacity, Supplier<T> supplier, BiConsumer<T, RecycleHandler<T>> biConsumer)
+    public Recycler(int maxCachedInstanceCapcity, int maxDelayQueueNum, int linkSize, int maxShadCapacity, Supplier<T> supplier, BiConsumer<T, RecycleHandler> biConsumer)
     {
         this.maxCachedInstanceCapacity = maxCachedInstanceCapcity;
-        this.maxDelayQueueNum = maxDelayQueueNum;
-        this.linkSize = linkSize;
-        this.maxSharedCapacity = maxShadCapacity;
-        this.supplier = supplier;
-        this.biConsumer = biConsumer;
-        stackInitSize = Math.min(maxCachedInstanceCapcity, 2048);
+        this.maxDelayQueueNum          = maxDelayQueueNum;
+        this.linkSize                  = linkSize;
+        this.maxSharedCapacity         = maxShadCapacity;
+        this.supplier                  = supplier;
+        this.biConsumer                = biConsumer;
+        stackInitSize                  = Math.min(maxCachedInstanceCapcity, 2048);
     }
 
     /**
@@ -119,17 +119,17 @@ public class Recycler<T>
 
         public Stack()
         {
-            capacity = stackInitSize;
+            capacity       = stackInitSize;
             sharedCapacity = new AtomicInteger(maxSharedCapacity);
-            buffer = new RecycleHandler[capacity];
-            ownerThread = new WeakReference<Thread>(Thread.currentThread());
+            buffer         = new RecycleHandler[capacity];
+            ownerThread    = new WeakReference<Thread>(Thread.currentThread());
         }
 
         synchronized void setHead(WeakOrderQueue queue)
         {
             if (head != null)
             {
-                head.prev = queue;
+                head.prev  = queue;
                 queue.next = head;
             }
             head = queue;
@@ -145,9 +145,9 @@ public class Recycler<T>
             }
             else
             {
-                next.prev = null;
+                next.prev       = null;
                 originHead.next = null;
-                head = next;
+                head            = next;
             }
         }
 
@@ -170,7 +170,7 @@ public class Recycler<T>
                 throw new IllegalStateException("对象被回收了多次");
             }
             result.lastRecycleId = 0;
-            result.recyclerId = 0;
+            result.recyclerId    = 0;
             return result;
         }
 
@@ -280,7 +280,7 @@ public class Recycler<T>
                 extendCapacity();
             }
             buffer[posi] = handler;
-            posi += 1;
+                           posi += 1;
         }
 
         private void pushLater(DefaultHandler handler, Thread thread)
@@ -335,7 +335,7 @@ public class Recycler<T>
 
         public DefaultHandler(Object value, Stack stack)
         {
-            this.value = value;
+            this.value    = value;
             this.stackRef = new WeakReference<>(stack);
         }
 
@@ -372,8 +372,8 @@ public class Recycler<T>
         public WeakOrderQueue(AtomicInteger sharedCapacity, Thread currentThread)
         {
             this.sharedCapacity = sharedCapacity;
-            cursor = tail = new Link();
-            ownerThread = new WeakReference<>(currentThread);
+            cursor              = tail = new Link();
+            ownerThread         = new WeakReference<>(currentThread);
         }
 
         boolean add(DefaultHandler handler)
@@ -384,7 +384,7 @@ public class Recycler<T>
             {
                 if (reserveSpace(linkSize, sharedCapacity))
                 {
-                    tail = link = link.next = new Link();
+                    tail  = link = link.next = new Link();
                     write = 0;
                 }
                 else
@@ -459,7 +459,7 @@ public class Recycler<T>
                 }
                 cursor.read = end;
                 stack.posi += len;
-                success = true;
+                success     = true;
                 if (cursor.read == linkSize)
                 {
                     reclaimSpace(linkSize, sharedCapacity);

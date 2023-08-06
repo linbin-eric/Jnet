@@ -2,7 +2,7 @@ package com.jfirer.jnet.common.buffer;
 
 import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
-import com.jfirer.jnet.common.buffer.buffer.impl.PooledBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.BasicBuffer;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -38,14 +38,14 @@ public class PooledBufferRWTest
         });
     }
 
-    static PooledBuffer allocate(int size)
+    static BasicBuffer allocate(int size)
     {
-        return (PooledBuffer) PooledBufferAllocator.DEFAULT.heapBuffer(size);
+        return (BasicBuffer) PooledBufferAllocator.DEFAULT.heapBuffer(size);
     }
 
-    static PooledBuffer allocateDirect(int size)
+    static BasicBuffer allocateDirect(int size)
     {
-        return (PooledBuffer) PooledBufferAllocator.DEFAULT.unsafeBuffer(size);
+        return (BasicBuffer) PooledBufferAllocator.DEFAULT.unsafeBuffer(size);
     }
 
     @Before

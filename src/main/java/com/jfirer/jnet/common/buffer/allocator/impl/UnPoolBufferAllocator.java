@@ -3,9 +3,10 @@ package com.jfirer.jnet.common.buffer.allocator.impl;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
-import com.jfirer.jnet.common.buffer.buffer.impl.UnPooledBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.BasicBuffer;
+import com.jfirer.jnet.common.buffer.buffer.storage.StorageSegment;
+import com.jfirer.jnet.common.util.PlatFormFunction;
 import com.jfirer.jnet.common.util.SystemPropertyUtil;
-import com.jfirer.jnet.common.util.UNSAFE;
 
 import java.nio.ByteBuffer;
 
@@ -35,33 +36,24 @@ public class UnPoolBufferAllocator implements BufferAllocator
     @Override
     public IoBuffer heapBuffer(int initializeCapacity)
     {
-        UnPooledBuffer buffer = new UnPooledBuffer(BufferType.HEAP);
-        buffer.init(new byte[initializeCapacity], initializeCapacity, 0, 0);
+        BasicBuffer    buffer         = new BasicBuffer(BufferType.HEAP);
+        StorageSegment storageSegment = StorageSegment.POOL.get();
+        storageSegment.init(new byte[initializeCapacity], 0, 0, initializeCapacity);
+        buffer.init(storageSegment);
         return buffer;
     }
 
     @Override
-    public UnPooledBuffer unsafeBuffer(int initializeCapacity)
+    public BasicBuffer unsafeBuffer(int initializeCapacity)
     {
-        UnPooledBuffer buffer     = new UnPooledBuffer(BufferType.UNSAFE);
-        ByteBuffer     byteBuffer = ByteBuffer.allocateDirect(initializeCapacity);
-        buffer.init(byteBuffer, initializeCapacity, 0, UNSAFE.bytebufferOffsetAddress(byteBuffer));
+        BasicBuffer buffer     = new BasicBuffer(BufferType.UNSAFE);
+        ByteBuffer  byteBuffer = ByteBuffer.allocateDirect(initializeCapacity);
+        StorageSegment storageSegment =
+                StorageSegment.POOL.get();
+        storageSegment.init(byteBuffer, PlatFormFunction.bytebufferOffsetAddress(byteBuffer), 0, initializeCapacity);
+        buffer.init(storageSegment);
         return buffer;
     }
-//    public UnPoolDirectBuffer directByteBuffer(int initializeCapacity)
-//    {
-//        UnPoolDirectBuffer buffer     = new UnPoolDirectBuffer();
-//        ByteBuffer         byteBuffer = ByteBuffer.allocateDirect(initializeCapacity);
-//        buffer.init(byteBuffer, initializeCapacity, 0, PlatFormFunction.bytebufferOffsetAddress(byteBuffer));
-//        return buffer;
-//    }
-//    public UnPoolMemoryBuffer memoryBuffer(int initializeCapacity)
-//    {
-//        UnPoolMemoryBuffer buffer  = new UnPoolMemoryBuffer();
-//        MemorySession      session = MemorySession.openShared();
-//        buffer.init(MemorySegment.allocateNative(initializeCapacity, session), initializeCapacity, 0);
-//        return buffer;
-//    }
 
     @Override
     public String name()

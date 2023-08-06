@@ -1,8 +1,5 @@
 package com.jfirer.jnet.common.buffer.buffer;
 
-import com.jfirer.jnet.common.buffer.buffer.impl.AbstractBuffer;
-import com.jfirer.jnet.common.buffer.buffer.impl.SliceBuffer;
-
 import java.nio.ByteBuffer;
 
 public interface IoBuffer
@@ -350,23 +347,7 @@ public interface IoBuffer
      * @param length
      * @return
      */
-    default IoBuffer slice(int length)
-    {
-        return SliceBuffer.slice((AbstractBuffer) this, length);
-//        switch (bufferType())
-//        {
-//            case HEAP ->
-//            {
-//                return SliceBuffer.slice((AbstractBuffer) this, length);
-//            }
-//            case UNSAFE ->
-//            {
-//                return SliceDirectBuffer.slice((AbstractBuffer) this, length);
-//            }
-//            case DIRECT, MEMORY -> throw new UnsupportedOperationException();
-//            default -> throw new IllegalStateException("Unexpected value: " + bufferType());
-//        }
-    }
+    IoBuffer slice(int length);
 
     /**
      * 返回当前Buffer持有的存储区域被多少对象持有

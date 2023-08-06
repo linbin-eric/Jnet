@@ -1,125 +1,98 @@
 package com.jfirer.jnet.common.buffer;
 
 import com.jfirer.jnet.common.buffer.arena.Arena;
-import com.jfirer.jnet.common.buffer.arena.ChunkListNode;
-import com.jfirer.jnet.common.buffer.buffer.Bits;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
-import com.jfirer.jnet.common.buffer.buffer.impl.CacheablePooledBuffer;
-import com.jfirer.jnet.common.buffer.buffer.impl.PooledBuffer;
+import com.jfirer.jnet.common.buffer.buffer.storage.CachedStorageSegment;
 import com.jfirer.jnet.common.util.MathUtil;
 import com.jfirer.jnet.common.util.PlatFormFunction;
-import com.jfirer.jnet.common.util.ReflectUtil;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 public class ThreadCache
 {
-    public static class MemoryCached
-    {
-        public Arena         arena;
-        public ChunkListNode chunkListNode;
-        public int           capacity;
-        public int           offset;
-        public long          handle;
-        public int           bitMapIndex;
-        int regionIndex;
-    }
+    static final int                      smallestMask = ~15;
+    final        int                      numOfCached;
+    private      Arena                    arena;
+    private      CachedStorageSegment[][] regionCaches;
+    private      long[][]                 bitMaps;
+    private      int[]                    numOfAvails;
+    private      int[]                    nextAvails;
+    private      BufferType               bufferType;
 
-    static final int              smallestMask = ~15;
-    final        int              numOfCached;
-    private      Arena            arena;
-    private      MemoryCached[][] regionCaches;
-    private      long[][]         bitMaps;
-    private      int[]            numOfAvails;
-    private      int[]            nextAvails;
-
-    public ThreadCache(int numOfCached, int maxCachedCapacity, Arena arena)
+    public ThreadCache(int numOfCached, int maxCachedCapacity, Arena arena, BufferType bufferType)
     {
-        this.arena = arena;
+        this.arena       = arena;
+        this.bufferType  = bufferType;
         this.numOfCached = numOfCached;
-        regionCaches = new MemoryCached[MathUtil.log2(maxCachedCapacity) - 4][];
-        bitMaps = new long[regionCaches.length][];
-        numOfAvails = new int[bitMaps.length];
-        nextAvails = new int[bitMaps.length];
+        regionCaches     = new CachedStorageSegment[MathUtil.log2(maxCachedCapacity) - 4][];
+        bitMaps          = new long[regionCaches.length][];
+        numOfAvails      = new int[bitMaps.length];
+        nextAvails       = new int[bitMaps.length];
         Arrays.fill(numOfAvails, this.numOfCached);
         Arrays.fill(nextAvails, -1);
         int bitMapLength = (numOfCached & 63) == 0 ? numOfCached >>> 6 : ((numOfCached >>> 6) + 1);
         for (int i = 0; i < regionCaches.length; i++)
         {
-            regionCaches[i] = new MemoryCached[this.numOfCached];
-            bitMaps[i] = new long[bitMapLength];
+            regionCaches[i] = new CachedStorageSegment[this.numOfCached];
+            bitMaps[i]      = new long[bitMapLength];
         }
     }
 
-    public void reAllocate(MemoryCached oldMemoryCache, int newReqCapacity, CacheablePooledBuffer buffer)
+    public CachedStorageSegment allocate(int capacity)
     {
-        int    oldReadPosi  = buffer.getReadPosi();
-        int    oldWritePosi = buffer.getWritePosi();
-        int    oldCapacity  = buffer.capacity();
-        int    oldOffset    = buffer.offset();
-        Object oldMemory    = buffer.memory();
-        if (newReqCapacity > oldCapacity)
+        int size        = normalizeCapacity(capacity);
+        int regionIndex = MathUtil.log2(size) - 4;
+        if (regionIndex < regionCaches.length)
         {
-            allocate(newReqCapacity, buffer);
-            buffer.setReadPosi(oldReadPosi).setWritePosi(oldWritePosi);
-            switch (buffer.bufferType())
-            {
-                case HEAP -> System.arraycopy(oldMemory, oldOffset, buffer.memory(), buffer.offset(), oldWritePosi);
-                case DIRECT, UNSAFE ->
-                        Bits.copyDirectMemory(PlatFormFunction.bytebufferOffsetAddress((ByteBuffer) oldMemory) + oldOffset, PlatFormFunction.bytebufferOffsetAddress((ByteBuffer) buffer.memory()) + buffer.offset(), oldWritePosi);
-                default -> throw new IllegalArgumentException();
-            }
-        }
-        // 这种情况是缩小，目前还不支持
-        else
-        {
-            ReflectUtil.throwException(new UnsupportedOperationException());
-        }
-        free(oldMemoryCache);
-    }
-
-    public void allocate(int capacity, CacheablePooledBuffer buffer)
-    {
-        int size  = normalizeCapacity(capacity);
-        int index = MathUtil.log2(size) - 4;
-        if (index < regionCaches.length)
-        {
-            MemoryCached[] regionCach = regionCaches[index];
-            long[]         bitMap     = bitMaps[index];
+            CachedStorageSegment[] regionCach = regionCaches[regionIndex];
+            long[]                 bitMap     = bitMaps[regionIndex];
             synchronized (regionCach)
             {
-                int bitMapIndex = findAvail(index);
+                int bitMapIndex = findAvail(regionIndex);
                 if (bitMapIndex == -1)
                 {
-                    arena.allocate(capacity, buffer);
-                    return;
+                    CachedStorageSegment cachedStorageSegment = CachedStorageSegment.POOL.get();
+                    arena.allocate(size, cachedStorageSegment);
+                    return cachedStorageSegment;
                 }
                 int row = bitMapIndex >>> 6;
                 int col = bitMapIndex & 63;
                 bitMap[row] |= 1L << col;
-                numOfAvails[index] -= 1;
-                MemoryCached memoryCached = regionCach[bitMapIndex];
-                if (memoryCached == null)
+                numOfAvails[regionIndex] -= 1;
+                CachedStorageSegment cached = regionCach[bitMapIndex];
+                if (cached == null)
                 {
-                    MemoryFetch memoryFetch = new MemoryFetch(buffer.bufferType());
-                    arena.allocate(size, memoryFetch);
-                    memoryCached = new MemoryCached();
-                    memoryCached.arena = arena;
-                    memoryCached.chunkListNode = memoryFetch.fetchNode();
-                    memoryCached.capacity = size;
-                    memoryCached.offset = memoryFetch.fetchOffset();
-                    memoryCached.handle = memoryFetch.fetchHandle();
-                    memoryCached.bitMapIndex = bitMapIndex;
-                    memoryCached.regionIndex = index;
-                    regionCach[bitMapIndex] = memoryCached;
+                    cached = new CachedStorageSegment();
+                    cached.setThreadCache(this);
+                    cached.setBitMapIndex(bitMapIndex);
+                    cached.setRegionIndex(regionIndex);
+                    switch (bufferType)
+                    {
+                        case HEAP ->
+                        {
+                            cached.init(new byte[size], 0, 0, size);
+                        }
+                        case DIRECT, MEMORY ->
+                        {
+                            throw new UnsupportedOperationException();
+                        }
+                        case UNSAFE ->
+                        {
+                            ByteBuffer byteBuffer = ByteBuffer.allocateDirect(size);
+                            cached.init(byteBuffer, PlatFormFunction.bytebufferOffsetAddress(byteBuffer), 0, size);
+                        }
+                    }
+                    regionCach[bitMapIndex] = cached;
                 }
-                buffer.init(memoryCached, this);
+                return cached;
             }
         }
         else
         {
-            arena.allocate(capacity, buffer);
+            CachedStorageSegment cachedStorageSegment = CachedStorageSegment.POOL.get();
+            arena.allocate(size, cachedStorageSegment);
+            return cachedStorageSegment;
         }
     }
 
@@ -163,18 +136,16 @@ public class ThreadCache
         }
     }
 
-    public void free(MemoryCached memoryCached)
+    public void free(int regionIndex, int bitMapIndex)
     {
-        int            regionIndex = memoryCached.regionIndex;
-        MemoryCached[] regionCach  = regionCaches[regionIndex];
+        CachedStorageSegment[] regionCach = regionCaches[regionIndex];
         synchronized (regionCach)
         {
-            nextAvails[regionIndex] = memoryCached.bitMapIndex;
+            nextAvails[regionIndex] = bitMapIndex;
             numOfAvails[regionIndex] += 1;
-            long[] bitMap      = bitMaps[regionIndex];
-            int    bitMapIndex = memoryCached.bitMapIndex;
-            int    row         = bitMapIndex >>> 6;
-            int    col         = bitMapIndex & 63;
+            long[] bitMap = bitMaps[regionIndex];
+            int    row    = bitMapIndex >>> 6;
+            int    col    = bitMapIndex & 63;
             bitMap[row] ^= 1L << col;
         }
     }
@@ -186,29 +157,5 @@ public class ThreadCache
             return 16;
         }
         return MathUtil.normalizeSize(reqCapacity);
-    }
-
-    class MemoryFetch extends PooledBuffer
-    {
-        public MemoryFetch(BufferType bufferType)
-        {
-            super(bufferType);
-        }
-
-        public ChunkListNode fetchNode()
-        {
-            return chunkListNode;
-        }
-
-        public long fetchHandle()
-        {
-            return handle;
-        }
-
-        public int fetchOffset()
-        {
-            return offset;
-        }
-
     }
 }

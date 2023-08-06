@@ -2,7 +2,8 @@ package com.jfirer.jnet.common.buffer;
 
 import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
-import com.jfirer.jnet.common.buffer.buffer.impl.PooledBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.BasicBuffer;
+import com.jfirer.jnet.common.buffer.buffer.storage.PooledStorageSegment;
 import org.junit.Test;
 
 import java.util.LinkedList;
@@ -33,8 +34,8 @@ public class NormalAllocateTest
             int base      = 1 << i;
             for (int j = 0; j < 1 << i; j++)
             {
-                PooledBuffer buffer = (PooledBuffer) allocator.ioBuffer(levelSize, direct);
-                long         handle = buffer.handle();
+                BasicBuffer buffer = (BasicBuffer) allocator.ioBuffer(levelSize, direct);
+                long        handle = ((PooledStorageSegment) buffer.getStorageSegment()).getHandle();
                 assertEquals(base + j, handle);
                 buffers.add((IoBuffer) buffer);
             }
@@ -62,15 +63,15 @@ public class NormalAllocateTest
         int maxLevel = allocator.maxLevel();
         for (int i = maxLevel; i > 0; i--)
         {
-            int          size   = pagesize << (maxLevel - i);
-            PooledBuffer buffer = (PooledBuffer) allocator.ioBuffer(size, preferDirect);
+            int         size   = pagesize << (maxLevel - i);
+            BasicBuffer buffer = (BasicBuffer) allocator.ioBuffer(size, preferDirect);
             if (i == maxLevel)
             {
-                assertEquals(1 << i, buffer.handle());
+                assertEquals(1 << i, ((PooledStorageSegment) buffer.getStorageSegment()).getHandle());
             }
             else
             {
-                assertEquals((1 << i) + 1, buffer.handle());
+                assertEquals((1 << i) + 1, ((PooledStorageSegment) buffer.getStorageSegment()).getHandle());
             }
         }
     }

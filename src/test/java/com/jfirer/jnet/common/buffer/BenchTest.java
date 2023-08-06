@@ -1,6 +1,6 @@
 package com.jfirer.jnet.common.buffer;
 
-import com.jfirer.jnet.common.buffer.allocator.impl.CachedPooledBufferAllocator;
+import com.jfirer.jnet.common.buffer.allocator.impl.CachedBufferAllocator;
 import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import org.openjdk.jmh.annotations.*;
@@ -43,7 +43,7 @@ public class BenchTest
     public static class TestForCachedPooledBufferAllocator
     {
         IoBuffer buffer;
-        public CachedPooledBufferAllocator allocator = CachedPooledBufferAllocator.DEFAULT;
+        public CachedBufferAllocator allocator = CachedBufferAllocator.DEFAULT;
     }
 
     @BenchmarkMode(Mode.Throughput)

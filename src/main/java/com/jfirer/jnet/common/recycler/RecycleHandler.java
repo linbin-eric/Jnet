@@ -1,11 +1,11 @@
 package com.jfirer.jnet.common.recycler;
 
-public interface RecycleHandler<T>
+public interface RecycleHandler
 {
     /**
      * 对value对象进行缓存回收
      *
      * @param value
      */
-    void recycle(T value);
+    void recycle(Object value);
 }

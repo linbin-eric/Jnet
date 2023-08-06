@@ -3,7 +3,7 @@ package com.jfirer.jnet.common.buffer.buffer.impl.rw;
 import com.jfirer.jnet.common.buffer.buffer.Bits;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.buffer.buffer.RwDelegation;
-import com.jfirer.jnet.common.buffer.buffer.impl.AbstractBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.BasicBuffer;
 
 import java.nio.ByteBuffer;
 
@@ -98,7 +98,7 @@ public class HeapRw implements RwDelegation
                     System.arraycopy(srcBuf.memory(), srcBuf.getReadPosi() + srcBuf.offset(), destMemory, destOffset + destPosi, len);
             case DIRECT, UNSAFE ->
             {
-                AbstractBuffer buffer = (AbstractBuffer) srcBuf;
+                BasicBuffer buffer = (BasicBuffer) srcBuf;
                 Bits.copyToArray(buffer.nativeAddress() + buffer.offset() + buffer.getReadPosi(), (byte[]) destMemory, destOffset + destPosi, len);
             }
         }

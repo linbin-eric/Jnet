@@ -200,7 +200,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
     {
         if (receiveResponse != null)
         {
-            receiveResponse.close();
+            receiveResponse.terminate();
         }
         super.channelClose(next, e);
     }

@@ -6,7 +6,7 @@ import com.jfirer.jnet.common.api.Pipeline;
 import com.jfirer.jnet.common.api.ReadProcessor;
 import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
-import com.jfirer.jnet.common.buffer.allocator.impl.CachedPooledBufferAllocator;
+import com.jfirer.jnet.common.buffer.allocator.impl.CachedBufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
 import com.jfirer.jnet.common.internal.DefaultWorkerGroup;
@@ -36,7 +36,7 @@ public class BaseTest
     private              AioServer       aioServer;
     private              String          ip           = "127.0.0.1";
     private              int             port         = 7598;
-    private              int             numPerThread = 10000000;
+    private              int             numPerThread = 20000000;
     private              int             numClients   = 4;
     private              ClientChannel[] clients;
     private              CountDownLatch  latch        = new CountDownLatch(numClients);
@@ -119,6 +119,8 @@ public class BaseTest
                 int batch = 5000;
                 for (int j = 0; j < numPerThread; )
                 {
+                    try
+                    {
                     IoBuffer buffer = bufferAllocator.ioBuffer(8);
                     int      num    = j;
                     int      max    = num + batch > numPerThread ? numPerThread : num + batch;
@@ -128,11 +130,9 @@ public class BaseTest
                         buffer.putInt(num);
                     }
                     j = num;
-                    try
-                    {
                         client.write(buffer);
                     }
-                    catch (Exception e)
+                    catch (Throwable e)
                     {
                         e.printStackTrace();
                         ;
@@ -166,7 +166,7 @@ public class BaseTest
         }
         logger.info("测试完毕");
         aioServer.termination();
-        System.out.println("success:" + CachedPooledBufferAllocator.DEFAULT.success.sum() + ",fail:" + CachedPooledBufferAllocator.DEFAULT.fail.sum());
+        System.out.println("success:" + CachedBufferAllocator.DEFAULT.success.sum() + ",fail:" + CachedBufferAllocator.DEFAULT.fail.sum());
     }
 
     static enum IoMode

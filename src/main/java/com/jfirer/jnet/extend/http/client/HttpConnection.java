@@ -27,7 +27,7 @@ public class HttpConnection
     private final       BlockingQueue<HttpReceiveResponse> responseSync        = new LinkedBlockingQueue<>();
     private final       ClientChannel                      clientChannel;
     private             long                               lastResponseTime;
-    private             RecycleHandler<HttpConnection>     handler;
+    private             RecycleHandler                     handler;
     public static final HttpReceiveResponse                CLOSE_OF_CONNECTION = new HttpReceiveResponse(null);
     public static final long                               KEEP_ALIVE_TIME     = 1000 * 60 * 5;
     public static final WorkerGroup                        HTTP_WORKER_GROUP   = new DefaultWorkerGroup();
@@ -111,6 +111,9 @@ public class HttpConnection
         clientChannel.close();
     }
 
+    /**
+     * 在一个HttpConnect 完成请求发送，响应解析并且业务端代码使用完毕后，就可以将这个链接归还到连接池中。
+     */
     public void recycle()
     {
         lastResponseTime = System.currentTimeMillis();

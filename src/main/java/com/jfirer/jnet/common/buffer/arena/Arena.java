@@ -2,14 +2,11 @@ package com.jfirer.jnet.common.buffer.arena;
 
 import com.jfirer.jnet.common.buffer.buffer.Bits;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
-import com.jfirer.jnet.common.buffer.buffer.impl.AbstractBuffer;
-import com.jfirer.jnet.common.buffer.buffer.impl.PooledBuffer;
+import com.jfirer.jnet.common.buffer.buffer.storage.PooledStorageSegment;
 import com.jfirer.jnet.common.util.CapacityStat;
 import com.jfirer.jnet.common.util.MathUtil;
-import com.jfirer.jnet.common.util.PlatFormFunction;
 import com.jfirer.jnet.common.util.ReflectUtil;
 
-import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class Arena
@@ -46,19 +43,19 @@ public class Arena
         {
             ReflectUtil.throwException(new IllegalArgumentException("pagesize不能小于4096"));
         }
-        this.maxLevel = maxLevel;
-        this.pageSize = pageSize;
-        this.pageSizeShift = MathUtil.log2(pageSize);
+        this.maxLevel            = maxLevel;
+        this.pageSize            = pageSize;
+        this.pageSizeShift       = MathUtil.log2(pageSize);
         this.subpageOverflowMask = ~(pageSize - 1);
-        subPageIdxMask = 1 << maxLevel;
-        this.name = name;
-        chunkSize = (1 << maxLevel) * pageSize;
-        c100 = new ChunkList(100, 100, null, chunkSize, this);
-        c075 = new ChunkList(75, 99, c100, chunkSize, this);
-        c050 = new ChunkList(50, 90, c075, chunkSize, this);
-        c025 = new ChunkList(25, 75, c050, chunkSize, this);
-        c000 = new ChunkList(1, 50, c025, chunkSize, this);
-        cInt = new ChunkList(0, 25, c000, chunkSize, this);
+        subPageIdxMask           = 1 << maxLevel;
+        this.name                = name;
+        chunkSize                = (1 << maxLevel) * pageSize;
+        c100                     = new ChunkList(100, 100, null, chunkSize, this);
+        c075                     = new ChunkList(75, 99, c100, chunkSize, this);
+        c050                     = new ChunkList(50, 90, c075, chunkSize, this);
+        c025                     = new ChunkList(25, 75, c050, chunkSize, this);
+        c000                     = new ChunkList(1, 50, c025, chunkSize, this);
+        cInt                     = new ChunkList(0, 25, c000, chunkSize, this);
         c100.setPrevList(c075);
         c075.setPrevList(c050);
         c050.setPrevList(c025);
@@ -76,13 +73,13 @@ public class Arena
         return MathUtil.log2(normalizeCapacity) - 4;
     }
 
-    private void allocateHuge(int reqCapacity, PooledBuffer buffer)
+    private void allocateHuge(int reqCapacity, PooledStorageSegment storageSegment)
     {
-        buffer.init(this, new ChunkListNode(reqCapacity, bufferType), reqCapacity, 0, 0);
+        storageSegment.init(this, new ChunkListNode(reqCapacity, bufferType), 0, 0, reqCapacity);
         hugeChunkCount++;
     }
 
-    public void allocate(int reqCapacity, PooledBuffer buffer)
+    public void allocate(int reqCapacity, PooledStorageSegment storageSegment)
     {
         int normalizeCapacity = normalizeCapacity(reqCapacity);
         if (isSmall(normalizeCapacity))
@@ -93,7 +90,7 @@ public class Arena
                 SubPage succeed = head.next;
                 if (succeed != head)
                 {
-                    initSubPageBuffer(succeed, buffer);
+                    initSubPageBuffer(succeed, storageSegment);
                     if (succeed.empty())
                     {
                         removeFromArena(succeed);
@@ -106,18 +103,18 @@ public class Arena
             synchronized (head)
             {
                 addToArena(subPage, head);
-                initSubPageBuffer(subPage, buffer);
+                initSubPageBuffer(subPage, storageSegment);
             }
             usedAllocate.incrementAndGet();
         }
         else if (normalizeCapacity <= chunkSize)
         {
-            allocateNormal(normalizeCapacity, buffer);
+            allocateNormal(normalizeCapacity, storageSegment);
             usedAllocate.incrementAndGet();
         }
         else
         {
-            allocateHuge(reqCapacity, buffer);
+            allocateHuge(reqCapacity, storageSegment);
         }
     }
 
@@ -125,8 +122,8 @@ public class Arena
     {
         SubPage prev = subPage.prev;
         SubPage next = subPage.next;
-        prev.next = next;
-        next.prev = prev;
+        prev.next    = next;
+        next.prev    = prev;
         subPage.prev = null;
         subPage.next = null;
     }
@@ -134,9 +131,9 @@ public class Arena
     private void addToArena(SubPage subPage, SubPage head)
     {
         SubPage next = head.next;
-        head.next = subPage;
+        head.next    = subPage;
         subPage.next = next;
-        next.prev = subPage;
+        next.prev    = subPage;
         subPage.prev = head;
     }
 
@@ -145,13 +142,13 @@ public class Arena
         return ((int) (handle >>> 32)) & 0x3FFFFFFF;
     }
 
-    private void initSubPageBuffer(SubPage subPage, PooledBuffer buffer)
+    private void initSubPageBuffer(SubPage subPage, PooledStorageSegment storageSegment)
     {
         long handle                 = subPage.allocate();
         int  allocationsCapacityIdx = allocationsCapacityIdx(handle);
         int  bitmapIdx              = bitmapIdx(handle);
         int  offset                 = calcuteOffset(allocationsCapacityIdx) + bitmapIdx * subPage.elementSize();
-        buffer.init(this, subPage.getChunkListNode(), subPage.elementSize(), offset, handle);
+        storageSegment.init(this, subPage.getChunkListNode(), handle, offset, subPage.elementSize());
     }
 
     private int calcuteOffset(int allocationsCapacityIdx)
@@ -197,53 +194,52 @@ public class Arena
         return subPage;
     }
 
-    private synchronized void allocateNormal(int normalizeCapacity, PooledBuffer buffer)
+    private synchronized void allocateNormal(int normalizeCapacity, PooledStorageSegment storageSegment)
     {
-        if (c050.allocate(normalizeCapacity, buffer)//
-            || c025.allocate(normalizeCapacity, buffer)//
-            || c000.allocate(normalizeCapacity, buffer)//
-            || cInt.allocate(normalizeCapacity, buffer)//
-            || c075.allocate(normalizeCapacity, buffer))
+        if (c050.allocate(normalizeCapacity, storageSegment)//
+            || c025.allocate(normalizeCapacity, storageSegment)//
+            || c000.allocate(normalizeCapacity, storageSegment)//
+            || cInt.allocate(normalizeCapacity, storageSegment)//
+            || c075.allocate(normalizeCapacity, storageSegment))
         {
             return;
         }
         cInt.add(new ChunkListNode(cInt, maxLevel, pageSize, bufferType));
         newChunkCount++;
-        cInt.allocate(normalizeCapacity, buffer);
+        cInt.allocate(normalizeCapacity, storageSegment);
     }
 
-    public void reAllocate(ChunkListNode oldChunkListNode, PooledBuffer buf, int newReqCapacity)
-    {
-        AbstractBuffer buffer       = buf;
-        long           oldHandle    = buf.handle();
-        int            oldReadPosi  = buffer.getReadPosi();
-        int            oldWritePosi = buffer.getWritePosi();
-        int            oldCapacity  = buffer.capacity();
-        int            oldOffset    = buffer.offset();
-        Object         oldMemory    = buffer.memory();
-        allocate(newReqCapacity, buf);
-        if (newReqCapacity > oldCapacity)
-        {
-            buffer.setReadPosi(oldReadPosi).setWritePosi(oldWritePosi);
-            memoryCopy(oldMemory, oldOffset, buffer.memory(), buffer.offset(), oldWritePosi);
-        }
-        // 这种情况是缩小，目前还不支持
-        else
-        {
-            ReflectUtil.throwException(new UnsupportedOperationException());
-        }
-        free(oldChunkListNode, oldHandle, oldCapacity);
-    }
 
-    protected void memoryCopy(Object src, int srcOffset, Object desc, int destOffset, int oldWritePosi)
+//    public void reAllocate(ChunkListNode oldChunkListNode, PooledBuffer buf, int newReqCapacity)
+//    {
+//        BasicBuffer buffer       = buf;
+//        long           oldHandle    = buf.handle();
+//        int            oldReadPosi  = buffer.getReadPosi();
+//        int            oldWritePosi = buffer.getWritePosi();
+//        int            oldCapacity  = buffer.capacity();
+//        int            oldOffset    = buffer.offset();
+//        Object         oldMemory    = buffer.memory();
+//        allocate(newReqCapacity, buf);
+//        if (newReqCapacity > oldCapacity)
+//        {
+//            buffer.setReadPosi(oldReadPosi).setWritePosi(oldWritePosi);
+//            memoryCopy(oldMemory, oldOffset, buffer.memory(), buffer.offset(), oldWritePosi);
+//        }
+//        // 这种情况是缩小，目前还不支持
+//        else
+//        {
+//            ReflectUtil.throwException(new UnsupportedOperationException());
+//        }
+//        free(oldChunkListNode, oldHandle, oldCapacity);
+//    }
+
+    public void memoryCopy(Object src, long srcNativeAddress, int srcOffset, Object desc, long destNativeAddress, int destOffset, int length)
     {
         switch (bufferType)
         {
-            case HEAP ->
-                    System.arraycopy(src, srcOffset, desc, destOffset, oldWritePosi);
+            case HEAP -> System.arraycopy(src, srcOffset, desc, destOffset, length);
             case DIRECT, MEMORY -> throw new IllegalArgumentException();
-            case UNSAFE ->
-                    Bits.copyDirectMemory(PlatFormFunction.bytebufferOffsetAddress((ByteBuffer) src) + srcOffset, PlatFormFunction.bytebufferOffsetAddress((ByteBuffer) desc) + destOffset, oldWritePosi);
+            case UNSAFE -> Bits.copyDirectMemory(srcNativeAddress + srcOffset, destNativeAddress + destOffset, length);
         }
     }
 

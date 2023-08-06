@@ -1,6 +1,6 @@
 package com.jfirer.jnet.common.buffer.arena;
 
-import com.jfirer.jnet.common.buffer.buffer.impl.PooledBuffer;
+import com.jfirer.jnet.common.buffer.buffer.storage.PooledStorageSegment;
 import com.jfirer.jnet.common.util.CapacityStat;
 
 public class ChunkList
@@ -23,11 +23,11 @@ public class ChunkList
      */
     public ChunkList(int minUsage, int maxUsage, ChunkList next, int chunkSize, Arena arena)
     {
-        this.maxUsage = maxUsage;
-        this.minUsage = minUsage;
+        this.maxUsage  = maxUsage;
+        this.minUsage  = minUsage;
         maxReqCapacity = calcuteMaxCapacity(minUsage, chunkSize);
-        this.nextList = next;
-        this.arena = arena;
+        this.nextList  = next;
+        this.arena     = arena;
     }
 
     int calcuteMaxCapacity(int minUsage, int chunkSize)
@@ -51,7 +51,7 @@ public class ChunkList
         this.prevList = prevList;
     }
 
-    public boolean allocate(int normalizeSize, PooledBuffer buffer)
+    public boolean allocate(int normalizeSize, PooledStorageSegment storageSegment)
     {
         if (head == null || normalizeSize > maxReqCapacity)
         {
@@ -69,7 +69,7 @@ public class ChunkList
                     remove(node);
                     nextList.addFromPrev(node, usage);
                 }
-                buffer.init(arena, node, allocate.capacity(), allocate.offset(), allocate.handle());
+                storageSegment.init(arena, node, allocate.handle(), allocate.offset(), allocate.capacity());
                 return true;
             }
         }

@@ -7,19 +7,17 @@ import org.junit.runners.Suite.SuiteClasses;
 
 @SuiteClasses({ //
         ArenaTest.class, //
+        BasicBufferRWTest.class,
+        BufferRecycleTest.class, //
+        ChunkListTest.class, //
         HugeAllocateTest.class, //
+        MemoryRegionCacheSmallTest.class, //
         NormalAllocateTest.class, //
         PooledBufferRWTest.class, //
+        ReAllocateTest.class, //
+        SliceBufferTest.class,//
         SmallAllocateTest.class, //
         TakeAndRecycleTest.class, //
-        ChunkListTest.class, //
-        BufferRecycleTest.class, //
-        ReAllocateTest.class, //
-        MemoryRegionCacheSmallTest.class, //
-        MemoryRegionCacheNormalTest.class, //
-        UnPooledBufferRWTest.class, //
-        SliceBufferTest.class,//
-        UnPooledBufferRWTest.class
 })
 @RunWith(Suite.class)
 public class BufferSuiteTest

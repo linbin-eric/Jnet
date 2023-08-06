@@ -85,6 +85,7 @@ public class HttpReceiveResponse implements AutoCloseable
                         {
                             needClose.freeBuffer();
                         }
+                        connection.recycle();
                         return;
                     }
                     else
@@ -178,6 +179,7 @@ public class HttpReceiveResponse implements AutoCloseable
                         {
                             needClose.freeBuffer();
                         }
+                        connection.recycle();
                         return;
                     }
                     else

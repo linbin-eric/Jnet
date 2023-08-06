@@ -28,14 +28,7 @@ public class BufferRecycleTest
     public void test2() throws InterruptedException
     {
         final IoBuffer buffer = allocator.ioBuffer(12);
-        Thread thread = new Thread(new Runnable()
-        {
-            @Override
-            public void run()
-            {
-                buffer.free();
-            }
-        });
+        Thread thread = new Thread(buffer::free);
         thread.start();
         thread.join();
         IoBuffer buffer2 = allocator.ioBuffer(2);
@@ -48,14 +41,10 @@ public class BufferRecycleTest
     {
         final IoBuffer       buffer = allocator.ioBuffer(128);
         final CountDownLatch latch  = new CountDownLatch(1);
-        new FastThreadLocalThread(new Runnable()
+        new FastThreadLocalThread(() ->
         {
-            @Override
-            public void run()
-            {
-                buffer.free();
-                latch.countDown();
-            }
+            buffer.free();
+            latch.countDown();
         }).start();
         latch.await();
         IoBuffer buffer2 = allocator.ioBuffer(128);
