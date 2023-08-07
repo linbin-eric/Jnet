@@ -66,7 +66,7 @@ public class HttpRequestDecoder extends AbstractDecoder
         accumulation.free();
         accumulation = null;
         lastCheck    = -1;
-        return true;
+        return false;
     }
 
     private boolean parseRequestHeader()

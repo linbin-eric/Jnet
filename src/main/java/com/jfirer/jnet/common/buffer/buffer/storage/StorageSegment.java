@@ -106,4 +106,9 @@ public class StorageSegment extends AtomicInteger
         }
         return newSegment;
     }
+
+    public void addInvokeTrace()
+    {
+        watch.addInvokeTrace();
+    }
 }

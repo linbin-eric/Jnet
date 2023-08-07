@@ -8,7 +8,9 @@ import java.lang.ref.PhantomReference;
 import java.lang.ref.ReferenceQueue;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -17,22 +19,21 @@ public class LeakDetecter
 {
     public enum WatchLevel
     {
-        none,
-        sample,
-        all
+        none, sample, all
     }
 
     private final WatchLevel                             watchLevel;
     //Refence对象如果自身被GC了，就不会被放入到队列中。因此需要有一个地方持有他们的强引用。
     private final ConcurrentHashMap<LeakTracker, Object> map       = new ConcurrentHashMap<>();
     final         Object                                 dummy     = new Object();
-    final         LeakTracker                            leakDummy = new LeakTracker(null, null, map);
+    final         LeakTracker                            leakDummy = new LeakTracker(null, null, map, false);
 
     public LeakDetecter(WatchLevel watchLevel)
     {
         System.out.println("资源泄露监控级别：" + watchLevel);
         this.watchLevel = watchLevel;
-        new Thread(() -> {
+        new Thread(() ->
+        {
             while (true)
             {
                 try
@@ -47,7 +48,11 @@ public class LeakDetecter
                     {
                         if (reference.getSource() != null)
                         {
-                            log.error("发现资源泄露，泄露资源的创建栈如下:\r\n{}", reference.getSource());
+                            log.error("""
+                                    发现资源泄露，泄露资源的创建栈如下:
+                                    {}
+                                    代码轨迹路径为:
+                                    {}""", reference.getSource(), reference.getTraceQueue().stream().collect(Collectors.joining("\r\n**********\r\n")));
                         }
                         else
                         {
@@ -72,20 +77,18 @@ public class LeakDetecter
         switch (watchLevel)
         {
             case none -> tracker = leakDummy;
-            case sample ->
-                    tracker = ThreadLocalRandom.current().nextInt(100) == 0 ? buildTracker(entity, stackTraceLevel) : leakDummy;
+            case sample -> tracker = ThreadLocalRandom.current().nextInt(100) == 0 ? buildTracker(entity, stackTraceLevel) : leakDummy;
             case all -> tracker = buildTracker(entity, stackTraceLevel);
-            default ->
-                    throw new IllegalStateException("Unexpected value: " + watchLevel);
+            default -> throw new IllegalStateException("Unexpected value: " + watchLevel);
         }
         return tracker;
     }
 
     private LeakTracker buildTracker(Object entity, int stackTraceLevel)
     {
-        LeakTracker tracker = new LeakTracker(entity, queue, map);
+        LeakTracker tracker = new LeakTracker(entity, queue, map, true);
         map.put(tracker, dummy);
-        tracker.setSource(Arrays.stream(Thread.currentThread().getStackTrace()).skip(3).limit(stackTraceLevel).map(stackTraceElement -> stackTraceElement.getClassName() + "." + stackTraceElement.getMethodName() + ":" + stackTraceElement.getLineNumber()).collect(Collectors.joining("\r\n")));
+        tracker.setSource(Arrays.stream(Thread.currentThread().getStackTrace()).skip(3).limit(stackTraceLevel).map(stackTraceElement -> "[" + Thread.currentThread().getName() + "]:" + stackTraceElement.getClassName() + "." + stackTraceElement.getMethodName() + ":" + stackTraceElement.getLineNumber()).collect(Collectors.joining("\r\n")));
         return tracker;
     }
 
@@ -95,18 +98,33 @@ public class LeakDetecter
     {
         private String                   source;
         private boolean                  close = false;
+        private boolean                  watchTrace;
+        private Queue<String>            traceQueue;
         private Map<LeakTracker, Object> map;
 
-        public LeakTracker(Object referent, ReferenceQueue<Object> q, Map<LeakTracker, Object> map)
+        public LeakTracker(Object referent, ReferenceQueue<Object> q, Map<LeakTracker, Object> map, boolean watchTrace)
         {
             super(referent, q);
-            this.map = map;
+            this.map        = map;
+            this.watchTrace = watchTrace;
+            if (watchTrace)
+            {
+                traceQueue = new LinkedTransferQueue<>();
+            }
         }
 
         public void close()
         {
             close = true;
             map.remove(this);
+        }
+
+        public void addInvokeTrace()
+        {
+            if (watchTrace)
+            {
+                traceQueue.offer(Arrays.stream(Thread.currentThread().getStackTrace()).skip(3).limit(9).map(stackTraceElement -> "[" + Thread.currentThread().getName() + "]:" + stackTraceElement.getClassName() + "." + stackTraceElement.getMethodName() + ":" + stackTraceElement.getLineNumber()).collect(Collectors.joining("\r\n")));
+            }
         }
     }
 }

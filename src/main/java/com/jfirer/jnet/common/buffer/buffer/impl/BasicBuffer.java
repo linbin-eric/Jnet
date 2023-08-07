@@ -97,14 +97,16 @@ public class BasicBuffer implements IoBuffer
             expansionCapacity(posi);
         }
         writePosi = posi;
+        storageSegment.addInvokeTrace();
         return oldPosi;
     }
 
     protected void expansionCapacity(int newCapacity)
     {
-        int            oldReadPosi  = readPosi;
-        int            oldWritePosi = writePosi;
-        StorageSegment newSegment   = storageSegment.makeNewSegment(newCapacity, bufferType);
+        int oldReadPosi  = readPosi;
+        int oldWritePosi = writePosi;
+        storageSegment.addInvokeTrace();
+        StorageSegment newSegment = storageSegment.makeNewSegment(newCapacity, bufferType);
         memoryCopy(storageSegment.getMemory(), storageSegment.getNativeAddress(), offset, newSegment.getMemory(), newSegment.getNativeAddress(), newSegment.getOffset(), capacity);
         storageSegment.free();
         init(newSegment);
@@ -159,6 +161,7 @@ public class BasicBuffer implements IoBuffer
         {
             expansionCapacity(newPosi);
         }
+        storageSegment.addInvokeTrace();
     }
 
     @Override
@@ -293,6 +296,7 @@ public class BasicBuffer implements IoBuffer
             throw new IllegalArgumentException("尝试读取的内容过长，当前没有这么多数据");
         }
         readPosi = newPosi;
+        storageSegment.addInvokeTrace();
         return oldPosi;
     }
 
@@ -305,6 +309,7 @@ public class BasicBuffer implements IoBuffer
 
     void checkReadPosi(int posi, int len)
     {
+        storageSegment.addInvokeTrace();
         posi += len;
         if (posi > writePosi)
         {

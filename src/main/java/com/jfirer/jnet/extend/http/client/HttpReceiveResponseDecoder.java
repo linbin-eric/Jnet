@@ -92,7 +92,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
                     accumulation.free();
                     accumulation = null;
                 }
-                return true;
+                return false;
             }
             else
             {

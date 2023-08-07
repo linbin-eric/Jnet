@@ -13,8 +13,10 @@ import com.jfirer.jnet.common.util.ReflectUtil;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.IOException;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
+import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.ClosedChannelException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -31,6 +33,19 @@ public class HttpConnection
     public static final HttpReceiveResponse                CLOSE_OF_CONNECTION = new HttpReceiveResponse(null);
     public static final long                               KEEP_ALIVE_TIME     = 1000 * 60 * 5;
     public static final WorkerGroup                        HTTP_WORKER_GROUP   = new DefaultWorkerGroup();
+    public static final AsynchronousChannelGroup           http_channel_group;
+
+    static
+    {
+        try
+        {
+            http_channel_group = AsynchronousChannelGroup.withFixedThreadPool(4, r -> new Thread(r, "http_client"));
+        }
+        catch (IOException e)
+        {
+            throw new RuntimeException(e);
+        }
+    }
 
     public HttpConnection(String domain, int port)
     {
@@ -38,6 +53,7 @@ public class HttpConnection
         channelConfig.setIp(domain);
         channelConfig.setPort(port);
         channelConfig.setWorkerGroup(HTTP_WORKER_GROUP);
+        channelConfig.setChannelGroup(http_channel_group);
         clientChannel = new ClientChannelImpl(channelConfig, channelContext ->
         {
             Pipeline pipeline = channelContext.pipeline();
