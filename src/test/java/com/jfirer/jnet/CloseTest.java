@@ -53,7 +53,7 @@ public class CloseTest
     {
         ChannelConfig channelConfig = new ChannelConfig();
         channelConfig.setWorkerGroup(new DefaultWorkerGroup(2, "close_"));
-        channelConfig.setChannelThreadNum(2);
+        channelConfig.setChannelGroup(ChannelConfig.DEFAULT_CHANNEL_GROUP);
         channelConfig.setMinReceiveSize(PooledBufferAllocator.PAGESIZE);
         channelConfig.setAllocator(bufferAllocator);
         final CountDownLatch  countDownLatch = new CountDownLatch(writeNum);

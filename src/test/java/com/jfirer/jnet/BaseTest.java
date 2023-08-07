@@ -48,8 +48,7 @@ public class BaseTest
     {
         ChannelConfig channelConfig = new ChannelConfig();
         channelConfig.setWorkerGroup(new DefaultWorkerGroup(Runtime.getRuntime().availableProcessors(), "base_"));
-        channelConfig.setChannelThreadNum(Runtime.getRuntime().availableProcessors());
-        channelConfig.setChannelTreadNamePrefix("base_channel_");
+        channelConfig.setChannelGroup(ChannelConfig.DEFAULT_CHANNEL_GROUP);
         this.bufferAllocator = channelConfig.getAllocator();
         clients              = new ClientChannel[numClients];
         results              = new int[numClients][numPerThread];

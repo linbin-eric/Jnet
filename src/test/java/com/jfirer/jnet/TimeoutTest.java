@@ -13,8 +13,7 @@ public class TimeoutTest
     {
         ChannelConfig channelConfig = new ChannelConfig();
         channelConfig.setWorkerGroup(new DefaultWorkerGroup(2, "timeout_"));
-        channelConfig.setChannelThreadNum(2);
-        channelConfig.setChannelTreadNamePrefix("timeout_");
+        channelConfig.setChannelGroup(ChannelConfig.DEFAULT_CHANNEL_GROUP);
         channelConfig.setIp("127.0.0.1");
         channelConfig.setPort(8080);
         AioServer aioServer = new AioServer(channelConfig, channelContext ->

@@ -2,13 +2,11 @@ package com.jfirer.jnet.server;
 
 import com.jfirer.jnet.common.api.ChannelContextInitializer;
 import com.jfirer.jnet.common.internal.AcceptHandler;
-import com.jfirer.jnet.common.thread.FastThreadLocalThread;
 import com.jfirer.jnet.common.util.ChannelConfig;
 import com.jfirer.jnet.common.util.ReflectUtil;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousServerSocketChannel;
 
 public class AioServer
@@ -35,7 +33,7 @@ public class AioServer
     {
         try
         {
-            serverSocketChannel = AsynchronousServerSocketChannel.open(AsynchronousChannelGroup.withFixedThreadPool(channelConfig.getChannelThreadNum(), r -> channelConfig.getChannelTreadNamePrefix() != null ? new FastThreadLocalThread(r, channelConfig.getChannelTreadNamePrefix()) : new FastThreadLocalThread(r)));
+            serverSocketChannel = AsynchronousServerSocketChannel.open(channelConfig.getChannelGroup());
             serverSocketChannel.bind(new InetSocketAddress(channelConfig.getIp(), channelConfig.getPort()), channelConfig.getBackLog());
             serverSocketChannel.accept(serverSocketChannel, new AcceptHandler(channelConfig, initializer));
         }

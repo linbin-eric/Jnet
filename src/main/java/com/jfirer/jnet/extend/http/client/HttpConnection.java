@@ -8,13 +8,16 @@ import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.api.WorkerGroup;
 import com.jfirer.jnet.common.internal.DefaultWorkerGroup;
 import com.jfirer.jnet.common.recycler.RecycleHandler;
+import com.jfirer.jnet.common.thread.FastThreadLocalThread;
 import com.jfirer.jnet.common.util.ChannelConfig;
 import com.jfirer.jnet.common.util.ReflectUtil;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.IOException;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
+import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.ClosedChannelException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -31,14 +34,26 @@ public class HttpConnection
     public static final HttpReceiveResponse                CLOSE_OF_CONNECTION = new HttpReceiveResponse(null);
     public static final long                               KEEP_ALIVE_TIME     = 1000 * 60 * 5;
     public static final WorkerGroup                        HTTP_WORKER_GROUP   = new DefaultWorkerGroup(Runtime.getRuntime().availableProcessors(), "http_connection_worker_");
+    public static final AsynchronousChannelGroup           HTTP_CHANNEL_GROUP;
+
+    static
+    {
+        try
+        {
+            HTTP_CHANNEL_GROUP = AsynchronousChannelGroup.withFixedThreadPool(Runtime.getRuntime().availableProcessors(), r -> new FastThreadLocalThread(r, "http-connection-channel-"));
+        }
+        catch (IOException e)
+        {
+            throw new RuntimeException(e);
+        }
+    }
 
     public HttpConnection(String domain, int port)
     {
         ChannelConfig channelConfig = new ChannelConfig();
         channelConfig.setIp(domain);
         channelConfig.setPort(port);
-        channelConfig.setChannelTreadNamePrefix("http_connection_channel_");
-        channelConfig.setChannelThreadNum(Runtime.getRuntime().availableProcessors());
+        channelConfig.setChannelGroup(HTTP_CHANNEL_GROUP);
         channelConfig.setWorkerGroup(HTTP_WORKER_GROUP);
         clientChannel = new ClientChannelImpl(channelConfig, channelContext ->
         {
@@ -101,8 +116,7 @@ public class HttpConnection
             log.debug("收到链接终止响应");
             clientChannel.close();
             throw new ClosedChannelException();
-        }
-        else
+        } else
         {
             return response;
         }

@@ -20,7 +20,7 @@ public interface HttpClient
     {
         perfect(request);
         Connection               connection     = new Connection(request.getDoMain(), request.getPort());
-        Recycler<HttpConnection> recycler       = map.computeIfAbsent(connection, c -> new Recycler<HttpConnection>(() -> new HttpConnection(c.domain, c.port), HttpConnection::setHandler));
+        Recycler<HttpConnection> recycler       = map.computeIfAbsent(connection, c -> new Recycler<>(() -> new HttpConnection(c.domain, c.port), HttpConnection::setHandler));
         HttpConnection           httpConnection = getAvailableConnection(recycler);
         return httpConnection.write(request);
     }

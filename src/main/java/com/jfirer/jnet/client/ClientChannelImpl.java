@@ -4,11 +4,9 @@ import com.jfirer.jnet.common.api.*;
 import com.jfirer.jnet.common.internal.AdaptiveReadCompletionHandler;
 import com.jfirer.jnet.common.internal.DefaultChannelContext;
 import com.jfirer.jnet.common.internal.DefaultPipeline;
-import com.jfirer.jnet.common.thread.FastThreadLocalThread;
 import com.jfirer.jnet.common.util.ChannelConfig;
 
 import java.net.InetSocketAddress;
-import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.ClosedChannelException;
 import java.util.concurrent.Future;
@@ -37,7 +35,7 @@ public class ClientChannelImpl implements ClientChannel
             {
                 try
                 {
-                    AsynchronousSocketChannel asynchronousSocketChannel = AsynchronousSocketChannel.open(AsynchronousChannelGroup.withFixedThreadPool(channelConfig.getChannelThreadNum(), r -> channelConfig.getChannelTreadNamePrefix() != null ? new FastThreadLocalThread(r, channelConfig.getChannelTreadNamePrefix()) : new FastThreadLocalThread(r)));
+                    AsynchronousSocketChannel asynchronousSocketChannel = AsynchronousSocketChannel.open(channelConfig.getChannelGroup());
                     Future<Void>              future                    = asynchronousSocketChannel.connect(new InetSocketAddress(channelConfig.getIp(), channelConfig.getPort()));
                     future.get(30, TimeUnit.SECONDS);
                     channelContext = new DefaultChannelContext(asynchronousSocketChannel, channelConfig);
