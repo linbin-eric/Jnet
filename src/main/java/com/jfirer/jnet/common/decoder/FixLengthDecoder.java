@@ -37,8 +37,7 @@ public class FixLengthDecoder extends AbstractDecoder
             }
             IoBuffer packet = accumulation.slice(frameLength);
             next.fireRead(packet);
-        }
-        while (true);
-        compactIfNeed();
+        } while (true);
+        accumulation.compact();
     }
 }

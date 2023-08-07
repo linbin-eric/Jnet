@@ -1,6 +1,6 @@
 package com.jfirer.jnet.common.buffer.buffer.storage;
 
-import com.jfirer.jnet.common.buffer.ThreadCache;
+import com.jfirer.jnet.common.buffer.buffer.ThreadCache;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.recycler.Recycler;
 import lombok.Data;

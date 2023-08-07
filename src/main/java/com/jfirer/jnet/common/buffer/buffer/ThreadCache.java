@@ -1,7 +1,6 @@
-package com.jfirer.jnet.common.buffer;
+package com.jfirer.jnet.common.buffer.buffer;
 
 import com.jfirer.jnet.common.buffer.arena.Arena;
-import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.storage.CachedStorageSegment;
 import com.jfirer.jnet.common.util.MathUtil;
 import com.jfirer.jnet.common.util.PlatFormFunction;

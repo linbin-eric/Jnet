@@ -11,9 +11,7 @@ public class HttpRequestDecoder extends AbstractDecoder
 {
     enum ParseState
     {
-        REQUEST_LINE,
-        REQUEST_HEADER,
-        REQUEST_BODY
+        REQUEST_LINE, REQUEST_HEADER, REQUEST_BODY
     }
 
     private int         lastCheck = -1;
@@ -41,8 +39,7 @@ public class HttpRequestDecoder extends AbstractDecoder
                 case REQUEST_HEADER -> goToNextState = parseRequestHeader();
                 case REQUEST_BODY -> goToNextState = parseRequestBody(next);
             }
-        }
-        while (goToNextState);
+        } while (goToNextState);
     }
 
     private boolean parseRequestBody(ReadProcessorNode next)
@@ -61,9 +58,14 @@ public class HttpRequestDecoder extends AbstractDecoder
         }
         next.fireRead(decodeObject);
         decodeObject = null;
-        state = ParseState.REQUEST_LINE;
-        compactIfNeed();
-        lastCheck = -1;
+        state        = ParseState.REQUEST_LINE;
+        if (accumulation.remainRead() != 0)
+        {
+            throw new IllegalStateException();
+        }
+        accumulation.free();
+        accumulation = null;
+        lastCheck    = -1;
         return true;
     }
 

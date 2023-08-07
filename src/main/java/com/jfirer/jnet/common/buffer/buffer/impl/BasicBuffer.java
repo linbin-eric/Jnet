@@ -482,7 +482,6 @@ public class BasicBuffer implements IoBuffer
     @Override
     public void free()
     {
-
         storageSegment.free();
         storageSegment = null;
         readPosi       = writePosi = offset = capacity = 0;
@@ -520,23 +519,38 @@ public class BasicBuffer implements IoBuffer
     @Override
     public IoBuffer compact()
     {
-        if (storageSegment.getRefCount() != 1)
+        if (storageSegment.getRefCount() == 1)
         {
-            throw new IllegalStateException();
-        }
-        if (readPosi == 0)
-        {
-            return this;
-        }
-        int length = remainRead();
-        if (length == 0)
-        {
-            writePosi = readPosi = 0;
+            if (readPosi == 0)
+            {
+                return this;
+            }
+            int length = remainRead();
+            if (length == 0)
+            {
+                writePosi = readPosi = 0;
+            }
+            else
+            {
+                rwDelegation.compact0(storageSegment.getMemory(), offset, storageSegment.getNativeAddress(), readPosi, length);
+                readPosi  = 0;
+                writePosi = length;
+            }
         }
         else
         {
-            rwDelegation.compact0(storageSegment.getMemory(), offset, storageSegment.getNativeAddress(), readPosi, length);
-            readPosi  = 0;
+            StorageSegment newSegment = storageSegment.makeNewSegment(capacity, bufferType);
+            int            length     = remainRead();
+            if (length == 0)
+            {
+                ;
+            }
+            else
+            {
+                memoryCopy(storageSegment.getMemory(), storageSegment.getNativeAddress(), offset + readPosi, newSegment.getMemory(), newSegment.getNativeAddress(), newSegment.getOffset(), length);
+            }
+            storageSegment.free();
+            init(newSegment);
             writePosi = length;
         }
         return this;

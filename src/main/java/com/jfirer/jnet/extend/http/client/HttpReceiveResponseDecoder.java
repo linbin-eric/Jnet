@@ -27,11 +27,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
 
     enum ParseState
     {
-        RESPONSE_LINE,
-        HEADER,
-        BODY,
-        BODY_FIX_LENGTH,
-        BODY_CHUNKED
+        RESPONSE_LINE, HEADER, BODY, BODY_FIX_LENGTH, BODY_CHUNKED
     }
 
     @Override
@@ -51,8 +47,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
                 case BODY_FIX_LENGTH -> goToNextState = decodeBodyWithFixLength();
                 case BODY_CHUNKED -> goToNextState = decodeBodyWithChunked();
             }
-        }
-        while (goToNextState);
+        } while (goToNextState);
     }
 
     private boolean decodeBodyWithChunked()
@@ -79,29 +74,31 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
             {
                 receiveResponse.addPartOfBody(new PartOfBody(2, accumulation.slice(chunkHeaderLength + chunkSize + 2), chunkHeaderLength, chunkSize));
                 chunkSize = -1;
-                if (accumulation.getReadPosi() >= (1 << 22))
-                {
-                    compactIfNeed();
-                }
                 return true;
             }
             else if (chunkSize == 0)
             {
                 receiveResponse.addPartOfBody(new PartOfBody(2, accumulation.slice(chunkHeaderLength + 2), chunkHeaderLength, 0));
-//                accumulation.addReadPosi(2);
                 receiveResponse.endOfBody();
                 receiveResponse = null;
                 chunkSize       = -1;
                 state           = ParseState.RESPONSE_LINE;
-                compactIfNeed();
+                if (accumulation.remainRead() != 0)
+                {
+                    throw new IllegalStateException();
+                }
+                else
+                {
+                    accumulation.free();
+                    accumulation = null;
+                }
                 return true;
             }
             else
             {
                 throw new IllegalArgumentException();
             }
-        }
-        while (true);
+        } while (true);
     }
 
     private boolean decodeBodyWithFixLength()
@@ -117,13 +114,18 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
         else
         {
             receiveResponse.addPartOfBody(new PartOfBody(1, accumulation.slice(left), 0, 0));
-            compactIfNeed();
             bodyRead = 0;
             //应用程序已经提前关闭了流，则此时流里可能存在Buffer，需要清空
             receiveResponse.endOfBody();
             receiveResponse = null;
             state           = ParseState.RESPONSE_LINE;
-            return accumulation.remainRead() > 0;
+            if (accumulation.remainRead() != 0)
+            {
+                throw new IllegalStateException();
+            }
+            accumulation.free();
+            accumulation = null;
+            return false;
         }
     }
 

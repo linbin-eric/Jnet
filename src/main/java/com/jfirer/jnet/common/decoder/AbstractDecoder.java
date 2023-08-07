@@ -42,25 +42,6 @@ public abstract class AbstractDecoder implements ReadProcessor<IoBuffer>
 
     protected abstract void process0(ReadProcessorNode next);
 
-    protected void compactIfNeed()
-    {
-//        if (accumulation.remainRead() > (accumulation.capacity() >> 1))
-//        {
-//            return;
-//        }
-        if (accumulation.refCount() > 1 || accumulation.capacity() > 1024 * 16)
-        {
-            IoBuffer newAcc = allocator.ioBuffer(accumulation.remainRead() + 512);
-            newAcc.put(accumulation);
-            accumulation.free();
-            accumulation = newAcc;
-        }
-        else
-        {
-            accumulation.compact();
-        }
-    }
-
     @Override
     public void channelClose(ReadProcessorNode next, Throwable e)
     {

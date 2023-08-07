@@ -1,6 +1,6 @@
 package com.jfirer.jnet.common.buffer.allocator.impl;
 
-import com.jfirer.jnet.common.buffer.ThreadCache;
+import com.jfirer.jnet.common.buffer.buffer.ThreadCache;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.buffer.buffer.impl.BasicBuffer;

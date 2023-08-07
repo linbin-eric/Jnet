@@ -33,9 +33,9 @@ public class TotalLengthFieldBasedFrameDecoder extends AbstractDecoder
         super(allocator);
         this.lengthFieldOffset = lengthFieldOffset;
         this.lengthFieldLength = lengthFieldLength;
-        this.maxLegnth = maxLength;
-        this.skipBytes = skipBytes;
-        lengthFieldEndOffset = lengthFieldOffset + lengthFieldLength;
+        this.maxLegnth         = maxLength;
+        this.skipBytes         = skipBytes;
+        lengthFieldEndOffset   = lengthFieldOffset + lengthFieldLength;
     }
 
     @Override
@@ -53,7 +53,7 @@ public class TotalLengthFieldBasedFrameDecoder extends AbstractDecoder
             }
             if (lengthFieldEndOffset > left)
             {
-                compactIfNeed();
+                accumulation.compact();
                 break;
             }
             // iobuffer中可能包含好几个报文，所以这里应该是增加的方式而不是直接设置的方式
@@ -82,7 +82,7 @@ public class TotalLengthFieldBasedFrameDecoder extends AbstractDecoder
             }
             if (length > accumulation.remainRead())
             {
-                compactIfNeed();
+                accumulation.compact();
                 break;
             }
             else
@@ -94,7 +94,6 @@ public class TotalLengthFieldBasedFrameDecoder extends AbstractDecoder
                 }
                 next.fireRead(packet);
             }
-        }
-        while (true);
+        } while (true);
     }
 }
