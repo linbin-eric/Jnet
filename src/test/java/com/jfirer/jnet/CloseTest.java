@@ -52,13 +52,15 @@ public class CloseTest
     public void test() throws Throwable
     {
         ChannelConfig channelConfig = new ChannelConfig();
-        channelConfig.setWorkerGroup(new DefaultWorkerGroup());
+        channelConfig.setWorkerGroup(new DefaultWorkerGroup(2, "close_"));
+        channelConfig.setChannelThreadNum(2);
         channelConfig.setMinReceiveSize(PooledBufferAllocator.PAGESIZE);
         channelConfig.setAllocator(bufferAllocator);
         final CountDownLatch  countDownLatch = new CountDownLatch(writeNum);
         final Queue<IoBuffer> queue          = new ConcurrentLinkedQueue<>();
         final DataProcessor   dataProcessor  = new DataProcessor(queue, countDownLatch);
-        ChannelContextInitializer initializer = channelContext -> {
+        ChannelContextInitializer initializer = channelContext ->
+        {
             Pipeline pipeline = channelContext.pipeline();
             pipeline.addReadProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024 * 5, bufferAllocator));
             pipeline.addReadProcessor(dataProcessor);
@@ -113,7 +115,7 @@ public class CloseTest
 
         public DataProcessor(Queue<IoBuffer> queue, CountDownLatch countDownLatch)
         {
-            this.queue = queue;
+            this.queue          = queue;
             this.countDownLatch = countDownLatch;
         }
 

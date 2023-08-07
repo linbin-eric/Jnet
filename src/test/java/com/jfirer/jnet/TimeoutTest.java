@@ -12,15 +12,21 @@ public class TimeoutTest
     public void test() throws InterruptedException
     {
         ChannelConfig channelConfig = new ChannelConfig();
-        channelConfig.setWorkerGroup(new DefaultWorkerGroup());
+        channelConfig.setWorkerGroup(new DefaultWorkerGroup(2, "timeout_"));
+        channelConfig.setChannelThreadNum(2);
+        channelConfig.setChannelTreadNamePrefix("timeout_");
         channelConfig.setIp("127.0.0.1");
         channelConfig.setPort(8080);
-        AioServer aioServer = new AioServer(channelConfig, channelContext -> {});
+        AioServer aioServer = new AioServer(channelConfig, channelContext ->
+        {
+        });
         aioServer.start();
         ChannelConfig config = new ChannelConfig();
         config.setIp("127.0.0.1");
         config.setPort(8080);
-        ClientChannelImpl client = new ClientChannelImpl(channelConfig, channelContext -> {});
+        ClientChannelImpl client = new ClientChannelImpl(channelConfig, channelContext ->
+        {
+        });
         client.connect();
         Thread.sleep(1000);
     }

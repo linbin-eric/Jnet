@@ -47,10 +47,12 @@ public class BaseTest
     public BaseTest()
     {
         ChannelConfig channelConfig = new ChannelConfig();
-        channelConfig.setWorkerGroup(new DefaultWorkerGroup());
+        channelConfig.setWorkerGroup(new DefaultWorkerGroup(Runtime.getRuntime().availableProcessors(), "base_"));
+        channelConfig.setChannelThreadNum(Runtime.getRuntime().availableProcessors());
+        channelConfig.setChannelTreadNamePrefix("base_channel_");
         this.bufferAllocator = channelConfig.getAllocator();
-        clients = new ClientChannel[numClients];
-        results = new int[numClients][numPerThread];
+        clients              = new ClientChannel[numClients];
+        results              = new int[numClients][numPerThread];
         for (int i = 0; i < numClients; i++)
         {
             results[i] = new int[numPerThread];
@@ -58,10 +60,12 @@ public class BaseTest
         }
         channelConfig.setIp(ip);
         channelConfig.setPort(port);
-        aioServer = AioServer.newAioServer(channelConfig, channelContext -> {
+        aioServer = AioServer.newAioServer(channelConfig, channelContext ->
+        {
             Pipeline pipeline = channelContext.pipeline();
             pipeline.addReadProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024, channelContext.channelConfig().getAllocator()));
-            pipeline.addReadProcessor((ReadProcessor<IoBuffer>) (data, ctx) -> {
+            pipeline.addReadProcessor((ReadProcessor<IoBuffer>) (data, ctx) ->
+            {
                 count.incrementAndGet();
                 data.addReadPosi(-4);
                 pipeline.fireWrite(data);
@@ -72,7 +76,8 @@ public class BaseTest
         {
             final int   index  = i;
             final int[] result = results[index];
-            clients[i] = new ClientChannelImpl(channelConfig, channelContext -> {
+            clients[i] = new ClientChannelImpl(channelConfig, channelContext ->
+            {
                 Pipeline pipeline = channelContext.pipeline();
                 pipeline.addReadProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024 * 4, channelContext.channelConfig().getAllocator()));
                 pipeline.addReadProcessor(new ReadProcessor()
@@ -106,7 +111,8 @@ public class BaseTest
         for (int i = 0; i < numClients; i++)
         {
             final int index = i;
-            new Thread(() -> {
+            new Thread(() ->
+            {
                 ClientChannel client = clients[index];
                 try
                 {
@@ -121,15 +127,15 @@ public class BaseTest
                 {
                     try
                     {
-                    IoBuffer buffer = bufferAllocator.ioBuffer(8);
-                    int      num    = j;
-                    int      max    = num + batch > numPerThread ? numPerThread : num + batch;
-                    for (; num < max; num++)
-                    {
-                        buffer.putInt(8);
-                        buffer.putInt(num);
-                    }
-                    j = num;
+                        IoBuffer buffer = bufferAllocator.ioBuffer(8);
+                        int      num    = j;
+                        int      max    = num + batch > numPerThread ? numPerThread : num + batch;
+                        for (; num < max; num++)
+                        {
+                            buffer.putInt(8);
+                            buffer.putInt(num);
+                        }
+                        j = num;
                         client.write(buffer);
                     }
                     catch (Throwable e)
@@ -171,8 +177,6 @@ public class BaseTest
 
     static enum IoMode
     {
-        IO,
-        Channel,
-        THREAD
+        IO, Channel, THREAD
     }
 }

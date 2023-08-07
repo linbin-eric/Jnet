@@ -11,18 +11,13 @@ public class DefaultWorkerGroup implements WorkerGroup
     private int           numOfWorker;
     private AtomicInteger count = new AtomicInteger();
 
-    public DefaultWorkerGroup()
-    {
-        this(Runtime.getRuntime().availableProcessors());
-    }
-
-    public DefaultWorkerGroup(int numOfWorker)
+    public DefaultWorkerGroup(int numOfWorker, String namePrefix)
     {
         this.numOfWorker = numOfWorker;
-        workers = new JnetWorker[numOfWorker];
+        workers          = new JnetWorker[numOfWorker];
         for (int i = 0; i < workers.length; i++)
         {
-            workers[i] = new JnetWorkerImpl("JnetWorker_" + i);
+            workers[i] = new JnetWorkerImpl(namePrefix + i);
             ((JnetWorkerImpl) workers[i]).start();
         }
     }

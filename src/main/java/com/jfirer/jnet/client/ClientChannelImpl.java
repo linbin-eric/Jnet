@@ -4,9 +4,11 @@ import com.jfirer.jnet.common.api.*;
 import com.jfirer.jnet.common.internal.AdaptiveReadCompletionHandler;
 import com.jfirer.jnet.common.internal.DefaultChannelContext;
 import com.jfirer.jnet.common.internal.DefaultPipeline;
+import com.jfirer.jnet.common.thread.FastThreadLocalThread;
 import com.jfirer.jnet.common.util.ChannelConfig;
 
 import java.net.InetSocketAddress;
+import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.ClosedChannelException;
 import java.util.concurrent.Future;
@@ -23,7 +25,7 @@ public class ClientChannelImpl implements ClientChannel
     public ClientChannelImpl(ChannelConfig channelConfig, ChannelContextInitializer initializer)
     {
         this.channelConfig = channelConfig;
-        this.initializer = initializer;
+        this.initializer   = initializer;
     }
 
     @Override
@@ -35,11 +37,11 @@ public class ClientChannelImpl implements ClientChannel
             {
                 try
                 {
-                    AsynchronousSocketChannel asynchronousSocketChannel = channelConfig.getChannelGroup() == null ? AsynchronousSocketChannel.open() : AsynchronousSocketChannel.open(channelConfig.getChannelGroup());
+                    AsynchronousSocketChannel asynchronousSocketChannel = AsynchronousSocketChannel.open(AsynchronousChannelGroup.withFixedThreadPool(channelConfig.getChannelThreadNum(), r -> channelConfig.getChannelTreadNamePrefix() != null ? new FastThreadLocalThread(r, channelConfig.getChannelTreadNamePrefix()) : new FastThreadLocalThread(r)));
                     Future<Void>              future                    = asynchronousSocketChannel.connect(new InetSocketAddress(channelConfig.getIp(), channelConfig.getPort()));
                     future.get(30, TimeUnit.SECONDS);
                     channelContext = new DefaultChannelContext(asynchronousSocketChannel, channelConfig);
-                    pipeline = new DefaultPipeline(channelConfig.getWorkerGroup().next(), channelContext);
+                    pipeline       = new DefaultPipeline(channelConfig.getWorkerGroup().next(), channelContext);
                     ((DefaultChannelContext) channelContext).setPipeline(pipeline);
                     pipeline.addReadProcessor(new ReadProcessor<>()
                     {
@@ -81,8 +83,7 @@ public class ClientChannelImpl implements ClientChannel
             {
                 return false;
             }
-            default ->
-                    throw new IllegalStateException("Unexpected value: " + state);
+            default -> throw new IllegalStateException("Unexpected value: " + state);
         }
     }
 
