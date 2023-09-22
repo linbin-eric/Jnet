@@ -6,8 +6,11 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.lang.ref.PhantomReference;
 import java.lang.ref.ReferenceQueue;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -95,7 +98,7 @@ public class LeakDetecter
         private String                   source;
         private boolean                  close = false;
         private boolean                  watchTrace;
-        private List<String>             traceQueue;
+        private Set<String>              traceQueue;
         private Map<LeakTracker, Object> map;
 
         public LeakTracker(Object referent, ReferenceQueue<Object> q, Map<LeakTracker, Object> map, boolean watchTrace)
@@ -105,7 +108,7 @@ public class LeakDetecter
             this.watchTrace = watchTrace;
             if (watchTrace)
             {
-                traceQueue = new LinkedList<>();
+                traceQueue = new ConcurrentSkipListSet<>();
             }
         }
 
