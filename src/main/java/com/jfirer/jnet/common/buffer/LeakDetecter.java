@@ -6,10 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.lang.ref.PhantomReference;
 import java.lang.ref.ReferenceQueue;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
@@ -32,8 +29,7 @@ public class LeakDetecter
     {
         System.out.println("资源泄露监控级别：" + watchLevel);
         this.watchLevel = watchLevel;
-        new Thread(() ->
-        {
+        new Thread(() -> {
             while (true)
             {
                 try
@@ -49,10 +45,10 @@ public class LeakDetecter
                         if (reference.getSource() != null)
                         {
                             log.error("""
-                                    发现资源泄露，泄露资源的创建栈如下:
-                                    {}
-                                    代码轨迹路径为:
-                                    {}""", reference.getSource(), reference.getTraceQueue().stream().collect(Collectors.joining("\r\n**********\r\n")));
+                                              发现资源泄露，泄露资源的创建栈如下:
+                                              {}
+                                              代码轨迹路径为:
+                                              {}""", reference.getSource(), reference.getTraceQueue().stream().collect(Collectors.joining("\r\n**********\r\n")));
                         }
                         else
                         {
@@ -99,7 +95,7 @@ public class LeakDetecter
         private String                   source;
         private boolean                  close = false;
         private boolean                  watchTrace;
-        private Set<String>              traceQueue;
+        private List<String>             traceQueue;
         private Map<LeakTracker, Object> map;
 
         public LeakTracker(Object referent, ReferenceQueue<Object> q, Map<LeakTracker, Object> map, boolean watchTrace)
@@ -109,7 +105,7 @@ public class LeakDetecter
             this.watchTrace = watchTrace;
             if (watchTrace)
             {
-                traceQueue = new HashSet<>();
+                traceQueue = new LinkedList<>();
             }
         }
 
@@ -119,11 +115,11 @@ public class LeakDetecter
             map.remove(this);
         }
 
-        public void addInvokeTrace()
+        public void addInvokeTrace(int skip, int limit)
         {
             if (watchTrace)
             {
-                traceQueue.add(Arrays.stream(Thread.currentThread().getStackTrace()).skip(3).limit(9).map(stackTraceElement -> "[" + Thread.currentThread().getName() + "]:" + stackTraceElement.getClassName() + "." + stackTraceElement.getMethodName() + ":" + stackTraceElement.getLineNumber()).collect(Collectors.joining("\r\n")));
+                traceQueue.add(Arrays.stream(Thread.currentThread().getStackTrace()).skip(skip).limit(Math.min(limit, 9)).map(stackTraceElement -> "[" + Thread.currentThread().getName() + "]:" + stackTraceElement.getClassName() + "." + stackTraceElement.getMethodName() + ":" + stackTraceElement.getLineNumber()).collect(Collectors.joining("\r\n")));
             }
         }
     }

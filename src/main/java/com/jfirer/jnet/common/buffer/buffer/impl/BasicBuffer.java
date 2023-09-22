@@ -15,8 +15,8 @@ import java.nio.ByteBuffer;
 
 public class BasicBuffer implements IoBuffer
 {
-    public static   Recycler<BasicBuffer> HEAP_POOL   = new Recycler<>(() -> new BasicBuffer(BufferType.HEAP), BasicBuffer::setRecycleHandler);
-    public static   Recycler<BasicBuffer> UNSAFE_POOL = new Recycler<>(() -> new BasicBuffer(BufferType.UNSAFE), BasicBuffer::setRecycleHandler);
+    public static   Recycler<BasicBuffer> HEAP_POOL       = new Recycler<>(() -> new BasicBuffer(BufferType.HEAP), BasicBuffer::setRecycleHandler);
+    public static   Recycler<BasicBuffer> UNSAFE_POOL     = new Recycler<>(() -> new BasicBuffer(BufferType.UNSAFE), BasicBuffer::setRecycleHandler);
     protected final BufferType            bufferType;
     protected final RwDelegation          rwDelegation;
     protected       int                   readPosi;
@@ -26,6 +26,8 @@ public class BasicBuffer implements IoBuffer
     protected       RecycleHandler        recycleHandler;
     @Getter
     protected       StorageSegment        storageSegment;
+    protected       int                   watchTraceSkip  = 5;
+    protected       int                   watchTraceLimit = 3;
 
     public BasicBuffer(BufferType bufferType)
     {
@@ -97,7 +99,7 @@ public class BasicBuffer implements IoBuffer
             expansionCapacity(posi);
         }
         writePosi = posi;
-        storageSegment.addInvokeTrace();
+        storageSegment.addInvokeTrace(watchTraceSkip, watchTraceLimit);
         return oldPosi;
     }
 
@@ -105,7 +107,7 @@ public class BasicBuffer implements IoBuffer
     {
         int oldReadPosi  = readPosi;
         int oldWritePosi = writePosi;
-        storageSegment.addInvokeTrace();
+        storageSegment.addInvokeTrace(watchTraceSkip, watchTraceLimit);
         StorageSegment newSegment = storageSegment.makeNewSegment(newCapacity, bufferType);
         memoryCopy(storageSegment.getMemory(), storageSegment.getNativeAddress(), offset, newSegment.getMemory(), newSegment.getNativeAddress(), newSegment.getOffset(), capacity);
         storageSegment.free();
@@ -161,7 +163,7 @@ public class BasicBuffer implements IoBuffer
         {
             expansionCapacity(newPosi);
         }
-        storageSegment.addInvokeTrace();
+        storageSegment.addInvokeTrace(watchTraceSkip, watchTraceLimit);
     }
 
     @Override
@@ -296,7 +298,7 @@ public class BasicBuffer implements IoBuffer
             throw new IllegalArgumentException("尝试读取的内容过长，当前没有这么多数据");
         }
         readPosi = newPosi;
-        storageSegment.addInvokeTrace();
+        storageSegment.addInvokeTrace(watchTraceSkip, watchTraceLimit);
         return oldPosi;
     }
 
@@ -309,7 +311,7 @@ public class BasicBuffer implements IoBuffer
 
     void checkReadPosi(int posi, int len)
     {
-        storageSegment.addInvokeTrace();
+        storageSegment.addInvokeTrace(watchTraceSkip, watchTraceLimit);
         posi += len;
         if (posi > writePosi)
         {
