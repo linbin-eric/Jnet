@@ -31,7 +31,7 @@ public class BufferRecycleTest
         Thread thread = new Thread(buffer::free);
         thread.start();
         thread.join();
-        IoBuffer buffer2 = allocator.ioBuffer(2);
+        IoBuffer buffer2 = allocator.ioBuffer(12);
         assertTrue(buffer2 == buffer);
         buffer2.free();
     }

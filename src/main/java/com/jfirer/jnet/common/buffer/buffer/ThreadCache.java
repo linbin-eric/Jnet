@@ -1,7 +1,10 @@
 package com.jfirer.jnet.common.buffer.buffer;
 
+import com.jfirer.jnet.common.buffer.LeakDetecter;
 import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.buffer.storage.CachedStorageSegment;
+import com.jfirer.jnet.common.buffer.buffer.storage.PooledStorageSegment;
+import com.jfirer.jnet.common.buffer.buffer.storage.StorageSegment;
 import com.jfirer.jnet.common.util.MathUtil;
 import com.jfirer.jnet.common.util.PlatFormFunction;
 
@@ -10,14 +13,15 @@ import java.util.Arrays;
 
 public class ThreadCache
 {
-    static final int                      smallestMask = ~15;
-    final        int                      numOfCached;
-    private      Arena                    arena;
-    private      CachedStorageSegment[][] regionCaches;
-    private      long[][]                 bitMaps;
-    private      int[]                    numOfAvails;
-    private      int[]                    nextAvails;
-    private      BufferType               bufferType;
+    static final         int                                                                             smallestMask    = ~15;
+    final                int                                                                             numOfCached;
+    private              Arena                                                                           arena;
+    private              CachedStorageSegment[][]                                                        regionCaches;
+    private              long[][]                                                                        bitMaps;
+    private              int[]                                                                           numOfAvails;
+    private              int[]                                                                           nextAvails;
+    private              BufferType                                                                      bufferType;
+
 
     public ThreadCache(int numOfCached, int maxCachedCapacity, Arena arena, BufferType bufferType)
     {
@@ -38,7 +42,7 @@ public class ThreadCache
         }
     }
 
-    public CachedStorageSegment allocate(int capacity)
+    public StorageSegment allocate(int capacity)
     {
         int size        = normalizeCapacity(capacity);
         int regionIndex = MathUtil.log2(size) - 4;
@@ -51,9 +55,9 @@ public class ThreadCache
                 int bitMapIndex = findAvail(regionIndex);
                 if (bitMapIndex == -1)
                 {
-                    CachedStorageSegment cachedStorageSegment = CachedStorageSegment.POOL.get();
-                    arena.allocate(size, cachedStorageSegment);
-                    return cachedStorageSegment;
+                    PooledStorageSegment pooledStorageSegment = PooledStorageSegment.POOL.get();
+                    arena.allocate(size, pooledStorageSegment);
+                    return pooledStorageSegment;
                 }
                 int row = bitMapIndex >>> 6;
                 int col = bitMapIndex & 63;
@@ -83,15 +87,18 @@ public class ThreadCache
                         }
                     }
                     regionCach[bitMapIndex] = cached;
+                    LeakDetecter.LeakTracker watch = cached.getWatch();
+                    //因为当ThreadCache 所在的线程死亡被销毁，对应的 ThreadCache 就会被触发 GC 回收。而 ThreadCache中的申请的空间都不是池化的，因此不需要触发泄露监控。在这里直接关闭对应的泄露监控就能避免误报。
+                    watch.close();
                 }
                 return cached;
             }
         }
         else
         {
-            CachedStorageSegment cachedStorageSegment = CachedStorageSegment.POOL.get();
-            arena.allocate(size, cachedStorageSegment);
-            return cachedStorageSegment;
+            PooledStorageSegment pooledStorageSegment = PooledStorageSegment.POOL.get();
+            arena.allocate(size, pooledStorageSegment);
+            return pooledStorageSegment;
         }
     }
 

@@ -57,11 +57,11 @@ public class MemoryRegionCacheSmallTest
             Assert.assertEquals(i, storageSegment.getBitMapIndex());
         }
         BasicBuffer ioBuffer = (BasicBuffer) allocator.ioBuffer(size, preferDirect);
-        Assert.assertTrue(((CachedStorageSegment) ioBuffer.getStorageSegment()).getThreadCache() == null);
+        Assert.assertTrue( ioBuffer.getStorageSegment() instanceof  PooledStorageSegment);
         Assert.assertTrue(((PooledStorageSegment) ioBuffer.getStorageSegment()).getArena() != null);
         ioBuffer.free();
         ioBuffer = (BasicBuffer) allocator.ioBuffer(size, preferDirect);
-        Assert.assertTrue(((CachedStorageSegment) ioBuffer.getStorageSegment()).getThreadCache() == null);
+        Assert.assertTrue(ioBuffer.getStorageSegment() instanceof  PooledStorageSegment);
         ioBuffer.free();
         BasicBuffer buffer = buffers.get(numOfCached - 1);
         buffer.free();

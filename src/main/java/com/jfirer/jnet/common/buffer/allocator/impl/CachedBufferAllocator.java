@@ -1,10 +1,9 @@
 package com.jfirer.jnet.common.buffer.allocator.impl;
 
-import com.jfirer.jnet.common.buffer.buffer.ThreadCache;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
+import com.jfirer.jnet.common.buffer.buffer.ThreadCache;
 import com.jfirer.jnet.common.buffer.buffer.impl.BasicBuffer;
-import com.jfirer.jnet.common.buffer.buffer.storage.CachedStorageSegment;
 import com.jfirer.jnet.common.thread.FastThreadLocal;
 import com.jfirer.jnet.common.util.SystemPropertyUtil;
 
@@ -41,20 +40,16 @@ public class CachedBufferAllocator extends PooledBufferAllocator
     @Override
     public IoBuffer heapBuffer(int initializeCapacity)
     {
-        BasicBuffer          buffer         = BasicBuffer.HEAP_POOL.get();
-        ThreadCache          threadCache    = THREAD_CACHE_FOR_HEAP.get();
-        CachedStorageSegment storageSegment = threadCache.allocate(initializeCapacity);
-        buffer.init(storageSegment);
+        BasicBuffer    buffer         = BasicBuffer.HEAP_POOL.get();
+        buffer.init(THREAD_CACHE_FOR_HEAP.get().allocate(initializeCapacity));
         return buffer;
     }
 
     @Override
     public IoBuffer unsafeBuffer(int initializeCapacity)
     {
-        BasicBuffer          buffer         = BasicBuffer.UNSAFE_POOL.get();
-        ThreadCache          threadCache    = THREAD_CACHE_FOR_DIRECT.get();
-        CachedStorageSegment storageSegment = threadCache.allocate(initializeCapacity);
-        buffer.init(storageSegment);
+        BasicBuffer    buffer         = BasicBuffer.UNSAFE_POOL.get();
+        buffer.init(THREAD_CACHE_FOR_DIRECT.get().allocate(initializeCapacity));
         return buffer;
     }
 
