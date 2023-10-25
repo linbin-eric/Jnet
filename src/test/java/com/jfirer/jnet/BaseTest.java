@@ -32,9 +32,9 @@ import static org.junit.Assert.assertEquals;
  */
 public class BaseTest
 {
-    private static final Logger          logger       = LoggerFactory.getLogger(BaseTest.class);
-    private              AioServer       aioServer;
-    private              String          ip           = "127.0.0.1";
+    private static final Logger    logger       = LoggerFactory.getLogger(BaseTest.class);
+    private              AioServer aioServer;
+    private              String    ip           = "127.0.0.1";
     private              int             port         = 7598;
     private              int             numPerThread = 20000000;
     private              int             numClients   = 4;

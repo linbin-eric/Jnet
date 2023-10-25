@@ -38,7 +38,7 @@ public class ClientChannelImpl implements ClientChannel
                     AsynchronousSocketChannel asynchronousSocketChannel = AsynchronousSocketChannel.open(channelConfig.getChannelGroup());
                     Future<Void>              future                    = asynchronousSocketChannel.connect(new InetSocketAddress(channelConfig.getIp(), channelConfig.getPort()));
                     future.get(30, TimeUnit.SECONDS);
-                    channelContext = new DefaultChannelContext(asynchronousSocketChannel, channelConfig);
+                    channelContext = new DefaultChannelContext(asynchronousSocketChannel, channelConfig,(channelConfig,channelContext)-> new DefaultPipeline(channelConfig.getWorkerGroup().next(), channelContext));
                     pipeline       = new DefaultPipeline(channelConfig.getWorkerGroup().next(), channelContext);
                     ((DefaultChannelContext) channelContext).setPipeline(pipeline);
                     pipeline.addReadProcessor(new ReadProcessor<>()

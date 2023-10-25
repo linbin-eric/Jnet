@@ -8,6 +8,7 @@ import com.jfirer.jnet.common.util.ChannelConfig;
 
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
 
 public class DefaultChannelContext extends AtomicInteger implements ChannelContext
 {
@@ -18,12 +19,13 @@ public class DefaultChannelContext extends AtomicInteger implements ChannelConte
     private              InternalPipeline          pipeline;
     private              Object                    attach;
 
-    public DefaultChannelContext(AsynchronousSocketChannel socketChannel, ChannelConfig channelConfig)
+    public DefaultChannelContext(AsynchronousSocketChannel socketChannel, ChannelConfig channelConfig, BiFunction<ChannelConfig,ChannelContext,InternalPipeline> pipelineGenerator)
     {
         this.socketChannel = socketChannel;
         this.channelConfig = channelConfig;
         set(OPEN);
-        pipeline = new DefaultPipeline(channelConfig.getWorkerGroup().next(), this);
+        pipeline = pipelineGenerator.apply(channelConfig, this);
+//        pipeline = new DefaultPipeline(channelConfig.getWorkerGroup().next(), this);
     }
 
     @Override

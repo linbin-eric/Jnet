@@ -3,7 +3,7 @@ package com.jfirer.jnet.common.util;
 import com.jfirer.jnet.common.api.WorkerGroup;
 import com.jfirer.jnet.common.buffer.LeakDetecter;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
-import com.jfirer.jnet.common.buffer.allocator.impl.CachedBufferAllocator;
+import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 import com.jfirer.jnet.common.internal.DefaultWorkerGroup;
 import com.jfirer.jnet.common.thread.FastThreadLocalThread;
 import lombok.Data;
@@ -23,7 +23,7 @@ public class ChannelConfig
     private             String                   ip                   = "0.0.0.0";
     private             int                      port                 = -1;
     private             int                      backLog              = 50;
-    private             BufferAllocator          allocator            = CachedBufferAllocator.DEFAULT;
+    private             BufferAllocator          allocator            = PooledBufferAllocator.DEFAULT;
     private             AsynchronousChannelGroup channelGroup;
     private             WorkerGroup              workerGroup;
     public static final LeakDetecter             IoBufferLeakDetected = new LeakDetecter(System.getProperty("Leak.Detect.IoBuffer") == null ? LeakDetecter.WatchLevel.none : LeakDetecter.WatchLevel.valueOf(System.getProperty("Leak.Detect.IoBuffer")));

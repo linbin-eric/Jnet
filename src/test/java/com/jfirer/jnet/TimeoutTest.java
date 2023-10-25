@@ -3,7 +3,7 @@ package com.jfirer.jnet;
 import com.jfirer.jnet.client.ClientChannelImpl;
 import com.jfirer.jnet.common.internal.DefaultWorkerGroup;
 import com.jfirer.jnet.common.util.ChannelConfig;
-import com.jfirer.jnet.server.AioServer;
+import com.jfirer.jnet.server.DefaultAioServer;
 import org.junit.Test;
 
 public class TimeoutTest
@@ -16,7 +16,7 @@ public class TimeoutTest
         channelConfig.setChannelGroup(ChannelConfig.DEFAULT_CHANNEL_GROUP);
         channelConfig.setIp("127.0.0.1");
         channelConfig.setPort(8080);
-        AioServer aioServer = new AioServer(channelConfig, channelContext ->
+        DefaultAioServer aioServer = new DefaultAioServer(channelConfig, channelContext ->
         {
         });
         aioServer.start();
