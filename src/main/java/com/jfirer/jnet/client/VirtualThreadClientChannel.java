@@ -3,24 +3,28 @@ package com.jfirer.jnet.client;
 import com.jfirer.jnet.common.api.*;
 import com.jfirer.jnet.common.internal.AdaptiveReadCompletionHandler;
 import com.jfirer.jnet.common.internal.DefaultChannelContext;
-import com.jfirer.jnet.common.internal.DefaultPipeline;
+import com.jfirer.jnet.common.internal.virtual.VirtualThreadPipeline;
 import com.jfirer.jnet.common.util.ChannelConfig;
 
 import java.net.InetSocketAddress;
+import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.ClosedChannelException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-public class ClientChannelImpl implements ClientChannel
+public class VirtualThreadClientChannel implements ClientChannel
 {
-    private volatile ConnectedState            state = ConnectedState.NOT_INIT;
-    private          InternalPipeline          pipeline;
-    private          ChannelContext            channelContext;
-    private          ChannelConfig             channelConfig;
-    private          ChannelContextInitializer initializer;
+    private volatile     ConnectedState            state                        = ConnectedState.NOT_INIT;
+    private              InternalPipeline          pipeline;
+    private              ChannelContext            channelContext;
+    private              ChannelConfig             channelConfig;
+    private              ChannelContextInitializer initializer;
+    private static final ExecutorService           virtualThreadPerTaskExecutor = Executors.newVirtualThreadPerTaskExecutor();
 
-    protected ClientChannelImpl(ChannelConfig channelConfig, ChannelContextInitializer initializer)
+    protected VirtualThreadClientChannel(ChannelConfig channelConfig, ChannelContextInitializer initializer)
     {
         this.channelConfig = channelConfig;
         this.initializer   = initializer;
@@ -35,10 +39,10 @@ public class ClientChannelImpl implements ClientChannel
             {
                 try
                 {
-                    AsynchronousSocketChannel asynchronousSocketChannel = AsynchronousSocketChannel.open(channelConfig.getChannelGroup());
+                    AsynchronousSocketChannel asynchronousSocketChannel = AsynchronousSocketChannel.open(AsynchronousChannelGroup.withThreadPool(virtualThreadPerTaskExecutor));
                     Future<Void>              future                    = asynchronousSocketChannel.connect(new InetSocketAddress(channelConfig.getIp(), channelConfig.getPort()));
                     future.get(30, TimeUnit.SECONDS);
-                    channelContext = new DefaultChannelContext(asynchronousSocketChannel, channelConfig, (channelConfig, channelContext) -> new DefaultPipeline(channelConfig.getWorkerGroup().next(), channelContext));
+                    channelContext = new DefaultChannelContext(asynchronousSocketChannel, channelConfig, (channelConfig, channelContext) -> new VirtualThreadPipeline(channelContext));
                     pipeline       = (InternalPipeline) channelContext.pipeline();
                     pipeline.addReadProcessor(new ReadProcessor<>()
                     {

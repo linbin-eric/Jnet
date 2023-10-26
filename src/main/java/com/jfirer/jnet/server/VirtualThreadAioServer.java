@@ -9,13 +9,15 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousServerSocketChannel;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class VirtualThreadAioServer implements AioServer
 {
-    private ChannelConfig                   channelConfig;
-    private AsynchronousServerSocketChannel serverSocketChannel;
-    private ChannelContextInitializer       initializer;
+    private              ChannelConfig                   channelConfig;
+    private              AsynchronousServerSocketChannel serverSocketChannel;
+    private              ChannelContextInitializer       initializer;
+    private static final ExecutorService                 virtualThreadPerTaskExecutor = Executors.newVirtualThreadPerTaskExecutor();
 
     public VirtualThreadAioServer(ChannelConfig channelConfig, ChannelContextInitializer initializer)
     {
@@ -30,7 +32,7 @@ public class VirtualThreadAioServer implements AioServer
     {
         try
         {
-            serverSocketChannel = AsynchronousServerSocketChannel.open(AsynchronousChannelGroup.withThreadPool(Executors.newVirtualThreadPerTaskExecutor()));
+            serverSocketChannel = AsynchronousServerSocketChannel.open(AsynchronousChannelGroup.withThreadPool(virtualThreadPerTaskExecutor));
             serverSocketChannel.bind(new InetSocketAddress(channelConfig.getIp(), channelConfig.getPort()), channelConfig.getBackLog());
             serverSocketChannel.accept(serverSocketChannel, new VirtualAcceptHandler(channelConfig, initializer));
         }

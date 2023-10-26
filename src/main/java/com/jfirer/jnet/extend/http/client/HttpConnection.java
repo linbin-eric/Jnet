@@ -1,7 +1,6 @@
 package com.jfirer.jnet.extend.http.client;
 
 import com.jfirer.jnet.client.ClientChannel;
-import com.jfirer.jnet.client.ClientChannelImpl;
 import com.jfirer.jnet.common.api.Pipeline;
 import com.jfirer.jnet.common.api.ReadProcessor;
 import com.jfirer.jnet.common.api.ReadProcessorNode;
@@ -55,7 +54,7 @@ public class HttpConnection
         channelConfig.setPort(port);
         channelConfig.setChannelGroup(HTTP_CHANNEL_GROUP);
         channelConfig.setWorkerGroup(HTTP_WORKER_GROUP);
-        clientChannel = new ClientChannelImpl(channelConfig, channelContext ->
+        clientChannel = ClientChannel.newClient(channelConfig, channelContext ->
         {
             Pipeline pipeline = channelContext.pipeline();
             pipeline.addReadProcessor(new HttpReceiveResponseDecoder(this));

@@ -25,7 +25,6 @@ public class DefaultChannelContext extends AtomicInteger implements ChannelConte
         this.channelConfig = channelConfig;
         set(OPEN);
         pipeline = pipelineGenerator.apply(channelConfig, this);
-//        pipeline = new DefaultPipeline(channelConfig.getWorkerGroup().next(), this);
     }
 
     @Override

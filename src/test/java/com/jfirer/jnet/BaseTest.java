@@ -1,7 +1,6 @@
 package com.jfirer.jnet;
 
 import com.jfirer.jnet.client.ClientChannel;
-import com.jfirer.jnet.client.ClientChannelImpl;
 import com.jfirer.jnet.common.api.Pipeline;
 import com.jfirer.jnet.common.api.ReadProcessor;
 import com.jfirer.jnet.common.api.ReadProcessorNode;
@@ -32,16 +31,17 @@ import static org.junit.Assert.assertEquals;
  */
 public class BaseTest
 {
-    private static final Logger    logger       = LoggerFactory.getLogger(BaseTest.class);
-    private              AioServer aioServer;
-    private              String    ip           = "127.0.0.1";
-    private              int             port         = 7598;
-    private              int             numPerThread = 20000000;
-    private              int             numClients   = 4;
+    private static final Logger          logger           = LoggerFactory.getLogger(BaseTest.class);
+    private              AioServer       aioServer;
+    private              String          ip               = "127.0.0.1";
+    private              int             port             = 7598;
+    private              int             numPerThread     = 20000000;
+    private              int             numClients       = 8;
     private              ClientChannel[] clients;
-    private              CountDownLatch  latch        = new CountDownLatch(numClients);
+    private              CountDownLatch  latch            = new CountDownLatch(numClients);
     private              int[][]         results;
     private              BufferAllocator bufferAllocator;
+    private              boolean         useVirtualThread = true;
     AtomicInteger count = new AtomicInteger(0);
 
     public BaseTest()
@@ -59,24 +59,21 @@ public class BaseTest
         }
         channelConfig.setIp(ip);
         channelConfig.setPort(port);
-        aioServer = AioServer.newAioServer(channelConfig, channelContext ->
-        {
+        aioServer = AioServer.newAioServer(channelConfig, channelContext -> {
             Pipeline pipeline = channelContext.pipeline();
             pipeline.addReadProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024, channelContext.channelConfig().getAllocator()));
-            pipeline.addReadProcessor((ReadProcessor<IoBuffer>) (data, ctx) ->
-            {
+            pipeline.addReadProcessor((ReadProcessor<IoBuffer>) (data, ctx) -> {
                 count.incrementAndGet();
                 data.addReadPosi(-4);
                 pipeline.fireWrite(data);
             });
-        });
+        },useVirtualThread);
         aioServer.start();
         for (int i = 0; i < numClients; i++)
         {
             final int   index  = i;
             final int[] result = results[index];
-            clients[i] = new ClientChannelImpl(channelConfig, channelContext ->
-            {
+            clients[i] = ClientChannel.newClient(channelConfig, channelContext -> {
                 Pipeline pipeline = channelContext.pipeline();
                 pipeline.addReadProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024 * 4, channelContext.channelConfig().getAllocator()));
                 pipeline.addReadProcessor(new ReadProcessor()
@@ -97,7 +94,7 @@ public class BaseTest
                         }
                     }
                 });
-            });
+            },useVirtualThread);
             clients[i].connect();
         }
     }
@@ -110,8 +107,7 @@ public class BaseTest
         for (int i = 0; i < numClients; i++)
         {
             final int index = i;
-            new Thread(() ->
-            {
+            new Thread(() -> {
                 ClientChannel client = clients[index];
                 try
                 {

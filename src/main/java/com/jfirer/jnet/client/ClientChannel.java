@@ -1,9 +1,22 @@
 package com.jfirer.jnet.client;
 
+import com.jfirer.jnet.common.api.ChannelContextInitializer;
+import com.jfirer.jnet.common.util.ChannelConfig;
+
 import java.nio.channels.ClosedChannelException;
 
 public interface ClientChannel
 {
+    static ClientChannel newClient(ChannelConfig channelConfig, ChannelContextInitializer initializer, boolean useVirtualThread)
+    {
+        return useVirtualThread ? new VirtualThreadClientChannel(channelConfig, initializer) : new ClientChannelImpl(channelConfig, initializer);
+    }
+
+    static ClientChannel newClient(ChannelConfig channelConfig, ChannelContextInitializer initializer)
+    {
+        return newClient(channelConfig, initializer, false);
+    }
+
     /**
      * 创建链接。重复调用无效，如果在该链接已经被关闭，调用该方法会抛出异常。
      *
@@ -27,8 +40,6 @@ public interface ClientChannel
 
     enum ConnectedState
     {
-        NOT_INIT,
-        CONNECTED,
-        DISCONNECTED
+        NOT_INIT, CONNECTED, DISCONNECTED
     }
 }

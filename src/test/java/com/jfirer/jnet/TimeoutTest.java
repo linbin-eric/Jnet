@@ -1,6 +1,6 @@
 package com.jfirer.jnet;
 
-import com.jfirer.jnet.client.ClientChannelImpl;
+import com.jfirer.jnet.client.ClientChannel;
 import com.jfirer.jnet.common.internal.DefaultWorkerGroup;
 import com.jfirer.jnet.common.util.ChannelConfig;
 import com.jfirer.jnet.server.DefaultAioServer;
@@ -23,7 +23,7 @@ public class TimeoutTest
         ChannelConfig config = new ChannelConfig();
         config.setIp("127.0.0.1");
         config.setPort(8080);
-        ClientChannelImpl client = new ClientChannelImpl(channelConfig, channelContext ->
+        ClientChannel client = ClientChannel.newClient(channelConfig, channelContext ->
         {
         });
         client.connect();
