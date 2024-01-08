@@ -21,8 +21,6 @@ import java.util.concurrent.locks.LockSupport;
 @Data
 public class HttpReceiveResponse implements AutoCloseable
 {
-
-
     private static final long                      bodyReadTimeout                 = 1000 * 30;
     private final        HttpConnection            connection;
     private              int                       httpCode;
@@ -243,7 +241,6 @@ public class HttpReceiveResponse implements AutoCloseable
         }
         return decodedUTF8Body;
     }
-
 
     /**
      * 基于超时时间进行的消息体数据提取。如果在超时时间到达前读取到数据则返回，否则返回 null。

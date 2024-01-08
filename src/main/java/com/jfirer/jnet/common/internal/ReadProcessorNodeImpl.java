@@ -7,16 +7,26 @@ import com.jfirer.jnet.common.api.ReadProcessorNode;
 
 public class ReadProcessorNodeImpl implements ReadProcessorNode
 {
-    private JnetWorker        worker;
-    private ReadProcessor     processor;
-    private ReadProcessorNode next;
-    private Pipeline          pipeline;
+    private final JnetWorker        worker;
+    private final ReadProcessor     processor;
+    private final Pipeline          pipeline;
+    private final boolean           useCurrentThread;
+    private       ReadProcessorNode next;
+
+    public ReadProcessorNodeImpl(ReadProcessor processor, Pipeline pipeline)
+    {
+        this.processor        = processor;
+        this.pipeline         = pipeline;
+        this.worker           = null;
+        this.useCurrentThread = true;
+    }
 
     public ReadProcessorNodeImpl(JnetWorker worker, ReadProcessor processor, Pipeline pipeline)
     {
-        this.worker = worker;
-        this.processor = processor;
-        this.pipeline = pipeline;
+        this.worker           = worker;
+        this.processor        = processor;
+        this.pipeline         = pipeline;
+        this.useCurrentThread = false;
     }
 
     private void doWork(Runnable runnable)
@@ -34,31 +44,66 @@ public class ReadProcessorNodeImpl implements ReadProcessorNode
     @Override
     public void fireRead(Object data)
     {
-        doWork(() -> processor.read(data, next));
+        if (useCurrentThread)
+        {
+            processor.read(data, next);
+        }
+        else
+        {
+            doWork(() -> processor.read(data, next));
+        }
     }
 
     @Override
     public void firePipelineComplete()
     {
-        doWork(() -> processor.pipelineComplete(next));
+        if (useCurrentThread)
+        {
+            processor.pipelineComplete(next);
+        }
+        else
+        {
+            doWork(() -> processor.pipelineComplete(next));
+        }
     }
 
     @Override
     public void fireExceptionCatch(Throwable e)
     {
-        doWork(() -> processor.exceptionCatch(e, next));
+        if (useCurrentThread)
+        {
+            processor.exceptionCatch(e, next);
+        }
+        else
+        {
+            doWork(() -> processor.exceptionCatch(e, next));
+        }
     }
 
     @Override
     public void fireReadClose()
     {
-        doWork(() -> processor.readClose(next));
+        if (useCurrentThread)
+        {
+            processor.readClose(next);
+        }
+        else
+        {
+            doWork(() -> processor.readClose(next));
+        }
     }
 
     @Override
     public void fireChannelClose(Throwable e)
     {
-        doWork(() -> processor.channelClose(next, e));
+        if (useCurrentThread)
+        {
+            processor.channelClose(next, e);
+        }
+        else
+        {
+            doWork(() -> processor.channelClose(next, e));
+        }
     }
 
     @Override

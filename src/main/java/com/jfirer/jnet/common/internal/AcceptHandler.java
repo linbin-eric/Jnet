@@ -16,14 +16,14 @@ public class AcceptHandler implements CompletionHandler<AsynchronousSocketChanne
 
     public AcceptHandler(ChannelConfig channelConfig, ChannelContextInitializer channelContextInitializer)
     {
-        this.channelConfig = channelConfig;
+        this.channelConfig             = channelConfig;
         this.channelContextInitializer = channelContextInitializer;
     }
 
     @Override
     public void completed(AsynchronousSocketChannel socketChannel, AsynchronousServerSocketChannel serverChannel)
     {
-        DefaultChannelContext channelContext = new DefaultChannelContext(socketChannel, channelConfig,(channelConfig,context)-> new DefaultPipeline(channelConfig.getWorkerGroup().next(), context));
+        DefaultChannelContext channelContext = new DefaultChannelContext(socketChannel, channelConfig, DefaultPipeline::new);
         channelContextInitializer.onChannelContextInit(channelContext);
         ((InternalPipeline) channelContext.pipeline()).complete();
         ReadCompletionHandler readCompletionHandler = new AdaptiveReadCompletionHandler(channelContext);

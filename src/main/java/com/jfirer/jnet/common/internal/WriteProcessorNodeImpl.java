@@ -7,14 +7,22 @@ import com.jfirer.jnet.common.api.WriteProcessorNode;
 
 public class WriteProcessorNodeImpl implements WriteProcessorNode
 {
-    private JnetWorker         worker;
-    private WriteProcessor     processor;
-    private WriteProcessorNode next;
+    private       JnetWorker         worker;
+    private       WriteProcessor     processor;
+    private       WriteProcessorNode next;
+    private final boolean            onlyUseCurrentThread;
+
+    public WriteProcessorNodeImpl(WriteProcessor processor)
+    {
+        this.processor       = processor;
+        onlyUseCurrentThread = true;
+    }
 
     public WriteProcessorNodeImpl(JnetWorker worker, WriteProcessor processor)
     {
-        this.worker = worker;
-        this.processor = processor;
+        this.worker          = worker;
+        this.processor       = processor;
+        onlyUseCurrentThread = false;
     }
 
     private void doWork(Runnable runnable)
@@ -32,19 +40,40 @@ public class WriteProcessorNodeImpl implements WriteProcessorNode
     @Override
     public void fireWrite(Object data)
     {
-        doWork(() -> processor.write(data, next));
+        if (onlyUseCurrentThread)
+        {
+            processor.write(data, next);
+        }
+        else
+        {
+            doWork(() -> processor.write(data, next));
+        }
     }
 
     @Override
     public void firePipelineComplete(ChannelContext channelContext)
     {
-        doWork(() -> processor.pipelineComplete(next, channelContext));
+        if (onlyUseCurrentThread)
+        {
+            processor.pipelineComplete(next, channelContext);
+        }
+        else
+        {
+            doWork(() -> processor.pipelineComplete(next, channelContext));
+        }
     }
 
     @Override
     public void fireWriteClose()
     {
-        doWork(() -> processor.writeClose(next));
+        if (onlyUseCurrentThread)
+        {
+            processor.writeClose(next);
+        }
+        else
+        {
+            doWork(() -> processor.writeClose(next));
+        }
     }
 
     @Override

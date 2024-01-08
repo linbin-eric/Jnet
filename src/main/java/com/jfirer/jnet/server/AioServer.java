@@ -11,13 +11,8 @@ public interface AioServer
 
     void termination();
 
-    static AioServer newAioServer(ChannelConfig channelConfig, ChannelContextInitializer initializer, boolean useVirtualThread)
-    {
-        return useVirtualThread ? new VirtualThreadAioServer(channelConfig, initializer) : new DefaultAioServer(channelConfig, initializer);
-    }
-
     static AioServer newAioServer(ChannelConfig channelConfig, ChannelContextInitializer initializer)
     {
-        return newAioServer(channelConfig, initializer, false);
+        return new DefaultAioServer(channelConfig, initializer);
     }
 }

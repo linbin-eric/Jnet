@@ -47,6 +47,7 @@ public class BaseTest
     public BaseTest()
     {
         ChannelConfig channelConfig = new ChannelConfig();
+        channelConfig.setUseVirtualThread(useVirtualThread);
         channelConfig.setWorkerGroup(new DefaultWorkerGroup(Runtime.getRuntime().availableProcessors(), "base_"));
         channelConfig.setChannelGroup(ChannelConfig.DEFAULT_CHANNEL_GROUP);
         this.bufferAllocator = channelConfig.getAllocator();
@@ -59,6 +60,7 @@ public class BaseTest
         }
         channelConfig.setIp(ip);
         channelConfig.setPort(port);
+        channelConfig.setUseVirtualThread(useVirtualThread);
         aioServer = AioServer.newAioServer(channelConfig, channelContext -> {
             Pipeline pipeline = channelContext.pipeline();
             pipeline.addReadProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024, channelContext.channelConfig().getAllocator()));
@@ -67,7 +69,7 @@ public class BaseTest
                 data.addReadPosi(-4);
                 pipeline.fireWrite(data);
             });
-        },useVirtualThread);
+        });
         aioServer.start();
         for (int i = 0; i < numClients; i++)
         {
@@ -94,7 +96,7 @@ public class BaseTest
                         }
                     }
                 });
-            },useVirtualThread);
+            });
             clients[i].connect();
         }
     }

@@ -6,15 +6,31 @@ import java.util.function.Function;
 
 public class DefaultPipeline implements InternalPipeline
 {
-    private JnetWorker         worker;
-    private ChannelContext     channelContext;
-    private ReadProcessorNode  readHead;
-    private WriteProcessorNode writeHead;
+    protected       JnetWorker         worker;
+    protected       ChannelContext     channelContext;
+    protected       ReadProcessorNode  readHead;
+    protected       WriteProcessorNode writeHead;
+    protected final boolean            useVirtualThread;
+
+    public DefaultPipeline(ChannelContext channelContext)
+    {
+        this.channelContext = channelContext;
+        useVirtualThread    = channelContext.channelConfig().isUseVirtualThread();
+        if (useVirtualThread)
+        {
+            ;
+        }
+        else
+        {
+            worker = channelContext.channelConfig().getWorkerGroup().next();
+        }
+    }
 
     public DefaultPipeline(JnetWorker worker, ChannelContext channelContext)
     {
-        this.worker = worker;
+        this.worker         = worker;
         this.channelContext = channelContext;
+        useVirtualThread    = channelContext.channelConfig().isUseVirtualThread();
     }
 
     @Override
@@ -26,7 +42,26 @@ public class DefaultPipeline implements InternalPipeline
     @Override
     public void addReadProcessor(ReadProcessor<?> processor)
     {
-        addReadProcessor0(processor, pre -> pre == null ? worker : pre.worker());
+        if (useVirtualThread)
+        {
+            if (readHead == null)
+            {
+                readHead = new ReadProcessorNodeImpl(processor, this);
+            }
+            else
+            {
+                ReadProcessorNode node = readHead;
+                while (node.next() != null)
+                {
+                    node = node.next();
+                }
+                node.setNext(new ReadProcessorNodeImpl(processor, this));
+            }
+        }
+        else
+        {
+            addReadProcessor0(processor, pre -> pre == null ? worker : pre.worker());
+        }
     }
 
     private void addReadProcessor0(ReadProcessor<?> processor, Function<ReadProcessorNode, JnetWorker> function)
@@ -49,13 +84,39 @@ public class DefaultPipeline implements InternalPipeline
     @Override
     public void addReadProcessor(ReadProcessor<?> processor, WorkerGroup group)
     {
-        addReadProcessor0(processor, pre -> group.next());
+        if (useVirtualThread)
+        {
+            throw new UnsupportedOperationException("采用虚拟线程，不支持自定义 worker");
+        }
+        else
+        {
+            addReadProcessor0(processor, pre -> group.next());
+        }
     }
 
     @Override
     public void addWriteProcessor(WriteProcessor<?> processor)
     {
-        addWriteProcessor0(processor, pre -> pre == null ? worker : pre.worker());
+        if (useVirtualThread)
+        {
+            if (writeHead == null)
+            {
+                writeHead = new WriteProcessorNodeImpl(processor);
+            }
+            else
+            {
+                WriteProcessorNode node = writeHead;
+                while (node.next() != null)
+                {
+                    node = node.next();
+                }
+                node.setNext(new WriteProcessorNodeImpl(processor));
+            }
+        }
+        else
+        {
+            addWriteProcessor0(processor, pre -> pre == null ? worker : pre.worker());
+        }
     }
 
     private void addWriteProcessor0(WriteProcessor<?> processor, Function<WriteProcessorNode, JnetWorker> function)
@@ -78,7 +139,14 @@ public class DefaultPipeline implements InternalPipeline
     @Override
     public void addWriteProcessor(WriteProcessor<?> processor, WorkerGroup group)
     {
-        addWriteProcessor0(processor, pre -> group.next());
+        if (useVirtualThread)
+        {
+            throw new UnsupportedOperationException("采用虚拟线程，不支持自定义 worker");
+        }
+        else
+        {
+            addWriteProcessor0(processor, pre -> group.next());
+        }
     }
 
     @Override

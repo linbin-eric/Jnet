@@ -7,14 +7,9 @@ import java.nio.channels.ClosedChannelException;
 
 public interface ClientChannel
 {
-    static ClientChannel newClient(ChannelConfig channelConfig, ChannelContextInitializer initializer, boolean useVirtualThread)
-    {
-        return useVirtualThread ? new VirtualThreadClientChannel(channelConfig, initializer) : new ClientChannelImpl(channelConfig, initializer);
-    }
-
     static ClientChannel newClient(ChannelConfig channelConfig, ChannelContextInitializer initializer)
     {
-        return newClient(channelConfig, initializer, false);
+        return new ClientChannelImpl(channelConfig, initializer);
     }
 
     /**

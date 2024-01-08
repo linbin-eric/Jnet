@@ -29,6 +29,7 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler
     protected           ChannelContext            channelContext;
     private             int                       decrCount;
     private             IoBuffer                  ioBuffer;
+
     static
     {
         List<Integer> list = new ArrayList<>();
@@ -46,6 +47,7 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler
             sizeTable[i] = list.get(i);
         }
     }
+
     static int indexOf(int num)
     {
         if (num == 0)
@@ -70,17 +72,17 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler
     public AdaptiveReadCompletionHandler(ChannelContext channelContext)
     {
         this.channelContext = channelContext;
-        msOfReadTimeout = channelContext.channelConfig().getMsOfReadTimeout();
-        DECR_COUNT_MAX = channelContext.channelConfig().getDecrCountMax();
-        decrCount = DECR_COUNT_MAX;
-        pipeline = (InternalPipeline) channelContext.pipeline();
-        socketChannel = channelContext.socketChannel();
+        msOfReadTimeout     = channelContext.channelConfig().getMsOfReadTimeout();
+        DECR_COUNT_MAX      = channelContext.channelConfig().getDecrCountMax();
+        decrCount           = DECR_COUNT_MAX;
+        pipeline            = (InternalPipeline) channelContext.pipeline();
+        socketChannel       = channelContext.socketChannel();
         ChannelConfig config = channelContext.channelConfig();
         allocator = config.getAllocator();
-        minIndex = indexOf(config.getMinReceiveSize());
-        maxIndex = indexOf(config.getMaxReceiveSize());
-        index = indexOf(config.getInitReceiveSize());
-        index = Math.max(index, minIndex);
+        minIndex  = indexOf(config.getMinReceiveSize());
+        maxIndex  = indexOf(config.getMaxReceiveSize());
+        index     = indexOf(config.getInitReceiveSize());
+        index     = Math.max(index, minIndex);
     }
 
     @Override
