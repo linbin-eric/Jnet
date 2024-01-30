@@ -8,6 +8,8 @@ import com.jfirer.jnet.common.util.MathUtil;
 import com.jfirer.jnet.common.util.ReflectUtil;
 
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class Arena
 {
@@ -34,6 +36,7 @@ public class Arena
     int           hugeChunkCount = 0;
     AtomicInteger usedAllocate   = new AtomicInteger();
     String        name;
+    private Lock lock = new ReentrantLock();
 
     @SuppressWarnings("unchecked")
     public Arena(int maxLevel, int pageSize, final String name, BufferType bufferType)
@@ -85,7 +88,8 @@ public class Arena
         if (isSmall(normalizeCapacity))
         {
             SubPage head = subPageHeads[smallIdx(normalizeCapacity)];
-            synchronized (head)
+            head.getLock().lock();
+            try
             {
                 SubPage succeed = head.next;
                 if (succeed != head)
@@ -99,11 +103,20 @@ public class Arena
                     return;
                 }
             }
+            finally
+            {
+                head.getLock().unlock();
+            }
             SubPage subPage = allocateSubPage(normalizeCapacity);
-            synchronized (head)
+            head.getLock().lock();
+            try
             {
                 addToArena(subPage, head);
                 initSubPageBuffer(subPage, storageSegment);
+            }
+            finally
+            {
+                head.getLock().unlock();
             }
             usedAllocate.incrementAndGet();
         }
@@ -177,61 +190,53 @@ public class Arena
         return allocationsCapacityIdx ^ subPageIdxMask;
     }
 
-    private synchronized SubPage allocateSubPage(int normalizeCapacity)
+    private SubPage allocateSubPage(int normalizeCapacity)
     {
-        SubPage subPage;
-        if ((subPage = c050.allocateSubpage(normalizeCapacity)) != null //
-            || (subPage = c025.allocateSubpage(normalizeCapacity)) != null//
-            || (subPage = c000.allocateSubpage(normalizeCapacity)) != null//
-            || (subPage = cInt.allocateSubpage(normalizeCapacity)) != null//
-            || (subPage = c075.allocateSubpage(normalizeCapacity)) != null)
+        lock.lock();
+        try
         {
+            SubPage subPage;
+            if ((subPage = c050.allocateSubpage(normalizeCapacity)) != null //
+                || (subPage = c025.allocateSubpage(normalizeCapacity)) != null//
+                || (subPage = c000.allocateSubpage(normalizeCapacity)) != null//
+                || (subPage = cInt.allocateSubpage(normalizeCapacity)) != null//
+                || (subPage = c075.allocateSubpage(normalizeCapacity)) != null)
+            {
+                return subPage;
+            }
+            cInt.add(new ChunkListNode(cInt, maxLevel, pageSize, bufferType));
+            newChunkCount++;
+            subPage = cInt.allocateSubpage(normalizeCapacity);
             return subPage;
         }
-        cInt.add(new ChunkListNode(cInt, maxLevel, pageSize, bufferType));
-        newChunkCount++;
-        subPage = cInt.allocateSubpage(normalizeCapacity);
-        return subPage;
-    }
-
-    private synchronized void allocateNormal(int normalizeCapacity, PooledStorageSegment storageSegment)
-    {
-        if (c050.allocate(normalizeCapacity, storageSegment)//
-            || c025.allocate(normalizeCapacity, storageSegment)//
-            || c000.allocate(normalizeCapacity, storageSegment)//
-            || cInt.allocate(normalizeCapacity, storageSegment)//
-            || c075.allocate(normalizeCapacity, storageSegment))
+        finally
         {
-            return;
+            lock.unlock();
         }
-        cInt.add(new ChunkListNode(cInt, maxLevel, pageSize, bufferType));
-        newChunkCount++;
-        cInt.allocate(normalizeCapacity, storageSegment);
     }
 
-
-//    public void reAllocate(ChunkListNode oldChunkListNode, PooledBuffer buf, int newReqCapacity)
-//    {
-//        BasicBuffer buffer       = buf;
-//        long           oldHandle    = buf.handle();
-//        int            oldReadPosi  = buffer.getReadPosi();
-//        int            oldWritePosi = buffer.getWritePosi();
-//        int            oldCapacity  = buffer.capacity();
-//        int            oldOffset    = buffer.offset();
-//        Object         oldMemory    = buffer.memory();
-//        allocate(newReqCapacity, buf);
-//        if (newReqCapacity > oldCapacity)
-//        {
-//            buffer.setReadPosi(oldReadPosi).setWritePosi(oldWritePosi);
-//            memoryCopy(oldMemory, oldOffset, buffer.memory(), buffer.offset(), oldWritePosi);
-//        }
-//        // 这种情况是缩小，目前还不支持
-//        else
-//        {
-//            ReflectUtil.throwException(new UnsupportedOperationException());
-//        }
-//        free(oldChunkListNode, oldHandle, oldCapacity);
-//    }
+    private void allocateNormal(int normalizeCapacity, PooledStorageSegment storageSegment)
+    {
+        lock.lock();
+        try
+        {
+            if (c050.allocate(normalizeCapacity, storageSegment)//
+                || c025.allocate(normalizeCapacity, storageSegment)//
+                || c000.allocate(normalizeCapacity, storageSegment)//
+                || cInt.allocate(normalizeCapacity, storageSegment)//
+                || c075.allocate(normalizeCapacity, storageSegment))
+            {
+                return;
+            }
+            cInt.add(new ChunkListNode(cInt, maxLevel, pageSize, bufferType));
+            newChunkCount++;
+            cInt.allocate(normalizeCapacity, storageSegment);
+        }
+        finally
+        {
+            lock.unlock();
+        }
+    }
 
     public void memoryCopy(Object src, long srcNativeAddress, int srcOffset, Object desc, long destNativeAddress, int destOffset, int length)
     {
@@ -273,43 +278,40 @@ public class Arena
             if (isSmall(capacity))
             {
                 SubPage head = subPageHeads[smallIdx(capacity)];
-                synchronized (head)
+                head.getLock().lock();
+                SubPage subPage = chunkListNode.find(subPageIdx((int) handle));
+                subPage.free(bitmapIdx(handle));
+                if (subPage.oneAvail())
                 {
-                    SubPage subPage = chunkListNode.find(subPageIdx((int) handle));
-                    subPage.free(bitmapIdx(handle));
-                    if (subPage.oneAvail())
+                    addToArena(subPage, head);
+                }
+                else if (subPage.allAvail())
+                {
+                    if (subPage.next == head && subPage.prev == head)
                     {
-                        addToArena(subPage, head);
+                        ;
                     }
-                    else if (subPage.allAvail())
+                    else
                     {
-                        if (subPage.next == head && subPage.prev == head)
+                        removeFromArena(subPage);
+                        lock.lock();
+                        if (chunkListNode.getParent().free(chunkListNode, (int) handle))
                         {
-                            ;
+                            chunkListNode.destory();
                         }
-                        else
-                        {
-                            removeFromArena(subPage);
-                            synchronized (this)
-                            {
-                                if (chunkListNode.getParent().free(chunkListNode, (int) handle))
-                                {
-                                    chunkListNode.destory();
-                                }
-                            }
-                        }
+                        lock.unlock();
                     }
                 }
+                head.getLock().unlock();
             }
             else
             {
-                synchronized (this)
+                lock.lock();
+                if (chunkListNode.getParent().free(chunkListNode, (int) handle))
                 {
-                    if (chunkListNode.getParent().free(chunkListNode, (int) handle))
-                    {
-                        chunkListNode.destory();
-                    }
+                    chunkListNode.destory();
                 }
+                lock.unlock();
             }
         }
     }

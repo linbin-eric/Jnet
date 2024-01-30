@@ -9,6 +9,8 @@ import java.lang.ref.WeakReference;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
@@ -116,6 +118,7 @@ public class Recycler<T>
         int            posi = 0;
         int            capacity;
         AtomicInteger  sharedCapacity;
+        Lock lock = new ReentrantLock();
 
         public Stack()
         {
@@ -125,18 +128,21 @@ public class Recycler<T>
             ownerThread    = new WeakReference<Thread>(Thread.currentThread());
         }
 
-        synchronized void setHead(WeakOrderQueue queue)
+         void setHead(WeakOrderQueue queue)
         {
+            lock.lock();
             if (head != null)
             {
                 head.prev  = queue;
                 queue.next = head;
             }
             head = queue;
+            lock.unlock();
         }
 
-        synchronized void removeHead()
+         void removeHead()
         {
+            lock.lock();
             WeakOrderQueue originHead = head;
             WeakOrderQueue next       = originHead.next;
             if (next == null)
@@ -149,6 +155,7 @@ public class Recycler<T>
                 originHead.next = null;
                 head            = next;
             }
+            lock.unlock();
         }
 
         @SuppressWarnings("unchecked")

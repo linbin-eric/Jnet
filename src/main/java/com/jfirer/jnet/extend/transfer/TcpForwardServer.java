@@ -94,7 +94,14 @@ public class TcpForwardServer
                 @Override
                 public void read(IoBuffer data, ReadProcessorNode next)
                 {
-                    localPipeline.fireWrite(data);
+                    try
+                    {
+                        localPipeline.fireWrite(data);
+                    }
+                    catch (Throwable e)
+                    {
+                        e.printStackTrace();
+                    }
                 }
 
                 @Override
@@ -108,6 +115,6 @@ public class TcpForwardServer
 
     public static void main(String[] args)
     {
-        TcpForwardServer.start("127.0.0.1", 5000, "yynas.cn", 5000);
+        TcpForwardServer.start("127.0.0.1", 3360, "localhost", 3306);
     }
 }

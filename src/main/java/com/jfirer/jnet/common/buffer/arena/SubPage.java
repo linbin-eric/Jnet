@@ -1,7 +1,12 @@
 package com.jfirer.jnet.common.buffer.arena;
 
 import com.jfirer.jnet.common.util.ReflectUtil;
+import lombok.Getter;
 
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+@Getter
 public class SubPage
 {
     final         int           pageSize;
@@ -17,35 +22,38 @@ public class SubPage
     int     numAvail;
     SubPage prev;
     SubPage next;
+    final Lock lock;
 
     public SubPage(ChunkListNode node, int pageSize, int handle, int offset)
     {
-        this.node = node;
-        this.handle = handle;
-        this.offset = offset;
+        this.node     = node;
+        this.handle   = handle;
+        this.offset   = offset;
         this.pageSize = pageSize;
-        index = handle ^ (1 << node.maxLevel());
+        index         = handle ^ (1 << node.maxLevel());
         // elementSize最小是16。一个long可以表达64个元素
         bitMap = new long[pageSize >> 4 >> 6];
+        lock   = null;
     }
 
     public SubPage()
     {
         pageSize = 0;
-        handle = 0;
-        offset = 0;
-        index = 0;
-        bitMap = null;
-        node = null;
-        prev = next = this;
+        handle   = 0;
+        offset   = 0;
+        index    = 0;
+        bitMap   = null;
+        node     = null;
+        prev     = next = this;
+        lock     = new ReentrantLock();
     }
 
     public void reset(int elementSize)
     {
         this.elementSize = elementSize;
-        numAvail = maxNumAvail = pageSize / elementSize;
-        nextAvail = 0;
-        bitMapLength = (maxNumAvail & 63) == 0 ? maxNumAvail >>> 6 : (maxNumAvail >>> 6) + 1;
+        numAvail         = maxNumAvail = pageSize / elementSize;
+        nextAvail        = 0;
+        bitMapLength     = (maxNumAvail & 63) == 0 ? maxNumAvail >>> 6 : (maxNumAvail >>> 6) + 1;
     }
 
     public long allocate()

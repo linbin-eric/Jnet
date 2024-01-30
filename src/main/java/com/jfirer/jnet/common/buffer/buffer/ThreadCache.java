@@ -10,18 +10,20 @@ import com.jfirer.jnet.common.util.PlatFormFunction;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class ThreadCache
 {
-    static final         int                                                                             smallestMask    = ~15;
-    final                int                                                                             numOfCached;
-    private              Arena                                                                           arena;
-    private              CachedStorageSegment[][]                                                        regionCaches;
-    private              long[][]                                                                        bitMaps;
-    private              int[]                                                                           numOfAvails;
-    private              int[]                                                                           nextAvails;
-    private              BufferType                                                                      bufferType;
-
+    static final int                      smallestMask = ~15;
+    final        int                      numOfCached;
+    private      Arena                    arena;
+    private      CachedStorageSegment[][] regionCaches;
+    private      long[][]                 bitMaps;
+    private      int[]                    numOfAvails;
+    private      int[]                    nextAvails;
+    private      BufferType               bufferType;
+    private      Lock                     lock         = new ReentrantLock();
 
     public ThreadCache(int numOfCached, int maxCachedCapacity, Arena arena, BufferType bufferType)
     {
@@ -50,7 +52,8 @@ public class ThreadCache
         {
             CachedStorageSegment[] regionCach = regionCaches[regionIndex];
             long[]                 bitMap     = bitMaps[regionIndex];
-            synchronized (regionCach)
+            lock.lock();
+            try
             {
                 int bitMapIndex = findAvail(regionIndex);
                 if (bitMapIndex == -1)
@@ -92,6 +95,10 @@ public class ThreadCache
                     watch.close();
                 }
                 return cached;
+            }
+            finally
+            {
+                lock.unlock();
             }
         }
         else
@@ -145,15 +152,14 @@ public class ThreadCache
     public void free(int regionIndex, int bitMapIndex)
     {
         CachedStorageSegment[] regionCach = regionCaches[regionIndex];
-        synchronized (regionCach)
-        {
-            nextAvails[regionIndex] = bitMapIndex;
-            numOfAvails[regionIndex] += 1;
-            long[] bitMap = bitMaps[regionIndex];
-            int    row    = bitMapIndex >>> 6;
-            int    col    = bitMapIndex & 63;
-            bitMap[row] ^= 1L << col;
-        }
+        lock.lock();
+        nextAvails[regionIndex] = bitMapIndex;
+        numOfAvails[regionIndex] += 1;
+        long[] bitMap = bitMaps[regionIndex];
+        int    row    = bitMapIndex >>> 6;
+        int    col    = bitMapIndex & 63;
+        bitMap[row] ^= 1L << col;
+        lock.unlock();
     }
 
     int normalizeCapacity(int reqCapacity)

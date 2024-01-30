@@ -10,6 +10,11 @@ public class TailWriteProcessorImpl implements WriteProcessor
 {
     private WriteCompletionHandler writeCompleteHandler;
 
+    public TailWriteProcessorImpl(ChannelContext channelContext)
+    {
+        writeCompleteHandler = new DefaultWriteCompleteHandler(channelContext);
+    }
+
     @Override
     public void write(Object data, WriteProcessorNode next)
     {
@@ -25,6 +30,6 @@ public class TailWriteProcessorImpl implements WriteProcessor
     @Override
     public void pipelineComplete(WriteProcessorNode next, ChannelContext channelContext)
     {
-        writeCompleteHandler = new DefaultWriteCompleteHandler(channelContext);
+        ;
     }
 }

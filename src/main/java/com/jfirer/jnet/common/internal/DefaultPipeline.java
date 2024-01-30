@@ -177,7 +177,7 @@ public class DefaultPipeline implements InternalPipeline
     public void complete()
     {
         addReadProcessor(ReadProcessor.TAIL);
-        addWriteProcessor(new TailWriteProcessorImpl());
+        addWriteProcessor(new TailWriteProcessorImpl(channelContext));
         readHead.firePipelineComplete();
         writeHead.firePipelineComplete(channelContext);
     }
