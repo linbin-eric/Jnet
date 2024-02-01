@@ -17,22 +17,22 @@ import java.util.concurrent.Executors;
 @Data
 public class ChannelConfig
 {
-    private             int                      decrCountMax         = 2;
-    private             int                      minReceiveSize       = 16;
-    private             int                      maxReceiveSize       = 1024 * 1024 * 8;
-    private             int                      initReceiveSize      = 1024;
-    private             int                      maxBatchWrite        = 1024 * 1024 * 8;
-    private             int                      msOfReadTimeout      = 1000 * 60 * 5;
-    private             String                   ip                   = "0.0.0.0";
-    private             int                      port                 = -1;
-    private             int                      backLog              = 50;
-    private             BufferAllocator          allocator            = PooledBufferAllocator.DEFAULT;
+    private             int                      decrCountMax          = 2;
+    private             int                      minReceiveSize        = 16;
+    private             int                      maxReceiveSize        = 1024 * 1024 * 8;
+    private             int                      initReceiveSize       = 1024;
+    private             int                      maxBatchWrite         = 1024 * 1024 * 8;
+    private             int                      msOfReadTimeout       = 1000 * 60 * 5;
+    private             String                   ip                    = "0.0.0.0";
+    private             int                      port                  = -1;
+    private             int                      backLog               = 50;
+    private             BufferAllocator          allocator             = PooledBufferAllocator.DEFAULT;
     private             AsynchronousChannelGroup channelGroup;
     private             WorkerGroup              workerGroup;
-    private             boolean                  useVirtualThread     = Integer.parseInt(System.getProperty("java.specification.version")) >= 21;
-    public static final LeakDetecter             IoBufferLeakDetected = new LeakDetecter(System.getProperty("Leak.Detect.IoBuffer") == null ? LeakDetecter.WatchLevel.none : LeakDetecter.WatchLevel.valueOf(System.getProperty("Leak.Detect.IoBuffer")));
+    private             boolean                  IO_USE_CURRENT_THREAD = Integer.parseInt(System.getProperty("java.specification.version")) >= 21;
+    public static final LeakDetecter             IoBufferLeakDetected  = new LeakDetecter(System.getProperty("Leak.Detect.IoBuffer") == null ? LeakDetecter.WatchLevel.none : LeakDetecter.WatchLevel.valueOf(System.getProperty("Leak.Detect.IoBuffer")));
     public static final AsynchronousChannelGroup DEFAULT_CHANNEL_GROUP;
-    public static final WorkerGroup              DEFAULT_WORKER_GROUP = new DefaultWorkerGroup(Runtime.getRuntime().availableProcessors(), "default_JnetWorker_");
+    public static final WorkerGroup              DEFAULT_WORKER_GROUP  = new DefaultWorkerGroup(Runtime.getRuntime().availableProcessors(), "default_JnetWorker_");
 
     static
     {

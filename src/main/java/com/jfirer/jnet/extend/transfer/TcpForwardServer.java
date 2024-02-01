@@ -51,6 +51,7 @@ public class TcpForwardServer
             catch (ClosedChannelException e)
             {
                 readProcessorNode.pipeline().channelContext().close();
+                ioBuffer.free();
             }
         }
 
@@ -100,7 +101,7 @@ public class TcpForwardServer
                     }
                     catch (Throwable e)
                     {
-                        e.printStackTrace();
+                        data.free();
                     }
                 }
 

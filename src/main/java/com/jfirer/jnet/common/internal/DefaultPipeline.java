@@ -15,7 +15,7 @@ public class DefaultPipeline implements InternalPipeline
     public DefaultPipeline(ChannelContext channelContext)
     {
         this.channelContext = channelContext;
-        useVirtualThread    = channelContext.channelConfig().isUseVirtualThread();
+        useVirtualThread    = channelContext.channelConfig().isIO_USE_CURRENT_THREAD();
         if (useVirtualThread)
         {
             ;
@@ -30,7 +30,7 @@ public class DefaultPipeline implements InternalPipeline
     {
         this.worker         = worker;
         this.channelContext = channelContext;
-        useVirtualThread    = channelContext.channelConfig().isUseVirtualThread();
+        useVirtualThread    = channelContext.channelConfig().isIO_USE_CURRENT_THREAD();
     }
 
     @Override
