@@ -29,9 +29,10 @@ public class ChannelConfig
     private             BufferAllocator          allocator             = PooledBufferAllocator.DEFAULT;
     private             AsynchronousChannelGroup channelGroup;
     private             WorkerGroup              workerGroup;
-    private             boolean                  IO_USE_CURRENT_THREAD = Integer.parseInt(System.getProperty("java.specification.version")) >= 21;
+    private             boolean                  IO_USE_CURRENT_THREAD = false;
     public static final LeakDetecter             IoBufferLeakDetected  = new LeakDetecter(System.getProperty("Leak.Detect.IoBuffer") == null ? LeakDetecter.WatchLevel.none : LeakDetecter.WatchLevel.valueOf(System.getProperty("Leak.Detect.IoBuffer")));
     public static final AsynchronousChannelGroup DEFAULT_CHANNEL_GROUP;
+    public static final AsynchronousChannelGroup IO_USE_CURRENT_THREAD_CHANNEL_GROUP;
     public static final WorkerGroup              DEFAULT_WORKER_GROUP  = new DefaultWorkerGroup(Runtime.getRuntime().availableProcessors(), "default_JnetWorker_");
 
     static
@@ -52,18 +53,26 @@ public class ChannelConfig
             {
                 throw new RuntimeException(e);
             }
-            DEFAULT_CHANNEL_GROUP = virtual_thread_channel_group_tmp;
+            IO_USE_CURRENT_THREAD_CHANNEL_GROUP = virtual_thread_channel_group_tmp;
         }
         else
         {
             try
             {
-                DEFAULT_CHANNEL_GROUP = AsynchronousChannelGroup.withFixedThreadPool(Runtime.getRuntime().availableProcessors(), r -> new FastThreadLocalThread(r, "default_channelGroup_"));
+                IO_USE_CURRENT_THREAD_CHANNEL_GROUP = AsynchronousChannelGroup.withFixedThreadPool(Runtime.getRuntime().availableProcessors() * 4, r -> new FastThreadLocalThread(r, "ioUseCurrentThread_channelGroup_"));
             }
             catch (IOException e)
             {
                 throw new RuntimeException(e);
             }
+        }
+        try
+        {
+            DEFAULT_CHANNEL_GROUP = AsynchronousChannelGroup.withFixedThreadPool(Runtime.getRuntime().availableProcessors(), r -> new FastThreadLocalThread(r, "default_channelGroup_"));
+        }
+        catch (IOException e)
+        {
+            throw new RuntimeException(e);
         }
     }
 }
