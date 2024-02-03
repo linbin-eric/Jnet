@@ -101,6 +101,12 @@ public class ClientChannelImpl implements ClientChannel
     }
 
     @Override
+    public ChannelContext channelContext()
+    {
+        return channelContext;
+    }
+
+    @Override
     public void close()
     {
         state = ConnectedState.DISCONNECTED;

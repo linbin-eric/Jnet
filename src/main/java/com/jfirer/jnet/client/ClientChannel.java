@@ -1,5 +1,6 @@
 package com.jfirer.jnet.client;
 
+import com.jfirer.jnet.common.api.ChannelContext;
 import com.jfirer.jnet.common.api.ChannelContextInitializer;
 import com.jfirer.jnet.common.util.ChannelConfig;
 
@@ -28,6 +29,8 @@ public interface ClientChannel
     boolean alive();
 
     void write(Object data) throws ClosedChannelException;
+
+    ChannelContext channelContext();
 
     void close();
 
