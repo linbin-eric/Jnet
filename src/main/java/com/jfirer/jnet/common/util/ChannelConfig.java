@@ -29,10 +29,10 @@ public class ChannelConfig
     private             BufferAllocator          allocator             = PooledBufferAllocator.DEFAULT;
     private             AsynchronousChannelGroup channelGroup;
     private             WorkerGroup              workerGroup;
-    private             boolean                  IO_USE_CURRENT_THREAD = false;
+    private             boolean                  IO_USE_CURRENT_THREAD = Integer.parseInt(System.getProperty("java.specification.version")) >= 21;
     public static final LeakDetecter             IoBufferLeakDetected  = new LeakDetecter(System.getProperty("Leak.Detect.IoBuffer") == null ? LeakDetecter.WatchLevel.none : LeakDetecter.WatchLevel.valueOf(System.getProperty("Leak.Detect.IoBuffer")));
     public static final AsynchronousChannelGroup DEFAULT_CHANNEL_GROUP;
-    public static final AsynchronousChannelGroup IO_USE_CURRENT_THREAD_CHANNEL_GROUP;
+    public static final AsynchronousChannelGroup VIRTUAL_THREAD_CHANNEL_GROUP_GROUP;
     public static final WorkerGroup              DEFAULT_WORKER_GROUP  = new DefaultWorkerGroup(Runtime.getRuntime().availableProcessors(), "default_JnetWorker_");
 
     static
@@ -53,18 +53,11 @@ public class ChannelConfig
             {
                 throw new RuntimeException(e);
             }
-            IO_USE_CURRENT_THREAD_CHANNEL_GROUP = virtual_thread_channel_group_tmp;
+            VIRTUAL_THREAD_CHANNEL_GROUP_GROUP = virtual_thread_channel_group_tmp;
         }
         else
         {
-            try
-            {
-                IO_USE_CURRENT_THREAD_CHANNEL_GROUP = AsynchronousChannelGroup.withFixedThreadPool(Runtime.getRuntime().availableProcessors() * 4, r -> new FastThreadLocalThread(r, "ioUseCurrentThread_channelGroup_"));
-            }
-            catch (IOException e)
-            {
-                throw new RuntimeException(e);
-            }
+            VIRTUAL_THREAD_CHANNEL_GROUP_GROUP = null;
         }
         try
         {
