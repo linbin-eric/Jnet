@@ -2,9 +2,8 @@ package com.jfirer.jnet.common.internal;
 
 import com.jfirer.jnet.common.api.JnetWorker;
 import com.jfirer.jnet.common.thread.FastThreadLocalThread;
+import org.jctools.queues.MpscLinkedQueue;
 
-import java.util.Queue;
-import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.locks.LockSupport;
 
 /**
@@ -12,11 +11,11 @@ import java.util.concurrent.locks.LockSupport;
  */
 public class JnetWorkerImpl extends FastThreadLocalThread implements JnetWorker
 {
-    private static final int             IDLE     = -1;
-    private static final int             WORK     = 1;
-    private              Queue<Runnable> queue    = new LinkedTransferQueue<>();
-    private volatile     int             state    = IDLE;
-    private volatile     boolean         shutdown = false;
+    private static final int                       IDLE     = -1;
+    private static final int                       WORK     = 1;
+    private              MpscLinkedQueue<Runnable> queue    = new MpscLinkedQueue<>();
+    private volatile     int                       state    = IDLE;
+    private volatile     boolean                   shutdown = false;
 
     public JnetWorkerImpl(String threadName)
     {
@@ -51,13 +50,13 @@ public class JnetWorkerImpl extends FastThreadLocalThread implements JnetWorker
                         }
                     }
                 }
-            }
-            while (true);
+            } while (true);
         }
         catch (Throwable e)
         {
+            e.printStackTrace();
             //代码不应该走到这里
-            System.exit(-1);
+            System.exit(129);
         }
     }
 
