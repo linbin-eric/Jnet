@@ -12,5 +12,4 @@ public interface WriteProcessorNode
 
     WriteProcessorNode next();
 
-    JnetWorker worker();
 }
