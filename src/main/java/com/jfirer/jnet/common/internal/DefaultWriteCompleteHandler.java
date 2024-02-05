@@ -40,7 +40,7 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
         this.allocator      = channelConfig.getAllocator();
         this.maxWriteBytes  = Math.max(1, channelConfig.getMaxBatchWrite());
         this.channelContext = channelContext;
-        queue               = channelConfig.isIO_USE_CURRENT_THREAD() ? new MpscLinkedQueue<>() : new SpscLinkedQueue<>();
+        queue               = channelConfig.isREAD_USE_CURRENT_THREAD() ? new MpscLinkedQueue<>() : new SpscLinkedQueue<>();
     }
 
     @Override

@@ -17,6 +17,4 @@ public interface ReadProcessorNode
     ReadProcessorNode next();
 
     Pipeline pipeline();
-
-    JnetWorker worker();
 }

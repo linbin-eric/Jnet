@@ -2,35 +2,17 @@ package com.jfirer.jnet.common.internal;
 
 import com.jfirer.jnet.common.api.*;
 
-import java.util.function.Function;
-
 public class DefaultPipeline implements InternalPipeline
 {
-    protected       JnetWorker         worker;
-    protected       ChannelContext     channelContext;
-    protected       ReadProcessorNode  readHead;
-    protected       WriteProcessorNode writeHead;
-    protected final boolean            useVirtualThread;
+    protected ChannelContext     channelContext;
+    protected ReadProcessorNode  readHead;
+    protected WriteProcessorNode writeHead;
 
     public DefaultPipeline(ChannelContext channelContext)
     {
         this.channelContext = channelContext;
-        useVirtualThread    = channelContext.channelConfig().isIO_USE_CURRENT_THREAD();
-        if (useVirtualThread)
-        {
-            ;
-        }
-        else
-        {
-            worker = channelContext.channelConfig().getWorkerGroup().next();
-        }
-    }
-
-    public DefaultPipeline(JnetWorker worker, ChannelContext channelContext)
-    {
-        this.worker         = worker;
-        this.channelContext = channelContext;
-        useVirtualThread    = channelContext.channelConfig().isIO_USE_CURRENT_THREAD();
+        writeHead           = new WriteHead(channelContext.channelConfig().getWorkerGroup().next());
+        readHead            = channelContext.channelConfig().isREAD_USE_CURRENT_THREAD() ? new ReadHeadUseCurrentThreaad(channelContext.pipeline()) : new ReadHeadUseWorker(channelContext.channelConfig().getWorkerGroup().next(), channelContext.pipeline());
     }
 
     @Override
@@ -42,111 +24,23 @@ public class DefaultPipeline implements InternalPipeline
     @Override
     public void addReadProcessor(ReadProcessor<?> processor)
     {
-        if (useVirtualThread)
+        ReadProcessorNode node = readHead;
+        while (node.next() != null)
         {
-            if (readHead == null)
-            {
-                readHead = new ReadProcessorNodeImpl(processor, this);
-            }
-            else
-            {
-                ReadProcessorNode node = readHead;
-                while (node.next() != null)
-                {
-                    node = node.next();
-                }
-                node.setNext(new ReadProcessorNodeImpl(processor, this));
-            }
+            node = node.next();
         }
-        else
-        {
-            addReadProcessor0(processor, pre -> pre == null ? worker : pre.worker());
-        }
-    }
-
-    private void addReadProcessor0(ReadProcessor<?> processor, Function<ReadProcessorNode, JnetWorker> function)
-    {
-        if (readHead == null)
-        {
-            readHead = new ReadProcessorNodeImpl(function.apply(null), processor, this);
-        }
-        else
-        {
-            ReadProcessorNode node = readHead;
-            while (node.next() != null)
-            {
-                node = node.next();
-            }
-            node.setNext(new ReadProcessorNodeImpl(function.apply(node), processor, this));
-        }
-    }
-
-    @Override
-    public void addReadProcessor(ReadProcessor<?> processor, WorkerGroup group)
-    {
-        if (useVirtualThread)
-        {
-            throw new UnsupportedOperationException("采用虚拟线程，不支持自定义 worker");
-        }
-        else
-        {
-            addReadProcessor0(processor, pre -> group.next());
-        }
+        node.setNext(new ReadProcessorNodeImpl(processor, this));
     }
 
     @Override
     public void addWriteProcessor(WriteProcessor<?> processor)
     {
-        if (useVirtualThread)
+        WriteProcessorNode node = writeHead;
+        while (node.next() != null)
         {
-            if (writeHead == null)
-            {
-                writeHead = new WriteProcessorNodeImpl(processor);
-            }
-            else
-            {
-                WriteProcessorNode node = writeHead;
-                while (node.next() != null)
-                {
-                    node = node.next();
-                }
-                node.setNext(new WriteProcessorNodeImpl(processor));
-            }
+            node = node.next();
         }
-        else
-        {
-            addWriteProcessor0(processor, pre -> pre == null ? worker : pre.worker());
-        }
-    }
-
-    private void addWriteProcessor0(WriteProcessor<?> processor, Function<WriteProcessorNode, JnetWorker> function)
-    {
-        if (writeHead == null)
-        {
-            writeHead = new WriteProcessorNodeImpl(function.apply(null), processor);
-        }
-        else
-        {
-            WriteProcessorNode node = writeHead;
-            while (node.next() != null)
-            {
-                node = node.next();
-            }
-            node.setNext(new WriteProcessorNodeImpl(function.apply(node), processor));
-        }
-    }
-
-    @Override
-    public void addWriteProcessor(WriteProcessor<?> processor, WorkerGroup group)
-    {
-        if (useVirtualThread)
-        {
-            throw new UnsupportedOperationException("采用虚拟线程，不支持自定义 worker");
-        }
-        else
-        {
-            addWriteProcessor0(processor, pre -> group.next());
-        }
+        node.setNext(new WriteProcessorNodeImpl(processor));
     }
 
     @Override
@@ -192,5 +86,219 @@ public class DefaultPipeline implements InternalPipeline
     public void fireWriteClose()
     {
         writeHead.fireWriteClose();
+    }
+
+    class ReadHeadUseCurrentThreaad implements ReadProcessorNode
+    {
+        protected final Pipeline          pipeline;
+        protected       ReadProcessorNode next;
+
+        ReadHeadUseCurrentThreaad(Pipeline pipeline) {this.pipeline = pipeline;}
+
+        @Override
+        public void fireRead(Object data)
+        {
+            next.fireRead(data);
+        }
+
+        @Override
+        public void firePipelineComplete()
+        {
+            next.firePipelineComplete();
+        }
+
+        @Override
+        public void fireExceptionCatch(Throwable e)
+        {
+            next.fireExceptionCatch(e);
+        }
+
+        @Override
+        public void fireReadClose()
+        {
+            next.fireReadClose();
+        }
+
+        @Override
+        public void fireChannelClose(Throwable e)
+        {
+            next.fireChannelClose(e);
+        }
+
+        @Override
+        public void setNext(ReadProcessorNode next)
+        {
+            this.next = next;
+        }
+
+        @Override
+        public ReadProcessorNode next()
+        {
+            return next;
+        }
+
+        @Override
+        public Pipeline pipeline()
+        {
+            return pipeline;
+        }
+    }
+
+    class ReadHeadUseWorker implements ReadProcessorNode
+    {
+        protected final JnetWorker        worker;
+        protected final Pipeline          pipeline;
+        private         ReadProcessorNode next;
+
+        ReadHeadUseWorker(JnetWorker worker, Pipeline pipeline)
+        {
+            this.worker   = worker;
+            this.pipeline = pipeline;
+        }
+
+        @Override
+        public void fireRead(Object data)
+        {
+            if (Thread.currentThread() == worker.thread())
+            {
+                next.fireRead(data);
+            }
+            else
+            {
+                worker.submit(() -> next.fireRead(data));
+            }
+        }
+
+        @Override
+        public void firePipelineComplete()
+        {
+            if (Thread.currentThread() == worker.thread())
+            {
+                next.firePipelineComplete();
+            }
+            else
+            {
+                worker.submit(() -> next.firePipelineComplete());
+            }
+        }
+
+        @Override
+        public void fireExceptionCatch(Throwable e)
+        {
+            if (Thread.currentThread() == worker.thread())
+            {
+                next.fireExceptionCatch(e);
+            }
+            else
+            {
+                worker.submit(() -> next.fireExceptionCatch(e));
+            }
+        }
+
+        @Override
+        public void fireReadClose()
+        {
+            if (Thread.currentThread() == worker.thread())
+            {
+                next.fireReadClose();
+            }
+            else
+            {
+                worker.submit(() -> next.fireReadClose());
+            }
+        }
+
+        @Override
+        public void fireChannelClose(Throwable e)
+        {
+            if (Thread.currentThread() == worker.thread())
+            {
+                next.fireChannelClose(e);
+            }
+            else
+            {
+                worker.submit(() -> next.fireChannelClose(e));
+            }
+        }
+
+        @Override
+        public void setNext(ReadProcessorNode next)
+        {
+            this.next = next;
+        }
+
+        @Override
+        public ReadProcessorNode next()
+        {
+            return next;
+        }
+
+        @Override
+        public Pipeline pipeline()
+        {
+            return pipeline;
+        }
+    }
+
+    class WriteHead implements WriteProcessorNode
+    {
+        private final JnetWorker         worker;
+        private       WriteProcessorNode next;
+
+        public WriteHead(JnetWorker worker)
+        {
+            this.worker = worker;
+        }
+
+        @Override
+        public void fireWrite(Object data)
+        {
+            if (Thread.currentThread() == worker.thread())
+            {
+                next.fireWrite(data);
+            }
+            else
+            {
+                worker.submit(() -> next.fireWrite(data));
+            }
+        }
+
+        @Override
+        public void firePipelineComplete(ChannelContext channelContext)
+        {
+            if (Thread.currentThread() == worker.thread())
+            {
+                next.firePipelineComplete(channelContext);
+            }
+            else
+            {
+                worker.submit(() -> next.firePipelineComplete(channelContext));
+            }
+        }
+
+        @Override
+        public void fireWriteClose()
+        {
+            if (Thread.currentThread() == worker.thread())
+            {
+                next.fireWriteClose();
+            }
+            else
+            {
+                worker.submit(() -> next.fireWriteClose());
+            }
+        }
+
+        @Override
+        public void setNext(WriteProcessorNode next)
+        {
+            this.next = next;
+        }
+
+        @Override
+        public WriteProcessorNode next()
+        {
+            return next;
+        }
     }
 }

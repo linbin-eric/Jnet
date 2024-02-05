@@ -28,9 +28,9 @@ public class ChannelConfig
     private             int                      backLog               = 50;
     private             BufferAllocator          allocator             = PooledBufferAllocator.DEFAULT;
     private             AsynchronousChannelGroup channelGroup;
-    private             WorkerGroup              workerGroup;
-    private             boolean                  IO_USE_CURRENT_THREAD = Integer.parseInt(System.getProperty("java.specification.version")) >= 21;
-    public static final LeakDetecter             IoBufferLeakDetected  = new LeakDetecter(System.getProperty("Leak.Detect.IoBuffer") == null ? LeakDetecter.WatchLevel.none : LeakDetecter.WatchLevel.valueOf(System.getProperty("Leak.Detect.IoBuffer")));
+    private             WorkerGroup  workerGroup;
+    private             boolean      READ_USE_CURRENT_THREAD = Integer.parseInt(System.getProperty("java.specification.version")) >= 21;
+    public static final LeakDetecter IoBufferLeakDetected    = new LeakDetecter(System.getProperty("Leak.Detect.IoBuffer") == null ? LeakDetecter.WatchLevel.none : LeakDetecter.WatchLevel.valueOf(System.getProperty("Leak.Detect.IoBuffer")));
     public static final AsynchronousChannelGroup DEFAULT_CHANNEL_GROUP;
     public static final AsynchronousChannelGroup VIRTUAL_THREAD_CHANNEL_GROUP_GROUP;
     public static final WorkerGroup              DEFAULT_WORKER_GROUP  = new DefaultWorkerGroup(Runtime.getRuntime().availableProcessors(), "default_JnetWorker_");

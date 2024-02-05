@@ -6,11 +6,7 @@ public interface Pipeline
 
     void addReadProcessor(ReadProcessor<?> processor);
 
-    void addReadProcessor(ReadProcessor<?> processor, WorkerGroup group);
-
     void addWriteProcessor(WriteProcessor<?> processor);
-
-    void addWriteProcessor(WriteProcessor<?> processor, WorkerGroup group);
 
     ChannelContext channelContext();
 

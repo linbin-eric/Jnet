@@ -41,13 +41,11 @@ public class BaseTest
     private              CountDownLatch  latch            = new CountDownLatch(numClients);
     private              int[][]         results;
     private              BufferAllocator bufferAllocator;
-    private              boolean         useVirtualThread = true;
     AtomicInteger count = new AtomicInteger(0);
 
     public BaseTest()
     {
         ChannelConfig channelConfig = new ChannelConfig();
-        channelConfig.setIO_USE_CURRENT_THREAD(useVirtualThread);
         channelConfig.setWorkerGroup(new DefaultWorkerGroup(Runtime.getRuntime().availableProcessors(), "base_"));
         channelConfig.setChannelGroup(ChannelConfig.DEFAULT_CHANNEL_GROUP);
         this.bufferAllocator = channelConfig.getAllocator();
@@ -60,7 +58,6 @@ public class BaseTest
         }
         channelConfig.setIp(ip);
         channelConfig.setPort(port);
-        channelConfig.setIO_USE_CURRENT_THREAD(useVirtualThread);
         aioServer = AioServer.newAioServer(channelConfig, channelContext -> {
             Pipeline pipeline = channelContext.pipeline();
             pipeline.addReadProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024, channelContext.channelConfig().getAllocator()));

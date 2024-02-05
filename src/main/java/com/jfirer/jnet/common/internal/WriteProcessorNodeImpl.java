@@ -6,8 +6,8 @@ import com.jfirer.jnet.common.api.WriteProcessorNode;
 
 public class WriteProcessorNodeImpl implements WriteProcessorNode
 {
-    private WriteProcessor     processor;
-    private WriteProcessorNode next;
+    protected WriteProcessor     processor;
+    protected WriteProcessorNode next;
 
     public WriteProcessorNodeImpl(WriteProcessor processor)
     {
