@@ -26,10 +26,4 @@ public class TailWriteProcessorImpl implements WriteProcessor
     {
         ;
     }
-
-    @Override
-    public void pipelineComplete(WriteProcessorNode next, ChannelContext channelContext)
-    {
-        ;
-    }
 }

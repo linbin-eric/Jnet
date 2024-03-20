@@ -4,7 +4,7 @@ public interface ReadProcessorNode
 {
     void fireRead(Object data);
 
-    void firePipelineComplete();
+    void firePipelineComplete(Pipeline pipeline);
 
     void fireExceptionCatch(Throwable e);
 

@@ -11,8 +11,9 @@ public interface ReadProcessor<T>
         }
 
         @Override
-        public void pipelineComplete(ReadProcessorNode next)
+        public void pipelineComplete(ReadProcessorNode next, Pipeline pipeline)
         {
+            pipeline.startReadIO();
         }
 
         @Override
@@ -44,9 +45,9 @@ public interface ReadProcessor<T>
      *
      * @param next
      */
-    default void pipelineComplete(ReadProcessorNode next)
+    default void pipelineComplete(ReadProcessorNode next, Pipeline pipeline)
     {
-        next.firePipelineComplete();
+        next.firePipelineComplete(pipeline);
     }
 
     /**

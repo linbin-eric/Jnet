@@ -10,6 +10,8 @@ public interface Pipeline
 
     ChannelContext channelContext();
 
+    void startReadIO();
+
     static void invokeMethodIgnoreException(Runnable runnable)
     {
         try

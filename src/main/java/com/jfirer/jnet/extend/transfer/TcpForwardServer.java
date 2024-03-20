@@ -56,13 +56,13 @@ public class TcpForwardServer
         }
 
         @Override
-        public void pipelineComplete(ReadProcessorNode next)
+        public void pipelineComplete(ReadProcessorNode next, Pipeline pipeline)
         {
             Pipeline localPipeline = next.pipeline();
             remoteChannel = ClientChannel.newClient(channelConfig, new RemoteIniter(localPipeline));
             if (remoteChannel.connect())
             {
-                ;
+                next.firePipelineComplete(pipeline);
             }
             else
             {

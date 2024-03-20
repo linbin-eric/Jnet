@@ -1,7 +1,6 @@
 package com.jfirer.jnet.client;
 
 import com.jfirer.jnet.common.api.*;
-import com.jfirer.jnet.common.internal.AdaptiveReadCompletionHandler;
 import com.jfirer.jnet.common.internal.DefaultChannelContext;
 import com.jfirer.jnet.common.internal.DefaultPipeline;
 import com.jfirer.jnet.common.util.ChannelConfig;
@@ -62,8 +61,6 @@ public class ClientChannelImpl implements ClientChannel
                     state = ConnectedState.CONNECTED;
                     initializer.onChannelContextInit(channelContext);
                     pipeline.complete();
-                    ReadCompletionHandler readCompletionHandler = new AdaptiveReadCompletionHandler(channelContext);
-                    readCompletionHandler.start();
                     return true;
                 }
                 catch (Throwable e)

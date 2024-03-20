@@ -23,9 +23,9 @@ public class ReadProcessorNodeImpl implements ReadProcessorNode
     }
 
     @Override
-    public void firePipelineComplete()
+    public void firePipelineComplete(Pipeline pipeline)
     {
-        processor.pipelineComplete(next);
+        processor.pipelineComplete(next, pipeline);
     }
 
     @Override

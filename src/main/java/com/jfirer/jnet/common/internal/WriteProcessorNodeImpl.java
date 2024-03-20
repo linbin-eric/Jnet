@@ -21,12 +21,6 @@ public class WriteProcessorNodeImpl implements WriteProcessorNode
     }
 
     @Override
-    public void firePipelineComplete(ChannelContext channelContext)
-    {
-        processor.pipelineComplete(next, channelContext);
-    }
-
-    @Override
     public void fireWriteClose()
     {
         processor.writeClose(next);

@@ -2,6 +2,8 @@ package com.jfirer.jnet.common.internal;
 
 import com.jfirer.jnet.common.api.*;
 
+import java.time.Period;
+
 public class DefaultPipeline implements InternalPipeline
 {
     protected ChannelContext     channelContext;
@@ -50,6 +52,13 @@ public class DefaultPipeline implements InternalPipeline
     }
 
     @Override
+    public void startReadIO()
+    {
+        ReadCompletionHandler readCompletionHandler = new AdaptiveReadCompletionHandler(channelContext);
+        readCompletionHandler.start();
+    }
+
+    @Override
     public void fireRead(Object data)
     {
         readHead.fireRead(data);
@@ -72,8 +81,7 @@ public class DefaultPipeline implements InternalPipeline
     {
         addReadProcessor(ReadProcessor.TAIL);
         addWriteProcessor(new TailWriteProcessorImpl(channelContext));
-        readHead.firePipelineComplete();
-        writeHead.firePipelineComplete(channelContext);
+        readHead.firePipelineComplete(this);
     }
 
     @Override
@@ -102,9 +110,9 @@ public class DefaultPipeline implements InternalPipeline
         }
 
         @Override
-        public void firePipelineComplete()
+        public void firePipelineComplete(Pipeline pipeline)
         {
-            next.firePipelineComplete();
+            next.firePipelineComplete(pipeline);
         }
 
         @Override
@@ -170,15 +178,15 @@ public class DefaultPipeline implements InternalPipeline
         }
 
         @Override
-        public void firePipelineComplete()
+        public void firePipelineComplete(Pipeline pipeline)
         {
             if (Thread.currentThread() == worker.thread())
             {
-                next.firePipelineComplete();
+                next.firePipelineComplete(pipeline);
             }
             else
             {
-                worker.submit(() -> next.firePipelineComplete());
+                worker.submit(() -> next.firePipelineComplete(pipeline));
             }
         }
 
@@ -260,19 +268,6 @@ public class DefaultPipeline implements InternalPipeline
             else
             {
                 worker.submit(() -> next.fireWrite(data));
-            }
-        }
-
-        @Override
-        public void firePipelineComplete(ChannelContext channelContext)
-        {
-            if (Thread.currentThread() == worker.thread())
-            {
-                next.firePipelineComplete(channelContext);
-            }
-            else
-            {
-                worker.submit(() -> next.firePipelineComplete(channelContext));
             }
         }
 
