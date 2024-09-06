@@ -2,8 +2,6 @@ package com.jfirer.jnet.common.internal;
 
 import com.jfirer.jnet.common.api.*;
 
-import java.time.Period;
-
 public class DefaultPipeline implements InternalPipeline
 {
     protected ChannelContext     channelContext;
