@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.jfirer</groupId>
     <artifactId>jnet</artifactId>
-    <version>1.0</version>
+    <version>1.0.1</version>
     <name>jnet</name>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

@@ -6,7 +6,6 @@ import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.util.ChannelConfig;
 import com.jfirer.jnet.common.util.UNSAFE;
-import org.jctools.queues.MpscLinkedQueue;
 import org.jctools.queues.SpscLinkedQueue;
 
 import java.nio.ByteBuffer;
@@ -27,7 +26,7 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
     // 终止状态。进入该状态后，不再继续使用
     ////////////////////////////////////////////////////////////
     protected volatile     int                       state          = IDLE;
-    //注意，不能使用JcTools下面的SpscQueue，其实现会出现当queue.isEmpty()==false时，queue.poll()返回null，导致程序异常
+    //注意，JcTools旧版本的SpscQueue，其实现会出现当queue.isEmpty()==false时，queue.poll()返回null，导致程序异常
     //MpscQueue则是可以的。JDK的并发queue也是可以的
     protected              Queue<IoBuffer>           queue;
     private                IoBuffer                  sendingData;
@@ -40,7 +39,7 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
         this.allocator      = channelConfig.getAllocator();
         this.maxWriteBytes  = Math.max(1, channelConfig.getMaxBatchWrite());
         this.channelContext = channelContext;
-        queue               = channelConfig.isREAD_USE_CURRENT_THREAD() ? new MpscLinkedQueue<>() : new SpscLinkedQueue<>();
+        queue               = new SpscLinkedQueue<>();
     }
 
     @Override

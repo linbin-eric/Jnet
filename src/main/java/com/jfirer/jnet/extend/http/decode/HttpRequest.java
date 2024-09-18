@@ -19,15 +19,14 @@ public class HttpRequest implements AutoCloseable
     protected String              contentType;
     protected IoBuffer            body;
 
-
     public void close()
     {
         if (body != null)
         {
             body.free();
+            body = null;
         }
     }
-
 
     public void addHeader(String name, String value)
     {
