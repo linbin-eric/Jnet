@@ -68,20 +68,13 @@ public final class ReflectUtil
 
     public static void throwException(Throwable t)
     {
-        if (UNSAFE.isAvailable())
+        if (t == null)
         {
-            if (t == null)
-            {
-                throw new NullPointerException("传入的参数为null");
-            }
-            else
-            {
-                UNSAFE.throwThrowable(t);
-            }
+            throw new NullPointerException("传入的参数为null");
         }
         else
         {
-            ReflectUtil.<RuntimeException>throwException0(t);
+            UNSAFE.unsafe.throwException(t);
         }
     }
 

@@ -1,7 +1,6 @@
 package com.jfirer.jnet.common.util;
 
 import io.github.karlatemp.unsafeaccessor.Unsafe;
-import org.jctools.util.UnsafeAccess;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -10,18 +9,12 @@ import java.nio.ByteBuffer;
 
 public class UNSAFE
 {
-    private static final Unsafe  unsafe;
-    private static final boolean hasUnsafe;
-    static final         long    ByteBufferAddress;
+    public static final Unsafe unsafe = Unsafe.getUnsafe();
+    static final        long   ByteBufferAddress;
+
     static
     {
-        ByteBufferAddress = UnsafeAccess.fieldOffset(Buffer.class, "address");
-        hasUnsafe = true;
-        unsafe = Unsafe.getUnsafe();
-    }
-    public static boolean isAvailable()
-    {
-        return hasUnsafe;
+        ByteBufferAddress = unsafe.objectFieldOffset(Buffer.class, "address");
     }
 
     public static void throwThrowable(Throwable e)
