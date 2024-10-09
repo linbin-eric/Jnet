@@ -89,7 +89,14 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler
     public void start()
     {
         ioBuffer = allocator.ioBuffer(sizeTable[index]);
-        socketChannel.read(ioBuffer.writableByteBuffer(), msOfReadTimeout, TimeUnit.MILLISECONDS, this, this);
+        if (msOfReadTimeout == -1)
+        {
+            socketChannel.read(ioBuffer.writableByteBuffer(), this, this);
+        }
+        else
+        {
+            socketChannel.read(ioBuffer.writableByteBuffer(), msOfReadTimeout, TimeUnit.MILLISECONDS, this, this);
+        }
     }
 
     @Override
