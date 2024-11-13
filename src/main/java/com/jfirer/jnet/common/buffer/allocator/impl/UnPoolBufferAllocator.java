@@ -1,7 +1,6 @@
 package com.jfirer.jnet.common.buffer.allocator.impl;
 
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
-import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.buffer.buffer.impl.BasicBuffer;
 import com.jfirer.jnet.common.buffer.buffer.storage.StorageSegment;
@@ -36,7 +35,7 @@ public class UnPoolBufferAllocator implements BufferAllocator
     @Override
     public IoBuffer heapBuffer(int initializeCapacity)
     {
-        BasicBuffer    buffer         = new BasicBuffer(BufferType.HEAP);
+        BasicBuffer    buffer         = BasicBuffer.HEAP_POOL.get();
         StorageSegment storageSegment = StorageSegment.POOL.get();
         storageSegment.init(new byte[initializeCapacity], 0, 0, initializeCapacity);
         buffer.init(storageSegment);
@@ -46,10 +45,9 @@ public class UnPoolBufferAllocator implements BufferAllocator
     @Override
     public BasicBuffer unsafeBuffer(int initializeCapacity)
     {
-        BasicBuffer buffer     = new BasicBuffer(BufferType.UNSAFE);
-        ByteBuffer  byteBuffer = ByteBuffer.allocateDirect(initializeCapacity);
-        StorageSegment storageSegment =
-                StorageSegment.POOL.get();
+        BasicBuffer    buffer         = BasicBuffer.UNSAFE_POOL.get();
+        ByteBuffer     byteBuffer     = ByteBuffer.allocateDirect(initializeCapacity);
+        StorageSegment storageSegment = StorageSegment.POOL.get();
         storageSegment.init(byteBuffer, PlatFormFunction.bytebufferOffsetAddress(byteBuffer), 0, initializeCapacity);
         buffer.init(storageSegment);
         return buffer;
