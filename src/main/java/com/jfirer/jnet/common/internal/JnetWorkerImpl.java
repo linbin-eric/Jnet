@@ -5,6 +5,7 @@ import com.jfirer.jnet.common.thread.FastThreadLocalThread;
 import org.jctools.queues.MpscLinkedQueue;
 
 import java.util.concurrent.locks.LockSupport;
+import java.util.function.Consumer;
 
 /**
  * 注意，一个JnetWorker会被分配给不同的通道，这意味着有多个生产者
@@ -16,10 +17,12 @@ public class JnetWorkerImpl extends FastThreadLocalThread implements JnetWorker
     private              MpscLinkedQueue<Runnable> queue    = new MpscLinkedQueue<>();
     private volatile     int                       state    = IDLE;
     private volatile     boolean                   shutdown = false;
+    private final        Consumer<Throwable>       jvmExistHandler;
 
-    public JnetWorkerImpl(String threadName)
+    public JnetWorkerImpl(String threadName, Consumer<Throwable> jvmExistHandler)
     {
         super(threadName);
+        this.jvmExistHandler = jvmExistHandler;
     }
 
     @Override
@@ -54,7 +57,7 @@ public class JnetWorkerImpl extends FastThreadLocalThread implements JnetWorker
         }
         catch (Throwable e)
         {
-            e.printStackTrace();
+            jvmExistHandler.accept(e);
             //代码不应该走到这里
             System.exit(129);
         }
