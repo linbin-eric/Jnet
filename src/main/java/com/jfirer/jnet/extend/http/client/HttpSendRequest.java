@@ -58,4 +58,13 @@ public class HttpSendRequest
         contentType = ContentType.APPLICATION_JSON;
         return this;
     }
+
+    public void freeBodyBuffer()
+    {
+        if (body != null)
+        {
+            body.free();
+            body = null;
+        }
+    }
 }

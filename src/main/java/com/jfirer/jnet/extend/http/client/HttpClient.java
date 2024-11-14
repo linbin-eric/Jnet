@@ -2,8 +2,10 @@ package com.jfirer.jnet.extend.http.client;
 
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
+import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.recycler.Recycler;
 import com.jfirer.jnet.common.util.ReflectUtil;
+import com.jfirer.jnet.extend.http.decode.HttpRequest;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -12,7 +14,9 @@ public interface HttpClient
 {
     BufferAllocator ALLOCATOR = new PooledBufferAllocator("HttpClient");
 
-    record Connection(String domain, int port) {}
+    record Connection(String domain, int port)
+    {
+    }
 
     ConcurrentMap<Connection, Recycler<HttpConnection>> map = new ConcurrentHashMap<>();
 
@@ -21,7 +25,16 @@ public interface HttpClient
         perfect(request);
         Connection               connection     = new Connection(request.getDoMain(), request.getPort());
         Recycler<HttpConnection> recycler       = map.computeIfAbsent(connection, c -> new Recycler<>(() -> new HttpConnection(c.domain, c.port), HttpConnection::setHandler));
-        HttpConnection           httpConnection = getAvailableConnection(recycler);
+        HttpConnection           httpConnection = null;
+        try
+        {
+            httpConnection = getAvailableConnection(recycler);
+        }
+        catch (Throwable e)
+        {
+            request.freeBodyBuffer();
+            ReflectUtil.throwException(e);
+        }
         return httpConnection.write(request);
     }
 
@@ -57,8 +70,7 @@ public interface HttpClient
                 {
                     return httpConnection;
                 }
-            }
-            while (true);
+            } while (true);
         }
         else
         {
@@ -73,12 +85,12 @@ public interface HttpClient
         int    domainStart = 0;
         if (url.startsWith("http://"))
         {
-            index = url.indexOf("/", 8);
+            index       = url.indexOf("/", 8);
             domainStart = 7;
         }
         else if (url.startsWith("https://"))
         {
-            index = url.indexOf("/", 9);
+            index       = url.indexOf("/", 9);
             domainStart = 8;
         }
         int portStart = url.indexOf(':', domainStart);

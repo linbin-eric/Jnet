@@ -54,8 +54,7 @@ public class HttpConnection
         channelConfig.setPort(port);
         channelConfig.setChannelGroup(HTTP_CHANNEL_GROUP);
         channelConfig.setWorkerGroup(HTTP_WORKER_GROUP);
-        clientChannel = ClientChannel.newClient(channelConfig, channelContext ->
-        {
+        clientChannel = ClientChannel.newClient(channelConfig, channelContext -> {
             Pipeline pipeline = channelContext.pipeline();
             pipeline.addReadProcessor(new HttpReceiveResponseDecoder(this));
             pipeline.addReadProcessor(new ReadProcessor<HttpReceiveResponse>()
@@ -90,6 +89,7 @@ public class HttpConnection
     {
         if (isConnectionClosed())
         {
+            request.freeBodyBuffer();
             throw new ClosedChannelException();
         }
         clientChannel.write(request);
@@ -115,7 +115,8 @@ public class HttpConnection
             log.debug("收到链接终止响应");
             clientChannel.close();
             throw new ClosedChannelException();
-        } else
+        }
+        else
         {
             return response;
         }
