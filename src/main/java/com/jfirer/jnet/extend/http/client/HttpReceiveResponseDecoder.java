@@ -27,7 +27,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
 
     enum ParseState
     {
-        RESPONSE_LINE, HEADER, BODY, BODY_FIX_LENGTH, BODY_CHUNKED
+        RESPONSE_LINE, HEADER, BODY, NO_BODY, BODY_FIX_LENGTH, BODY_CHUNKED
     }
 
     @Override
@@ -45,6 +45,11 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
                 case RESPONSE_LINE -> goToNextState = decodeResponseLine();
                 case HEADER -> goToNextState = decodeHeader(next);
                 case BODY_FIX_LENGTH -> goToNextState = decodeBodyWithFixLength();
+                case NO_BODY ->
+                {
+                    goToNextState = false;
+                    endOfBody();
+                }
                 case BODY_CHUNKED -> goToNextState = decodeBodyWithChunked();
             }
         } while (goToNextState);
@@ -114,19 +119,24 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
         else
         {
             receiveResponse.addPartOfBody(new PartOfBody(1, accumulation.slice(left), 0, 0));
-            bodyRead = 0;
-            //应用程序已经提前关闭了流，则此时流里可能存在Buffer，需要清空
-            receiveResponse.endOfBody();
-            receiveResponse = null;
-            state           = ParseState.RESPONSE_LINE;
-            if (accumulation.remainRead() != 0)
-            {
-                throw new IllegalStateException();
-            }
-            accumulation.free();
-            accumulation = null;
+            endOfBody();
             return false;
         }
+    }
+
+    private void endOfBody()
+    {
+        bodyRead = 0;
+        //应用程序已经提前关闭了流，则此时流里可能存在Buffer，需要清空
+        receiveResponse.endOfBody();
+        receiveResponse = null;
+        state           = ParseState.RESPONSE_LINE;
+        if (accumulation.remainRead() != 0)
+        {
+            throw new IllegalStateException();
+        }
+        accumulation.free();
+        accumulation = null;
     }
 
     private boolean decodeHeader(ReadProcessorNode next)
@@ -161,10 +171,13 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
         {
             if (receiveResponse.getHeaders().entrySet().stream().noneMatch(entry -> entry.getKey().equalsIgnoreCase("Transfer-Encoding")))
             {
-                throw new IllegalStateException("无法读取到响应体长度也不是分块传输");
+                state = ParseState.NO_BODY;
             }
-            receiveResponse.setContentLength(-1);
-            state = ParseState.BODY_CHUNKED;
+            else
+            {
+                state = ParseState.BODY_CHUNKED;
+                receiveResponse.setContentLength(-1);
+            }
         }
         else
         {
