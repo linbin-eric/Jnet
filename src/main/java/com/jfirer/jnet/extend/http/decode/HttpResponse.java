@@ -9,6 +9,7 @@ import java.util.Map;
 @Data
 public class HttpResponse
 {
+    private int                 responseCode         = 200;
     private Map<String, String> headers              = new HashMap<>();
     private String              body;
     private IoBuffer            bodyBuffer;
