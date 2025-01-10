@@ -2,6 +2,7 @@ package com.jfirer.jnet.extend.http.decode;
 
 import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
+import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.decoder.AbstractDecoder;
 import com.jfirer.jnet.common.util.HttpDecodeUtil;
 
@@ -14,9 +15,10 @@ public class HttpRequestDecoder extends AbstractDecoder
         REQUEST_LINE, REQUEST_HEADER, REQUEST_BODY
     }
 
-    private int         lastCheck = -1;
-    private ParseState  state     = ParseState.REQUEST_LINE;
+    private int         lastCheck      = -1;
+    private ParseState  state          = ParseState.REQUEST_LINE;
     private HttpRequest decodeObject;
+    private int         firstByteIndex = -1;
 
     public HttpRequestDecoder(BufferAllocator allocator)
     {
@@ -56,9 +58,12 @@ public class HttpRequestDecoder extends AbstractDecoder
                 decodeObject.setBody(accumulation.slice(decodeObject.getContentLength()));
             }
         }
+        accumulation.setReadPosi(firstByteIndex);
+        decodeObject.setWholeRequest(accumulation.slice(accumulation.remainRead()));
         next.fireRead(decodeObject);
-        decodeObject = null;
-        state        = ParseState.REQUEST_LINE;
+        decodeObject   = null;
+        firstByteIndex = -1;
+        state          = ParseState.REQUEST_LINE;
         if (accumulation.remainRead() != 0)
         {
             throw new IllegalStateException();
@@ -93,7 +98,10 @@ public class HttpRequestDecoder extends AbstractDecoder
 
     private boolean parseRequestLine()
     {
-        lastCheck = lastCheck == -1 ? accumulation.getReadPosi() : lastCheck;
+        if (lastCheck == -1)
+        {
+            firstByteIndex = lastCheck = accumulation.getReadPosi();
+        }
         for (; lastCheck + 1 < accumulation.getWritePosi(); lastCheck++)
         {
             if (accumulation.get(lastCheck) == '\r' && accumulation.get(lastCheck + 1) == '\n')

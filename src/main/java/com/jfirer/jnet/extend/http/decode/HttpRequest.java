@@ -18,6 +18,7 @@ public class HttpRequest implements AutoCloseable
     protected int                 contentLength = 0;
     protected String              contentType;
     protected IoBuffer            body;
+    private   IoBuffer            wholeRequest;
 
     public void close()
     {
@@ -26,6 +27,8 @@ public class HttpRequest implements AutoCloseable
             body.free();
             body = null;
         }
+        wholeRequest.free();
+        wholeRequest = null;
     }
 
     public void addHeader(String name, String value)
