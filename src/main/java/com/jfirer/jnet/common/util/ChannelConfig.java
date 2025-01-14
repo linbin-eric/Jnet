@@ -7,6 +7,7 @@ import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 import com.jfirer.jnet.common.internal.DefaultWorkerGroup;
 import com.jfirer.jnet.common.thread.FastThreadLocalThread;
 import lombok.Data;
+import lombok.experimental.Accessors;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -15,6 +16,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 @Data
+@Accessors(chain = true)
 public class ChannelConfig
 {
     private             int                      decrCountMax            = 2;
@@ -27,8 +29,8 @@ public class ChannelConfig
     private             int                      port                    = -1;
     private             int                      backLog                 = 50;
     private             BufferAllocator          allocator               = PooledBufferAllocator.DEFAULT;
-    private             AsynchronousChannelGroup channelGroup;
-    private             WorkerGroup              workerGroup;
+    private             AsynchronousChannelGroup channelGroup            = DEFAULT_CHANNEL_GROUP;
+    private             WorkerGroup              workerGroup             = DEFAULT_WORKER_GROUP;
     private             boolean                  READ_USE_CURRENT_THREAD = Integer.parseInt(System.getProperty("java.specification.version")) >= 21;
     public static final LeakDetecter             IoBufferLeakDetected    = new LeakDetecter(System.getProperty("Leak.Detect.IoBuffer") == null ? LeakDetecter.WatchLevel.none : LeakDetecter.WatchLevel.valueOf(System.getProperty("Leak.Detect.IoBuffer")));
     public static final AsynchronousChannelGroup DEFAULT_CHANNEL_GROUP;
