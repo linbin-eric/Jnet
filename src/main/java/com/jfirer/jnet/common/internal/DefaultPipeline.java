@@ -2,6 +2,8 @@ package com.jfirer.jnet.common.internal;
 
 import com.jfirer.jnet.common.api.*;
 
+import java.util.function.Consumer;
+
 public class DefaultPipeline implements InternalPipeline
 {
     protected ChannelContext     channelContext;
@@ -96,39 +98,83 @@ public class DefaultPipeline implements InternalPipeline
 
     class ReadHeadUseCurrentThreaad implements ReadProcessorNode
     {
-        protected final Pipeline          pipeline;
-        protected       ReadProcessorNode next;
+        protected final Pipeline            pipeline;
+        protected       ReadProcessorNode   next;
+        protected       Consumer<Throwable> jvmExistHandler = e -> {
+            System.err.println("Some RunnableImpl run in Jnet not handle Exception well,Check all ReadProcessor and WriteProcessor");
+            e.printStackTrace();
+        };
 
         ReadHeadUseCurrentThreaad(Pipeline pipeline) {this.pipeline = pipeline;}
 
         @Override
         public void fireRead(Object data)
         {
-            next.fireRead(data);
+            try
+            {
+                next.fireRead(data);
+            }
+            catch (Throwable e)
+            {
+                jvmExistHandler.accept(e);
+                System.exit(129);
+            }
         }
 
         @Override
         public void firePipelineComplete(Pipeline pipeline)
         {
-            next.firePipelineComplete(pipeline);
+            try
+            {
+                next.firePipelineComplete(pipeline);
+            }
+            catch (Throwable e)
+            {
+                jvmExistHandler.accept(e);
+                System.exit(129);
+            }
         }
 
         @Override
         public void fireExceptionCatch(Throwable e)
         {
-            next.fireExceptionCatch(e);
+            try
+            {
+                next.fireExceptionCatch(e);
+            }
+            catch (Throwable eOfExit)
+            {
+                jvmExistHandler.accept(eOfExit);
+                System.exit(129);
+            }
         }
 
         @Override
         public void fireReadClose()
         {
-            next.fireReadClose();
+            try
+            {
+                next.fireReadClose();
+            }
+            catch (Throwable e)
+            {
+                jvmExistHandler.accept(e);
+                System.exit(129);
+            }
         }
 
         @Override
         public void fireChannelClose(Throwable e)
         {
-            next.fireChannelClose(e);
+            try
+            {
+                next.fireChannelClose(e);
+            }
+            catch (Throwable eUnCatch)
+            {
+                jvmExistHandler.accept(eUnCatch);
+                System.exit(129);
+            }
         }
 
         @Override

@@ -14,6 +14,7 @@ import java.lang.reflect.Method;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 
 @Data
 @Accessors(chain = true)
@@ -28,6 +29,10 @@ public class ChannelConfig
     private             String                   ip                      = "0.0.0.0";
     private             int                      port                    = -1;
     private             int                      backLog                 = 50;
+    private             Consumer<Throwable>      jvmExistHandler         = e -> {
+        System.err.println("Some RunnableImpl run in Jnet not handle Exception well,Check all ReadProcessor and WriteProcessor");
+        e.printStackTrace();
+    };
     private             BufferAllocator          allocator               = PooledBufferAllocator.DEFAULT;
     private             AsynchronousChannelGroup channelGroup            = DEFAULT_CHANNEL_GROUP;
     private             WorkerGroup              workerGroup             = DEFAULT_WORKER_GROUP;
