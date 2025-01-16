@@ -11,7 +11,7 @@ public interface ReadProcessor<T>
         }
 
         @Override
-        public void pipelineComplete(ReadProcessorNode next, Pipeline pipeline)
+        public void pipelineComplete(Pipeline pipeline)
         {
             pipeline.startReadIO();
         }
@@ -42,12 +42,10 @@ public interface ReadProcessor<T>
 
     /**
      * 首次读取注册之前触发
-     *
-     * @param next
      */
-    default void pipelineComplete(ReadProcessorNode next, Pipeline pipeline)
+    default void pipelineComplete(Pipeline pipeline)
     {
-        next.firePipelineComplete(pipeline);
+        ;
     }
 
     /**
