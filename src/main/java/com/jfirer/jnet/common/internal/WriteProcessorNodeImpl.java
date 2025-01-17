@@ -32,7 +32,7 @@ public class WriteProcessorNodeImpl implements WriteProcessorNode
     }
 
     @Override
-    public WriteProcessorNode next()
+    public WriteProcessorNode getNext()
     {
         return next;
     }

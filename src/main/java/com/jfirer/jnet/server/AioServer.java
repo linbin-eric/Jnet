@@ -1,6 +1,6 @@
 package com.jfirer.jnet.server;
 
-import com.jfirer.jnet.common.api.ChannelContextInitializer;
+import com.jfirer.jnet.common.api.PipelineInitializer;
 import com.jfirer.jnet.common.util.ChannelConfig;
 
 public interface AioServer
@@ -11,7 +11,7 @@ public interface AioServer
 
     void termination();
 
-    static AioServer newAioServer(ChannelConfig channelConfig, ChannelContextInitializer initializer)
+    static AioServer newAioServer(ChannelConfig channelConfig, PipelineInitializer initializer)
     {
         return new DefaultAioServer(channelConfig, initializer);
     }

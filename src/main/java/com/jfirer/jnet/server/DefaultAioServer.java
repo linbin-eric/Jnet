@@ -1,6 +1,6 @@
 package com.jfirer.jnet.server;
 
-import com.jfirer.jnet.common.api.ChannelContextInitializer;
+import com.jfirer.jnet.common.api.PipelineInitializer;
 import com.jfirer.jnet.common.internal.AcceptHandler;
 import com.jfirer.jnet.common.util.ChannelConfig;
 import com.jfirer.jnet.common.util.ReflectUtil;
@@ -13,9 +13,9 @@ public class DefaultAioServer implements AioServer
 {
     private ChannelConfig                   channelConfig;
     private AsynchronousServerSocketChannel serverSocketChannel;
-    private ChannelContextInitializer       initializer;
+    private PipelineInitializer             initializer;
 
-    public DefaultAioServer(ChannelConfig channelConfig, ChannelContextInitializer initializer)
+    public DefaultAioServer(ChannelConfig channelConfig, PipelineInitializer initializer)
     {
         this.channelConfig = channelConfig;
         this.initializer   = initializer;

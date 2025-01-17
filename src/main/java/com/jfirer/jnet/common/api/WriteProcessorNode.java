@@ -8,5 +8,5 @@ public interface WriteProcessorNode
 
     void setNext(WriteProcessorNode next);
 
-    WriteProcessorNode next();
+    WriteProcessorNode getNext();
 }

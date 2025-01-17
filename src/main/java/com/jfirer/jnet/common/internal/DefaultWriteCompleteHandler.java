@@ -1,5 +1,6 @@
 package com.jfirer.jnet.common.internal;
 
+import com.jfirer.jnet.common.api.Pipeline;
 import com.jfirer.jnet.common.api.WriteCompletionHandler;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
@@ -18,12 +19,12 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
     protected static final int                       SPIN_THRESHOLD = 16;
     protected static final int                       IDLE           = 1;
     protected static final int                       WORK           = 2;
-    protected final AsynchronousSocketChannel socketChannel;
-    protected final ChannelContext            channelContext;
-    protected final BufferAllocator           allocator;
+    protected final        AsynchronousSocketChannel socketChannel;
+    protected final        Pipeline                  pipeline;
+    protected final        BufferAllocator           allocator;
     protected final        int                       maxWriteBytes;
     // 终止状态。进入该状态后，不再继续使用
-    ////////////////////////////////////////////////////////////
+    /// /////////////////////////////////////////////////////////
     protected volatile     int                       state          = IDLE;
     //注意，JcTools旧版本的SpscQueue，其实现会出现当queue.isEmpty()==false时，queue.poll()返回null，导致程序异常
     //MpscQueue则是可以的。JDK的并发queue也是可以的
@@ -31,14 +32,14 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
     private                IoBuffer                  sendingData;
     private                AtomicInteger             queueCapacity  = new AtomicInteger(0);
 
-    public DefaultWriteCompleteHandler(ChannelContext channelContext)
+    public DefaultWriteCompleteHandler(Pipeline pipeline)
     {
-        this.socketChannel = channelContext.socketChannel();
-        ChannelConfig channelConfig = channelContext.channelConfig();
-        this.allocator      = channelConfig.getAllocator();
-        this.maxWriteBytes  = Math.max(1, channelConfig.getMaxBatchWrite());
-        this.channelContext = channelContext;
-        queue               = new SpscLinkedQueue<>();
+        this.socketChannel = pipeline.socketChannel();
+        this.pipeline      = pipeline;
+        ChannelConfig channelConfig = pipeline.channelConfig();
+        this.allocator     = channelConfig.getAllocator();
+        this.maxWriteBytes = Math.max(1, channelConfig.getMaxBatchWrite());
+        queue              = new SpscLinkedQueue<>();
     }
 
     @Override
@@ -169,7 +170,7 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
             sendingData = null;
         }
         prepareTermination();
-        channelContext.close(e);
+        pipeline.close(e);
     }
 
     protected void prepareTermination()

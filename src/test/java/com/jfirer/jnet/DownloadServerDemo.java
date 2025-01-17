@@ -1,6 +1,5 @@
 package com.jfirer.jnet;
 
-import com.jfirer.jnet.common.api.Pipeline;
 import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 import com.jfirer.jnet.common.util.ChannelConfig;
@@ -17,8 +16,7 @@ public class DownloadServerDemo
     {
         ChannelConfig channelConfig = new ChannelConfig();
         channelConfig.setPort(81);
-        DefaultAioServer aioServer = new DefaultAioServer(channelConfig, channelContext -> {
-            Pipeline pipeline = channelContext.pipeline();
+        DefaultAioServer aioServer = new DefaultAioServer(channelConfig, pipeline -> {
             pipeline.addReadProcessor(new HttpRequestDecoder(channelConfig.getAllocator()));
             pipeline.addReadProcessor((HttpRequest httpRequest, ReadProcessorNode next) -> {
                 try

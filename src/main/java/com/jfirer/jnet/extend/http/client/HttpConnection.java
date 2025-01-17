@@ -1,7 +1,6 @@
 package com.jfirer.jnet.extend.http.client;
 
 import com.jfirer.jnet.client.ClientChannel;
-import com.jfirer.jnet.common.api.Pipeline;
 import com.jfirer.jnet.common.api.ReadProcessor;
 import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.api.WorkerGroup;
@@ -49,13 +48,8 @@ public class HttpConnection
 
     public HttpConnection(String domain, int port)
     {
-        ChannelConfig channelConfig = new ChannelConfig();
-        channelConfig.setIp(domain);
-        channelConfig.setPort(port);
-        channelConfig.setChannelGroup(HTTP_CHANNEL_GROUP);
-        channelConfig.setWorkerGroup(HTTP_WORKER_GROUP);
-        clientChannel = ClientChannel.newClient(channelConfig, channelContext -> {
-            Pipeline pipeline = channelContext.pipeline();
+        ChannelConfig channelConfig = new ChannelConfig().setIp(domain).setPort(port).setChannelGroup(HTTP_CHANNEL_GROUP).setWorkerGroup(HTTP_WORKER_GROUP);
+        clientChannel = ClientChannel.newClient(channelConfig, pipeline -> {
             pipeline.addReadProcessor(new HttpReceiveResponseDecoder(this));
             pipeline.addReadProcessor(new ReadProcessor<HttpReceiveResponse>()
             {
@@ -92,7 +86,7 @@ public class HttpConnection
             request.freeBodyBuffer();
             throw new ClosedChannelException();
         }
-        clientChannel.write(request);
+        clientChannel.pipeline().fireWrite(request);
         HttpReceiveResponse response = null;
         try
         {
@@ -100,21 +94,23 @@ public class HttpConnection
         }
         catch (InterruptedException e)
         {
-            clientChannel.close();
+            clientChannel.pipeline().close();
             throw new ClosedChannelException();
         }
         if (response == null)
         {
             log.debug("超时等待20秒，没有收到响应，关闭Http链接");
-            String msg = clientChannel.alive() ? "通道仍然alive" : "通道已经失效";
-            clientChannel.close();
-            throw new SocketTimeoutException(msg);
+            String                 msg                    = clientChannel.alive() ? "通道仍然alive" : "通道已经失效";
+            SocketTimeoutException socketTimeoutException = new SocketTimeoutException(msg);
+            clientChannel.pipeline().close(socketTimeoutException);
+            throw socketTimeoutException;
         }
         if (response == CLOSE_OF_CONNECTION)
         {
             log.debug("收到链接终止响应");
-            clientChannel.close();
-            throw new ClosedChannelException();
+            ClosedChannelException closedChannelException = new ClosedChannelException();
+            clientChannel.pipeline().close(closedChannelException);
+            throw closedChannelException;
         }
         else
         {
@@ -124,7 +120,7 @@ public class HttpConnection
 
     public void close()
     {
-        clientChannel.close();
+        clientChannel.pipeline().close();
     }
 
     /**

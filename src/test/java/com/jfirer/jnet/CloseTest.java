@@ -1,6 +1,9 @@
 package com.jfirer.jnet;
 
-import com.jfirer.jnet.common.api.*;
+import com.jfirer.jnet.common.api.InternalPipeline;
+import com.jfirer.jnet.common.api.PipelineInitializer;
+import com.jfirer.jnet.common.api.ReadProcessor;
+import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
@@ -59,8 +62,7 @@ public class CloseTest
         final CountDownLatch  countDownLatch = new CountDownLatch(writeNum);
         final Queue<IoBuffer> queue          = new ConcurrentLinkedQueue<>();
         final DataProcessor   dataProcessor  = new DataProcessor(queue, countDownLatch);
-        ChannelContextInitializer initializer = channelContext -> {
-            Pipeline pipeline = channelContext.pipeline();
+        PipelineInitializer initializer = pipeline -> {
             pipeline.addReadProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024 * 5, bufferAllocator));
             pipeline.addReadProcessor(dataProcessor);
             dataProcessor.pipeline = (InternalPipeline) pipeline;

@@ -1,13 +1,13 @@
 package com.jfirer.jnet.extend.transfer;
 
 import com.jfirer.jnet.client.ClientChannel;
-import com.jfirer.jnet.common.api.*;
+import com.jfirer.jnet.common.api.Pipeline;
+import com.jfirer.jnet.common.api.PipelineInitializer;
+import com.jfirer.jnet.common.api.ReadProcessor;
+import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
-import com.jfirer.jnet.common.internal.ChannelContext;
 import com.jfirer.jnet.common.util.ChannelConfig;
 import com.jfirer.jnet.server.AioServer;
-
-import java.nio.channels.ClosedChannelException;
 
 public class TcpForwardServer
 {
@@ -25,10 +25,7 @@ public class TcpForwardServer
         remoteConfig.setPort(destPort);
         remoteConfig.setChannelGroup(ChannelConfig.DEFAULT_CHANNEL_GROUP);
         remoteConfig.setWorkerGroup(ChannelConfig.DEFAULT_WORKER_GROUP);
-        AioServer aioServer = AioServer.newAioServer(channelConfig, channelContext -> {
-            Pipeline pipeline = channelContext.pipeline();
-            pipeline.addReadProcessor(new TcpForwardHandler(remoteConfig));
-        });
+        AioServer aioServer = AioServer.newAioServer(channelConfig, pipeline -> pipeline.addReadProcessor(new TcpForwardHandler(remoteConfig)));
         aioServer.start();
     }
 
@@ -45,15 +42,7 @@ public class TcpForwardServer
         @Override
         public void read(IoBuffer ioBuffer, ReadProcessorNode readProcessorNode)
         {
-            try
-            {
-                remoteChannel.write(ioBuffer);
-            }
-            catch (ClosedChannelException e)
-            {
-                readProcessorNode.pipeline().channelContext().close();
-                ioBuffer.free();
-            }
+            remoteChannel.pipeline().fireWrite(ioBuffer);
         }
 
         @Override
@@ -66,7 +55,7 @@ public class TcpForwardServer
             }
             else
             {
-                localPipeline.channelContext().close();
+                localPipeline.close();
             }
         }
 
@@ -74,11 +63,11 @@ public class TcpForwardServer
         public void channelClose(ReadProcessorNode next, Throwable e)
         {
             next.fireChannelClose(e);
-            remoteChannel.close();
+            remoteChannel.pipeline().close();
         }
     }
 
-    static class RemoteIniter implements ChannelContextInitializer
+    static class RemoteIniter implements PipelineInitializer
     {
         Pipeline localPipeline;
 
@@ -88,9 +77,9 @@ public class TcpForwardServer
         }
 
         @Override
-        public void onChannelContextInit(ChannelContext channelContext)
+        public void onPipelineComplete(Pipeline pipeline)
         {
-            channelContext.pipeline().addReadProcessor(new ReadProcessor<IoBuffer>()
+            pipeline.addReadProcessor(new ReadProcessor<IoBuffer>()
             {
                 @Override
                 public void read(IoBuffer data, ReadProcessorNode next)
@@ -108,7 +97,7 @@ public class TcpForwardServer
                 @Override
                 public void channelClose(ReadProcessorNode next, Throwable e)
                 {
-                    localPipeline.channelContext().close();
+                    localPipeline.close();
                 }
             });
         }

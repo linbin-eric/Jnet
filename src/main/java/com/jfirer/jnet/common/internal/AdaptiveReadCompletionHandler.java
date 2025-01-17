@@ -1,7 +1,6 @@
 package com.jfirer.jnet.common.internal;
 
 import com.jfirer.jnet.common.api.InternalPipeline;
-import com.jfirer.jnet.common.api.Pipeline;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.exception.EndOfStreamException;
@@ -25,7 +24,6 @@ public class AdaptiveReadCompletionHandler implements CompletionHandler<Integer,
     private final       InternalPipeline          pipeline;
     private final       long                      msOfReadTimeout;
     private             int                       index;
-    protected           ChannelContext            channelContext;
     private             int                       decrCount;
     private             IoBuffer                  ioBuffer;
 
@@ -68,20 +66,19 @@ public class AdaptiveReadCompletionHandler implements CompletionHandler<Integer,
         }
     }
 
-    public AdaptiveReadCompletionHandler(ChannelContext channelContext)
+    public AdaptiveReadCompletionHandler(InternalPipeline pipeline)
     {
-        this.channelContext = channelContext;
-        msOfReadTimeout     = channelContext.channelConfig().getMsOfReadTimeout();
-        DECR_COUNT_MAX      = channelContext.channelConfig().getDecrCountMax();
-        decrCount           = DECR_COUNT_MAX;
-        pipeline            = (InternalPipeline) channelContext.pipeline();
-        socketChannel       = channelContext.socketChannel();
-        ChannelConfig config = channelContext.channelConfig();
-        allocator = config.getAllocator();
-        minIndex  = indexOf(config.getMinReceiveSize());
-        maxIndex  = indexOf(config.getMaxReceiveSize());
-        index     = indexOf(config.getInitReceiveSize());
-        index     = Math.max(index, minIndex);
+        this.pipeline = pipeline;
+        ChannelConfig config = pipeline.channelConfig();
+        msOfReadTimeout = config.getMsOfReadTimeout();
+        DECR_COUNT_MAX  = config.getDecrCountMax();
+        decrCount       = DECR_COUNT_MAX;
+        socketChannel   = pipeline.socketChannel();
+        allocator       = config.getAllocator();
+        minIndex        = indexOf(config.getMinReceiveSize());
+        maxIndex        = indexOf(config.getMaxReceiveSize());
+        index           = indexOf(config.getInitReceiveSize());
+        index           = Math.max(index, minIndex);
     }
 
     public void start()
@@ -104,8 +101,7 @@ public class AdaptiveReadCompletionHandler implements CompletionHandler<Integer,
         {
             ioBuffer.free();
             EndOfStreamException exception = new EndOfStreamException();
-            channelContext.close(exception);
-            pipelineClose(exception);
+            pipeline.close(exception);
             return;
         }
         int except = ioBuffer.capacity();
@@ -162,15 +158,6 @@ public class AdaptiveReadCompletionHandler implements CompletionHandler<Integer,
         {
             ioBuffer.free();
         }
-        channelContext.close(e);
-        pipelineClose(e);
-    }
-
-    private void pipelineClose(Throwable e)
-    {
-        Pipeline.invokeMethodIgnoreException(pipeline::fireReadClose);
-        Pipeline.invokeMethodIgnoreException(pipeline::fireWriteClose);
-        Pipeline.invokeMethodIgnoreException(() -> pipeline.fireExceptionCatch(e));
-        Pipeline.invokeMethodIgnoreException(() -> pipeline.fireChannelClose(e));
+        pipeline.close(e);
     }
 }

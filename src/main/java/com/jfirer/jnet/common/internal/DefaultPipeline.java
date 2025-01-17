@@ -1,20 +1,27 @@
 package com.jfirer.jnet.common.internal;
 
 import com.jfirer.jnet.common.api.*;
+import com.jfirer.jnet.common.util.ChannelConfig;
 
-import java.util.function.Consumer;
+import java.nio.channels.AsynchronousSocketChannel;
+import java.util.concurrent.atomic.AtomicInteger;
 
-public class DefaultPipeline implements InternalPipeline
+public class DefaultPipeline extends AtomicInteger implements InternalPipeline
 {
-    protected ChannelContext     channelContext;
-    protected ReadProcessorNode  readHead;
-    protected WriteProcessorNode writeHead;
+    private static final int                       OPEN  = 1;
+    private static final int                       CLOSE = 0;
+    private final        AsynchronousSocketChannel socketChannel;
+    private final        ChannelConfig             channelConfig;
+    protected            ReadProcessorNode         readHead;
+    protected            WriteProcessorNode        writeHead;
+    private              Object                    attach;
 
-    public DefaultPipeline(ChannelContext channelContext)
+    public DefaultPipeline(AsynchronousSocketChannel socketChannel, ChannelConfig channelConfig)
     {
-        this.channelContext = channelContext;
-        writeHead           = new WriteHead(channelContext.channelConfig().getWorkerGroup().next());
-        readHead            = channelContext.channelConfig().isREAD_USE_CURRENT_THREAD() ? new ReadHeadUseCurrentThreaad(channelContext.pipeline()) : new ReadHeadUseWorker(channelContext.channelConfig().getWorkerGroup().next(), channelContext.pipeline());
+        this.socketChannel = socketChannel;
+        this.channelConfig = channelConfig;
+        writeHead          = new WriteHead(channelConfig.getWorkerGroup().next());
+        readHead           = channelConfig.isREAD_USE_CURRENT_THREAD() ? new ReadHeadUseCurrentThreaad(this) : new ReadHeadUseWorker(channelConfig.getWorkerGroup().next(), this);
     }
 
     @Override
@@ -27,9 +34,9 @@ public class DefaultPipeline implements InternalPipeline
     public void addReadProcessor(ReadProcessor<?> processor)
     {
         ReadProcessorNode node = readHead;
-        while (node.next() != null)
+        while (node.getNext() != null)
         {
-            node = node.next();
+            node = node.getNext();
         }
         node.setNext(new ReadProcessorNodeImpl(processor, this));
     }
@@ -38,17 +45,23 @@ public class DefaultPipeline implements InternalPipeline
     public void addWriteProcessor(WriteProcessor<?> processor)
     {
         WriteProcessorNode node = writeHead;
-        while (node.next() != null)
+        while (node.getNext() != null)
         {
-            node = node.next();
+            node = node.getNext();
         }
         node.setNext(new WriteProcessorNodeImpl(processor));
     }
 
     @Override
-    public ChannelContext channelContext()
+    public AsynchronousSocketChannel socketChannel()
     {
-        return channelContext;
+        return socketChannel;
+    }
+
+    @Override
+    public ChannelConfig channelConfig()
+    {
+        return channelConfig;
     }
 
     @Override
@@ -73,9 +86,9 @@ public class DefaultPipeline implements InternalPipeline
     public void complete()
     {
         addReadProcessor(ReadProcessor.TAIL);
-        addWriteProcessor(new TailWriteProcessorImpl(channelContext));
+        addWriteProcessor(new TailWriteProcessorImpl(this));
         readHead.firePipelineComplete(this);
-        new AdaptiveReadCompletionHandler(channelContext).start();
+        new AdaptiveReadCompletionHandler(this).start();
     }
 
     @Override
@@ -90,248 +103,36 @@ public class DefaultPipeline implements InternalPipeline
         writeHead.fireWriteClose();
     }
 
-    class ReadHeadUseCurrentThreaad implements ReadProcessorNode
+    @Override
+    public void close(Throwable e)
     {
-        protected final Pipeline            pipeline;
-        protected       ReadProcessorNode   next;
-        protected       Consumer<Throwable> jvmExistHandler = e -> {
-            System.err.println("Some RunnableImpl run in Jnet not handle Exception well,Check all ReadProcessor and WriteProcessor");
-            e.printStackTrace();
-        };
-
-        ReadHeadUseCurrentThreaad(Pipeline pipeline) {this.pipeline = pipeline;}
-
-        @Override
-        public void fireRead(Object data)
+        if (!compareAndSet(OPEN, CLOSE))
         {
-            try
-            {
-                next.fireRead(data);
-            }
-            catch (Throwable e)
-            {
-                jvmExistHandler.accept(e);
-                System.exit(129);
-            }
+            return;
         }
-
-        @Override
-        public void firePipelineComplete(Pipeline pipeline)
+        try
         {
-            try
-            {
-                next.firePipelineComplete(pipeline);
-            }
-            catch (Throwable e)
-            {
-                jvmExistHandler.accept(e);
-                System.exit(129);
-            }
+            socketChannel.close();
         }
-
-        @Override
-        public void fireExceptionCatch(Throwable e)
+        catch (Throwable ignored)
         {
-            try
-            {
-                next.fireExceptionCatch(e);
-            }
-            catch (Throwable eOfExit)
-            {
-                jvmExistHandler.accept(eOfExit);
-                System.exit(129);
-            }
+            ;
         }
-
-        @Override
-        public void fireReadClose()
-        {
-            try
-            {
-                next.fireReadClose();
-            }
-            catch (Throwable e)
-            {
-                jvmExistHandler.accept(e);
-                System.exit(129);
-            }
-        }
-
-        @Override
-        public void fireChannelClose(Throwable e)
-        {
-            try
-            {
-                next.fireChannelClose(e);
-            }
-            catch (Throwable eUnCatch)
-            {
-                jvmExistHandler.accept(eUnCatch);
-                System.exit(129);
-            }
-        }
-
-        @Override
-        public void setNext(ReadProcessorNode next)
-        {
-            this.next = next;
-        }
-
-        @Override
-        public ReadProcessorNode next()
-        {
-            return next;
-        }
-
-        @Override
-        public Pipeline pipeline()
-        {
-            return pipeline;
-        }
+        Pipeline.invokeMethodIgnoreException(this::fireReadClose);
+        Pipeline.invokeMethodIgnoreException(this::fireWriteClose);
+        Pipeline.invokeMethodIgnoreException(() -> this.fireExceptionCatch(e));
+        Pipeline.invokeMethodIgnoreException(() -> this.fireChannelClose(e));
     }
 
-    class ReadHeadUseWorker implements ReadProcessorNode
+    public String getRemoteAddressWithoutException()
     {
-        protected final JnetWorker        worker;
-        protected final Pipeline          pipeline;
-        private         ReadProcessorNode next;
-
-        ReadHeadUseWorker(JnetWorker worker, Pipeline pipeline)
+        try
         {
-            this.worker   = worker;
-            this.pipeline = pipeline;
+            return socketChannel.getRemoteAddress().toString();
         }
-
-        @Override
-        public void fireRead(Object data)
+        catch (Throwable e)
         {
-            if (Thread.currentThread() == worker.thread())
-            {
-                next.fireRead(data);
-            }
-            else
-            {
-                worker.submit(() -> next.fireRead(data));
-            }
-        }
-
-        @Override
-        public void firePipelineComplete(Pipeline pipeline)
-        {
-            if (Thread.currentThread() == worker.thread())
-            {
-                next.firePipelineComplete(pipeline);
-            }
-            else
-            {
-                worker.submit(() -> next.firePipelineComplete(pipeline));
-            }
-        }
-
-        @Override
-        public void fireExceptionCatch(Throwable e)
-        {
-            if (Thread.currentThread() == worker.thread())
-            {
-                next.fireExceptionCatch(e);
-            }
-            else
-            {
-                worker.submit(() -> next.fireExceptionCatch(e));
-            }
-        }
-
-        @Override
-        public void fireReadClose()
-        {
-            if (Thread.currentThread() == worker.thread())
-            {
-                next.fireReadClose();
-            }
-            else
-            {
-                worker.submit(() -> next.fireReadClose());
-            }
-        }
-
-        @Override
-        public void fireChannelClose(Throwable e)
-        {
-            if (Thread.currentThread() == worker.thread())
-            {
-                next.fireChannelClose(e);
-            }
-            else
-            {
-                worker.submit(() -> next.fireChannelClose(e));
-            }
-        }
-
-        @Override
-        public void setNext(ReadProcessorNode next)
-        {
-            this.next = next;
-        }
-
-        @Override
-        public ReadProcessorNode next()
-        {
-            return next;
-        }
-
-        @Override
-        public Pipeline pipeline()
-        {
-            return pipeline;
-        }
-    }
-
-    class WriteHead implements WriteProcessorNode
-    {
-        private final JnetWorker         worker;
-        private       WriteProcessorNode next;
-
-        public WriteHead(JnetWorker worker)
-        {
-            this.worker = worker;
-        }
-
-        @Override
-        public void fireWrite(Object data)
-        {
-            if (Thread.currentThread() == worker.thread())
-            {
-                next.fireWrite(data);
-            }
-            else
-            {
-                worker.submit(() -> next.fireWrite(data));
-            }
-        }
-
-        @Override
-        public void fireWriteClose()
-        {
-            if (Thread.currentThread() == worker.thread())
-            {
-                next.fireWriteClose();
-            }
-            else
-            {
-                worker.submit(() -> next.fireWriteClose());
-            }
-        }
-
-        @Override
-        public void setNext(WriteProcessorNode next)
-        {
-            this.next = next;
-        }
-
-        @Override
-        public WriteProcessorNode next()
-        {
-            return next;
+            return null;
         }
     }
 }

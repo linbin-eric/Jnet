@@ -1,5 +1,6 @@
 package com.jfirer.jnet.common.internal;
 
+import com.jfirer.jnet.common.api.Pipeline;
 import com.jfirer.jnet.common.api.WriteCompletionHandler;
 import com.jfirer.jnet.common.api.WriteProcessor;
 import com.jfirer.jnet.common.api.WriteProcessorNode;
@@ -9,9 +10,9 @@ public class TailWriteProcessorImpl implements WriteProcessor
 {
     private WriteCompletionHandler writeCompleteHandler;
 
-    public TailWriteProcessorImpl(ChannelContext channelContext)
+    public TailWriteProcessorImpl(Pipeline pipeline)
     {
-        writeCompleteHandler = new DefaultWriteCompleteHandler(channelContext);
+        writeCompleteHandler = new DefaultWriteCompleteHandler(pipeline);
     }
 
     @Override

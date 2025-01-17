@@ -57,7 +57,7 @@ public class ReadProcessorNodeImpl implements ReadProcessorNode
     }
 
     @Override
-    public ReadProcessorNode next()
+    public ReadProcessorNode getNext()
     {
         return next;
     }

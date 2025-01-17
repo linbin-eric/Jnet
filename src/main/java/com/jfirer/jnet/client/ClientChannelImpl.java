@@ -1,25 +1,22 @@
 package com.jfirer.jnet.client;
 
 import com.jfirer.jnet.common.api.*;
-import com.jfirer.jnet.common.internal.ChannelContext;
 import com.jfirer.jnet.common.internal.DefaultPipeline;
 import com.jfirer.jnet.common.util.ChannelConfig;
 
 import java.net.InetSocketAddress;
 import java.nio.channels.AsynchronousSocketChannel;
-import java.nio.channels.ClosedChannelException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 public class ClientChannelImpl implements ClientChannel
 {
-    private volatile ConnectedState            state = ConnectedState.NOT_INIT;
-    private InternalPipeline pipeline;
-    private ChannelContext   channelContext;
-    private ChannelConfig    channelConfig;
-    private          ChannelContextInitializer initializer;
+    private volatile ConnectedState      state = ConnectedState.NOT_INIT;
+    private          InternalPipeline    pipeline;
+    private          ChannelConfig       channelConfig;
+    private          PipelineInitializer initializer;
 
-    protected ClientChannelImpl(ChannelConfig channelConfig, ChannelContextInitializer initializer)
+    protected ClientChannelImpl(ChannelConfig channelConfig, PipelineInitializer initializer)
     {
         this.channelConfig = channelConfig;
         this.initializer   = initializer;
@@ -37,8 +34,7 @@ public class ClientChannelImpl implements ClientChannel
                     AsynchronousSocketChannel asynchronousSocketChannel = AsynchronousSocketChannel.open(channelConfig.getChannelGroup());
                     Future<Void>              future                    = asynchronousSocketChannel.connect(new InetSocketAddress(channelConfig.getIp(), channelConfig.getPort()));
                     future.get(30, TimeUnit.SECONDS);
-                    channelContext = new ChannelContext(asynchronousSocketChannel, channelConfig, DefaultPipeline::new);
-                    pipeline       = (InternalPipeline) channelContext.pipeline();
+                    pipeline = new DefaultPipeline(asynchronousSocketChannel, channelConfig);
                     pipeline.addReadProcessor(new ReadProcessor<>()
                     {
                         @Override
@@ -59,7 +55,7 @@ public class ClientChannelImpl implements ClientChannel
                         }
                     });
                     state = ConnectedState.CONNECTED;
-                    initializer.onChannelContextInit(channelContext);
+                    initializer.onPipelineComplete(pipeline);
                     pipeline.complete();
                     return true;
                 }
@@ -88,38 +84,8 @@ public class ClientChannelImpl implements ClientChannel
     }
 
     @Override
-    public void write(Object data) throws ClosedChannelException
+    public Pipeline pipeline()
     {
-        if (!alive())
-        {
-            throw new ClosedChannelException();
-        }
-        pipeline.fireWrite(data);
-    }
-
-    @Override
-    public ChannelContext channelContext()
-    {
-        return channelContext;
-    }
-
-    @Override
-    public void close()
-    {
-        state = ConnectedState.DISCONNECTED;
-        if (channelContext != null)
-        {
-            channelContext.close();
-        }
-    }
-
-    @Override
-    public void close(Throwable e)
-    {
-        state = ConnectedState.DISCONNECTED;
-        if (channelContext != null)
-        {
-            channelContext.close(e);
-        }
+        return pipeline;
     }
 }

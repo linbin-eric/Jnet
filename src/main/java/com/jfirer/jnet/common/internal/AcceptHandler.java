@@ -1,7 +1,6 @@
 package com.jfirer.jnet.common.internal;
 
-import com.jfirer.jnet.common.api.ChannelContextInitializer;
-import com.jfirer.jnet.common.api.InternalPipeline;
+import com.jfirer.jnet.common.api.PipelineInitializer;
 import com.jfirer.jnet.common.util.ChannelConfig;
 
 import java.nio.channels.AsynchronousServerSocketChannel;
@@ -10,21 +9,21 @@ import java.nio.channels.CompletionHandler;
 
 public class AcceptHandler implements CompletionHandler<AsynchronousSocketChannel, AsynchronousServerSocketChannel>
 {
-    protected final ChannelConfig             channelConfig;
-    protected final ChannelContextInitializer channelContextInitializer;
+    protected final ChannelConfig       channelConfig;
+    protected final PipelineInitializer pipelineInitializer;
 
-    public AcceptHandler(ChannelConfig channelConfig, ChannelContextInitializer channelContextInitializer)
+    public AcceptHandler(ChannelConfig channelConfig, PipelineInitializer pipelineInitializer)
     {
-        this.channelConfig             = channelConfig;
-        this.channelContextInitializer = channelContextInitializer;
+        this.channelConfig       = channelConfig;
+        this.pipelineInitializer = pipelineInitializer;
     }
 
     @Override
     public void completed(AsynchronousSocketChannel socketChannel, AsynchronousServerSocketChannel serverChannel)
     {
-        ChannelContext channelContext = new ChannelContext(socketChannel, channelConfig, DefaultPipeline::new);
-        channelContextInitializer.onChannelContextInit(channelContext);
-        ((InternalPipeline) channelContext.pipeline()).complete();
+        DefaultPipeline pipeline = new DefaultPipeline(socketChannel, channelConfig);
+        pipelineInitializer.onPipelineComplete(pipeline);
+        pipeline.complete();
         serverChannel.accept(serverChannel, this);
     }
 

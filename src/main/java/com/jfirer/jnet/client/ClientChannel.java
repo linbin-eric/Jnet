@@ -1,14 +1,12 @@
 package com.jfirer.jnet.client;
 
-import com.jfirer.jnet.common.api.ChannelContextInitializer;
-import com.jfirer.jnet.common.internal.ChannelContext;
+import com.jfirer.jnet.common.api.Pipeline;
+import com.jfirer.jnet.common.api.PipelineInitializer;
 import com.jfirer.jnet.common.util.ChannelConfig;
-
-import java.nio.channels.ClosedChannelException;
 
 public interface ClientChannel
 {
-    static ClientChannel newClient(ChannelConfig channelConfig, ChannelContextInitializer initializer)
+    static ClientChannel newClient(ChannelConfig channelConfig, PipelineInitializer initializer)
     {
         return new ClientChannelImpl(channelConfig, initializer);
     }
@@ -28,13 +26,7 @@ public interface ClientChannel
      */
     boolean alive();
 
-    void write(Object data) throws ClosedChannelException;
-
-    ChannelContext channelContext();
-
-    void close();
-
-    void close(Throwable e);
+    Pipeline pipeline();
 
     enum ConnectedState
     {

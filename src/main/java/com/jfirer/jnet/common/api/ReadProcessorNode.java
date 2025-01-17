@@ -14,7 +14,7 @@ public interface ReadProcessorNode
 
     void setNext(ReadProcessorNode next);
 
-    ReadProcessorNode next();
+    ReadProcessorNode getNext();
 
     Pipeline pipeline();
 }
