@@ -89,6 +89,7 @@ public class DefaultPipeline extends AtomicInteger implements InternalPipeline
     @Override
     public void complete()
     {
+        set(OPEN);
         addReadProcessor(TailReadProcessor.INSTANCE);
         addWriteProcessor(new TailWriteProcessor(this));
         readHead.firePipelineComplete(this);
