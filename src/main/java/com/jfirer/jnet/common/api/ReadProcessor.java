@@ -2,30 +2,6 @@ package com.jfirer.jnet.common.api;
 
 public interface ReadProcessor<T>
 {
-    ReadProcessor<Object> TAIL = new ReadProcessor<>()
-    {
-        @Override
-        public void read(Object data, ReadProcessorNode next)
-        {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void channelClose(ReadProcessorNode next, Throwable e)
-        {
-        }
-
-        @Override
-        public void exceptionCatch(Throwable e, ReadProcessorNode next)
-        {
-        }
-
-        @Override
-        public void readClose(ReadProcessorNode next)
-        {
-        }
-    };
-
     /**
      * 有数据被读取时触发
      *

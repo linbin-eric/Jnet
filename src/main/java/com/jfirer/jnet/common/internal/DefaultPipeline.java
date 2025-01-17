@@ -2,6 +2,8 @@ package com.jfirer.jnet.common.internal;
 
 import com.jfirer.jnet.common.api.*;
 import com.jfirer.jnet.common.util.ChannelConfig;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -12,8 +14,10 @@ public class DefaultPipeline extends AtomicInteger implements InternalPipeline
     private static final int                       CLOSE = 0;
     private final        AsynchronousSocketChannel socketChannel;
     private final        ChannelConfig             channelConfig;
-    protected            ReadProcessorNode         readHead;
-    protected            WriteProcessorNode        writeHead;
+    private              ReadProcessorNode         readHead;
+    private              WriteProcessorNode        writeHead;
+    @Setter
+    @Getter
     private              Object                    attach;
 
     public DefaultPipeline(AsynchronousSocketChannel socketChannel, ChannelConfig channelConfig)
@@ -21,7 +25,7 @@ public class DefaultPipeline extends AtomicInteger implements InternalPipeline
         this.socketChannel = socketChannel;
         this.channelConfig = channelConfig;
         writeHead          = new WriteHead(channelConfig.getWorkerGroup().next());
-        readHead           = channelConfig.isREAD_USE_CURRENT_THREAD() ? new ReadHeadUseCurrentThreaad(this) : new ReadHeadUseWorker(channelConfig.getWorkerGroup().next(), this);
+        readHead           = channelConfig.isREAD_USE_CURRENT_THREAD() ? new ReadHeadUseCurrentThread(this) : new ReadHeadUseWorker(channelConfig.getWorkerGroup().next(), this);
     }
 
     @Override
@@ -85,8 +89,8 @@ public class DefaultPipeline extends AtomicInteger implements InternalPipeline
     @Override
     public void complete()
     {
-        addReadProcessor(ReadProcessor.TAIL);
-        addWriteProcessor(new TailWriteProcessorImpl(this));
+        addReadProcessor(TailReadProcessor.INSTANCE);
+        addWriteProcessor(new TailWriteProcessor(this));
         readHead.firePipelineComplete(this);
         new AdaptiveReadCompletionHandler(this).start();
     }
@@ -118,21 +122,9 @@ public class DefaultPipeline extends AtomicInteger implements InternalPipeline
         {
             ;
         }
-        Pipeline.invokeMethodIgnoreException(this::fireReadClose);
-        Pipeline.invokeMethodIgnoreException(this::fireWriteClose);
-        Pipeline.invokeMethodIgnoreException(() -> this.fireExceptionCatch(e));
-        Pipeline.invokeMethodIgnoreException(() -> this.fireChannelClose(e));
-    }
-
-    public String getRemoteAddressWithoutException()
-    {
-        try
-        {
-            return socketChannel.getRemoteAddress().toString();
-        }
-        catch (Throwable e)
-        {
-            return null;
-        }
+        fireMethodIgnoreException(this::fireReadClose);
+        fireMethodIgnoreException(this::fireWriteClose);
+        fireMethodIgnoreException(() -> this.fireExceptionCatch(e));
+        fireMethodIgnoreException(() -> this.fireChannelClose(e));
     }
 }

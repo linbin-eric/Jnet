@@ -24,7 +24,11 @@ public interface Pipeline
 
     ChannelConfig channelConfig();
 
-    static void invokeMethodIgnoreException(Runnable runnable)
+    void setAttach(Object attach);
+
+    Object getAttach();
+
+    default void fireMethodIgnoreException(Runnable runnable)
     {
         try
         {
@@ -33,6 +37,18 @@ public interface Pipeline
         catch (Throwable e)
         {
             ;
+        }
+    }
+
+    default String getRemoteAddressWithoutException()
+    {
+        try
+        {
+            return socketChannel().getRemoteAddress().toString();
+        }
+        catch (Throwable e)
+        {
+            return null;
         }
     }
 }

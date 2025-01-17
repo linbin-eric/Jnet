@@ -34,8 +34,8 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
 
     public DefaultWriteCompleteHandler(Pipeline pipeline)
     {
-        this.socketChannel = pipeline.socketChannel();
         this.pipeline      = pipeline;
+        this.socketChannel = pipeline.socketChannel();
         ChannelConfig channelConfig = pipeline.channelConfig();
         this.allocator     = channelConfig.getAllocator();
         this.maxWriteBytes = Math.max(1, channelConfig.getMaxBatchWrite());

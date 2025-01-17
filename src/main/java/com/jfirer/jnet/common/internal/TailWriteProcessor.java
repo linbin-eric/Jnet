@@ -6,11 +6,11 @@ import com.jfirer.jnet.common.api.WriteProcessor;
 import com.jfirer.jnet.common.api.WriteProcessorNode;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 
-public class TailWriteProcessorImpl implements WriteProcessor
+public class TailWriteProcessor implements WriteProcessor
 {
     private WriteCompletionHandler writeCompleteHandler;
 
-    public TailWriteProcessorImpl(Pipeline pipeline)
+    public TailWriteProcessor(Pipeline pipeline)
     {
         writeCompleteHandler = new DefaultWriteCompleteHandler(pipeline);
     }

@@ -5,7 +5,7 @@ import com.jfirer.jnet.common.api.ReadProcessorNode;
 
 import java.util.function.Consumer;
 
-class ReadHeadUseCurrentThreaad implements ReadProcessorNode
+class ReadHeadUseCurrentThread implements ReadProcessorNode
 {
     protected final Pipeline            pipeline;
     protected       ReadProcessorNode   next;
@@ -14,7 +14,7 @@ class ReadHeadUseCurrentThreaad implements ReadProcessorNode
         e.printStackTrace();
     };
 
-    ReadHeadUseCurrentThreaad(Pipeline pipeline) {this.pipeline = pipeline;}
+    ReadHeadUseCurrentThread(Pipeline pipeline) {this.pipeline = pipeline;}
 
     @Override
     public void fireRead(Object data)
