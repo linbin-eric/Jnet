@@ -1,7 +1,7 @@
 package com.jfirer.jnet.client;
 
-import com.jfirer.jnet.common.api.ChannelContext;
 import com.jfirer.jnet.common.api.ChannelContextInitializer;
+import com.jfirer.jnet.common.internal.ChannelContext;
 import com.jfirer.jnet.common.util.ChannelConfig;
 
 import java.nio.channels.ClosedChannelException;

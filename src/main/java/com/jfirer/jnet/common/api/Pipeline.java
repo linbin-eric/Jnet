@@ -1,5 +1,7 @@
 package com.jfirer.jnet.common.api;
 
+import com.jfirer.jnet.common.internal.ChannelContext;
+
 public interface Pipeline
 {
     void fireWrite(Object data);
@@ -9,8 +11,6 @@ public interface Pipeline
     void addWriteProcessor(WriteProcessor<?> processor);
 
     ChannelContext channelContext();
-
-    void startReadIO();
 
     static void invokeMethodIgnoreException(Runnable runnable)
     {

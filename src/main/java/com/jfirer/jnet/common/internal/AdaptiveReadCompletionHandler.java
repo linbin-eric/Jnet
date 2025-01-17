@@ -1,9 +1,7 @@
 package com.jfirer.jnet.common.internal;
 
-import com.jfirer.jnet.common.api.ChannelContext;
 import com.jfirer.jnet.common.api.InternalPipeline;
 import com.jfirer.jnet.common.api.Pipeline;
-import com.jfirer.jnet.common.api.ReadCompletionHandler;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.exception.EndOfStreamException;
@@ -11,11 +9,12 @@ import com.jfirer.jnet.common.util.ChannelConfig;
 import com.jfirer.jnet.common.util.MathUtil;
 
 import java.nio.channels.AsynchronousSocketChannel;
+import java.nio.channels.CompletionHandler;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-public class AdaptiveReadCompletionHandler implements ReadCompletionHandler
+public class AdaptiveReadCompletionHandler implements CompletionHandler<Integer, AdaptiveReadCompletionHandler>
 {
     public static final int[]                     sizeTable;
     protected final     AsynchronousSocketChannel socketChannel;
@@ -85,7 +84,6 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler
         index     = Math.max(index, minIndex);
     }
 
-    @Override
     public void start()
     {
         ioBuffer = allocator.ioBuffer(sizeTable[index]);
@@ -100,7 +98,7 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler
     }
 
     @Override
-    public void completed(Integer read, ReadCompletionHandler handler)
+    public void completed(Integer read, AdaptiveReadCompletionHandler handler)
     {
         if (read == -1)
         {
@@ -158,7 +156,7 @@ public class AdaptiveReadCompletionHandler implements ReadCompletionHandler
     }
 
     @Override
-    public void failed(Throwable e, ReadCompletionHandler handler)
+    public void failed(Throwable e, AdaptiveReadCompletionHandler handler)
     {
         if (ioBuffer != null)
         {

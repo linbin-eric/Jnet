@@ -1,6 +1,5 @@
 package com.jfirer.jnet.common.internal;
 
-import com.jfirer.jnet.common.api.ChannelContext;
 import com.jfirer.jnet.common.api.WriteCompletionHandler;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
@@ -19,9 +18,9 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
     protected static final int                       SPIN_THRESHOLD = 16;
     protected static final int                       IDLE           = 1;
     protected static final int                       WORK           = 2;
-    protected final        AsynchronousSocketChannel socketChannel;
-    protected final        ChannelContext            channelContext;
-    protected final        BufferAllocator           allocator;
+    protected final AsynchronousSocketChannel socketChannel;
+    protected final ChannelContext            channelContext;
+    protected final BufferAllocator           allocator;
     protected final        int                       maxWriteBytes;
     // 终止状态。进入该状态后，不再继续使用
     ////////////////////////////////////////////////////////////

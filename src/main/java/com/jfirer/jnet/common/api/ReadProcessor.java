@@ -11,12 +11,6 @@ public interface ReadProcessor<T>
         }
 
         @Override
-        public void pipelineComplete(Pipeline pipeline)
-        {
-            pipeline.startReadIO();
-        }
-
-        @Override
         public void channelClose(ReadProcessorNode next, Throwable e)
         {
         }

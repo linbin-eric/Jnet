@@ -1,7 +1,7 @@
 package com.jfirer.jnet.client;
 
 import com.jfirer.jnet.common.api.*;
-import com.jfirer.jnet.common.internal.DefaultChannelContext;
+import com.jfirer.jnet.common.internal.ChannelContext;
 import com.jfirer.jnet.common.internal.DefaultPipeline;
 import com.jfirer.jnet.common.util.ChannelConfig;
 
@@ -14,9 +14,9 @@ import java.util.concurrent.TimeUnit;
 public class ClientChannelImpl implements ClientChannel
 {
     private volatile ConnectedState            state = ConnectedState.NOT_INIT;
-    private          InternalPipeline          pipeline;
-    private          ChannelContext            channelContext;
-    private          ChannelConfig             channelConfig;
+    private InternalPipeline pipeline;
+    private ChannelContext   channelContext;
+    private ChannelConfig    channelConfig;
     private          ChannelContextInitializer initializer;
 
     protected ClientChannelImpl(ChannelConfig channelConfig, ChannelContextInitializer initializer)
@@ -37,7 +37,7 @@ public class ClientChannelImpl implements ClientChannel
                     AsynchronousSocketChannel asynchronousSocketChannel = AsynchronousSocketChannel.open(channelConfig.getChannelGroup());
                     Future<Void>              future                    = asynchronousSocketChannel.connect(new InetSocketAddress(channelConfig.getIp(), channelConfig.getPort()));
                     future.get(30, TimeUnit.SECONDS);
-                    channelContext = new DefaultChannelContext(asynchronousSocketChannel, channelConfig, DefaultPipeline::new);
+                    channelContext = new ChannelContext(asynchronousSocketChannel, channelConfig, DefaultPipeline::new);
                     pipeline       = (InternalPipeline) channelContext.pipeline();
                     pipeline.addReadProcessor(new ReadProcessor<>()
                     {

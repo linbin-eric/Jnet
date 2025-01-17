@@ -52,13 +52,6 @@ public class DefaultPipeline implements InternalPipeline
     }
 
     @Override
-    public void startReadIO()
-    {
-        ReadCompletionHandler readCompletionHandler = new AdaptiveReadCompletionHandler(channelContext);
-        readCompletionHandler.start();
-    }
-
-    @Override
     public void fireRead(Object data)
     {
         readHead.fireRead(data);
@@ -82,6 +75,7 @@ public class DefaultPipeline implements InternalPipeline
         addReadProcessor(ReadProcessor.TAIL);
         addWriteProcessor(new TailWriteProcessorImpl(channelContext));
         readHead.firePipelineComplete(this);
+        new AdaptiveReadCompletionHandler(channelContext).start();
     }
 
     @Override

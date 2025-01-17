@@ -1,5 +1,7 @@
 package com.jfirer.jnet.common.api;
 
+import com.jfirer.jnet.common.internal.ChannelContext;
+
 public interface ChannelContextInitializer
 {
     /**

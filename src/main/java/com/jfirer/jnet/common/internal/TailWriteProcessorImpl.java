@@ -1,6 +1,5 @@
 package com.jfirer.jnet.common.internal;
 
-import com.jfirer.jnet.common.api.ChannelContext;
 import com.jfirer.jnet.common.api.WriteCompletionHandler;
 import com.jfirer.jnet.common.api.WriteProcessor;
 import com.jfirer.jnet.common.api.WriteProcessorNode;
