@@ -122,9 +122,5 @@ public class DefaultPipeline extends AtomicInteger implements InternalPipeline
         {
             ;
         }
-        fireMethodIgnoreException(this::fireReadClose);
-        fireMethodIgnoreException(this::fireWriteClose);
-        fireMethodIgnoreException(() -> this.fireExceptionCatch(e));
-        fireMethodIgnoreException(() -> this.fireChannelClose(e));
     }
 }

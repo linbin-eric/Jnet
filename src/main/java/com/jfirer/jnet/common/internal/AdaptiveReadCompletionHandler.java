@@ -99,9 +99,7 @@ public class AdaptiveReadCompletionHandler implements CompletionHandler<Integer,
     {
         if (read == -1)
         {
-            ioBuffer.free();
-            EndOfStreamException exception = new EndOfStreamException();
-            pipeline.close(exception);
+            failed(new EndOfStreamException(), this);
             return;
         }
         int except = ioBuffer.capacity();
@@ -159,5 +157,25 @@ public class AdaptiveReadCompletionHandler implements CompletionHandler<Integer,
             ioBuffer.free();
         }
         pipeline.close(e);
+        /**
+         * 这些方法只能在这里被调用，因为Pipeline#close(java.lang.Throwable)方法可能在多个地方被调用，这样可能会违背当前的线程模型。
+         * 在这个地方调用保证了这些方法的起点都是当前的线程，并且是只会被执行一次。
+         */
+        fireMethodIgnoreException(pipeline::fireReadClose);
+        fireMethodIgnoreException(pipeline::fireWriteClose);
+        fireMethodIgnoreException(() -> pipeline.fireExceptionCatch(e));
+        fireMethodIgnoreException(() -> pipeline.fireChannelClose(e));
+    }
+
+    void fireMethodIgnoreException(Runnable runnable)
+    {
+        try
+        {
+            runnable.run();
+        }
+        catch (Throwable e)
+        {
+            ;
+        }
     }
 }

@@ -28,18 +28,6 @@ public interface Pipeline
 
     Object getAttach();
 
-    default void fireMethodIgnoreException(Runnable runnable)
-    {
-        try
-        {
-            runnable.run();
-        }
-        catch (Throwable e)
-        {
-            ;
-        }
-    }
-
     default String getRemoteAddressWithoutException()
     {
         try
