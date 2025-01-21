@@ -3,11 +3,17 @@ package com.jfirer.jnet.client;
 import com.jfirer.jnet.common.api.*;
 import com.jfirer.jnet.common.internal.DefaultPipeline;
 import com.jfirer.jnet.common.util.ChannelConfig;
+import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.net.InetSocketAddress;
 import java.nio.channels.AsynchronousSocketChannel;
+import java.nio.channels.CompletionHandler;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.jar.Attributes;
 
 public class ClientChannelImpl implements ClientChannel
 {
@@ -15,11 +21,33 @@ public class ClientChannelImpl implements ClientChannel
     private          InternalPipeline    pipeline;
     private          ChannelConfig       channelConfig;
     private          PipelineInitializer initializer;
+    @Getter
+    private          Throwable           connectionException;
 
     protected ClientChannelImpl(ChannelConfig channelConfig, PipelineInitializer initializer)
     {
         this.channelConfig = channelConfig;
         this.initializer   = initializer;
+    }
+
+    @Setter
+    @Getter
+    class ConnectedResult extends CountDownLatch
+    {
+        boolean   success;
+        Throwable e;
+
+        /**
+         * Constructs a {@code CountDownLatch} initialized with the given count.
+         *
+         * @param count the number of times {@link #countDown} must be invoked
+         *              before threads can pass through {@link #await}
+         * @throws IllegalArgumentException if {@code count} is negative
+         */
+        public ConnectedResult(int count)
+        {
+            super(count);
+        }
     }
 
     @Override
@@ -32,36 +60,70 @@ public class ClientChannelImpl implements ClientChannel
                 try
                 {
                     AsynchronousSocketChannel asynchronousSocketChannel = AsynchronousSocketChannel.open(channelConfig.getChannelGroup());
-                    Future<Void>              future                    = asynchronousSocketChannel.connect(new InetSocketAddress(channelConfig.getIp(), channelConfig.getPort()));
-                    future.get(30, TimeUnit.SECONDS);
-                    pipeline = new DefaultPipeline(asynchronousSocketChannel, channelConfig);
-                    pipeline.addReadProcessor(new ReadProcessor<>()
+                    ConnectedResult           connectedResult           = new ConnectedResult(1);
+                    asynchronousSocketChannel.connect(new InetSocketAddress(channelConfig.getIp(), channelConfig.getPort()), connectedResult, new CompletionHandler<>()
                     {
                         @Override
-                        public void channelClose(ReadProcessorNode next, Throwable e)
+                        public void completed(Void result, ConnectedResult attachment)
                         {
-                            state = ConnectedState.DISCONNECTED;
-                            next.fireChannelClose(e);
+                            attachment.setSuccess(true);
+                            attachment.countDown();
                         }
 
                         @Override
-                        public void read(Object data, ReadProcessorNode next)
+                        public void failed(Throwable exc, ConnectedResult attachment)
                         {
-                            if (data == null)
-                            {
-                                System.err.println("数据为空");
-                            }
-                            next.fireRead(data);
+                            attachment.setE(exc);
+                            attachment.setSuccess(false);
+                            attachment.countDown();
                         }
                     });
-                    state = ConnectedState.CONNECTED;
-                    initializer.onPipelineComplete(pipeline);
-                    pipeline.complete();
-                    return true;
+                    if (connectedResult.await(30, TimeUnit.SECONDS))
+                    {
+                        if (connectedResult.isSuccess())
+                        {
+                            pipeline = new DefaultPipeline(asynchronousSocketChannel, channelConfig);
+                            pipeline.addReadProcessor(new ReadProcessor<>()
+                            {
+                                @Override
+                                public void channelClose(ReadProcessorNode next, Throwable e)
+                                {
+                                    state = ConnectedState.DISCONNECTED;
+                                    next.fireChannelClose(e);
+                                }
+
+                                @Override
+                                public void read(Object data, ReadProcessorNode next)
+                                {
+                                    if (data == null)
+                                    {
+                                        System.err.println("数据为空");
+                                    }
+                                    next.fireRead(data);
+                                }
+                            });
+                            state = ConnectedState.CONNECTED;
+                            initializer.onPipelineComplete(pipeline);
+                            pipeline.complete();
+                            return true;
+                        }
+                        else
+                        {
+                            connectionException = connectedResult.getE();
+                            state               = ConnectedState.DISCONNECTED;
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        state = ConnectedState.DISCONNECTED;
+                        return false;
+                    }
                 }
                 catch (Throwable e)
                 {
-                    state = ConnectedState.DISCONNECTED;
+                    state               = ConnectedState.DISCONNECTED;
+                    connectionException = e;
                     return false;
                 }
             }

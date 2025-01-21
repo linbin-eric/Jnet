@@ -28,6 +28,8 @@ public interface ClientChannel
 
     Pipeline pipeline();
 
+    Throwable getConnectionException();
+
     enum ConnectedState
     {
         NOT_INIT, CONNECTED, DISCONNECTED
