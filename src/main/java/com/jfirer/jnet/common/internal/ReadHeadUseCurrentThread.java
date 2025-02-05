@@ -14,7 +14,11 @@ class ReadHeadUseCurrentThread implements ReadProcessorNode
         e.printStackTrace();
     };
 
-    ReadHeadUseCurrentThread(Pipeline pipeline) {this.pipeline = pipeline;}
+    ReadHeadUseCurrentThread(Pipeline pipeline)
+    {
+        this.pipeline   = pipeline;
+        jvmExistHandler = pipeline.channelConfig().getJvmExistHandler();
+    }
 
     @Override
     public void fireRead(Object data)

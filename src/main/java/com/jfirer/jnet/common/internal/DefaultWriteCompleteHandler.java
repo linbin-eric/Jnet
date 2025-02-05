@@ -1,45 +1,61 @@
 package com.jfirer.jnet.common.internal;
 
+import com.jfirer.jnet.common.api.InternalPipeline;
+import com.jfirer.jnet.common.api.PartWriteFinishCallback;
 import com.jfirer.jnet.common.api.Pipeline;
 import com.jfirer.jnet.common.api.WriteCompletionHandler;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.util.ChannelConfig;
 import com.jfirer.jnet.common.util.UNSAFE;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.jctools.queues.SpscLinkedQueue;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
-public class DefaultWriteCompleteHandler implements WriteCompletionHandler
+@Slf4j
+public class DefaultWriteCompleteHandler extends AtomicInteger implements WriteCompletionHandler
 {
-    protected static final long                      STATE_OFFSET   = UNSAFE.getFieldOffset("state", DefaultWriteCompleteHandler.class);
-    protected static final int                       SPIN_THRESHOLD = 16;
-    protected static final int                       IDLE           = 1;
-    protected static final int                       WORK           = 2;
+    protected static final long                      STATE_OFFSET            = UNSAFE.getFieldOffset("state", DefaultWriteCompleteHandler.class);
+    protected static final int                       SPIN_THRESHOLD          = 16;
+    protected static final int                       OPEN_IDLE               = 0b00;
+    protected static final int                       OPEN_WORK               = 0b01;
+    protected static final int                       NOTICE_IDLE             = 0b10;
+    protected static final int                       NOTICE_WORK             = 0b11;
     protected final        AsynchronousSocketChannel socketChannel;
-    protected final        Pipeline                  pipeline;
+    protected final        InternalPipeline          pipeline;
     protected final        BufferAllocator           allocator;
     protected final        int                       maxWriteBytes;
+    @Setter
+    private                PartWriteFinishCallback   partWriteFinishCallback = PartWriteFinishCallback.INSTANCE;
     // 终止状态。进入该状态后，不再继续使用
     /// /////////////////////////////////////////////////////////
-    protected volatile     int                       state          = IDLE;
+    protected volatile     int                       state                   = OPEN_IDLE;
     //注意，JcTools旧版本的SpscQueue，其实现会出现当queue.isEmpty()==false时，queue.poll()返回null，导致程序异常
     //MpscQueue则是可以的。JDK的并发queue也是可以的
     protected              Queue<IoBuffer>           queue;
     private                IoBuffer                  sendingData;
-    private                AtomicInteger             queueCapacity  = new AtomicInteger(0);
+    @Getter
+    private                AtomicLong                queueCapacity           = new AtomicLong(0);
+    private static final   int                       OPEN                    = 1;
+    private static final   int                       CLOSED                  = 0;
 
     public DefaultWriteCompleteHandler(Pipeline pipeline)
     {
-        this.pipeline      = pipeline;
+        this.pipeline      = (InternalPipeline) pipeline;
         this.socketChannel = pipeline.socketChannel();
         ChannelConfig channelConfig = pipeline.channelConfig();
         this.allocator     = channelConfig.getAllocator();
         this.maxWriteBytes = Math.max(1, channelConfig.getMaxBatchWrite());
         queue              = new SpscLinkedQueue<>();
+        set(OPEN);
     }
 
     @Override
@@ -53,49 +69,140 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
             }
             queueCapacity.addAndGet(buffer.remainRead());
             queue.offer(buffer);
-            int now = state;
-            if (now == IDLE && changeToWork())
-            {
-                if (queue.isEmpty() == false)
-                {
-                    writeQueuedBuffer();
-                }
-                else
-                {
-                    rest();
-                }
-            }
+            tryWork();
         }
         catch (Throwable e)
         {
-            System.out.println("发生不应该的异常");
-            System.exit(-1);
+            log.error("发生未预料异常", e);
+            System.exit(108);
         }
     }
 
-    protected void rest()
+    public void noticeClose()
     {
-        state = IDLE;
-        if (queue.isEmpty() == false)
+        int now = state;
+        switch (now)
         {
-            int now = state;
-            if (now == IDLE && changeToWork())
+            case OPEN_IDLE ->
             {
-                if (queue.isEmpty() == false)
+                if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, OPEN_IDLE, NOTICE_IDLE))
                 {
-                    writeQueuedBuffer();
+                    tryWork();
+                }
+            }
+            case OPEN_WORK -> UNSAFE.compareAndSwapInt(this, STATE_OFFSET, OPEN_WORK, NOTICE_WORK);
+            case NOTICE_IDLE -> tryWork();
+            case NOTICE_WORK -> {;}
+        }
+    }
+
+    protected void tryWork()
+    {
+        int now = state;
+        switch (now)
+        {
+            case OPEN_IDLE ->
+            {
+                if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, OPEN_IDLE, OPEN_WORK))
+                {
+                    if (queue.isEmpty())
+                    {
+                        quitToIdle();
+                    }
+                    else
+                    {
+                        writeQueuedBuffer();
+                    }
+                }
+            }
+            case NOTICE_IDLE ->
+            {
+                if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, NOTICE_IDLE, NOTICE_WORK))
+                {
+                    if (queue.isEmpty())
+                    {
+                        closeChannel();
+                        quitToIdle();
+                    }
+                    else
+                    {
+                        writeQueuedBuffer();
+                    }
+                }
+            }
+            case NOTICE_WORK, OPEN_WORK -> {;}
+        }
+    }
+
+    private void closeChannel()
+    {
+        if (get() == CLOSED)
+        {
+            return;
+        }
+        if (compareAndSet(OPEN, CLOSED))
+        {
+            try
+            {
+                socketChannel.close();
+            }
+            catch (IOException ignored)
+            {
+                ;
+            }
+            pipeline.fireChannelClosed();
+        }
+    }
+
+    protected void quitToIdle()
+    {
+        int now = state;
+        switch (now)
+        {
+            case OPEN_WORK ->
+            {
+                if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, OPEN_WORK, OPEN_IDLE))
+                {
+                    if (queue.isEmpty())
+                    {
+                        ;
+                    }
+                    else
+                    {
+                        tryWork();
+                    }
                 }
                 else
                 {
-                    rest();
+                    now = state;
+                    if (now != NOTICE_WORK)
+                    {
+                        log.error("系统状态故障");
+                        System.exit(108);
+                    }
+                    quitToIdle();
                 }
             }
+            case NOTICE_WORK ->
+            {
+                if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, NOTICE_WORK, NOTICE_IDLE))
+                {
+                    if (queue.isEmpty())
+                    {
+                        ;
+                    }
+                    else
+                    {
+                        tryWork();
+                    }
+                }
+            }
+            default ->
+            {
+                log.error("系统状态故障");
+                System.exit(109);
+            }
         }
-    }
-
-    protected boolean changeToWork()
-    {
-        return UNSAFE.compareAndSwapInt(this, STATE_OFFSET, IDLE, WORK);
     }
 
     @Override
@@ -108,6 +215,8 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
                 socketChannel.write(byteBuffer, byteBuffer, this);
                 return;
             }
+            long lefted = queueCapacity.addAndGet(0 - sendingData.getWritePosi());
+            partWriteFinishCallback.partWriteFinish(lefted);
             sendingData.clear();
             if (queue.isEmpty() == false)
             {
@@ -124,7 +233,23 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
             }
             sendingData.free();
             sendingData = null;
-            rest();
+            int now = state;
+            switch (now)
+            {
+                case OPEN_WORK -> quitToIdle();
+                case NOTICE_WORK ->
+                {
+                    if (queue.isEmpty())
+                    {
+                        closeChannel();
+                        quitToIdle();
+                    }
+                    else
+                    {
+                        writeQueuedBuffer();
+                    }
+                }
+            }
         }
         catch (Throwable e)
         {
@@ -143,7 +268,7 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
             IoBuffer buffer;
             if (sendingData == null)
             {
-                sendingData = allocator.ioBuffer(queueCapacity.get());
+                sendingData = allocator.ioBuffer(1024);
             }
             while (count < maxWriteBytes && (buffer = queue.poll()) != null)
             {
@@ -151,7 +276,6 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
                 sendingData.put(buffer);
                 buffer.free();
             }
-            queueCapacity.addAndGet(0 - count);
             ByteBuffer byteBuffer = sendingData.readableByteBuffer();
             socketChannel.write(byteBuffer, byteBuffer, this);
         }
@@ -169,32 +293,14 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
             sendingData.free();
             sendingData = null;
         }
-        prepareTermination();
-        pipeline.shutdownInput();
-    }
-
-    protected void prepareTermination()
-    {
-        while (true)
+        partWriteFinishCallback.writeFailed(e, queueCapacity);
+        IoBuffer tmp;
+        while ((tmp = queue.poll()) != null)
         {
-            IoBuffer tmp;
-            while ((tmp = queue.poll()) != null)
-            {
-                tmp.free();
-            }
-            state = IDLE;
-            if (queue.isEmpty())
-            {
-                break;
-            }
-            else if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, IDLE, WORK))
-            {
-                ;
-            }
-            else
-            {
-                break;
-            }
+            tmp.free();
         }
+        pipeline.fireWriteFailed(e);
+        closeChannel();
+        quitToIdle();
     }
 }

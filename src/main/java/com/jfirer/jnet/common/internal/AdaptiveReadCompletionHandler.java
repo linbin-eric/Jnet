@@ -1,11 +1,13 @@
 package com.jfirer.jnet.common.internal;
 
 import com.jfirer.jnet.common.api.InternalPipeline;
+import com.jfirer.jnet.common.api.RegisterReadCallback;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.exception.EndOfStreamException;
 import com.jfirer.jnet.common.util.ChannelConfig;
 import com.jfirer.jnet.common.util.MathUtil;
+import lombok.Setter;
 
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
@@ -17,6 +19,8 @@ public class AdaptiveReadCompletionHandler implements CompletionHandler<Integer,
     public static final int[]                     sizeTable;
     protected final     AsynchronousSocketChannel socketChannel;
     protected final     BufferAllocator           allocator;
+    @Setter
+    private             RegisterReadCallback      registerReadCallback;
     private final       int                       minIndex;
     private final       int                       maxIndex;
     private final       int                       DECR_COUNT_MAX;
@@ -92,22 +96,27 @@ public class AdaptiveReadCompletionHandler implements CompletionHandler<Integer,
             failed(new EndOfStreamException(), this);
             return;
         }
-        int except = ioBuffer.capacity();
+        int      except    = ioBuffer.capacity();
+        IoBuffer thisRound = ioBuffer;
+        ioBuffer = null;
+        if (read != 0)
+        {
+            thisRound.addWritePosi(read);
+            pipeline.fireRead(thisRound);
+        }
+        else
+        {
+            thisRound.free();
+            System.err.println("读取到了0");
+        }
+        ioBuffer = nextReadBuffer(except, read);
+        registerReadCallback.onRegister(this, pipeline);
+    }
+
+    public void registerRead()
+    {
         try
         {
-            IoBuffer thisRound = ioBuffer;
-            ioBuffer = null;
-            if (read != 0)
-            {
-                thisRound.addWritePosi(read);
-                pipeline.fireRead(thisRound);
-            }
-            else
-            {
-                thisRound.free();
-                System.err.println("读取到了0");
-            }
-            ioBuffer = nextReadBuffer(except, read);
             socketChannel.read(ioBuffer.writableByteBuffer(), this, this);
         }
         catch (Throwable e)

@@ -9,14 +9,21 @@ import java.nio.channels.AsynchronousSocketChannel;
 
 public class DefaultPipeline implements InternalPipeline
 {
-    private final AsynchronousSocketChannel    socketChannel;
-    private final ChannelConfig                channelConfig;
-    private       ReadProcessorNode            readHead;
-    private       WriteProcessorNode           writeHead;
-    private       DefaultWriteCompleteHandler2 writeCompleteHandler;
+    private final AsynchronousSocketChannel     socketChannel;
+    private final ChannelConfig                 channelConfig;
+    private       ReadProcessorNode             readHead;
+    private       WriteProcessorNode            writeHead;
+    private AdaptiveReadCompletionHandler adaptiveReadCompletionHandler;
+    private DefaultWriteCompleteHandler   writeCompleteHandler;
     @Setter
     @Getter
-    private       Object                       attach;
+    private RegisterReadCallback          registerReadCallback    = RegisterReadCallback.INSTANCE;
+    @Setter
+    @Getter
+    private       PartWriteFinishCallback       partWriteFinishCallback = PartWriteFinishCallback.INSTANCE;
+    @Setter
+    @Getter
+    private       Object                        attach;
 
     public DefaultPipeline(AsynchronousSocketChannel socketChannel, ChannelConfig channelConfig)
     {
@@ -81,6 +88,12 @@ public class DefaultPipeline implements InternalPipeline
     }
 
     @Override
+    public long writeQueueCapacity()
+    {
+        return writeCompleteHandler.getQueueCapacity().get();
+    }
+
+    @Override
     public void fireRead(Object data)
     {
         readHead.fireRead(data);
@@ -89,11 +102,14 @@ public class DefaultPipeline implements InternalPipeline
     @Override
     public void complete()
     {
+        adaptiveReadCompletionHandler = new AdaptiveReadCompletionHandler(this);
         addReadProcessor(TailReadProcessor.INSTANCE);
-        writeCompleteHandler = new DefaultWriteCompleteHandler2(this);
+        writeCompleteHandler = new DefaultWriteCompleteHandler(this);
         addWriteProcessor(new TailWriteProcessor(writeCompleteHandler));
         readHead.firePipelineComplete(this);
-        new AdaptiveReadCompletionHandler(this).start();
+        adaptiveReadCompletionHandler.setRegisterReadCallback(registerReadCallback);
+        writeCompleteHandler.setPartWriteFinishCallback(partWriteFinishCallback);
+        adaptiveReadCompletionHandler.start();
     }
 
     @Override

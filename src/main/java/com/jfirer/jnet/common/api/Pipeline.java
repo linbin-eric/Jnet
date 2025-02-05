@@ -22,6 +22,18 @@ public interface Pipeline
 
     Object getAttach();
 
+    /**
+     * 当前通道的队列中的数据量
+     *
+     * @return
+     */
+    long writeQueueCapacity();
+
+    void setRegisterReadCallback(RegisterReadCallback registerReadCallback);
+
+    void setPartWriteFinishCallback(PartWriteFinishCallback partWriteFinishCallback);
+
+
     default String getRemoteAddressWithoutException()
     {
         try
