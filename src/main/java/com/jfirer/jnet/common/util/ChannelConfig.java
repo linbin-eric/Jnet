@@ -24,7 +24,7 @@ public class ChannelConfig
     private             int                      minReceiveSize          = 16;
     private             int                      maxReceiveSize          = 1024 * 1024 * 8;
     private             int                      initReceiveSize         = 1024;
-    private             int                      maxBatchWrite           = 1024 * 1024 * 8;
+    private             int                      maxBatchWrite           = 1024 * 1024 * 2;
     private             int                      msOfReadTimeout         = -1;
     private             String                   ip                      = "0.0.0.0";
     private             int                      port                    = -1;

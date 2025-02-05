@@ -546,8 +546,8 @@ public class BasicBuffer implements IoBuffer
         }
         else
         {
-            StorageSegment newSegment = storageSegment.makeNewSegment(capacity, bufferType);
             int            length     = remainRead();
+            StorageSegment newSegment = storageSegment.makeNewSegment(length == 0 ? 16 : length, bufferType);
             if (length == 0)
             {
                 ;

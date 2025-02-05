@@ -268,8 +268,18 @@ public class DefaultWriteCompleteHandler2 extends AtomicInteger implements Write
                 buffer.free();
             }
             queueCapacity.addAndGet(0 - count);
+            log.info("本次写出大小:{}k,队列剩余:{}k", count / 1024, queueCapacity.get() / 1024);
             ByteBuffer byteBuffer = sendingData.readableByteBuffer();
             socketChannel.write(byteBuffer, byteBuffer, this);
+//            if (sendingData != null)
+//            {
+//                sendingData.free();
+//                sendingData = null;
+//            }
+//            IoBuffer poll = queue.poll();
+//            sendingData = poll;
+//            ByteBuffer byteBuffer = poll.readableByteBuffer();
+//            socketChannel.write(byteBuffer, byteBuffer, this);
         }
         catch (Throwable e)
         {

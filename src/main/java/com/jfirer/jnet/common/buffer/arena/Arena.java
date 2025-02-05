@@ -33,7 +33,7 @@ public class Arena
      * 统计相关
      **/
     int           newChunkCount  = 0;
-    int           hugeChunkCount = 0;
+    AtomicInteger hugeChunkCount = new AtomicInteger();
     AtomicInteger usedAllocate   = new AtomicInteger();
     String        name;
     private Lock lock = new ReentrantLock();
@@ -79,7 +79,7 @@ public class Arena
     private void allocateHuge(int reqCapacity, PooledStorageSegment storageSegment)
     {
         storageSegment.init(this, new ChunkListNode(reqCapacity, bufferType), 0, 0, reqCapacity);
-        hugeChunkCount++;
+        hugeChunkCount.incrementAndGet();
     }
 
     public void allocate(int reqCapacity, PooledStorageSegment storageSegment)
@@ -270,6 +270,7 @@ public class Arena
     {
         if (chunkListNode.isUnPooled())
         {
+            hugeChunkCount.decrementAndGet();
             chunkListNode.destory();
         }
         else
@@ -329,7 +330,7 @@ public class Arena
         c050.stat(capacityStat);
         c075.stat(capacityStat);
         c100.stat(capacityStat);
-        capacityStat.setNumOfUnPooledChunk(capacityStat.getNumOfUnPooledChunk() + hugeChunkCount);
+        capacityStat.setNumOfUnPooledChunk(capacityStat.getNumOfUnPooledChunk() + hugeChunkCount.get());
         capacityStat.setUsedAllocate(capacityStat.getUsedAllocate() + usedAllocate.get());
     }
 }
