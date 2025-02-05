@@ -1,6 +1,5 @@
 package com.jfirer.jnet.common.api;
 
-import com.jfirer.jnet.common.exception.SelfCloseException;
 import com.jfirer.jnet.common.util.ChannelConfig;
 
 import java.nio.channels.AsynchronousSocketChannel;
@@ -13,12 +12,7 @@ public interface Pipeline
 
     void addWriteProcessor(WriteProcessor<?> processor);
 
-    default void close()
-    {
-        close(new SelfCloseException());
-    }
-
-    void close(Throwable e);
+    void shutdownInput();
 
     AsynchronousSocketChannel socketChannel();
 

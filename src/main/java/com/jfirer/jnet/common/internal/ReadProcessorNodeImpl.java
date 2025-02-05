@@ -23,31 +23,15 @@ public class ReadProcessorNodeImpl implements ReadProcessorNode
     }
 
     @Override
+    public void fireReadFailed(Throwable e)
+    {
+        processor.readFailed(e, next);
+    }
+
+    @Override
     public void firePipelineComplete(Pipeline pipeline)
     {
-        processor.pipelineComplete(pipeline);
-        if (next != null)
-        {
-            next.firePipelineComplete(pipeline);
-        }
-    }
-
-    @Override
-    public void fireExceptionCatch(Throwable e)
-    {
-        processor.exceptionCatch(e, next);
-    }
-
-    @Override
-    public void fireReadClose()
-    {
-        processor.readClose(next);
-    }
-
-    @Override
-    public void fireChannelClose(Throwable e)
-    {
-        processor.channelClose(next, e);
+        processor.pipelineComplete(pipeline, next);
     }
 
     @Override

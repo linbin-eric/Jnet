@@ -45,41 +45,15 @@ class ReadHeadUseWorker implements ReadProcessorNode
     }
 
     @Override
-    public void fireExceptionCatch(Throwable e)
+    public void fireReadFailed(Throwable e)
     {
         if (Thread.currentThread() == worker.thread())
         {
-            next.fireExceptionCatch(e);
+            next.fireReadFailed(e);
         }
         else
         {
-            worker.submit(() -> next.fireExceptionCatch(e));
-        }
-    }
-
-    @Override
-    public void fireReadClose()
-    {
-        if (Thread.currentThread() == worker.thread())
-        {
-            next.fireReadClose();
-        }
-        else
-        {
-            worker.submit(() -> next.fireReadClose());
-        }
-    }
-
-    @Override
-    public void fireChannelClose(Throwable e)
-    {
-        if (Thread.currentThread() == worker.thread())
-        {
-            next.fireChannelClose(e);
-        }
-        else
-        {
-            worker.submit(() -> next.fireChannelClose(e));
+            worker.submit(() -> next.fireReadFailed(e));
         }
     }
 

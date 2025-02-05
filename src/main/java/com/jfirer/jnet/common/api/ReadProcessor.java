@@ -10,42 +10,13 @@ public interface ReadProcessor<T>
      */
     void read(T data, ReadProcessorNode next);
 
+    default void readFailed(Throwable e, ReadProcessorNode next) {next.fireReadFailed(e);}
+
     /**
      * 首次读取注册之前触发
      */
-    default void pipelineComplete(Pipeline pipeline)
+    default void pipelineComplete(Pipeline pipeline, ReadProcessorNode next)
     {
-        ;
-    }
-
-    /**
-     * 通道关闭时触发动作
-     *
-     * @param next
-     */
-    default void channelClose(ReadProcessorNode next, Throwable e)
-    {
-        next.fireChannelClose(e);
-    }
-
-    /**
-     * 异常发生时触发
-     *
-     * @param e
-     * @param next
-     */
-    default void exceptionCatch(Throwable e, ReadProcessorNode next)
-    {
-        next.fireExceptionCatch(e);
-    }
-
-    /**
-     * 读取生命周期结束，后续不会再有读取相关动作产生。
-     *
-     * @param next
-     */
-    default void readClose(ReadProcessorNode next)
-    {
-        next.fireReadClose();
+        next.firePipelineComplete(pipeline);
     }
 }

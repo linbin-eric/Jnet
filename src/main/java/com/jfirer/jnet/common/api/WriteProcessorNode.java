@@ -4,7 +4,9 @@ public interface WriteProcessorNode
 {
     void fireWrite(Object data);
 
-    void fireWriteClose();
+    void fireChannelClosed();
+
+    void fireWriteFailed(Throwable e);
 
     void setNext(WriteProcessorNode next);
 

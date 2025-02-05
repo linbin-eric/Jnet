@@ -36,20 +36,20 @@ public abstract class AbstractDecoder implements ReadProcessor<IoBuffer>
         {
             System.err.println(this.getClass());
             log.error("解码过程中发生未知异常", e);
-            next.pipeline().close(e);
+            next.pipeline().shutdownInput();
         }
     }
 
     protected abstract void process0(ReadProcessorNode next);
 
     @Override
-    public void channelClose(ReadProcessorNode next, Throwable e)
+    public void readFailed(Throwable e, ReadProcessorNode next)
     {
         if (accumulation != null)
         {
             accumulation.free();
             accumulation = null;
         }
-        next.fireChannelClose(e);
+        next.fireReadFailed(e);
     }
 }

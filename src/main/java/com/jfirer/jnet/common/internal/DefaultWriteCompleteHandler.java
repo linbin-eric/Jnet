@@ -170,7 +170,7 @@ public class DefaultWriteCompleteHandler implements WriteCompletionHandler
             sendingData = null;
         }
         prepareTermination();
-        pipeline.close(e);
+        pipeline.shutdownInput();
     }
 
     protected void prepareTermination()

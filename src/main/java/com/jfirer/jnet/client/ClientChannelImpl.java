@@ -3,7 +3,6 @@ package com.jfirer.jnet.client;
 import com.jfirer.jnet.common.api.*;
 import com.jfirer.jnet.common.internal.DefaultPipeline;
 import com.jfirer.jnet.common.util.ChannelConfig;
-import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -11,9 +10,7 @@ import java.net.InetSocketAddress;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.jar.Attributes;
 
 public class ClientChannelImpl implements ClientChannel
 {
@@ -86,10 +83,10 @@ public class ClientChannelImpl implements ClientChannel
                             pipeline.addReadProcessor(new ReadProcessor<>()
                             {
                                 @Override
-                                public void channelClose(ReadProcessorNode next, Throwable e)
+                                public void readFailed(Throwable e, ReadProcessorNode next)
                                 {
                                     state = ConnectedState.DISCONNECTED;
-                                    next.fireChannelClose(e);
+                                    next.fireReadFailed(e);
                                 }
 
                                 @Override

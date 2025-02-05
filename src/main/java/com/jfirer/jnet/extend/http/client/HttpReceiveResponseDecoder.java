@@ -211,12 +211,12 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
     }
 
     @Override
-    public void channelClose(ReadProcessorNode next, Throwable e)
+    public void readFailed(Throwable e, ReadProcessorNode next)
     {
         if (receiveResponse != null)
         {
             receiveResponse.terminate();
         }
-        super.channelClose(next, e);
+        super.readFailed(e, next);
     }
 }

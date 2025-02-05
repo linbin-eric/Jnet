@@ -29,15 +29,28 @@ class WriteHead implements WriteProcessorNode
     }
 
     @Override
-    public void fireWriteClose()
+    public void fireChannelClosed()
     {
         if (Thread.currentThread() == worker.thread())
         {
-            next.fireWriteClose();
+            next.fireChannelClosed();
         }
         else
         {
-            worker.submit(() -> next.fireWriteClose());
+            worker.submit(() -> next.fireChannelClosed());
+        }
+    }
+
+    @Override
+    public void fireWriteFailed(Throwable e)
+    {
+        if (Thread.currentThread() == worker.thread())
+        {
+            next.fireWriteFailed(e);
+        }
+        else
+        {
+            worker.submit(() -> next.fireWriteFailed(e));
         }
     }
 }

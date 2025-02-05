@@ -54,7 +54,7 @@ public class HttpConnection
             pipeline.addReadProcessor(new ReadProcessor<HttpReceiveResponse>()
             {
                 @Override
-                public void channelClose(ReadProcessorNode next, Throwable e)
+                public void readFailed(Throwable e, ReadProcessorNode next)
                 {
                     responseSync.offer(HttpConnection.CLOSE_OF_CONNECTION);
                 }
@@ -94,22 +94,22 @@ public class HttpConnection
         }
         catch (InterruptedException e)
         {
-            clientChannel.pipeline().close();
+            clientChannel.pipeline().shutdownInput();
             throw new ClosedChannelException();
         }
         if (response == null)
         {
             log.debug("超时等待20秒，没有收到响应，关闭Http链接");
             String                 msg                    = clientChannel.alive() ? "通道仍然alive" : "通道已经失效";
+            clientChannel.pipeline().shutdownInput();
             SocketTimeoutException socketTimeoutException = new SocketTimeoutException(msg);
-            clientChannel.pipeline().close(socketTimeoutException);
             throw socketTimeoutException;
         }
         if (response == CLOSE_OF_CONNECTION)
         {
             log.debug("收到链接终止响应");
+            clientChannel.pipeline().shutdownInput();
             ClosedChannelException closedChannelException = new ClosedChannelException();
-            clientChannel.pipeline().close(closedChannelException);
             throw closedChannelException;
         }
         else
@@ -120,7 +120,7 @@ public class HttpConnection
 
     public void close()
     {
-        clientChannel.pipeline().close();
+        clientChannel.pipeline().shutdownInput();
     }
 
     /**

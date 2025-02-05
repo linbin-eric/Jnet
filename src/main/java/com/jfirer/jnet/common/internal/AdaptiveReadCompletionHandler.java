@@ -11,7 +11,6 @@ import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 public class AdaptiveReadCompletionHandler implements CompletionHandler<Integer, AdaptiveReadCompletionHandler>
 {
@@ -22,7 +21,6 @@ public class AdaptiveReadCompletionHandler implements CompletionHandler<Integer,
     private final       int                       maxIndex;
     private final       int                       DECR_COUNT_MAX;
     private final       InternalPipeline          pipeline;
-    private final       long                      msOfReadTimeout;
     private             int                       index;
     private             int                       decrCount;
     private             IoBuffer                  ioBuffer;
@@ -70,28 +68,20 @@ public class AdaptiveReadCompletionHandler implements CompletionHandler<Integer,
     {
         this.pipeline = pipeline;
         ChannelConfig config = pipeline.channelConfig();
-        msOfReadTimeout = config.getMsOfReadTimeout();
-        DECR_COUNT_MAX  = config.getDecrCountMax();
-        decrCount       = DECR_COUNT_MAX;
-        socketChannel   = pipeline.socketChannel();
-        allocator       = config.getAllocator();
-        minIndex        = indexOf(config.getMinReceiveSize());
-        maxIndex        = indexOf(config.getMaxReceiveSize());
-        index           = indexOf(config.getInitReceiveSize());
-        index           = Math.max(index, minIndex);
+        DECR_COUNT_MAX = config.getDecrCountMax();
+        decrCount      = DECR_COUNT_MAX;
+        socketChannel  = pipeline.socketChannel();
+        allocator      = config.getAllocator();
+        minIndex       = indexOf(config.getMinReceiveSize());
+        maxIndex       = indexOf(config.getMaxReceiveSize());
+        index          = indexOf(config.getInitReceiveSize());
+        index          = Math.max(index, minIndex);
     }
 
     public void start()
     {
         ioBuffer = allocator.ioBuffer(sizeTable[index]);
-        if (msOfReadTimeout == -1)
-        {
-            socketChannel.read(ioBuffer.writableByteBuffer(), this, this);
-        }
-        else
-        {
-            socketChannel.read(ioBuffer.writableByteBuffer(), msOfReadTimeout, TimeUnit.MILLISECONDS, this, this);
-        }
+        socketChannel.read(ioBuffer.writableByteBuffer(), this, this);
     }
 
     @Override
@@ -105,18 +95,20 @@ public class AdaptiveReadCompletionHandler implements CompletionHandler<Integer,
         int except = ioBuffer.capacity();
         try
         {
+            IoBuffer thisRound = ioBuffer;
+            ioBuffer = null;
             if (read != 0)
             {
-                ioBuffer.addWritePosi(read);
-                pipeline.fireRead(ioBuffer);
+                thisRound.addWritePosi(read);
+                pipeline.fireRead(thisRound);
             }
             else
             {
-                ioBuffer.free();
+                thisRound.free();
                 System.err.println("读取到了0");
             }
             ioBuffer = nextReadBuffer(except, read);
-            socketChannel.read(ioBuffer.writableByteBuffer(), msOfReadTimeout, TimeUnit.MILLISECONDS, this, this);
+            socketChannel.read(ioBuffer.writableByteBuffer(), this, this);
         }
         catch (Throwable e)
         {
@@ -156,26 +148,11 @@ public class AdaptiveReadCompletionHandler implements CompletionHandler<Integer,
         {
             ioBuffer.free();
         }
-        pipeline.close(e);
         /**
-         * 这些方法只能在这里被调用，因为Pipeline#close(java.lang.Throwable)方法可能在多个地方被调用，这样可能会违背当前的线程模型。
-         * 在这个地方调用保证了这些方法的起点都是当前的线程，并且是只会被执行一次。
+         * 这些方法只能在这里被调用，因为InternalPipeline#fireReadFailed(java.lang.Throwable)方法可能在多个地方被调用，这样可能会违背当前的线程模型。
+         * 在这个地方调用保证了这些方法的起点都是当前的线程.
          */
-        fireMethodIgnoreException(pipeline::fireReadClose);
-        fireMethodIgnoreException(pipeline::fireWriteClose);
-        fireMethodIgnoreException(() -> pipeline.fireExceptionCatch(e));
-        fireMethodIgnoreException(() -> pipeline.fireChannelClose(e));
-    }
-
-    void fireMethodIgnoreException(Runnable runnable)
-    {
-        try
-        {
-            runnable.run();
-        }
-        catch (Throwable e)
-        {
-            ;
-        }
+        pipeline.fireReadFailed(e);
+        pipeline.shutdownInput();
     }
 }

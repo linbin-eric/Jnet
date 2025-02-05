@@ -6,19 +6,17 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.nio.channels.AsynchronousSocketChannel;
-import java.util.concurrent.atomic.AtomicInteger;
 
-public class DefaultPipeline extends AtomicInteger implements InternalPipeline
+public class DefaultPipeline implements InternalPipeline
 {
-    private static final int                       OPEN  = 1;
-    private static final int                       CLOSE = 0;
-    private final        AsynchronousSocketChannel socketChannel;
-    private final        ChannelConfig             channelConfig;
-    private              ReadProcessorNode         readHead;
-    private              WriteProcessorNode        writeHead;
+    private final AsynchronousSocketChannel    socketChannel;
+    private final ChannelConfig                channelConfig;
+    private       ReadProcessorNode            readHead;
+    private       WriteProcessorNode           writeHead;
+    private       DefaultWriteCompleteHandler2 writeCompleteHandler;
     @Setter
     @Getter
-    private              Object                    attach;
+    private       Object                       attach;
 
     public DefaultPipeline(AsynchronousSocketChannel socketChannel, ChannelConfig channelConfig)
     {
@@ -57,6 +55,20 @@ public class DefaultPipeline extends AtomicInteger implements InternalPipeline
     }
 
     @Override
+    public void shutdownInput()
+    {
+        try
+        {
+            socketChannel.shutdownInput();
+        }
+        catch (Throwable ex)
+        {
+            ;
+        }
+        writeCompleteHandler.noticeClose();
+    }
+
+    @Override
     public AsynchronousSocketChannel socketChannel()
     {
         return socketChannel;
@@ -75,53 +87,30 @@ public class DefaultPipeline extends AtomicInteger implements InternalPipeline
     }
 
     @Override
-    public void fireChannelClose(Throwable e)
-    {
-        readHead.fireChannelClose(e);
-    }
-
-    @Override
-    public void fireExceptionCatch(Throwable e)
-    {
-        readHead.fireExceptionCatch(e);
-    }
-
-    @Override
     public void complete()
     {
-        set(OPEN);
         addReadProcessor(TailReadProcessor.INSTANCE);
-        addWriteProcessor(new TailWriteProcessor(this));
+        writeCompleteHandler = new DefaultWriteCompleteHandler2(this);
+        addWriteProcessor(new TailWriteProcessor(writeCompleteHandler));
         readHead.firePipelineComplete(this);
         new AdaptiveReadCompletionHandler(this).start();
     }
 
     @Override
-    public void fireReadClose()
+    public void fireReadFailed(Throwable e)
     {
-        readHead.fireReadClose();
+        readHead.fireReadFailed(e);
     }
 
     @Override
-    public void fireWriteClose()
+    public void fireWriteFailed(Throwable e)
     {
-        writeHead.fireWriteClose();
+        writeHead.fireWriteFailed(e);
     }
 
     @Override
-    public void close(Throwable e)
+    public void fireChannelClosed()
     {
-        if (!compareAndSet(OPEN, CLOSE))
-        {
-            return;
-        }
-        try
-        {
-            socketChannel.close();
-        }
-        catch (Throwable ignored)
-        {
-            ;
-        }
+        writeHead.fireChannelClosed();
     }
 }

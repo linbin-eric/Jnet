@@ -7,8 +7,13 @@ public interface WriteProcessor<T>
         next.fireWrite(data);
     }
 
-    default void writeClose(WriteProcessorNode next)
+    default void writeFailed(WriteProcessorNode next, Throwable e)
     {
-        next.fireWriteClose();
+        next.fireWriteFailed(e);
+    }
+
+    default void channelClosed(WriteProcessorNode next)
+    {
+        next.fireChannelClosed();
     }
 }

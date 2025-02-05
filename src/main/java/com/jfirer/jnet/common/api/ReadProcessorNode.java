@@ -4,13 +4,9 @@ public interface ReadProcessorNode
 {
     void fireRead(Object data);
 
+    void fireReadFailed(Throwable e);
+
     void firePipelineComplete(Pipeline pipeline);
-
-    void fireExceptionCatch(Throwable e);
-
-    void fireReadClose();
-
-    void fireChannelClose(Throwable e);
 
     void setNext(ReadProcessorNode next);
 

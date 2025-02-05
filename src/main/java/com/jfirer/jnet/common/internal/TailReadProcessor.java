@@ -1,5 +1,6 @@
 package com.jfirer.jnet.common.internal;
 
+import com.jfirer.jnet.common.api.Pipeline;
 import com.jfirer.jnet.common.api.ReadProcessor;
 import com.jfirer.jnet.common.api.ReadProcessorNode;
 
@@ -14,17 +15,14 @@ public class TailReadProcessor implements ReadProcessor<Object>
     }
 
     @Override
-    public void channelClose(ReadProcessorNode next, Throwable e)
+    public void readFailed(Throwable e, ReadProcessorNode next)
     {
+        ;
     }
 
     @Override
-    public void exceptionCatch(Throwable e, ReadProcessorNode next)
+    public void pipelineComplete(Pipeline pipeline, ReadProcessorNode next)
     {
-    }
-
-    @Override
-    public void readClose(ReadProcessorNode next)
-    {
+        ;
     }
 }

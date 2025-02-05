@@ -1,18 +1,16 @@
 package com.jfirer.jnet.common.internal;
 
-import com.jfirer.jnet.common.api.Pipeline;
-import com.jfirer.jnet.common.api.WriteCompletionHandler;
 import com.jfirer.jnet.common.api.WriteProcessor;
 import com.jfirer.jnet.common.api.WriteProcessorNode;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 
 public class TailWriteProcessor implements WriteProcessor
 {
-    private WriteCompletionHandler writeCompleteHandler;
+    private DefaultWriteCompleteHandler2 writeCompleteHandler;
 
-    public TailWriteProcessor(Pipeline pipeline)
+    public TailWriteProcessor(DefaultWriteCompleteHandler2 writeCompleteHandler)
     {
-        writeCompleteHandler = new DefaultWriteCompleteHandler(pipeline);
+        this.writeCompleteHandler = writeCompleteHandler;
     }
 
     @Override
@@ -22,7 +20,13 @@ public class TailWriteProcessor implements WriteProcessor
     }
 
     @Override
-    public void writeClose(WriteProcessorNode next)
+    public void writeFailed(WriteProcessorNode next, Throwable e)
+    {
+        ;
+    }
+
+    @Override
+    public void channelClosed(WriteProcessorNode next)
     {
         ;
     }

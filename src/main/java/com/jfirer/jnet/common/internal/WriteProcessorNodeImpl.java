@@ -20,9 +20,15 @@ public class WriteProcessorNodeImpl implements WriteProcessorNode
     }
 
     @Override
-    public void fireWriteClose()
+    public void fireChannelClosed()
     {
-        processor.writeClose(next);
+        processor.channelClosed(next);
+    }
+
+    @Override
+    public void fireWriteFailed(Throwable e)
+    {
+        processor.writeFailed(next, e);
     }
 
     @Override

@@ -31,6 +31,20 @@ class ReadHeadUseCurrentThread implements ReadProcessorNode
     }
 
     @Override
+    public void fireReadFailed(Throwable e)
+    {
+        try
+        {
+            next.fireReadFailed(e);
+        }
+        catch (Throwable eOfJvmExit)
+        {
+            jvmExistHandler.accept(eOfJvmExit);
+            System.exit(129);
+        }
+    }
+
+    @Override
     public void firePipelineComplete(Pipeline pipeline)
     {
         try
@@ -40,48 +54,6 @@ class ReadHeadUseCurrentThread implements ReadProcessorNode
         catch (Throwable e)
         {
             jvmExistHandler.accept(e);
-            System.exit(129);
-        }
-    }
-
-    @Override
-    public void fireExceptionCatch(Throwable e)
-    {
-        try
-        {
-            next.fireExceptionCatch(e);
-        }
-        catch (Throwable eOfExit)
-        {
-            jvmExistHandler.accept(eOfExit);
-            System.exit(129);
-        }
-    }
-
-    @Override
-    public void fireReadClose()
-    {
-        try
-        {
-            next.fireReadClose();
-        }
-        catch (Throwable e)
-        {
-            jvmExistHandler.accept(e);
-            System.exit(129);
-        }
-    }
-
-    @Override
-    public void fireChannelClose(Throwable e)
-    {
-        try
-        {
-            next.fireChannelClose(e);
-        }
-        catch (Throwable eUnCatch)
-        {
-            jvmExistHandler.accept(eUnCatch);
             System.exit(129);
         }
     }
