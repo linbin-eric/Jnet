@@ -30,9 +30,15 @@ import java.util.concurrent.CountDownLatch;
 @RunWith(Parameterized.class)
 public class CloseTest
 {
-    private String ip       = "127.0.0.1";
-    private int    port     = 4586;
-    private int    writeNum = 100;
+    private final String ip   = "127.0.0.1";
+    private final int    port = 4586;
+    private final int    writeNum = 100;
+    private final BufferAllocator bufferAllocator;
+
+    public CloseTest(final BufferAllocator bufferAllocator) throws IOException, InterruptedException
+    {
+        this.bufferAllocator = bufferAllocator;
+    }
 
     @Parameters(name = "IO模式:{2}")
     public static Collection<Object[]> params()
@@ -42,13 +48,6 @@ public class CloseTest
                 {new PooledBufferAllocator("closetest")}, //
 //                {PooledUnThreadCacheBufferAllocator.DEFAULT}, //
         });
-    }
-
-    private BufferAllocator bufferAllocator;
-
-    public CloseTest(final BufferAllocator bufferAllocator) throws IOException, InterruptedException
-    {
-        this.bufferAllocator = bufferAllocator;
     }
 
     @Test

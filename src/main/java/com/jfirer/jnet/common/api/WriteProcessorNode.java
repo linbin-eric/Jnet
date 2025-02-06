@@ -8,7 +8,7 @@ public interface WriteProcessorNode
 
     void fireWriteFailed(Throwable e);
 
-    void setNext(WriteProcessorNode next);
-
     WriteProcessorNode getNext();
+
+    void setNext(WriteProcessorNode next);
 }

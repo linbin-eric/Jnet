@@ -6,7 +6,7 @@ import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 
 public class TailWriteProcessor implements WriteProcessor
 {
-    private DefaultWriteCompleteHandler writeCompleteHandler;
+    private final DefaultWriteCompleteHandler writeCompleteHandler;
 
     public TailWriteProcessor(DefaultWriteCompleteHandler writeCompleteHandler)
     {

@@ -8,26 +8,21 @@ import java.nio.charset.StandardCharsets;
 
 public class HttpReceiveResponseDecoder extends AbstractDecoder
 {
+    private static final byte                re        = "\r".getBytes(StandardCharsets.US_ASCII)[0];
+    private static final byte                nl        = "\n".getBytes(StandardCharsets.US_ASCII)[0];
+    private final        byte[]              httpCode  = new byte[3];
+    private final        HttpConnection      httpConnection;
     private              HttpReceiveResponse receiveResponse;
     private              ParseState          state     = ParseState.RESPONSE_LINE;
     private              int                 lastCheck = -1;
-    private final        byte[]              httpCode  = new byte[3];
     private              int                 bodyRead  = 0;
     private              int                 chunkSize = -1;
     private              int                 chunkHeaderLength;
-    private final        HttpConnection      httpConnection;
-    private static final byte                re        = "\r".getBytes(StandardCharsets.US_ASCII)[0];
-    private static final byte                nl        = "\n".getBytes(StandardCharsets.US_ASCII)[0];
 
     public HttpReceiveResponseDecoder(HttpConnection httpConnection)
     {
         super(HttpClient.ALLOCATOR);
         this.httpConnection = httpConnection;
-    }
-
-    enum ParseState
-    {
-        RESPONSE_LINE, HEADER, BODY, NO_BODY, BODY_FIX_LENGTH, BODY_CHUNKED
     }
 
     @Override
@@ -218,5 +213,10 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
             receiveResponse.terminate();
         }
         super.readFailed(e, next);
+    }
+
+    enum ParseState
+    {
+        RESPONSE_LINE, HEADER, BODY, NO_BODY, BODY_FIX_LENGTH, BODY_CHUNKED
     }
 }

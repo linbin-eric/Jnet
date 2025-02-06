@@ -17,12 +17,12 @@ import static org.junit.Assert.*;
 public class ChunkListTest
 {
     PooledBufferAllocator allocator = new PooledBufferAllocator("test");
-    private long c100Offset = UNSAFE.getFieldOffset("c100", Arena.class);
-    private long c075Offset = UNSAFE.getFieldOffset("c075", Arena.class);
-    private long c050Offset = UNSAFE.getFieldOffset("c050", Arena.class);
-    private long c025Offset = UNSAFE.getFieldOffset("c025", Arena.class);
-    private long c000Offset = UNSAFE.getFieldOffset("c000", Arena.class);
-    private long cIntOffset = UNSAFE.getFieldOffset("cInt", Arena.class);
+    private final long c100Offset = UNSAFE.getFieldOffset("c100", Arena.class);
+    private final long c075Offset = UNSAFE.getFieldOffset("c075", Arena.class);
+    private final long c050Offset = UNSAFE.getFieldOffset("c050", Arena.class);
+    private final long c025Offset = UNSAFE.getFieldOffset("c025", Arena.class);
+    private final long c000Offset = UNSAFE.getFieldOffset("c000", Arena.class);
+    private final long cIntOffset = UNSAFE.getFieldOffset("cInt", Arena.class);
 
     @Test
     public void test0()
@@ -44,7 +44,7 @@ public class ChunkListTest
                 buffers.add(buffer);
             }
         }
-        Arena         arena  = (Arena) allocator.currentArena(preferDirect);
+        Arena         arena  = allocator.currentArena(preferDirect);
         ChunkList     c100   = (ChunkList) UNSAFE.getObject(arena, c100Offset);
         ChunkListNode chunk1 = c100.head();
         for (int i = 0; i < 4; i++)
@@ -56,12 +56,12 @@ public class ChunkListTest
             }
         }
         ChunkListNode chunk2 = c100.head();
-        assertTrue(chunk1 != chunk2);
-        while (buffers.isEmpty() == false)
+        assertNotSame(chunk1, chunk2);
+        while (!buffers.isEmpty())
         {
             buffers.poll().free();
         }
-        assertTrue(chunk2.getNext() == chunk1);
+        assertSame(chunk2.getNext(), chunk1);
         allocator.ioBuffer(size, preferDirect);
         allocator.ioBuffer(size, preferDirect);
         assertEquals(75, chunk2.usage());

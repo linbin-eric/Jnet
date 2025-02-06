@@ -16,7 +16,7 @@ import java.util.List;
 public class MemoryRegionCacheSmallTest
 {
     CachedBufferAllocator allocator = new CachedBufferAllocator("test");
-    private int size;
+    private final int size;
 
     public MemoryRegionCacheSmallTest(int size)
     {
@@ -53,15 +53,15 @@ public class MemoryRegionCacheSmallTest
             BasicBuffer buffer = (BasicBuffer) allocator.ioBuffer(size, preferDirect);
             buffers.add(buffer);
             CachedStorageSegment storageSegment = (CachedStorageSegment) buffer.getStorageSegment();
-            Assert.assertTrue(storageSegment.getThreadCache() != null);
+            Assert.assertNotNull(storageSegment.getThreadCache());
             Assert.assertEquals(i, storageSegment.getBitMapIndex());
         }
         BasicBuffer ioBuffer = (BasicBuffer) allocator.ioBuffer(size, preferDirect);
-        Assert.assertTrue( ioBuffer.getStorageSegment() instanceof  PooledStorageSegment);
-        Assert.assertTrue(((PooledStorageSegment) ioBuffer.getStorageSegment()).getArena() != null);
+        Assert.assertTrue(ioBuffer.getStorageSegment() instanceof PooledStorageSegment);
+        Assert.assertNotNull(((PooledStorageSegment) ioBuffer.getStorageSegment()).getArena());
         ioBuffer.free();
         ioBuffer = (BasicBuffer) allocator.ioBuffer(size, preferDirect);
-        Assert.assertTrue(ioBuffer.getStorageSegment() instanceof  PooledStorageSegment);
+        Assert.assertTrue(ioBuffer.getStorageSegment() instanceof PooledStorageSegment);
         ioBuffer.free();
         BasicBuffer buffer = buffers.get(numOfCached - 1);
         buffer.free();

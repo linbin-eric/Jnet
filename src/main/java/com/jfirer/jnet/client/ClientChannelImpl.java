@@ -15,36 +15,16 @@ import java.util.concurrent.TimeUnit;
 public class ClientChannelImpl implements ClientChannel
 {
     private volatile ConnectedState      state = ConnectedState.NOT_INIT;
-    private          InternalPipeline    pipeline;
-    private          ChannelConfig       channelConfig;
-    private          PipelineInitializer initializer;
+    private       InternalPipeline    pipeline;
+    private final ChannelConfig       channelConfig;
+    private final PipelineInitializer initializer;
     @Getter
-    private          Throwable           connectionException;
+    private       Throwable           connectionException;
 
     protected ClientChannelImpl(ChannelConfig channelConfig, PipelineInitializer initializer)
     {
         this.channelConfig = channelConfig;
         this.initializer   = initializer;
-    }
-
-    @Setter
-    @Getter
-    class ConnectedResult extends CountDownLatch
-    {
-        boolean   success;
-        Throwable e;
-
-        /**
-         * Constructs a {@code CountDownLatch} initialized with the given count.
-         *
-         * @param count the number of times {@link #countDown} must be invoked
-         *              before threads can pass through {@link #await}
-         * @throws IllegalArgumentException if {@code count} is negative
-         */
-        public ConnectedResult(int count)
-        {
-            super(count);
-        }
     }
 
     @Override
@@ -146,5 +126,25 @@ public class ClientChannelImpl implements ClientChannel
     public Pipeline pipeline()
     {
         return pipeline;
+    }
+
+    @Setter
+    @Getter
+    class ConnectedResult extends CountDownLatch
+    {
+        boolean   success;
+        Throwable e;
+
+        /**
+         * Constructs a {@code CountDownLatch} initialized with the given count.
+         *
+         * @param count the number of times {@link #countDown} must be invoked
+         *              before threads can pass through {@link #await}
+         * @throws IllegalArgumentException if {@code count} is negative
+         */
+        public ConnectedResult(int count)
+        {
+            super(count);
+        }
     }
 }

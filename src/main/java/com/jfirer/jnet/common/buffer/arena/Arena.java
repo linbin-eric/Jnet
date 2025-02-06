@@ -36,7 +36,7 @@ public class Arena
     AtomicInteger hugeChunkCount = new AtomicInteger();
     AtomicInteger usedAllocate   = new AtomicInteger();
     String        name;
-    private Lock lock = new ReentrantLock();
+    private final Lock lock = new ReentrantLock();
 
     @SuppressWarnings("unchecked")
     public Arena(int maxLevel, int pageSize, final String name, BufferType bufferType)

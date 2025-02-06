@@ -17,17 +17,6 @@ import java.util.List;
 public class AdaptiveReadCompletionHandler implements CompletionHandler<Integer, AdaptiveReadCompletionHandler>
 {
     public static final int[]                     sizeTable;
-    protected final     AsynchronousSocketChannel socketChannel;
-    protected final     BufferAllocator           allocator;
-    @Setter
-    private             RegisterReadCallback      registerReadCallback;
-    private final       int                       minIndex;
-    private final       int                       maxIndex;
-    private final       int                       DECR_COUNT_MAX;
-    private final       InternalPipeline          pipeline;
-    private             int                       index;
-    private             int                       decrCount;
-    private             IoBuffer                  ioBuffer;
 
     static
     {
@@ -45,6 +34,32 @@ public class AdaptiveReadCompletionHandler implements CompletionHandler<Integer,
         {
             sizeTable[i] = list.get(i);
         }
+    }
+
+    protected final     AsynchronousSocketChannel socketChannel;
+    protected final     BufferAllocator           allocator;
+    private final       int                       minIndex;
+    private final       int                       maxIndex;
+    private final       int                       DECR_COUNT_MAX;
+    private final       InternalPipeline          pipeline;
+    @Setter
+    private             RegisterReadCallback      registerReadCallback;
+    private             int                       index;
+    private             int                       decrCount;
+    private             IoBuffer                  ioBuffer;
+
+    public AdaptiveReadCompletionHandler(InternalPipeline pipeline)
+    {
+        this.pipeline = pipeline;
+        ChannelConfig config = pipeline.channelConfig();
+        DECR_COUNT_MAX = config.getDecrCountMax();
+        decrCount      = DECR_COUNT_MAX;
+        socketChannel  = pipeline.socketChannel();
+        allocator      = config.getAllocator();
+        minIndex       = indexOf(config.getMinReceiveSize());
+        maxIndex       = indexOf(config.getMaxReceiveSize());
+        index          = indexOf(config.getInitReceiveSize());
+        index          = Math.max(index, minIndex);
     }
 
     static int indexOf(int num)
@@ -66,20 +81,6 @@ public class AdaptiveReadCompletionHandler implements CompletionHandler<Integer,
         {
             return MathUtil.log2(MathUtil.normalizeSize(num)) + 22;
         }
-    }
-
-    public AdaptiveReadCompletionHandler(InternalPipeline pipeline)
-    {
-        this.pipeline = pipeline;
-        ChannelConfig config = pipeline.channelConfig();
-        DECR_COUNT_MAX = config.getDecrCountMax();
-        decrCount      = DECR_COUNT_MAX;
-        socketChannel  = pipeline.socketChannel();
-        allocator      = config.getAllocator();
-        minIndex       = indexOf(config.getMinReceiveSize());
-        maxIndex       = indexOf(config.getMaxReceiveSize());
-        index          = indexOf(config.getInitReceiveSize());
-        index          = Math.max(index, minIndex);
     }
 
     public void start()

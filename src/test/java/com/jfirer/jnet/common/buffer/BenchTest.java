@@ -14,10 +14,10 @@ import java.util.concurrent.TimeUnit;
 
 public class BenchTest
 {
-    @State(Scope.Benchmark)
-    public static class TestForPooledBufferAllocator
+    public static void main(String[] args) throws RunnerException
     {
-        public PooledBufferAllocator allocator = PooledBufferAllocator.DEFAULT;
+        Options opt = new OptionsBuilder().include(BenchTest.class.getSimpleName()).threads(4).forks(2).build();
+        new Runner(opt).run();
     }
 
     @Benchmark
@@ -39,13 +39,6 @@ public class BenchTest
         return ioBuffer;
     }
 
-    @State(Scope.Benchmark)
-    public static class TestForCachedPooledBufferAllocator
-    {
-        IoBuffer buffer;
-        public CachedBufferAllocator allocator = CachedBufferAllocator.DEFAULT;
-    }
-
     @BenchmarkMode(Mode.Throughput)
     @Benchmark
     @Measurement(iterations = 3, time = 3, timeUnit = TimeUnit.SECONDS)
@@ -65,9 +58,16 @@ public class BenchTest
         return ioBuffer;
     }
 
-    public static void main(String[] args) throws RunnerException
+    @State(Scope.Benchmark)
+    public static class TestForPooledBufferAllocator
     {
-        Options opt = new OptionsBuilder().include(BenchTest.class.getSimpleName()).threads(4).forks(2).build();
-        new Runner(opt).run();
+        public PooledBufferAllocator allocator = PooledBufferAllocator.DEFAULT;
+    }
+
+    @State(Scope.Benchmark)
+    public static class TestForCachedPooledBufferAllocator
+    {
+        public CachedBufferAllocator allocator = CachedBufferAllocator.DEFAULT;
+        IoBuffer buffer;
     }
 }

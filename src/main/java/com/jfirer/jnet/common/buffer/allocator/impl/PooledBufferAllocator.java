@@ -37,22 +37,9 @@ public class PooledBufferAllocator implements BufferAllocator
     protected int             maxLevel;
     protected String          name;
     protected ArenaUseCount[] heapArenaUseCount;
-    protected ArenaUseCount[] directArenaUseCount;
-
-    public int pagesize()
-    {
-        return pagesize;
-    }
-
-    public int maxLevel()
-    {
-        return maxLevel;
-    }
-
-    record ArenaUseCount(AtomicInteger use, Arena arena) {}
-
-    protected final FastThreadLocal<Arena> directArenaFastThreadLocal = FastThreadLocal.withInitializeValue(() -> leastUseArena(directArenaUseCount));
     protected final FastThreadLocal<Arena> heapArenaFastThreadLocal   = FastThreadLocal.withInitializeValue(() -> leastUseArena(heapArenaUseCount));
+    protected ArenaUseCount[] directArenaUseCount;
+    protected final FastThreadLocal<Arena> directArenaFastThreadLocal = FastThreadLocal.withInitializeValue(() -> leastUseArena(directArenaUseCount));
 
     public PooledBufferAllocator(String name)
     {
@@ -75,6 +62,16 @@ public class PooledBufferAllocator implements BufferAllocator
         {
             directArenaUseCount[i] = new ArenaUseCount(new AtomicInteger(0), new Arena(maxLevel, pagesize, "DirectArena-" + i, BufferType.UNSAFE));
         }
+    }
+
+    public int pagesize()
+    {
+        return pagesize;
+    }
+
+    public int maxLevel()
+    {
+        return maxLevel;
     }
 
     private Arena leastUseArena(ArenaUseCount[] arenaUseCounts)
@@ -169,5 +166,9 @@ public class PooledBufferAllocator implements BufferAllocator
         {
             each.arena.capacityStat(stat);
         }
+    }
+
+    record ArenaUseCount(AtomicInteger use, Arena arena)
+    {
     }
 }

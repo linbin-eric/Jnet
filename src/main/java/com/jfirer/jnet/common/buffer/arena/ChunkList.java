@@ -72,8 +72,7 @@ public class ChunkList
                 storageSegment.init(arena, node, allocate.handle(), allocate.offset(), allocate.capacity());
                 return true;
             }
-        }
-        while ((node = node.getNext()) != null);
+        } while ((node = node.getNext()) != null);
         return false;
     }
 
@@ -97,8 +96,7 @@ public class ChunkList
                 }
                 return subPage;
             }
-        }
-        while ((node = node.getNext()) != null);
+        } while ((node = node.getNext()) != null);
         return null;
     }
 
@@ -116,7 +114,7 @@ public class ChunkList
         if (usage < minUsage)
         {
             remove(node);
-            return addFromNext(node, usage) == false;
+            return !addFromNext(node, usage);
         }
         return false;
     }

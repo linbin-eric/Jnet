@@ -28,12 +28,12 @@ public class SmallAllocateTest
     long                  subPageHeadsOffset = UNSAFE.getFieldOffset("subPageHeads", Arena.class);
     long                  subPagesOffset     = UNSAFE.getFieldOffset("subPages", ChunkListNode.class);
     long                  bitMapOffset       = UNSAFE.getFieldOffset("bitMap", SubPage.class);
-    private long c100Offset = UNSAFE.getFieldOffset("c100", Arena.class);
-    private long c075Offset = UNSAFE.getFieldOffset("c075", Arena.class);
-    private long c050Offset = UNSAFE.getFieldOffset("c050", Arena.class);
-    private long c025Offset = UNSAFE.getFieldOffset("c025", Arena.class);
-    private long c000Offset = UNSAFE.getFieldOffset("c000", Arena.class);
-    private long cIntOffset = UNSAFE.getFieldOffset("cInt", Arena.class);
+    private final long c100Offset = UNSAFE.getFieldOffset("c100", Arena.class);
+    private final long c075Offset = UNSAFE.getFieldOffset("c075", Arena.class);
+    private final long c050Offset = UNSAFE.getFieldOffset("c050", Arena.class);
+    private final long c025Offset = UNSAFE.getFieldOffset("c025", Arena.class);
+    private final long c000Offset = UNSAFE.getFieldOffset("c000", Arena.class);
+    private final long cIntOffset = UNSAFE.getFieldOffset("cInt", Arena.class);
 
     public SmallAllocateTest(int reqCapacity)
     {
@@ -66,7 +66,7 @@ public class SmallAllocateTest
         int             elementNum   = pagesize / reqCapacity;
         int             numOfSubPage = 1 << allocator.maxLevel();
         ChunkListNode   chunk        = null;
-        Arena           arena        = (Arena) allocator.currentArena(direct);
+        Arena           arena        = allocator.currentArena(direct);
         Queue<IoBuffer> buffers      = new LinkedList<>();
         Queue<SubPage>  subPageQueue = new LinkedList<>();
         SubPage[]       subPageHeads = (SubPage[]) UNSAFE.getObject(arena, subPageHeadsOffset);
@@ -77,7 +77,7 @@ public class SmallAllocateTest
             for (int elementIdx = 0; elementIdx < elementNum; elementIdx++)
             {
                 BasicBuffer buffer = (BasicBuffer) allocator.ioBuffer(reqCapacity, direct);
-                buffers.add((IoBuffer) buffer);
+                buffers.add(buffer);
                 int offset = i * pagesize + elementIdx * reqCapacity;
                 assertEquals(reqCapacity, buffer.capacity());
                 assertEquals(offset, buffer.offset());
@@ -87,11 +87,11 @@ public class SmallAllocateTest
                 }
                 if (elementIdx != elementNum - 1)
                 {
-                    assertTrue(head.getNext() == ((SubPage[]) UNSAFE.getObject(chunk, subPagesOffset))[i]);
+                    assertSame(head.getNext(), ((SubPage[]) UNSAFE.getObject(chunk, subPagesOffset))[i]);
                 }
                 else
                 {
-                    assertTrue(head.getNext() == head);
+                    assertSame(head.getNext(), head);
                 }
             }
             subPageQueue.offer(((SubPage[]) UNSAFE.getObject(chunk, subPagesOffset))[i]);
@@ -107,22 +107,22 @@ public class SmallAllocateTest
                 buffers.poll().free();
                 if (elementIdx != elementNum - 1)
                 {
-                    assertTrue("当前下标" + i, head.getNext() == subPages[i]);
-                    SubPage subPageListNode = ((ChunkListNode) chunk).find(i);
+                    assertSame("当前下标" + i, head.getNext(), subPages[i]);
+                    SubPage subPageListNode = chunk.find(i);
                     if (i == 0)
                     {
-                        assertTrue(subPageListNode.getNext() == head);
+                        assertSame(subPageListNode.getNext(), head);
                     }
                     else
                     {
-                        assertTrue("当前下标" + i, subPageListNode.getNext() == ((ChunkListNode) chunk).find(0));
+                        assertSame("当前下标" + i, subPageListNode.getNext(), chunk.find(0));
                     }
                 }
                 else
                 {
-                    assertTrue(head.getNext() == ((ChunkListNode) chunk).find(0));
+                    assertSame(head.getNext(), chunk.find(0));
                 }
-                assertTrue(((ChunkListNode) chunk).find(0).getNext() == head);
+                assertSame(chunk.find(0).getNext(), head);
                 int r = elementIdx >>> 6;
                 int j = elementIdx & 63;
                 assertEquals(0, (bitMap[r] >>> j) & 1);
@@ -133,10 +133,10 @@ public class SmallAllocateTest
                 }
             }
         }
-        while (buffers.isEmpty() == false)
+        while (!buffers.isEmpty())
         {
             buffers.poll().free();
         }
-        assertTrue(head.getNext() != head);
+        assertNotSame(head.getNext(), head);
     }
 }

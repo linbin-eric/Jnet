@@ -2,13 +2,13 @@ package com.jfirer.jnet.common.util;
 
 public class Statistics
 {
-    private int[] totals;
-    private int[] durations;
+    private final int[] totals;
+    private final int[] durations;
 
     public Statistics(int... durations)
     {
         this.durations = durations;
-        totals = new int[durations.length];
+        totals         = new int[durations.length];
     }
 
     public void count(int num)

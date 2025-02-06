@@ -12,14 +12,14 @@ import static org.junit.Assert.assertTrue;
 
 public class HugeAllocateTest
 {
-    PooledBufferAllocator allocator = new PooledBufferAllocator("HugeTest");
     private static final long chunkSizeOffset     = UNSAFE.getFieldOffset("chunkSize", Arena.class);
     private static final long newChunkCountOffset = UNSAFE.getFieldOffset("newChunkCount", Arena.class);
+    PooledBufferAllocator allocator = new PooledBufferAllocator("HugeTest");
 
     @Test
     public void testHeap()
     {
-        Arena       arena            = (Arena) allocator.currentArena(false);
+        Arena       arena            = allocator.currentArena(false);
         int         allocateCapacity = UNSAFE.getInt(arena, chunkSizeOffset) + 1;
         BasicBuffer buffer           = (BasicBuffer) allocator.heapBuffer(allocateCapacity);
         int         newChunkCount    = UNSAFE.getInt(arena, newChunkCountOffset);
@@ -31,15 +31,15 @@ public class HugeAllocateTest
     {
         PooledStorageSegment storageSegment = (PooledStorageSegment) buffer.getStorageSegment();
         assertTrue(storageSegment.getChunkListNode().isUnPooled());
-        assertEquals(0, ((BasicBuffer) buffer).offset());
-        assertEquals(allocateCapacity, ((BasicBuffer) buffer).capacity());
-        ((BasicBuffer) buffer).free();
+        assertEquals(0, buffer.offset());
+        assertEquals(allocateCapacity, buffer.capacity());
+        buffer.free();
     }
 
     @Test
     public void testDirect()
     {
-        Arena       arena            = (Arena) allocator.currentArena(true);
+        Arena       arena            = allocator.currentArena(true);
         int         allocateCapacity = UNSAFE.getInt(arena, chunkSizeOffset) + 1;
         int         newChunkCount    = UNSAFE.getInt(arena, newChunkCountOffset);
         BasicBuffer buffer           = (BasicBuffer) allocator.unsafeBuffer(allocateCapacity);

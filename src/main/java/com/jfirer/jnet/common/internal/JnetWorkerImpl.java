@@ -14,10 +14,10 @@ public class JnetWorkerImpl extends FastThreadLocalThread implements JnetWorker
 {
     private static final int                       IDLE     = -1;
     private static final int                       WORK     = 1;
-    private              MpscLinkedQueue<Runnable> queue    = new MpscLinkedQueue<>();
-    private volatile     int                       state    = IDLE;
+    private final    Consumer<Throwable>       jvmExistHandler;
+    private final    MpscLinkedQueue<Runnable> queue = new MpscLinkedQueue<>();
+    private volatile int                       state = IDLE;
     private volatile     boolean                   shutdown = false;
-    private final        Consumer<Throwable>       jvmExistHandler;
 
     public JnetWorkerImpl(String threadName, Consumer<Throwable> jvmExistHandler)
     {
@@ -40,7 +40,7 @@ public class JnetWorkerImpl extends FastThreadLocalThread implements JnetWorker
                 else
                 {
                     state = IDLE;
-                    if (queue.isEmpty() == false)
+                    if (!queue.isEmpty())
                     {
                         state = WORK;
                     }

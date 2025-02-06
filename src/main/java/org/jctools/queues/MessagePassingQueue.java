@@ -29,79 +29,6 @@ public interface MessagePassingQueue<T>
 {
     int UNBOUNDED_CAPACITY = -1;
 
-    interface Supplier<T>
-    {
-        /**
-         * This method will return the next value to be written to the queue. As such the queue
-         * implementations are commited to insert the value once the call is made.
-         * <p>
-         * Users should be aware that underlying queue implementations may upfront claim parts of the queue
-         * for batch operations and this will effect the view on the queue from the supplier method. In
-         * particular size and any offer methods may take the view that the full batch has already happened.
-         *
-         * <p><b>WARNING</b>: this method is assumed to never throw. Breaking this assumption can lead to a broken queue.
-         * <p><b>WARNING</b>: this method is assumed to never return {@code null}. Breaking this assumption can lead to a broken queue.
-         *
-         * @return new element, NEVER {@code null}
-         */
-        T get();
-    }
-
-    interface Consumer<T>
-    {
-        /**
-         * This method will process an element already removed from the queue. This method is expected to
-         * never throw an exception.
-         * <p>
-         * Users should be aware that underlying queue implementations may upfront claim parts of the queue
-         * for batch operations and this will effect the view on the queue from the accept method. In
-         * particular size and any poll/peek methods may take the view that the full batch has already
-         * happened.
-         *
-         * <p><b>WARNING</b>: this method is assumed to never throw. Breaking this assumption can lead to a broken queue.
-         *
-         * @param e not {@code null}
-         */
-        void accept(T e);
-    }
-
-    interface WaitStrategy
-    {
-        /**
-         * This method can implement static or dynamic backoff. Dynamic backoff will rely on the counter for
-         * estimating how long the caller has been idling. The expected usage is:
-         * <p>
-         * <pre>
-         * <code>
-         * int ic = 0;
-         * while(true) {
-         *   if(!isGodotArrived()) {
-         *     ic = w.idle(ic);
-         *     continue;
-         *   }
-         *   ic = 0;
-         *   // party with Godot until he goes again
-         * }
-         * </code>
-         * </pre>
-         *
-         * @param idleCounter idle calls counter, managed by the idle method until reset
-         * @return new counter value to be used on subsequent idle cycle
-         */
-        int idle(int idleCounter);
-    }
-
-    interface ExitCondition
-    {
-        /**
-         * This method should be implemented such that the flag read or determination cannot be hoisted out of
-         * a loop which notmally means a volatile load, but with JDK9 VarHandles may mean getOpaque.
-         *
-         * @return true as long as we should keep running
-         */
-        boolean keepRunning();
-    }
-
     /**
      * Called from a producer thread subject to the restrictions appropriate to the implementation and
      * according to the {@link Queue#offer(Object)} interface.
@@ -313,4 +240,77 @@ public interface MessagePassingQueue<T>
      * @throws IllegalArgumentException s OR wait OR exit are {@code null}
      */
     void fill(Supplier<T> s, WaitStrategy wait, ExitCondition exit);
+
+    interface Supplier<T>
+    {
+        /**
+         * This method will return the next value to be written to the queue. As such the queue
+         * implementations are commited to insert the value once the call is made.
+         * <p>
+         * Users should be aware that underlying queue implementations may upfront claim parts of the queue
+         * for batch operations and this will effect the view on the queue from the supplier method. In
+         * particular size and any offer methods may take the view that the full batch has already happened.
+         *
+         * <p><b>WARNING</b>: this method is assumed to never throw. Breaking this assumption can lead to a broken queue.
+         * <p><b>WARNING</b>: this method is assumed to never return {@code null}. Breaking this assumption can lead to a broken queue.
+         *
+         * @return new element, NEVER {@code null}
+         */
+        T get();
+    }
+
+    interface Consumer<T>
+    {
+        /**
+         * This method will process an element already removed from the queue. This method is expected to
+         * never throw an exception.
+         * <p>
+         * Users should be aware that underlying queue implementations may upfront claim parts of the queue
+         * for batch operations and this will effect the view on the queue from the accept method. In
+         * particular size and any poll/peek methods may take the view that the full batch has already
+         * happened.
+         *
+         * <p><b>WARNING</b>: this method is assumed to never throw. Breaking this assumption can lead to a broken queue.
+         *
+         * @param e not {@code null}
+         */
+        void accept(T e);
+    }
+
+    interface WaitStrategy
+    {
+        /**
+         * This method can implement static or dynamic backoff. Dynamic backoff will rely on the counter for
+         * estimating how long the caller has been idling. The expected usage is:
+         * <p>
+         * <pre>
+         * <code>
+         * int ic = 0;
+         * while(true) {
+         *   if(!isGodotArrived()) {
+         *     ic = w.idle(ic);
+         *     continue;
+         *   }
+         *   ic = 0;
+         *   // party with Godot until he goes again
+         * }
+         * </code>
+         * </pre>
+         *
+         * @param idleCounter idle calls counter, managed by the idle method until reset
+         * @return new counter value to be used on subsequent idle cycle
+         */
+        int idle(int idleCounter);
+    }
+
+    interface ExitCondition
+    {
+        /**
+         * This method should be implemented such that the flag read or determination cannot be hoisted out of
+         * a loop which notmally means a volatile load, but with JDK9 VarHandles may mean getOpaque.
+         *
+         * @return true as long as we should keep running
+         */
+        boolean keepRunning();
+    }
 }

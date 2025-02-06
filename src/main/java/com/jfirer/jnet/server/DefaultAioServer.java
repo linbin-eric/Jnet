@@ -11,9 +11,9 @@ import java.nio.channels.AsynchronousServerSocketChannel;
 
 public class DefaultAioServer implements AioServer
 {
-    private ChannelConfig                   channelConfig;
-    private AsynchronousServerSocketChannel serverSocketChannel;
-    private PipelineInitializer             initializer;
+    private final ChannelConfig                   channelConfig;
+    private       AsynchronousServerSocketChannel serverSocketChannel;
+    private final PipelineInitializer             initializer;
 
     public DefaultAioServer(ChannelConfig channelConfig, PipelineInitializer initializer)
     {

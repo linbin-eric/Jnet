@@ -94,8 +94,7 @@ public class HeapRw implements RwDelegation
     {
         switch (srcBuf.bufferType())
         {
-            case HEAP ->
-                    System.arraycopy(srcBuf.memory(), srcBuf.getReadPosi() + srcBuf.offset(), destMemory, destOffset + destPosi, len);
+            case HEAP -> System.arraycopy(srcBuf.memory(), srcBuf.getReadPosi() + srcBuf.offset(), destMemory, destOffset + destPosi, len);
             case DIRECT, UNSAFE ->
             {
                 BasicBuffer buffer = (BasicBuffer) srcBuf;

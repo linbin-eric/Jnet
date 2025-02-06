@@ -37,7 +37,7 @@ public class NormalAllocateTest
                 BasicBuffer buffer = (BasicBuffer) allocator.ioBuffer(levelSize, direct);
                 long        handle = ((PooledStorageSegment) buffer.getStorageSegment()).getHandle();
                 assertEquals(base + j, handle);
-                buffers.add((IoBuffer) buffer);
+                buffers.add(buffer);
             }
             for (IoBuffer each : buffers)
             {
@@ -71,7 +71,7 @@ public class NormalAllocateTest
             }
             else
             {
-                assertEquals((1 << i) + 1, ((PooledStorageSegment) buffer.getStorageSegment()).getHandle());
+                assertEquals((1L << i) + 1, ((PooledStorageSegment) buffer.getStorageSegment()).getHandle());
             }
         }
     }

@@ -16,14 +16,14 @@ import java.util.concurrent.locks.ReentrantLock;
 public class ThreadCache
 {
     static final int                      smallestMask = ~15;
-    final        int                      numOfCached;
-    private      Arena                    arena;
-    private      CachedStorageSegment[][] regionCaches;
-    private      long[][]                 bitMaps;
-    private      int[]                    numOfAvails;
-    private      int[]                    nextAvails;
-    private      BufferType               bufferType;
-    private      Lock                     lock         = new ReentrantLock();
+    final         int                      numOfCached;
+    private final Arena                    arena;
+    private final CachedStorageSegment[][] regionCaches;
+    private final long[][]                 bitMaps;
+    private final int[]                    numOfAvails;
+    private final int[]    nextAvails;
+    private final BufferType bufferType;
+    private final Lock       lock = new ReentrantLock();
 
     public ThreadCache(int numOfCached, int maxCachedCapacity, Arena arena, BufferType bufferType)
     {

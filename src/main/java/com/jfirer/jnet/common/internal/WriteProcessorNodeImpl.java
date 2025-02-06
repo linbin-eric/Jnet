@@ -32,14 +32,14 @@ public class WriteProcessorNodeImpl implements WriteProcessorNode
     }
 
     @Override
-    public void setNext(WriteProcessorNode next)
-    {
-        this.next = next;
-    }
-
-    @Override
     public WriteProcessorNode getNext()
     {
         return next;
+    }
+
+    @Override
+    public void setNext(WriteProcessorNode next)
+    {
+        this.next = next;
     }
 }

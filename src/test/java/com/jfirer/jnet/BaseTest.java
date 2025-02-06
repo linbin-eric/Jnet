@@ -31,16 +31,16 @@ import static org.junit.Assert.assertEquals;
 public class BaseTest
 {
     private static final Logger          logger       = LoggerFactory.getLogger(BaseTest.class);
-    private              AioServer       aioServer;
-    private              String          ip           = "127.0.0.1";
-    private              int             port         = 7598;
-    private              int             numPerThread = 20000000;
-    private              int             numClients   = 8;
-    private              ClientChannel[] clients;
-    private              CountDownLatch  latch        = new CountDownLatch(numClients);
-    private              int[][]         results;
-    private              BufferAllocator bufferAllocator;
     AtomicInteger count = new AtomicInteger(0);
+    private final AioServer aioServer;
+    private final String    ip   = "127.0.0.1";
+    private final int       port = 7598;
+    private final int    numPerThread = 20000000;
+    private final int numClients   = 8;
+    private final ClientChannel[] clients;
+    private final CountDownLatch  latch = new CountDownLatch(numClients);
+    private final int[][]         results;
+    private final BufferAllocator bufferAllocator;
 
     public BaseTest()
     {
@@ -166,7 +166,7 @@ public class BaseTest
         System.out.println("success:" + CachedBufferAllocator.DEFAULT.success.sum() + ",fail:" + CachedBufferAllocator.DEFAULT.fail.sum());
     }
 
-    static enum IoMode
+    enum IoMode
     {
         IO, Channel, THREAD
     }

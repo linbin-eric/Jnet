@@ -18,9 +18,9 @@ public interface Pipeline
 
     ChannelConfig channelConfig();
 
-    void setAttach(Object attach);
-
     Object getAttach();
+
+    void setAttach(Object attach);
 
     /**
      * 当前通道的队列中的数据量
@@ -32,7 +32,6 @@ public interface Pipeline
     void setRegisterReadCallback(RegisterReadCallback registerReadCallback);
 
     void setPartWriteFinishCallback(PartWriteFinishCallback partWriteFinishCallback);
-
 
     default String getRemoteAddressWithoutException()
     {

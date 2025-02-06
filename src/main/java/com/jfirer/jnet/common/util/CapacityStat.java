@@ -2,7 +2,6 @@ package com.jfirer.jnet.common.util;
 
 import com.jfirer.jnet.common.buffer.arena.Chunk;
 import lombok.Data;
-import lombok.ToString;
 
 @Data
 public class CapacityStat
@@ -32,12 +31,6 @@ public class CapacityStat
     @Override
     public String toString()
     {
-        return "CapacityStat{usedBytes=" + (chunkCapacity - freeBytes) / 1024 +
-               "K,freeBytes=" + freeBytes / 1024 +
-               "K, chunkCapacity=" + chunkCapacity / 1024 +
-               "K, numOfPooledChunk=" + numOfPooledChunk +
-               ", numOfUnPooledChunk=" + numOfUnPooledChunk +
-               ", usedAllocate=" + usedAllocate +
-               '}';
+        return "CapacityStat{usedBytes=" + (chunkCapacity - freeBytes) / 1024 + "K,freeBytes=" + freeBytes / 1024 + "K, chunkCapacity=" + chunkCapacity / 1024 + "K, numOfPooledChunk=" + numOfPooledChunk + ", numOfUnPooledChunk=" + numOfUnPooledChunk + ", usedAllocate=" + usedAllocate + '}';
     }
 }

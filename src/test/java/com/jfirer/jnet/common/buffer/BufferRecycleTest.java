@@ -7,8 +7,7 @@ import org.junit.Test;
 
 import java.util.concurrent.CountDownLatch;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class BufferRecycleTest
 {
@@ -20,7 +19,7 @@ public class BufferRecycleTest
         IoBuffer buffer = allocator.ioBuffer(12);
         buffer.free();
         IoBuffer buffer2 = allocator.ioBuffer(5689);
-        assertTrue(buffer == buffer2);
+        assertSame(buffer, buffer2);
         buffer2.free();
     }
 
@@ -28,11 +27,11 @@ public class BufferRecycleTest
     public void test2() throws InterruptedException
     {
         final IoBuffer buffer = allocator.ioBuffer(12);
-        Thread thread = new Thread(buffer::free);
+        Thread         thread = new Thread(buffer::free);
         thread.start();
         thread.join();
         IoBuffer buffer2 = allocator.ioBuffer(12);
-        assertTrue(buffer2 == buffer);
+        assertSame(buffer2, buffer);
         buffer2.free();
     }
 
@@ -41,16 +40,15 @@ public class BufferRecycleTest
     {
         final IoBuffer       buffer = allocator.ioBuffer(128);
         final CountDownLatch latch  = new CountDownLatch(1);
-        new FastThreadLocalThread(() ->
-        {
+        new FastThreadLocalThread(() -> {
             buffer.free();
             latch.countDown();
         }).start();
         latch.await();
         IoBuffer buffer2 = allocator.ioBuffer(128);
-        assertEquals(System.identityHashCode(buffer),System.identityHashCode(buffer2));
+        assertEquals(System.identityHashCode(buffer), System.identityHashCode(buffer2));
         buffer2.free();
         IoBuffer buffer3 = allocator.ioBuffer(128);
-        assertEquals(System.identityHashCode(buffer2),System.identityHashCode(buffer3));
+        assertEquals(System.identityHashCode(buffer2), System.identityHashCode(buffer3));
     }
 }

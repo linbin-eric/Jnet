@@ -29,23 +29,23 @@ public class DefaultWriteCompleteHandler extends AtomicInteger implements WriteC
     protected static final int                       OPEN_WORK               = 0b01;
     protected static final int                       NOTICE_IDLE             = 0b10;
     protected static final int                       NOTICE_WORK             = 0b11;
+    private static final   int                       OPEN                    = 1;
+    private static final   int                       CLOSED                  = 0;
     protected final        AsynchronousSocketChannel socketChannel;
     protected final        InternalPipeline          pipeline;
     protected final        BufferAllocator           allocator;
-    protected final        int                       maxWriteBytes;
-    @Setter
-    private                PartWriteFinishCallback   partWriteFinishCallback = PartWriteFinishCallback.INSTANCE;
     // 终止状态。进入该状态后，不再继续使用
+    protected final        int                       maxWriteBytes;
     /// /////////////////////////////////////////////////////////
     protected volatile     int                       state                   = OPEN_IDLE;
     //注意，JcTools旧版本的SpscQueue，其实现会出现当queue.isEmpty()==false时，queue.poll()返回null，导致程序异常
     //MpscQueue则是可以的。JDK的并发queue也是可以的
     protected              Queue<IoBuffer>           queue;
-    private                IoBuffer                  sendingData;
+    @Setter
+    private                PartWriteFinishCallback   partWriteFinishCallback = PartWriteFinishCallback.INSTANCE;
+    private       IoBuffer   sendingData;
     @Getter
-    private                AtomicLong                queueCapacity           = new AtomicLong(0);
-    private static final   int                       OPEN                    = 1;
-    private static final   int                       CLOSED                  = 0;
+    private final AtomicLong queueCapacity = new AtomicLong(0);
 
     public DefaultWriteCompleteHandler(Pipeline pipeline)
     {
@@ -215,17 +215,17 @@ public class DefaultWriteCompleteHandler extends AtomicInteger implements WriteC
                 socketChannel.write(byteBuffer, byteBuffer, this);
                 return;
             }
-            long lefted = queueCapacity.addAndGet(0 - sendingData.getWritePosi());
+            long lefted = queueCapacity.addAndGet(-sendingData.getWritePosi());
             partWriteFinishCallback.partWriteFinish(lefted);
             sendingData.clear();
-            if (queue.isEmpty() == false)
+            if (!queue.isEmpty())
             {
                 writeQueuedBuffer();
                 return;
             }
             for (int spin = 0; spin < SPIN_THRESHOLD; spin += 1)
             {
-                if (queue.isEmpty() == false)
+                if (!queue.isEmpty())
                 {
                     writeQueuedBuffer();
                     return;

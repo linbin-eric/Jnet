@@ -24,7 +24,7 @@ public final class ReflectUtil
 
     public static Class<?> wrapPrimitive(Class<?> type)
     {
-        if (type.isPrimitive() == false)
+        if (!type.isPrimitive())
         {
             throw new IllegalArgumentException();
         }

@@ -14,13 +14,16 @@ import org.openjdk.jmh.runner.options.TimeValue;
 
 public class BenchCache
 {
-    @State(Scope.Group)
-    public static class Data
+    public static void main(String[] args) throws RunnerException
     {
-        BufferAllocator           pooled      = new PooledBufferAllocator("pool");
-        BufferAllocator           cached      = new CachedBufferAllocator("cached");
-        SpscLinkedQueue<IoBuffer> pooledQueue = new SpscLinkedQueue<>();
-        SpscLinkedQueue<IoBuffer> cachedQueue = new SpscLinkedQueue<>();
+        Options opt = new OptionsBuilder().include(BenchCache.class.getSimpleName()).threads(2).forks(2)//
+                                          .mode(Mode.Throughput)//
+                                          .measurementIterations(3)//
+                                          .measurementTime(TimeValue.seconds(10))//
+                                          .warmupIterations(1)//
+                                          .warmupTime(TimeValue.seconds(3))//
+                                          .build();
+        new Runner(opt).run();
     }
 
     @Benchmark
@@ -71,15 +74,12 @@ public class BenchCache
         return poll;
     }
 
-    public static void main(String[] args) throws RunnerException
+    @State(Scope.Group)
+    public static class Data
     {
-        Options opt = new OptionsBuilder().include(BenchCache.class.getSimpleName()).threads(2).forks(2)//
-                                          .mode(Mode.Throughput)//
-                                          .measurementIterations(3)//
-                                          .measurementTime(TimeValue.seconds(10))//
-                                          .warmupIterations(1)//
-                                          .warmupTime(TimeValue.seconds(3))//
-                                          .build();
-        new Runner(opt).run();
+        BufferAllocator           pooled      = new PooledBufferAllocator("pool");
+        BufferAllocator           cached      = new CachedBufferAllocator("cached");
+        SpscLinkedQueue<IoBuffer> pooledQueue = new SpscLinkedQueue<>();
+        SpscLinkedQueue<IoBuffer> cachedQueue = new SpscLinkedQueue<>();
     }
 }

@@ -2,10 +2,8 @@ package com.jfirer.jnet.extend.http.client;
 
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
-import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.recycler.Recycler;
 import com.jfirer.jnet.common.util.ReflectUtil;
-import com.jfirer.jnet.extend.http.decode.HttpRequest;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -13,11 +11,6 @@ import java.util.concurrent.ConcurrentMap;
 public interface HttpClient
 {
     BufferAllocator ALLOCATOR = new PooledBufferAllocator("HttpClient");
-
-    record Connection(String domain, int port)
-    {
-    }
-
     ConcurrentMap<Connection, Recycler<HttpConnection>> map = new ConcurrentHashMap<>();
 
     static HttpReceiveResponse newCall(HttpSendRequest request) throws Exception
@@ -98,5 +91,9 @@ public interface HttpClient
         request.setPort(portStart == -1 ? 80 : Integer.parseInt(url.substring(portStart + 1, index)));
         request.setDoMain(portStart == -1 ? url.substring(domainStart, index) : url.substring(domainStart, portStart));
         request.putHeader("Host", url.substring(domainStart, index));
+    }
+
+    record Connection(String domain, int port)
+    {
     }
 }

@@ -10,7 +10,7 @@ import java.nio.charset.StandardCharsets;
 
 public class HttpResponseEncoder implements WriteProcessor<HttpResponse>
 {
-    private BufferAllocator allocator;
+    private final BufferAllocator allocator;
 
     public HttpResponseEncoder(BufferAllocator allocator)
     {

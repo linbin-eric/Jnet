@@ -435,7 +435,7 @@ public class BasicBuffer implements IoBuffer
                         break;
                     }
                 }
-                if (miss == false)
+                if (!miss)
                 {
                     return i;
                 }

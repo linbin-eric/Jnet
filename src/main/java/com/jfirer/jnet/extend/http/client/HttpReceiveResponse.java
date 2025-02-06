@@ -22,6 +22,11 @@ import java.util.concurrent.locks.LockSupport;
 public class HttpReceiveResponse implements AutoCloseable
 {
     private static final long                      bodyReadTimeout                 = 1000 * 30;
+    private static final int                       RECEIVE_UN_FINISH_AND_NOT_CLOSE = 0b00;
+    private static final int                       RECEIVE_UN_FINISH_AND_CLOSE     = 0b01;
+    private static final int                       RECEIVE_FINISH_AND_NOT_CLOSE    = 0b10;
+    private static final int                       RECEIVE_FINISH_AND_CLOSE        = 0b11;
+    private static final long                      STATE_OFFSET                    = UNSAFE.getFieldOffset("state", HttpReceiveResponse.class);
     private final        HttpConnection            connection;
     private              int                       httpCode;
     private              Map<String, String>       headers                         = new HashMap<>();
@@ -39,11 +44,21 @@ public class HttpReceiveResponse implements AutoCloseable
     private volatile     boolean                   generatedUTF8Body               = false;
     private volatile     Thread                    waitForReceiveFinshThread;
     private volatile     int                       state                           = RECEIVE_UN_FINISH_AND_NOT_CLOSE;
-    private static final int                       RECEIVE_UN_FINISH_AND_NOT_CLOSE = 0b00;
-    private static final int                       RECEIVE_UN_FINISH_AND_CLOSE     = 0b01;
-    private static final int                       RECEIVE_FINISH_AND_NOT_CLOSE    = 0b10;
-    private static final int                       RECEIVE_FINISH_AND_CLOSE        = 0b11;
-    private static final long                      STATE_OFFSET                    = UNSAFE.getFieldOffset("state", HttpReceiveResponse.class);
+
+    public static boolean isEndOrTerminateOfBody(PartOfBody partOfBody)
+    {
+        return partOfBody == PartOfBody.END_OF_BODY || partOfBody == PartOfBody.TERMINATE_OF_BODY;
+    }
+
+    public static boolean isEndOfBody(PartOfBody partOfBody)
+    {
+        return partOfBody == PartOfBody.END_OF_BODY;
+    }
+
+    public static boolean isTerminateOfBody(PartOfBody partOfBody)
+    {
+        return partOfBody == PartOfBody.TERMINATE_OF_BODY;
+    }
 
     public void putHeader(String name, String value)
     {
@@ -91,8 +106,7 @@ public class HttpReceiveResponse implements AutoCloseable
                         ;
                     }
                 }
-                default ->
-                        throw new IllegalStateException("endOfBody 方法只能由解码器调用，在调用这个方法的时候，消息体流的状态应该是为未解析完成");
+                default -> throw new IllegalStateException("endOfBody 方法只能由解码器调用，在调用这个方法的时候，消息体流的状态应该是为未解析完成");
             }
         }
     }
@@ -185,8 +199,7 @@ public class HttpReceiveResponse implements AutoCloseable
                         ;
                     }
                 }
-                default ->
-                        throw new IllegalStateException("close 方法只能由客户端消费响应后调用，因此状态应该为 not_close 状态");
+                default -> throw new IllegalStateException("close 方法只能由客户端消费响应后调用，因此状态应该为 not_close 状态");
             }
         }
     }
@@ -225,7 +238,7 @@ public class HttpReceiveResponse implements AutoCloseable
 
     public String getCachedUTF8Body() throws TimeoutException
     {
-        if (generatedUTF8Body == false)
+        if (!generatedUTF8Body)
         {
             waitForReceiveFinish();
             generatedUTF8Body = true;
@@ -251,20 +264,5 @@ public class HttpReceiveResponse implements AutoCloseable
     public PartOfBody pollChunk() throws InterruptedException
     {
         return body.poll(bodyReadTimeout, TimeUnit.MILLISECONDS);
-    }
-
-    public static boolean isEndOrTerminateOfBody(PartOfBody partOfBody)
-    {
-        return partOfBody == PartOfBody.END_OF_BODY || partOfBody == PartOfBody.TERMINATE_OF_BODY;
-    }
-
-    public static boolean isEndOfBody(PartOfBody partOfBody)
-    {
-        return partOfBody == PartOfBody.END_OF_BODY;
-    }
-
-    public static boolean isTerminateOfBody(PartOfBody partOfBody)
-    {
-        return partOfBody == PartOfBody.TERMINATE_OF_BODY;
     }
 }

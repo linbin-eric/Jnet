@@ -30,7 +30,6 @@ package org.jctools.queues;
  */
 public class SpscLinkedQueue<E> extends BaseLinkedQueue<E>
 {
-
     public SpscLinkedQueue()
     {
         LinkedQueueNode<E> node = newNode();
@@ -62,7 +61,7 @@ public class SpscLinkedQueue<E> extends BaseLinkedQueue<E>
             throw new NullPointerException();
         }
         final LinkedQueueNode<E> nextNode = newNode(e);
-        LinkedQueueNode<E> oldNode = lpProducerNode();
+        LinkedQueueNode<E>       oldNode  = lpProducerNode();
         soProducerNode(nextNode);
         // Should a producer thread get interrupted here the chain WILL be broken until that thread is resumed
         // and completes the store in prev.next. This is a "bubble".
@@ -80,14 +79,10 @@ public class SpscLinkedQueue<E> extends BaseLinkedQueue<E>
     @Override
     public int fill(Supplier<E> s, int limit)
     {
-        if (null == s)
-            throw new IllegalArgumentException("supplier is null");
-        if (limit < 0)
-            throw new IllegalArgumentException("limit is negative:" + limit);
-        if (limit == 0)
-            return 0;
-
-        LinkedQueueNode<E> tail = newNode(s.get());
+        if (null == s) throw new IllegalArgumentException("supplier is null");
+        if (limit < 0) throw new IllegalArgumentException("limit is negative:" + limit);
+        if (limit == 0) return 0;
+        LinkedQueueNode<E>       tail = newNode(s.get());
         final LinkedQueueNode<E> head = tail;
         for (int i = 1; i < limit; i++)
         {

@@ -28,15 +28,15 @@ public class Chunk
     /* 供ChunkList使用 */
     public Chunk(int maxLevel, int pageSize, BufferType bufferType)
     {
-        this.pageSize = pageSize;
-        this.maxLevel = maxLevel;
-        this.bufferType = bufferType;
-        pageSizeShift = MathUtil.log2(pageSize);
+        this.pageSize       = pageSize;
+        this.maxLevel       = maxLevel;
+        this.bufferType     = bufferType;
+        pageSizeShift       = MathUtil.log2(pageSize);
         subPageOverflowMask = ~(pageSize - 1);
-        freeBytes = chunkSize = 1 << (maxLevel + pageSizeShift);
-        memory = initializeMemory(chunkSize);
-        memoryTree = initMemoryTree(maxLevel);
-        unpooled = false;
+        freeBytes           = chunkSize = 1 << (maxLevel + pageSizeShift);
+        memory              = initializeMemory(chunkSize);
+        memoryTree          = initMemoryTree(maxLevel);
+        unpooled            = false;
         if (memory instanceof ByteBuffer buffer && buffer.isDirect())
         {
             directBufferAddress = UNSAFE.bytebufferOffsetAddress(buffer);
@@ -52,15 +52,15 @@ public class Chunk
      */
     public Chunk(int chunkSize, BufferType bufferType)
     {
-        this.bufferType = bufferType;
-        unpooled = true;
-        this.chunkSize = chunkSize;
-        memory = initializeMemory(chunkSize);
-        maxLevel = 0;
-        pageSizeShift = 0;
-        memoryTree = null;
+        this.bufferType     = bufferType;
+        unpooled            = true;
+        this.chunkSize      = chunkSize;
+        memory              = initializeMemory(chunkSize);
+        maxLevel            = 0;
+        pageSizeShift       = 0;
+        memoryTree          = null;
         subPageOverflowMask = 0;
-        pageSize = 0;
+        pageSize            = 0;
         if (memory instanceof ByteBuffer buffer && buffer.isDirect())
         {
             directBufferAddress = PlatFormFunction.bytebufferOffsetAddress(buffer);
@@ -218,7 +218,7 @@ public class Chunk
             int value2      = memoryTree[index ^ 1].avail;
             int parentValue = value > value2 ? value : value2;
             memoryTree[parentIndex].avail = parentValue;
-            index = parentIndex;
+            index                         = parentIndex;
         }
     }
 
@@ -288,18 +288,6 @@ public class Chunk
         return pageSize;
     }
 
-    class MemoryTreeNode
-    {
-        int        avail;
-        MemoryArea memoryArea;
-
-        public MemoryTreeNode(int avail, MemoryArea memoryArea)
-        {
-            this.avail = avail;
-            this.memoryArea = memoryArea;
-        }
-    }
-
     /**
      * 在chunk中的内存区域信息
      *
@@ -307,5 +295,19 @@ public class Chunk
      * @param capacity 该内存区域的大小
      * @param offset   该内存区域
      */
-    record MemoryArea(int handle, int capacity, int offset, Object memory, Chunk chunk) {}
+    record MemoryArea(int handle, int capacity, int offset, Object memory, Chunk chunk)
+    {
+    }
+
+    class MemoryTreeNode
+    {
+        int        avail;
+        MemoryArea memoryArea;
+
+        public MemoryTreeNode(int avail, MemoryArea memoryArea)
+        {
+            this.avail      = avail;
+            this.memoryArea = memoryArea;
+        }
+    }
 }

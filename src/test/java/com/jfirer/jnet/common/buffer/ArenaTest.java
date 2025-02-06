@@ -15,19 +15,17 @@ import static org.junit.Assert.*;
 
 public class ArenaTest
 {
-    private PooledBufferAllocator allocator;
-
+    private final PooledBufferAllocator allocator;
+    private final long                  c100Offset = UNSAFE.getFieldOffset("c100", Arena.class);
+    private final long                  c075Offset = UNSAFE.getFieldOffset("c075", Arena.class);
+    private final long c050Offset = UNSAFE.getFieldOffset("c050", Arena.class);
+    private final long c025Offset = UNSAFE.getFieldOffset("c025", Arena.class);
+    private final long c000Offset = UNSAFE.getFieldOffset("c000", Arena.class);
+    private final long cIntOffset = UNSAFE.getFieldOffset("cInt", Arena.class);
     public ArenaTest()
     {
         allocator = new PooledBufferAllocator("test");
     }
-
-    private long c100Offset = UNSAFE.getFieldOffset("c100", Arena.class);
-    private long c075Offset = UNSAFE.getFieldOffset("c075", Arena.class);
-    private long c050Offset = UNSAFE.getFieldOffset("c050", Arena.class);
-    private long c025Offset = UNSAFE.getFieldOffset("c025", Arena.class);
-    private long c000Offset = UNSAFE.getFieldOffset("c000", Arena.class);
-    private long cIntOffset = UNSAFE.getFieldOffset("cInt", Arena.class);
 
     /**
      * 测试随着不同申请率，在多个ChunkList进行移动
@@ -45,7 +43,7 @@ public class ArenaTest
         Queue<IoBuffer> queue  = new LinkedList<>();
         queue.add(buffer);
 //        ThreadCache      threadCache = allocator.threadCache();
-        Arena     arena = (Arena) allocator.currentArena(preferDirect);
+        Arena     arena = allocator.currentArena(preferDirect);
         ChunkList c100  = (ChunkList) UNSAFE.getObject(arena, c100Offset);
         ChunkList c075  = (ChunkList) UNSAFE.getObject(arena, c075Offset);
         ChunkList c050  = (ChunkList) UNSAFE.getObject(arena, c050Offset);
@@ -70,7 +68,7 @@ public class ArenaTest
             assertNull(c025.head());
             assertNull(c000.head());
             assertNotNull(cInt.head());
-            assertTrue(chunkListNode == cInt.head());
+            assertSame(chunkListNode, cInt.head());
         }
         assertEquals(25, chunkListNode.usage());
         for (int i = 0; i < quarter; i++)
@@ -82,7 +80,7 @@ public class ArenaTest
             assertNull(c025.head());
             assertNotNull(c000.head());
             assertNull(cInt.head());
-            assertTrue(chunkListNode == c000.head());
+            assertSame(chunkListNode, c000.head());
         }
         assertEquals(50, chunkListNode.usage());
         for (int i = 0; i < quarter; i++)
@@ -94,7 +92,7 @@ public class ArenaTest
             assertNotNull(c025.head());
             assertNull(c000.head());
             assertNull(cInt.head());
-            assertTrue(chunkListNode == c025.head());
+            assertSame(chunkListNode, c025.head());
         }
         assertEquals(75, chunkListNode.usage());
         for (int i = 1; i < quarter; i++)
@@ -116,11 +114,11 @@ public class ArenaTest
             assertNull(cInt.head());
             if (chunkListNode.usage() <= 90)
             {
-                assertTrue(chunkListNode == c050.head());
+                assertSame(chunkListNode, c050.head());
             }
             else
             {
-                assertTrue(chunkListNode == c075.head());
+                assertSame(chunkListNode, c075.head());
             }
         }
         assertEquals(99, chunkListNode.usage());
@@ -131,7 +129,7 @@ public class ArenaTest
         assertNull(c025.head());
         assertNull(c000.head());
         assertNull(cInt.head());
-        assertTrue(chunkListNode == c100.head());
+        assertSame(chunkListNode, c100.head());
         assertEquals(100, chunkListNode.usage());
         queue.poll().free();
         assertEquals(99, chunkListNode.usage());
@@ -141,7 +139,7 @@ public class ArenaTest
         assertNull(c025.head());
         assertNull(c000.head());
         assertNull(cInt.head());
-        assertTrue(chunkListNode == c075.head());
+        assertSame(chunkListNode, c075.head());
         for (int i = 1; i < quarter; i++)
         {
             queue.poll().free();
@@ -151,7 +149,7 @@ public class ArenaTest
             assertNull(c025.head());
             assertNull(c000.head());
             assertNull(cInt.head());
-            assertTrue(chunkListNode == c075.head());
+            assertSame(chunkListNode, c075.head());
         }
         assertEquals(75, chunkListNode.usage());
         int percent = (1 << allocator.maxLevel()) / 100;
@@ -165,7 +163,7 @@ public class ArenaTest
             assertNull(c025.head());
             assertNull(c000.head());
             assertNull(cInt.head());
-            assertTrue(chunkListNode == c075.head());
+            assertSame(chunkListNode, c075.head());
         }
         for (int i = 0; i < quarter - percent; i++)
         {
@@ -176,7 +174,7 @@ public class ArenaTest
             assertNull(c025.head());
             assertNull(c000.head());
             assertNull(cInt.head());
-            assertTrue(chunkListNode == c050.head());
+            assertSame(chunkListNode, c050.head());
         }
         assertEquals(50, chunkListNode.usage());
         for (int i = 0; i < percent; i++)
@@ -189,7 +187,7 @@ public class ArenaTest
             assertNull(c025.head());
             assertNull(c000.head());
             assertNull(cInt.head());
-            assertTrue(chunkListNode == c050.head());
+            assertSame(chunkListNode, c050.head());
         }
         for (int i = 0; i < quarter - percent; i++)
         {
@@ -200,7 +198,7 @@ public class ArenaTest
             assertNotNull(c025.head());
             assertNull(c000.head());
             assertNull(cInt.head());
-            assertTrue(chunkListNode == c025.head());
+            assertSame(chunkListNode, c025.head());
         }
         assertEquals(25, chunkListNode.usage());
         for (int i = 0; i < percent; i++)
@@ -213,7 +211,7 @@ public class ArenaTest
             assertNotNull(c025.head());
             assertNull(c000.head());
             assertNull(cInt.head());
-            assertTrue(chunkListNode == c025.head());
+            assertSame(chunkListNode, c025.head());
         }
         for (int i = 0; i < quarter - percent - 1; i++)
         {
@@ -224,7 +222,7 @@ public class ArenaTest
             assertNull(c025.head());
             assertNotNull(c000.head());
             assertNull(cInt.head());
-            assertTrue(chunkListNode == c000.head());
+            assertSame(chunkListNode, c000.head());
         }
         assertEquals(1, chunkListNode.usage());
         queue.poll().free();

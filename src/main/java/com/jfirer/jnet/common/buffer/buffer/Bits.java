@@ -199,7 +199,7 @@ public final class Bits
 
     public static void putInt(byte[] array, int posi, int value)
     {
-        array[posi] = int3(value);
+        array[posi]     = int3(value);
         array[posi + 1] = int2(value);
         array[posi + 2] = int1(value);
         array[posi + 3] = int0(value);
@@ -215,7 +215,7 @@ public final class Bits
 
     public static void putLong(byte[] array, int posi, long value)
     {
-        array[posi] = long7(value);
+        array[posi]     = long7(value);
         array[posi + 1] = long6(value);
         array[posi + 2] = long5(value);
         array[posi + 3] = long4(value);
@@ -239,7 +239,7 @@ public final class Bits
 
     public static void putShort(byte[] array, int posi, short s)
     {
-        array[posi] = short1(s);
+        array[posi]     = short1(s);
         array[posi + 1] = short0(s);
     }
 

@@ -25,7 +25,7 @@ public class TakeAndRecycleTest
         assertEquals(16, ((PooledStorageSegment) buffer.getStorageSegment()).getHandle());
         BasicBuffer buffer2 = (BasicBuffer) allocator.ioBuffer(pagesize << 1, preferDirect);
         assertEquals(9, ((PooledStorageSegment) buffer2.getStorageSegment()).getHandle());
-        ((BasicBuffer) buffer).free();
+        buffer.free();
         BasicBuffer buffer3 = (BasicBuffer) allocator.ioBuffer(pagesize << 1, preferDirect);
         assertEquals(8, ((PooledStorageSegment) buffer3.getStorageSegment()).getHandle());
         BasicBuffer buffer4 = (BasicBuffer) allocator.ioBuffer(pagesize, preferDirect);
@@ -34,7 +34,7 @@ public class TakeAndRecycleTest
         assertEquals(11, ((PooledStorageSegment) buffer5.getStorageSegment()).getHandle());
         BasicBuffer buffer6 = (BasicBuffer) allocator.ioBuffer(pagesize, preferDirect);
         assertEquals(21, ((PooledStorageSegment) buffer6.getStorageSegment()).getHandle());
-        ((BasicBuffer) buffer2).free();
+        buffer2.free();
         BasicBuffer buffer7 = (BasicBuffer) allocator.ioBuffer(pagesize << 1, preferDirect);
         assertEquals(9, ((PooledStorageSegment) buffer7.getStorageSegment()).getHandle());
     }

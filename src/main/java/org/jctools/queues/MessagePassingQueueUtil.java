@@ -14,7 +14,6 @@
 
 package org.jctools.queues;
 
-import org.jctools.queues.MessagePassingQueue;
 import org.jctools.queues.MessagePassingQueue.Consumer;
 import org.jctools.queues.MessagePassingQueue.ExitCondition;
 import org.jctools.queues.MessagePassingQueue.Supplier;
@@ -25,13 +24,10 @@ public final class MessagePassingQueueUtil
 {
     public static <E> int drain(org.jctools.queues.MessagePassingQueue<E> queue, Consumer<E> c, int limit)
     {
-        if (null == c)
-            throw new IllegalArgumentException("c is null");
-        if (limit < 0)
-            throw new IllegalArgumentException("limit is negative: " + limit);
-        if (limit == 0)
-            return 0;
-        E e;
+        if (null == c) throw new IllegalArgumentException("c is null");
+        if (limit < 0) throw new IllegalArgumentException("limit is negative: " + limit);
+        if (limit == 0) return 0;
+        E   e;
         int i = 0;
         for (; i < limit && (e = queue.relaxedPoll()) != null; i++)
         {
@@ -42,9 +38,8 @@ public final class MessagePassingQueueUtil
 
     public static <E> int drain(org.jctools.queues.MessagePassingQueue<E> queue, Consumer<E> c)
     {
-        if (null == c)
-            throw new IllegalArgumentException("c is null");
-        E e;
+        if (null == c) throw new IllegalArgumentException("c is null");
+        E   e;
         int i = 0;
         while ((e = queue.relaxedPoll()) != null)
         {
@@ -56,13 +51,9 @@ public final class MessagePassingQueueUtil
 
     public static <E> void drain(org.jctools.queues.MessagePassingQueue<E> queue, Consumer<E> c, WaitStrategy wait, ExitCondition exit)
     {
-        if (null == c)
-            throw new IllegalArgumentException("c is null");
-        if (null == wait)
-            throw new IllegalArgumentException("wait is null");
-        if (null == exit)
-            throw new IllegalArgumentException("exit condition is null");
-
+        if (null == c) throw new IllegalArgumentException("c is null");
+        if (null == wait) throw new IllegalArgumentException("wait is null");
+        if (null == exit) throw new IllegalArgumentException("exit condition is null");
         int idleCounter = 0;
         while (exit.keepRunning())
         {
@@ -79,11 +70,8 @@ public final class MessagePassingQueueUtil
 
     public static <E> void fill(org.jctools.queues.MessagePassingQueue<E> q, Supplier<E> s, WaitStrategy wait, ExitCondition exit)
     {
-        if (null == wait)
-            throw new IllegalArgumentException("waiter is null");
-        if (null == exit)
-            throw new IllegalArgumentException("exit condition is null");
-
+        if (null == wait) throw new IllegalArgumentException("waiter is null");
+        if (null == exit) throw new IllegalArgumentException("exit condition is null");
         int idleCounter = 0;
         while (exit.keepRunning())
         {
@@ -112,8 +100,7 @@ public final class MessagePassingQueueUtil
                 return (int) result;
             }
             result += filled;
-        }
-        while (result <= limit);
+        } while (result <= limit);
         return (int) result;
     }
 

@@ -13,10 +13,6 @@
  */
 package org.jctools.queues;
 
-import org.jctools.queues.LinkedQueueNode;
-import org.jctools.queues.MessagePassingQueue;
-import org.jctools.queues.MessagePassingQueueUtil;
-
 import java.util.Queue;
 
 /**

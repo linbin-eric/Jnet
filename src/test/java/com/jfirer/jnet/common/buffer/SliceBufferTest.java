@@ -12,13 +12,14 @@ import org.junit.runners.Parameterized;
 import java.util.Arrays;
 import java.util.Collection;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(Parameterized.class)
 public class SliceBufferTest
 {
-    private boolean         preDirect;
-    private BufferAllocator allocator;
+    private final boolean         preDirect;
+    private final BufferAllocator allocator;
 
     public SliceBufferTest(boolean preDirect, BufferAllocator allocator)
     {
@@ -79,7 +80,7 @@ public class SliceBufferTest
         BasicBuffer slice2 = (BasicBuffer) slice.slice(4);
         buffer.free();
         slice.free();
-        assertEquals(1,slice2.refCount());
+        assertEquals(1, slice2.refCount());
         slice2.free();
     }
 

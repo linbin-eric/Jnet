@@ -14,6 +14,7 @@ public class SubPage
     final         int           offset;
     final         int           index;
     final         long[]        bitMap;
+    final Lock lock;
     private final ChunkListNode node;
     int     elementSize;
     int     bitMapLength;
@@ -22,7 +23,6 @@ public class SubPage
     int     numAvail;
     SubPage prev;
     SubPage next;
-    final Lock lock;
 
     public SubPage(ChunkListNode node, int pageSize, int handle, int offset)
     {

@@ -16,13 +16,6 @@ public class SystemPropertyUtil
 
     static boolean isNotBlank(String value)
     {
-        if (value != null && "".equals(value))
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
+        return "".equals(value);
     }
 }

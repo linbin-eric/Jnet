@@ -8,9 +8,9 @@ import java.util.function.Consumer;
 
 public class DefaultWorkerGroup implements WorkerGroup
 {
-    private JnetWorker[]  workers;
-    private int           numOfWorker;
-    private AtomicInteger count = new AtomicInteger();
+    private final JnetWorker[] workers;
+    private final int          numOfWorker;
+    private final AtomicInteger count = new AtomicInteger();
 
     public DefaultWorkerGroup(int numOfWorker, String namePrefix)
     {

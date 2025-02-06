@@ -98,8 +98,7 @@ public class UnsafeRw implements RwDelegation
     {
         switch (srcBuf.bufferType())
         {
-            case HEAP ->
-                    Bits.copyFromByteArray((byte[]) srcBuf.memory(), srcBuf.offset() + srcBuf.getReadPosi(), destOffset + destNativeAddress + destPosi, len);
+            case HEAP -> Bits.copyFromByteArray((byte[]) srcBuf.memory(), srcBuf.offset() + srcBuf.getReadPosi(), destOffset + destNativeAddress + destPosi, len);
             case DIRECT, UNSAFE, MEMORY ->
             {
                 BasicBuffer buffer = (BasicBuffer) srcBuf;

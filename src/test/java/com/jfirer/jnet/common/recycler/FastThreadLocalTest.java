@@ -11,17 +11,17 @@ import static org.junit.Assert.*;
 public class FastThreadLocalTest
 {
     private static final String                  instance = "123";
-    volatile             boolean                 fail     = false;
-    private              FastThreadLocal<String> local    = FastThreadLocal.withInitializeValue(() -> instance);
+    volatile      boolean                 fail  = false;
+    private final FastThreadLocal<String> local = FastThreadLocal.withInitializeValue(() -> instance);
 
     @Test
     public void test()
     {
-        assertTrue(local.get() == instance);
+        assertSame(instance, local.get());
         local.set("12sder");
         assertEquals("12sder", local.get());
         local.remove();
-        assertTrue(local.get() == instance);
+        assertSame(instance, local.get());
     }
 
     /**
@@ -35,18 +35,19 @@ public class FastThreadLocalTest
         final CountDownLatch latch = new CountDownLatch(1);
         new FastThreadLocalThread(new Runnable()
         {
-
             @Override
             public void run()
             {
                 try
                 {
-                    assertTrue(local.get() == instance);
-                    assertTrue(local.get() == instance);
-                } catch (Exception e)
+                    assertSame(instance, local.get());
+                    assertSame(instance, local.get());
+                }
+                catch (Exception e)
                 {
                     fail = true;
-                } finally
+                }
+                finally
                 {
                     latch.countDown();
                 }

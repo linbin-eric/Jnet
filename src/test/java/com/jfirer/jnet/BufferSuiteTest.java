@@ -7,8 +7,7 @@ import org.junit.runners.Suite.SuiteClasses;
 
 @SuiteClasses({ //
         ArenaTest.class, //
-        BasicBufferRWTest.class,
-        BufferRecycleTest.class, //
+        BasicBufferRWTest.class, BufferRecycleTest.class, //
         ChunkListTest.class, //
         HugeAllocateTest.class, //
         MemoryRegionCacheSmallTest.class, //
@@ -22,5 +21,4 @@ import org.junit.runners.Suite.SuiteClasses;
 @RunWith(Suite.class)
 public class BufferSuiteTest
 {
-
 }

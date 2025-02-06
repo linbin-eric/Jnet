@@ -17,12 +17,12 @@ import static org.junit.Assert.*;
 @RunWith(Parameterized.class)
 public class BasicBufferRWTest
 {
-    private IoBuffer buffer;
-    private IoBuffer paramBuffer;
+    private final IoBuffer buffer;
+    private final IoBuffer paramBuffer;
 
     public BasicBufferRWTest(IoBuffer buffer, IoBuffer paramBuffer)
     {
-        this.buffer = buffer;
+        this.buffer      = buffer;
         this.paramBuffer = paramBuffer;
     }
 

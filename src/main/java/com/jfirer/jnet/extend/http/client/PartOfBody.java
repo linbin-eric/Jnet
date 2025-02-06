@@ -8,6 +8,8 @@ import lombok.Data;
 @AllArgsConstructor
 public class PartOfBody
 {
+    public static final PartOfBody END_OF_BODY       = new PartOfBody(3, null, 0, 0);
+    public static final PartOfBody TERMINATE_OF_BODY = new PartOfBody(4, null, 0, 0);
     /**
      * 1：代表这是一个完整的，明确总长度的消息体的任意部分。
      * 2：代表这是一个不明确长度，即响应的类型是 Transfer-Encoding：chunked 的消息体的一个完整 Chunk。
@@ -25,8 +27,6 @@ public class PartOfBody
      * 在类型 2 的情况下，完整 chunk 的内容体的长度（不包含代表 chunk 结尾的/r/n）
      */
     private final       int        chunkSize;
-    public static final PartOfBody END_OF_BODY       = new PartOfBody(3, null, 0, 0);
-    public static final PartOfBody TERMINATE_OF_BODY = new PartOfBody(4, null, 0, 0);
 
     /**
      * 获取该部分字节流中的有效部分。该操作是一次性的，对于一个 part 而言，该方法只能被调用一次。

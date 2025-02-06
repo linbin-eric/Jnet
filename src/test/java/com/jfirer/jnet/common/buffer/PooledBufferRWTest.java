@@ -18,12 +18,12 @@ import static org.junit.Assert.*;
 @RunWith(Parameterized.class)
 public class PooledBufferRWTest
 {
-    private IoBuffer buffer;
-    private IoBuffer paramBuffer;
+    private final IoBuffer buffer;
+    private final IoBuffer paramBuffer;
 
     public PooledBufferRWTest(IoBuffer buffer, IoBuffer paramBuffer)
     {
-        this.buffer = buffer;
+        this.buffer      = buffer;
         this.paramBuffer = paramBuffer;
     }
 
@@ -165,7 +165,8 @@ public class PooledBufferRWTest
         try
         {
             buffer.getInt();
-        } catch (Exception e)
+        }
+        catch (Exception e)
         {
             assertTrue(e instanceof IllegalArgumentException);
         }
@@ -173,7 +174,8 @@ public class PooledBufferRWTest
         try
         {
             buffer.clear().getInt(123);
-        } catch (Exception e)
+        }
+        catch (Exception e)
         {
             assertTrue(e instanceof IllegalArgumentException);
         }

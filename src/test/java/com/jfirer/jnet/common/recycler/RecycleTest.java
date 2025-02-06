@@ -14,18 +14,11 @@ import static org.junit.Assert.*;
 
 public class RecycleTest
 {
-    class Entry
-    {
-        RecycleHandler handler;
-        String         value;
-    }
-
     Recycler<Entry> recycler;
     private Field recycleIdField;
     private Field lastRecycleIdField;
     private Field currentStackField;
     private Field sharedCapacityField;
-
     public RecycleTest()
     {
         try
@@ -60,7 +53,7 @@ public class RecycleTest
         entry.value = "123";
         entry.handler.recycle(entry);
         Entry entry2 = recycler.get();
-        assertTrue(entry == entry2);
+        assertSame(entry, entry2);
         assertEquals("123", entry2.value);
     }
 
@@ -141,10 +134,10 @@ public class RecycleTest
         }).start();
         latch.await();
         Entry entry2 = recycler.get();
-        assertTrue(entry == entry2);
+        assertSame(entry, entry2);
         entry2.handler.recycle(entry2);
         Entry entry3 = recycler.get();
-        assertTrue(entry2 == entry3);
+        assertSame(entry2, entry3);
     }
 
     /**
@@ -198,12 +191,12 @@ public class RecycleTest
         assertEquals(0, shareCapacity.get());
         for (int i = 0; i < num; i++)
         {
-            if (set.remove(recycler.get()) == false)
+            if (!set.remove(recycler.get()))
             {
                 fail();
             }
         }
-        assertTrue(another != recycler.get());
+        assertNotSame(another, recycler.get());
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -304,7 +297,7 @@ public class RecycleTest
         }).start();
         latch.await();
         Recycler<Entry>.Stack stack = recycler.currentStack.get();
-        assertEquals(Recycler.MAX_SHARED_CAPACITY - 2 * Recycler.LINK_SIZE, stack.sharedCapacity.get());
+        assertEquals(Recycler.MAX_SHARED_CAPACITY - 2L * Recycler.LINK_SIZE, stack.sharedCapacity.get());
         System.gc();
         Thread.sleep(100);
         System.gc();
@@ -334,8 +327,7 @@ public class RecycleTest
             queue.add(recycler.get());
         }
         final CountDownLatch latch = new CountDownLatch(1);
-        new Thread(() ->
-        {
+        new Thread(() -> {
             for (Entry each : queue)
             {
                 each.handler.recycle(each);
@@ -372,8 +364,7 @@ public class RecycleTest
         }
         ExecutorService executorService = Executors.newFixedThreadPool(3);
         CountDownLatch  latch           = new CountDownLatch(1);
-        executorService.submit(() ->
-        {
+        executorService.submit(() -> {
             for (int i = 0; i < 5; i++)
             {
                 Entry poll = queue.poll();
@@ -387,5 +378,11 @@ public class RecycleTest
             recycler.get();
         }
         recycler.get();
+    }
+
+    class Entry
+    {
+        RecycleHandler handler;
+        String         value;
     }
 }

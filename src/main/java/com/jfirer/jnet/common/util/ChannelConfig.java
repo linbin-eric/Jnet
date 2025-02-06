@@ -20,23 +20,6 @@ import java.util.function.Consumer;
 @Accessors(chain = true)
 public class ChannelConfig
 {
-    private             int                      decrCountMax            = 2;
-    private             int                      minReceiveSize          = 16;
-    private             int                      maxReceiveSize          = 1024 * 1024 * 8;
-    private             int                      initReceiveSize         = 1024;
-    private             int                      maxBatchWrite           = 1024 * 1024 * 2;
-    private             int                      msOfReadTimeout         = -1;
-    private             String                   ip                      = "0.0.0.0";
-    private             int                      port                    = -1;
-    private             int                      backLog                 = 50;
-    private             Consumer<Throwable>      jvmExistHandler         = e -> {
-        System.err.println("Some RunnableImpl run in Jnet not handle Exception well,Check all ReadProcessor and WriteProcessor");
-        e.printStackTrace();
-    };
-    private             BufferAllocator          allocator               = PooledBufferAllocator.DEFAULT;
-    private             AsynchronousChannelGroup channelGroup            = DEFAULT_CHANNEL_GROUP;
-    private             WorkerGroup              workerGroup             = DEFAULT_WORKER_GROUP;
-    private             boolean                  READ_USE_CURRENT_THREAD = Integer.parseInt(System.getProperty("java.specification.version")) >= 21;
     public static final LeakDetecter             IoBufferLeakDetected    = new LeakDetecter(System.getProperty("Leak.Detect.IoBuffer") == null ? LeakDetecter.WatchLevel.none : LeakDetecter.WatchLevel.valueOf(System.getProperty("Leak.Detect.IoBuffer")));
     public static final AsynchronousChannelGroup DEFAULT_CHANNEL_GROUP;
     public static final WorkerGroup              DEFAULT_WORKER_GROUP    = new DefaultWorkerGroup(Runtime.getRuntime().availableProcessors(), "default_JnetWorker_");
@@ -73,4 +56,22 @@ public class ChannelConfig
             }
         }
     }
+
+    private             int                      decrCountMax            = 2;
+    private             int                      minReceiveSize          = 16;
+    private             int                      maxReceiveSize          = 1024 * 1024 * 8;
+    private             int                      initReceiveSize         = 1024;
+    private             int                      maxBatchWrite           = 1024 * 1024 * 2;
+    private             int                      msOfReadTimeout         = -1;
+    private             String                   ip                      = "0.0.0.0";
+    private             int                      port                    = -1;
+    private             int                      backLog                 = 50;
+    private             Consumer<Throwable>      jvmExistHandler         = e -> {
+        System.err.println("Some RunnableImpl run in Jnet not handle Exception well,Check all ReadProcessor and WriteProcessor");
+        e.printStackTrace();
+    };
+    private             BufferAllocator          allocator               = PooledBufferAllocator.DEFAULT;
+    private             AsynchronousChannelGroup channelGroup            = DEFAULT_CHANNEL_GROUP;
+    private             WorkerGroup              workerGroup             = DEFAULT_WORKER_GROUP;
+    private             boolean                  READ_USE_CURRENT_THREAD = Integer.parseInt(System.getProperty("java.specification.version")) >= 21;
 }

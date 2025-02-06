@@ -63,15 +63,15 @@ class ReadHeadUseCurrentThread implements ReadProcessorNode
     }
 
     @Override
-    public void setNext(ReadProcessorNode next)
-    {
-        this.next = next;
-    }
-
-    @Override
     public ReadProcessorNode getNext()
     {
         return next;
+    }
+
+    @Override
+    public void setNext(ReadProcessorNode next)
+    {
+        this.next = next;
     }
 
     @Override

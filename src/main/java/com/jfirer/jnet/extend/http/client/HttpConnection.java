@@ -25,10 +25,6 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class HttpConnection
 {
-    private final       BlockingQueue<HttpReceiveResponse> responseSync        = new LinkedBlockingQueue<>();
-    private final       ClientChannel                      clientChannel;
-    private             long                               lastResponseTime;
-    private             RecycleHandler                     handler;
     public static final HttpReceiveResponse                CLOSE_OF_CONNECTION = new HttpReceiveResponse(null);
     public static final long                               KEEP_ALIVE_TIME     = 1000 * 60 * 5;
     public static final WorkerGroup                        HTTP_WORKER_GROUP   = new DefaultWorkerGroup(Runtime.getRuntime().availableProcessors(), "http_connection_worker_");
@@ -45,6 +41,11 @@ public class HttpConnection
             throw new RuntimeException(e);
         }
     }
+
+    private final       BlockingQueue<HttpReceiveResponse> responseSync        = new LinkedBlockingQueue<>();
+    private final       ClientChannel                      clientChannel;
+    private             long                               lastResponseTime;
+    private             RecycleHandler                     handler;
 
     public HttpConnection(String domain, int port)
     {
@@ -100,7 +101,7 @@ public class HttpConnection
         if (response == null)
         {
             log.debug("超时等待20秒，没有收到响应，关闭Http链接");
-            String                 msg                    = clientChannel.alive() ? "通道仍然alive" : "通道已经失效";
+            String msg = clientChannel.alive() ? "通道仍然alive" : "通道已经失效";
             clientChannel.pipeline().shutdownInput();
             SocketTimeoutException socketTimeoutException = new SocketTimeoutException(msg);
             throw socketTimeoutException;

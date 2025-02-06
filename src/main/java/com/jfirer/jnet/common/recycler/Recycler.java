@@ -29,14 +29,14 @@ public class Recycler<T>
     final               FastThreadLocal<Stack>                      currentStack                = FastThreadLocal.withInitializeValue(() -> new Stack());
     final               long                                        LINK_NEXT_OFFSET            = UNSAFE.getFieldOffset("next", Link.class);
     private final       WeakOrderQueue                              DUMMY                       = new WeakOrderQueue();
-    /////////////////////////////////
+    /// //////////////////////////////
     private final       int                                         stackInitSize;
     private final       int                                         maxCachedInstanceCapacity;
     private final       int                                         linkSize;
     private final       int                                         maxDelayQueueNum;
     private final       int                                         maxSharedCapacity;
     private final       Supplier<T>                                 supplier;
-    private final       BiConsumer<T, RecycleHandler>            biConsumer;
+    private final       BiConsumer<T, RecycleHandler>               biConsumer;
 
     public Recycler(Supplier<T> supplier, BiConsumer<T, RecycleHandler> biConsumer)
     {
@@ -82,8 +82,7 @@ public class Recycler<T>
             {
                 return false;
             }
-        }
-        while (availableSharedCapacity.compareAndSet(now, now - space) == false);
+        } while (!availableSharedCapacity.compareAndSet(now, now - space));
         return true;
     }
 //    protected abstract T newObject(Function<T, RecycleHandler> function);
@@ -118,7 +117,7 @@ public class Recycler<T>
         int            posi = 0;
         int            capacity;
         AtomicInteger  sharedCapacity;
-        Lock lock = new ReentrantLock();
+        Lock           lock = new ReentrantLock();
 
         public Stack()
         {
@@ -128,7 +127,7 @@ public class Recycler<T>
             ownerThread    = new WeakReference<Thread>(Thread.currentThread());
         }
 
-         void setHead(WeakOrderQueue queue)
+        void setHead(WeakOrderQueue queue)
         {
             lock.lock();
             if (head != null)
@@ -140,7 +139,7 @@ public class Recycler<T>
             lock.unlock();
         }
 
-         void removeHead()
+        void removeHead()
         {
             lock.lock();
             WeakOrderQueue originHead = head;
@@ -254,8 +253,7 @@ public class Recycler<T>
                 {
                     cursor = cursor.next;
                 }
-            }
-            while (anchor != cursor);
+            } while (anchor != cursor);
         }
 
         void push(DefaultHandler handler)
@@ -312,7 +310,6 @@ public class Recycler<T>
             }
             else if (delayedQueue == DUMMY)
             {
-                return;
             }
             else
             {
@@ -323,6 +320,8 @@ public class Recycler<T>
 
     class DefaultHandler implements RecycleHandler
     {
+        final Object               value;
+        final WeakReference<Stack> stackRef;
         /**
          * 当handler被所属的stack回收的时候，被赋值。赋值的情况有三：
          * 1、handler被所属的stack的线程回收，被赋予一个全局固定的非0值，此时与lastRecycled相等。
@@ -337,8 +336,6 @@ public class Recycler<T>
          * 3、缓存对象被提供出去使用时，赋值0.
          */
         int lastRecycleId;
-        final Object               value;
-        final WeakReference<Stack> stackRef;
 
         public DefaultHandler(Object value, Stack stack)
         {
@@ -478,8 +475,7 @@ public class Recycler<T>
                         cursor = next;
                     }
                 }
-            }
-            while (true);
+            } while (true);
         }
     }
 

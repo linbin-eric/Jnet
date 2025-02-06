@@ -11,8 +11,6 @@ import java.util.concurrent.atomic.LongAdder;
 
 public class CachedBufferAllocator extends PooledBufferAllocator
 {
-    protected final     FastThreadLocal<ThreadCache> THREAD_CACHE_FOR_DIRECT;
-    protected final     FastThreadLocal<ThreadCache> THREAD_CACHE_FOR_HEAP;
     public static final int                          NUM_OF_CACHE;
     public static final int                          MAX_CACHED_BUFFER_CAPACITY;
     public static       CachedBufferAllocator        DEFAULT = new CachedBufferAllocator("CachedPooledBufferAllocator_default");
@@ -22,6 +20,11 @@ public class CachedBufferAllocator extends PooledBufferAllocator
         NUM_OF_CACHE               = SystemPropertyUtil.getInt("io.jnet.PooledBufferAllocator.numOfCache", 512);
         MAX_CACHED_BUFFER_CAPACITY = SystemPropertyUtil.getInt("io.jnet.PooledBufferAllocator.maxCachedBufferCapacity", 32 * 1024);
     }
+
+    protected final     FastThreadLocal<ThreadCache> THREAD_CACHE_FOR_DIRECT;
+    protected final     FastThreadLocal<ThreadCache> THREAD_CACHE_FOR_HEAP;
+    public LongAdder success = new LongAdder();
+    public LongAdder fail    = new LongAdder();
 
     public CachedBufferAllocator(String name)
     {
@@ -40,7 +43,7 @@ public class CachedBufferAllocator extends PooledBufferAllocator
     @Override
     public IoBuffer heapBuffer(int initializeCapacity)
     {
-        BasicBuffer    buffer         = BasicBuffer.HEAP_POOL.get();
+        BasicBuffer buffer = BasicBuffer.HEAP_POOL.get();
         buffer.init(THREAD_CACHE_FOR_HEAP.get().allocate(initializeCapacity));
         return buffer;
     }
@@ -48,11 +51,8 @@ public class CachedBufferAllocator extends PooledBufferAllocator
     @Override
     public IoBuffer unsafeBuffer(int initializeCapacity)
     {
-        BasicBuffer    buffer         = BasicBuffer.UNSAFE_POOL.get();
+        BasicBuffer buffer = BasicBuffer.UNSAFE_POOL.get();
         buffer.init(THREAD_CACHE_FOR_DIRECT.get().allocate(initializeCapacity));
         return buffer;
     }
-
-    public LongAdder success = new LongAdder();
-    public LongAdder fail    = new LongAdder();
 }

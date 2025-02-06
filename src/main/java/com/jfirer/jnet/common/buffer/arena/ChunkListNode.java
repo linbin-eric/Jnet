@@ -13,17 +13,17 @@ public class ChunkListNode extends Chunk
     public ChunkListNode(ChunkList parent, int maxLevel, int pageSize, BufferType bufferType)
     {
         super(maxLevel, pageSize, bufferType);
-        this.parent = parent;
+        this.parent    = parent;
         subPageIdxMask = 1 << maxLevel;
-        subPages = new SubPage[1 << maxLevel];
+        subPages       = new SubPage[1 << maxLevel];
     }
 
     public ChunkListNode(int chunkSize, BufferType bufferType)
     {
         super(chunkSize, bufferType);
-        parent = null;
+        parent         = null;
         subPageIdxMask = 0;
-        subPages = null;
+        subPages       = null;
     }
 
     public SubPage allocateSubPage(int normalizeCapacity)

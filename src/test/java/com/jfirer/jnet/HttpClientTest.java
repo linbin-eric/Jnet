@@ -20,14 +20,14 @@ public class HttpClientTest
     private static void getInfo()
     {
         String          url     = "http://op.yynas.cn:2000/health";
-        String url2 = "http://127.0.0.1:10086/config/all";
+        String          url2    = "http://127.0.0.1:10086/config/all";
         HttpSendRequest request = new HttpSendRequest().setUrl(url2).getRequest();
         for (int i = 0; i < 50; i++)
         {
             try (HttpReceiveResponse receiveResponse = HttpClient.newCall(request))
             {
                 String utf8Body = receiveResponse.getCachedUTF8Body();
-                System.out.println(i + "   :   " + utf8Body+"，"+receiveResponse.getCachedUTF8Body());
+                System.out.println(i + "   :   " + utf8Body + "，" + receiveResponse.getCachedUTF8Body());
             }
             catch (Throwable e)
             {
@@ -63,8 +63,7 @@ public class HttpClientTest
                     }
                     partOfBody.freeBuffer();
                 }
-            }
-            while (true);
+            } while (true);
             receiveResponse.close();
             System.out.println("文件" + i);
         }

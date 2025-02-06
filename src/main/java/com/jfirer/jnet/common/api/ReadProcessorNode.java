@@ -8,9 +8,9 @@ public interface ReadProcessorNode
 
     void firePipelineComplete(Pipeline pipeline);
 
-    void setNext(ReadProcessorNode next);
-
     ReadProcessorNode getNext();
+
+    void setNext(ReadProcessorNode next);
 
     Pipeline pipeline();
 }

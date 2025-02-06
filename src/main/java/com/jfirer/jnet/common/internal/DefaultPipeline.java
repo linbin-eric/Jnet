@@ -10,14 +10,14 @@ import java.nio.channels.AsynchronousSocketChannel;
 public class DefaultPipeline implements InternalPipeline
 {
     private final AsynchronousSocketChannel     socketChannel;
-    private final ChannelConfig                 channelConfig;
-    private       ReadProcessorNode             readHead;
-    private       WriteProcessorNode            writeHead;
-    private AdaptiveReadCompletionHandler adaptiveReadCompletionHandler;
-    private DefaultWriteCompleteHandler   writeCompleteHandler;
+    private final ChannelConfig      channelConfig;
+    private final ReadProcessorNode  readHead;
+    private final WriteProcessorNode writeHead;
+    private       AdaptiveReadCompletionHandler adaptiveReadCompletionHandler;
+    private       DefaultWriteCompleteHandler   writeCompleteHandler;
     @Setter
     @Getter
-    private RegisterReadCallback          registerReadCallback    = RegisterReadCallback.INSTANCE;
+    private       RegisterReadCallback          registerReadCallback    = RegisterReadCallback.INSTANCE;
     @Setter
     @Getter
     private       PartWriteFinishCallback       partWriteFinishCallback = PartWriteFinishCallback.INSTANCE;
