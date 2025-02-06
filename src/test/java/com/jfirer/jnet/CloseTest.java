@@ -30,9 +30,9 @@ import java.util.concurrent.CountDownLatch;
 @RunWith(Parameterized.class)
 public class CloseTest
 {
-    private final String ip   = "127.0.0.1";
-    private final int    port = 4586;
-    private final int    writeNum = 100;
+    private final String          ip       = "127.0.0.1";
+    private final int             port     = 4586;
+    private final int             writeNum = 100;
     private final BufferAllocator bufferAllocator;
 
     public CloseTest(final BufferAllocator bufferAllocator) throws IOException, InterruptedException
@@ -62,7 +62,7 @@ public class CloseTest
         final Queue<IoBuffer> queue          = new ConcurrentLinkedQueue<>();
         final DataProcessor   dataProcessor  = new DataProcessor(queue, countDownLatch);
         PipelineInitializer initializer = pipeline -> {
-            pipeline.addReadProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024 * 5, bufferAllocator));
+            pipeline.addReadProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024 * 5));
             pipeline.addReadProcessor(dataProcessor);
             dataProcessor.pipeline = (InternalPipeline) pipeline;
         };

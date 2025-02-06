@@ -2,20 +2,13 @@ package com.jfirer.jnet.common.decoder;
 
 import com.jfirer.jnet.common.api.ReadProcessor;
 import com.jfirer.jnet.common.api.ReadProcessorNode;
-import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public abstract class AbstractDecoder implements ReadProcessor<IoBuffer>
 {
-    protected BufferAllocator allocator;
-    protected IoBuffer        accumulation;
-
-    public AbstractDecoder(BufferAllocator allocator)
-    {
-        this.allocator = allocator;
-    }
+    protected IoBuffer accumulation;
 
     public void read(IoBuffer data, ReadProcessorNode next)
     {

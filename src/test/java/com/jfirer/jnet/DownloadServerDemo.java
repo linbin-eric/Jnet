@@ -17,7 +17,7 @@ public class DownloadServerDemo
         ChannelConfig channelConfig = new ChannelConfig();
         channelConfig.setPort(81);
         DefaultAioServer aioServer = new DefaultAioServer(channelConfig, pipeline -> {
-            pipeline.addReadProcessor(new HttpRequestDecoder(channelConfig.getAllocator()));
+            pipeline.addReadProcessor(new HttpRequestDecoder());
             pipeline.addReadProcessor((HttpRequest httpRequest, ReadProcessorNode next) -> {
                 try
                 {

@@ -21,7 +21,6 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
 
     public HttpReceiveResponseDecoder(HttpConnection httpConnection)
     {
-        super(HttpClient.ALLOCATOR);
         this.httpConnection = httpConnection;
     }
 

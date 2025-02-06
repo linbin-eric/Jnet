@@ -1,7 +1,6 @@
 package com.jfirer.jnet.common.decoder;
 
 import com.jfirer.jnet.common.api.ReadProcessorNode;
-import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 
 public class FixLengthDecoder extends AbstractDecoder
@@ -13,9 +12,8 @@ public class FixLengthDecoder extends AbstractDecoder
      *
      * @param frameLength 一个报文的固定长度
      */
-    public FixLengthDecoder(int frameLength, BufferAllocator allocator)
+    public FixLengthDecoder(int frameLength)
     {
-        super(allocator);
         this.frameLength = frameLength;
     }
 

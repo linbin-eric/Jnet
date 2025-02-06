@@ -1,7 +1,6 @@
 package com.jfirer.jnet.common.decoder;
 
 import com.jfirer.jnet.common.api.ReadProcessorNode;
-import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.exception.TooLongException;
 
@@ -28,9 +27,8 @@ public class TotalLengthFieldBasedFrameDecoder extends AbstractDecoder
      * @param skipBytes         解析后的报文需要跳过的位数
      * @param maxLength
      */
-    public TotalLengthFieldBasedFrameDecoder(int lengthFieldOffset, int lengthFieldLength, int skipBytes, int maxLength, BufferAllocator allocator)
+    public TotalLengthFieldBasedFrameDecoder(int lengthFieldOffset, int lengthFieldLength, int skipBytes, int maxLength)
     {
-        super(allocator);
         this.lengthFieldOffset = lengthFieldOffset;
         this.lengthFieldLength = lengthFieldLength;
         this.maxLegnth         = maxLength;

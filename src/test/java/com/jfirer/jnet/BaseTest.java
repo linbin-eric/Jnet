@@ -30,15 +30,15 @@ import static org.junit.Assert.assertEquals;
  */
 public class BaseTest
 {
-    private static final Logger          logger       = LoggerFactory.getLogger(BaseTest.class);
+    private static final Logger logger = LoggerFactory.getLogger(BaseTest.class);
     AtomicInteger count = new AtomicInteger(0);
-    private final AioServer aioServer;
-    private final String    ip   = "127.0.0.1";
-    private final int       port = 7598;
-    private final int    numPerThread = 20000000;
-    private final int numClients   = 8;
+    private final AioServer       aioServer;
+    private final String          ip           = "127.0.0.1";
+    private final int             port         = 7598;
+    private final int             numPerThread = 20000000;
+    private final int             numClients   = 8;
     private final ClientChannel[] clients;
-    private final CountDownLatch  latch = new CountDownLatch(numClients);
+    private final CountDownLatch  latch        = new CountDownLatch(numClients);
     private final int[][]         results;
     private final BufferAllocator bufferAllocator;
 
@@ -58,7 +58,7 @@ public class BaseTest
         channelConfig.setIp(ip);
         channelConfig.setPort(port);
         aioServer = AioServer.newAioServer(channelConfig, pipeline -> {
-            pipeline.addReadProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024, pipeline.channelConfig().getAllocator()));
+            pipeline.addReadProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024));
             pipeline.addReadProcessor((ReadProcessor<IoBuffer>) (data, ctx) -> {
                 count.incrementAndGet();
                 data.addReadPosi(-4);
@@ -71,7 +71,7 @@ public class BaseTest
             final int   index  = i;
             final int[] result = results[index];
             clients[i] = ClientChannel.newClient(channelConfig, pipeline -> {
-                pipeline.addReadProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024 * 4, pipeline.channelConfig().getAllocator()));
+                pipeline.addReadProcessor(new TotalLengthFieldBasedFrameDecoder(0, 4, 4, 1024 * 1024 * 4));
                 pipeline.addReadProcessor(new ReadProcessor()
                 {
                     int count = 0;

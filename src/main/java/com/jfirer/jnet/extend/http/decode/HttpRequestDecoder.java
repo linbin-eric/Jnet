@@ -1,7 +1,6 @@
 package com.jfirer.jnet.extend.http.decode;
 
 import com.jfirer.jnet.common.api.ReadProcessorNode;
-import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.decoder.AbstractDecoder;
 import com.jfirer.jnet.common.util.HttpDecodeUtil;
 
@@ -13,10 +12,6 @@ public class HttpRequestDecoder extends AbstractDecoder
     private ParseState  state          = ParseState.REQUEST_LINE;
     private HttpRequest decodeObject;
     private int         firstByteIndex = -1;
-    public HttpRequestDecoder(BufferAllocator allocator)
-    {
-        super(allocator);
-    }
 
     @Override
     protected void process0(ReadProcessorNode next)
