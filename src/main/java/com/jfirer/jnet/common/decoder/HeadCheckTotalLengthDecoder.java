@@ -47,7 +47,7 @@ public class HeadCheckTotalLengthDecoder extends AbstractDecoder
             }
             else
             {
-                accumulation.setReadPosi(0 - 4 - headCheck.length);
+                accumulation.setReadPosi(accumulation.getReadPosi() - 4 - headCheck.length);
                 if (accumulation.remainRead() < length / 2)
                 {
                     accumulation.compact();
