@@ -22,13 +22,6 @@ public interface Pipeline
 
     void setAttach(Object attach);
 
-    /**
-     * 当前通道的队列中的数据量
-     *
-     * @return
-     */
-    long writeQueueCapacity();
-
     void setRegisterReadCallback(RegisterReadCallback registerReadCallback);
 
     void setPartWriteFinishCallback(PartWriteFinishCallback partWriteFinishCallback);

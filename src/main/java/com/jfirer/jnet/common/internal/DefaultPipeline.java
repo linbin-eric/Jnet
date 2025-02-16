@@ -10,9 +10,9 @@ import java.nio.channels.AsynchronousSocketChannel;
 public class DefaultPipeline implements InternalPipeline
 {
     private final AsynchronousSocketChannel     socketChannel;
-    private final ChannelConfig      channelConfig;
-    private final ReadProcessorNode  readHead;
-    private final WriteProcessorNode writeHead;
+    private final ChannelConfig                 channelConfig;
+    private final ReadProcessorNode             readHead;
+    private final WriteProcessorNode            writeHead;
     private       AdaptiveReadCompletionHandler adaptiveReadCompletionHandler;
     private       DefaultWriteCompleteHandler   writeCompleteHandler;
     @Setter
@@ -85,12 +85,6 @@ public class DefaultPipeline implements InternalPipeline
     public ChannelConfig channelConfig()
     {
         return channelConfig;
-    }
-
-    @Override
-    public long writeQueueCapacity()
-    {
-        return writeCompleteHandler.getQueueCapacity().get();
     }
 
     @Override

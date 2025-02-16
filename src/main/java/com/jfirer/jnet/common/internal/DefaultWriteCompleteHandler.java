@@ -8,7 +8,6 @@ import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.util.ChannelConfig;
 import com.jfirer.jnet.common.util.UNSAFE;
-import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.jctools.queues.SpscLinkedQueue;
@@ -18,7 +17,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
 public class DefaultWriteCompleteHandler extends AtomicInteger implements WriteCompletionHandler
@@ -43,9 +41,7 @@ public class DefaultWriteCompleteHandler extends AtomicInteger implements WriteC
     protected              Queue<IoBuffer>           queue;
     @Setter
     private                PartWriteFinishCallback   partWriteFinishCallback = PartWriteFinishCallback.INSTANCE;
-    private       IoBuffer   sendingData;
-    @Getter
-    private final AtomicLong queueCapacity = new AtomicLong(0);
+    private                IoBuffer                  sendingData;
 
     public DefaultWriteCompleteHandler(Pipeline pipeline)
     {
@@ -67,7 +63,6 @@ public class DefaultWriteCompleteHandler extends AtomicInteger implements WriteC
             {
                 throw new NullPointerException();
             }
-            queueCapacity.addAndGet(buffer.remainRead());
             queue.offer(buffer);
             tryWork();
         }
@@ -215,9 +210,10 @@ public class DefaultWriteCompleteHandler extends AtomicInteger implements WriteC
                 socketChannel.write(byteBuffer, byteBuffer, this);
                 return;
             }
-            long lefted = queueCapacity.addAndGet(-sendingData.getWritePosi());
-            partWriteFinishCallback.partWriteFinish(lefted);
-            sendingData.clear();
+            long currentSend = sendingData.getWritePosi();
+            partWriteFinishCallback.partWriteFinish(currentSend);
+            sendingData.free();
+            sendingData = null;
             if (!queue.isEmpty())
             {
                 writeQueuedBuffer();
@@ -293,7 +289,7 @@ public class DefaultWriteCompleteHandler extends AtomicInteger implements WriteC
             sendingData.free();
             sendingData = null;
         }
-        partWriteFinishCallback.writeFailed(e, queueCapacity);
+        partWriteFinishCallback.writeFailed(e);
         IoBuffer tmp;
         while ((tmp = queue.poll()) != null)
         {

@@ -1,16 +1,17 @@
 package com.jfirer.jnet.common.api;
 
-import java.util.concurrent.atomic.AtomicLong;
-
 public interface PartWriteFinishCallback
 {
     PartWriteFinishCallback INSTANCE = new PartWriteFinishCallback()
     {
     };
 
-    default void partWriteFinish(long queueCapacity) {}
+    /**
+     * @param currentSend  本次已经写出的容量
+     */
+    default void partWriteFinish( long currentSend) {}
 
-    default void writeFailed(Throwable e, AtomicLong queueCapacity)
+    default void writeFailed(Throwable e)
     {
     }
 }
