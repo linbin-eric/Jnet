@@ -6,13 +6,15 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.nio.channels.AsynchronousSocketChannel;
+import java.util.function.Consumer;
 
 public class DefaultPipeline implements InternalPipeline
 {
     private final AsynchronousSocketChannel     socketChannel;
     private final ChannelConfig                 channelConfig;
-    private final ReadProcessorNode             readHead;
-    private final WriteProcessorNode            writeHead;
+    private final Consumer<Throwable>           jvmExistHandler;
+    private       ReadProcessorNode             readHead;
+    private       WriteProcessorNode            writeHead;
     private       AdaptiveReadCompletionHandler adaptiveReadCompletionHandler;
     private       DefaultWriteCompleteHandler   writeCompleteHandler;
     @Setter
@@ -29,19 +31,17 @@ public class DefaultPipeline implements InternalPipeline
     {
         this.socketChannel = socketChannel;
         this.channelConfig = channelConfig;
-        writeHead          = new WriteHead(channelConfig.getWorkerGroup().next());
-        readHead           = channelConfig.isREAD_USE_CURRENT_THREAD() ? new ReadHeadUseCurrentThread(this) : new ReadHeadUseWorker(channelConfig.getWorkerGroup().next(), this);
-    }
-
-    @Override
-    public void fireWrite(Object data)
-    {
-        writeHead.fireWrite(data);
+        jvmExistHandler    = channelConfig.getJvmExistHandler();
     }
 
     @Override
     public void addReadProcessor(ReadProcessor<?> processor)
     {
+        if (readHead == null)
+        {
+            readHead = new ReadProcessorNodeImpl(processor, this);
+            return;
+        }
         ReadProcessorNode node = readHead;
         while (node.getNext() != null)
         {
@@ -53,6 +53,11 @@ public class DefaultPipeline implements InternalPipeline
     @Override
     public void addWriteProcessor(WriteProcessor<?> processor)
     {
+        if (writeHead == null)
+        {
+            writeHead = new WriteProcessorNodeImpl(processor);
+            return;
+        }
         WriteProcessorNode node = writeHead;
         while (node.getNext() != null)
         {
@@ -88,9 +93,31 @@ public class DefaultPipeline implements InternalPipeline
     }
 
     @Override
+    public void fireWrite(Object data)
+    {
+        try
+        {
+            writeHead.fireWrite(data);
+        }
+        catch (Throwable e)
+        {
+            jvmExistHandler.accept(e);
+            System.exit(127);
+        }
+    }
+
+    @Override
     public void fireRead(Object data)
     {
-        readHead.fireRead(data);
+        try
+        {
+            readHead.fireRead(data);
+        }
+        catch (Throwable e)
+        {
+            jvmExistHandler.accept(e);
+            System.exit(127);
+        }
     }
 
     @Override
@@ -100,7 +127,15 @@ public class DefaultPipeline implements InternalPipeline
         addReadProcessor(TailReadProcessor.INSTANCE);
         writeCompleteHandler = new DefaultWriteCompleteHandler(this);
         addWriteProcessor(new TailWriteProcessor(writeCompleteHandler));
-        readHead.firePipelineComplete(this);
+        try
+        {
+            readHead.firePipelineComplete(this);
+        }
+        catch (Throwable e)
+        {
+            jvmExistHandler.accept(e);
+            System.exit(127);
+        }
         adaptiveReadCompletionHandler.setRegisterReadCallback(registerReadCallback);
         writeCompleteHandler.setPartWriteFinishCallback(partWriteFinishCallback);
         adaptiveReadCompletionHandler.start();
@@ -109,18 +144,42 @@ public class DefaultPipeline implements InternalPipeline
     @Override
     public void fireReadFailed(Throwable e)
     {
-        readHead.fireReadFailed(e);
+        try
+        {
+            readHead.fireReadFailed(e);
+        }
+        catch (Throwable e1)
+        {
+            jvmExistHandler.accept(e1);
+            System.exit(127);
+        }
     }
 
     @Override
     public void fireWriteFailed(Throwable e)
     {
-        writeHead.fireWriteFailed(e);
+        try
+        {
+            writeHead.fireWriteFailed(e);
+        }
+        catch (Throwable e1)
+        {
+            jvmExistHandler.accept(e1);
+            System.exit(127);
+        }
     }
 
     @Override
     public void fireChannelClosed()
     {
-        writeHead.fireChannelClosed();
+        try
+        {
+            writeHead.fireChannelClosed();
+        }
+        catch (Throwable e)
+        {
+            jvmExistHandler.accept(e);
+            System.exit(127);
+        }
     }
 }

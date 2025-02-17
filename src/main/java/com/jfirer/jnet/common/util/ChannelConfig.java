@@ -72,5 +72,4 @@ public class ChannelConfig
     private BufferAllocator          allocator               = PooledBufferAllocator.DEFAULT;
     private AsynchronousChannelGroup channelGroup            = DEFAULT_CHANNEL_GROUP;
     private WorkerGroup              workerGroup             = DEFAULT_WORKER_GROUP;
-    private boolean                  READ_USE_CURRENT_THREAD = Integer.parseInt(System.getProperty("java.specification.version")) >= 21;
 }

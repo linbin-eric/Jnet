@@ -5,6 +5,7 @@ import com.jfirer.jnet.common.api.ReadProcessor;
 import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.api.WorkerGroup;
 import com.jfirer.jnet.common.internal.DefaultWorkerGroup;
+import com.jfirer.jnet.common.internal.WriteRunInWorker;
 import com.jfirer.jnet.common.recycler.RecycleHandler;
 import com.jfirer.jnet.common.thread.FastThreadLocalThread;
 import com.jfirer.jnet.common.util.ChannelConfig;
@@ -25,10 +26,10 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class HttpConnection
 {
-    public static final HttpReceiveResponse                CLOSE_OF_CONNECTION = new HttpReceiveResponse(null);
-    public static final long                               KEEP_ALIVE_TIME     = 1000 * 60 * 5;
-    public static final WorkerGroup                        HTTP_WORKER_GROUP   = new DefaultWorkerGroup(Runtime.getRuntime().availableProcessors(), "http_connection_worker_");
-    public static final AsynchronousChannelGroup           HTTP_CHANNEL_GROUP;
+    public static final HttpReceiveResponse      CLOSE_OF_CONNECTION = new HttpReceiveResponse(null);
+    public static final long                     KEEP_ALIVE_TIME     = 1000 * 60 * 5;
+    public static final WorkerGroup              HTTP_WORKER_GROUP   = new DefaultWorkerGroup(Runtime.getRuntime().availableProcessors(), "http_connection_worker_");
+    public static final AsynchronousChannelGroup HTTP_CHANNEL_GROUP;
 
     static
     {
@@ -42,10 +43,10 @@ public class HttpConnection
         }
     }
 
-    private final       BlockingQueue<HttpReceiveResponse> responseSync        = new LinkedBlockingQueue<>();
-    private final       ClientChannel                      clientChannel;
-    private             long                               lastResponseTime;
-    private             RecycleHandler                     handler;
+    private final BlockingQueue<HttpReceiveResponse> responseSync = new LinkedBlockingQueue<>();
+    private final ClientChannel                      clientChannel;
+    private       long                               lastResponseTime;
+    private       RecycleHandler                     handler;
 
     public HttpConnection(String domain, int port)
     {
@@ -66,6 +67,7 @@ public class HttpConnection
                     responseSync.offer(response);
                 }
             });
+            pipeline.addWriteProcessor(new WriteRunInWorker(channelConfig.getWorkerGroup().next()));
             pipeline.addWriteProcessor(new HttpSendRequestEncoder());
         });
         if (!clientChannel.connect())
