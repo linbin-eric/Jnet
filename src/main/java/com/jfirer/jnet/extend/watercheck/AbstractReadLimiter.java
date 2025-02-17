@@ -8,14 +8,14 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
-public abstract class ReadLimiter extends AtomicInteger implements RegisterReadCallback
+public abstract class AbstractReadLimiter extends AtomicInteger implements RegisterReadCallback
 {
     private static final int                           work = 1;
     private static final int                           idle = 0;
     protected            AdaptiveReadCompletionHandler adaptiveReadCompletionHandler;
     protected final      long                          LIMIT;
 
-    public ReadLimiter(long limit)
+    public AbstractReadLimiter(long limit)
     {
         super(work);
         this.LIMIT = limit;
