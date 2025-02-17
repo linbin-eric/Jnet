@@ -212,8 +212,7 @@ public class DefaultWriteCompleteHandler extends AtomicInteger implements WriteC
             }
             long currentSend = sendingData.getWritePosi();
             partWriteFinishCallback.partWriteFinish(currentSend);
-            sendingData.free();
-            sendingData = null;
+            sendingData.clear();
             if (!queue.isEmpty())
             {
                 writeQueuedBuffer();
