@@ -5,7 +5,6 @@ import com.jfirer.jnet.common.api.ReadProcessor;
 import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.api.WorkerGroup;
 import com.jfirer.jnet.common.internal.DefaultWorkerGroup;
-import com.jfirer.jnet.common.internal.WriteRunInWorker;
 import com.jfirer.jnet.common.recycler.RecycleHandler;
 import com.jfirer.jnet.common.thread.FastThreadLocalThread;
 import com.jfirer.jnet.common.util.ChannelConfig;
@@ -67,7 +66,6 @@ public class HttpConnection
                     responseSync.offer(response);
                 }
             });
-            pipeline.addWriteProcessor(new WriteRunInWorker(channelConfig.getWorkerGroup().next()));
             pipeline.addWriteProcessor(new HttpSendRequestEncoder());
         });
         if (!clientChannel.connect())
