@@ -31,7 +31,7 @@ public abstract class AbstractReadLimiter extends AtomicInteger implements Regis
         }
         else
         {
-            setIdle(adaptiveReadCompletionHandler, capacity);
+            setIdle(readCompletionHandler, capacity);
         }
     }
 
