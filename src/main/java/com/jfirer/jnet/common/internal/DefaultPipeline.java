@@ -13,8 +13,8 @@ public class DefaultPipeline implements InternalPipeline
     private final AsynchronousSocketChannel     socketChannel;
     private final ChannelConfig                 channelConfig;
     private final Consumer<Throwable>           jvmExistHandler;
+    private final WriteHead                     writeHead;
     private       ReadProcessorNode             readHead;
-    private       WriteProcessorNode            writeHead;
     private       AdaptiveReadCompletionHandler adaptiveReadCompletionHandler;
     private       DefaultWriteCompleteHandler   writeCompleteHandler;
     @Setter
