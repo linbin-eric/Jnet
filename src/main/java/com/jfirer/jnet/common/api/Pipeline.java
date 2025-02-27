@@ -22,9 +22,9 @@ public interface Pipeline
 
     void setAttach(Object attach);
 
-    void setRegisterReadCallback(RegisterReadListener registerReadListener);
+    void setRegisterReadListener(RegisterReadListener registerReadListener);
 
-    void setPartWriteFinishCallback(WriteListener writeListener);
+    void setWriteListener(WriteListener writeListener);
 
     default String getRemoteAddressWithoutException()
     {

@@ -16,16 +16,16 @@ public class DefaultPipeline implements InternalPipeline
     private       ReadProcessorNode             readHead;
     private       WriteProcessorNode            writeHead;
     private       AdaptiveReadCompletionHandler adaptiveReadCompletionHandler;
-    private DefaultWriteCompleteHandler writeCompleteHandler;
+    private       DefaultWriteCompleteHandler   writeCompleteHandler;
     @Setter
     @Getter
-    private RegisterReadListener        registerReadListener = RegisterReadListener.INSTANCE;
+    private       RegisterReadListener          registerReadListener = RegisterReadListener.INSTANCE;
     @Setter
     @Getter
-    private WriteListener               writeListener        = WriteListener.INSTANCE;
+    private       WriteListener                 writeListener        = WriteListener.INSTANCE;
     @Setter
     @Getter
-    private Object               attach;
+    private       Object                        attach;
 
     public DefaultPipeline(AsynchronousSocketChannel socketChannel, ChannelConfig channelConfig)
     {
