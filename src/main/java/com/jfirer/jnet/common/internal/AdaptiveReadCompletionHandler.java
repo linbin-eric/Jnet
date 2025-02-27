@@ -1,7 +1,7 @@
 package com.jfirer.jnet.common.internal;
 
 import com.jfirer.jnet.common.api.InternalPipeline;
-import com.jfirer.jnet.common.api.RegisterReadListener;
+import com.jfirer.jnet.common.api.ReadListener;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.exception.EndOfStreamException;
@@ -41,10 +41,10 @@ public class AdaptiveReadCompletionHandler implements CompletionHandler<Integer,
     private final       int                       minIndex;
     private final       int                       maxIndex;
     private final       int                       DECR_COUNT_MAX;
-    private final InternalPipeline     pipeline;
+    private final InternalPipeline pipeline;
     @Setter
-    private       RegisterReadListener registerReadListener;
-    private       int                  index;
+    private       ReadListener     readListener;
+    private       int              index;
     private             int                       decrCount;
     private             IoBuffer                  ioBuffer;
 
@@ -111,7 +111,7 @@ public class AdaptiveReadCompletionHandler implements CompletionHandler<Integer,
             System.err.println("读取到了0");
         }
         ioBuffer = nextReadBuffer(except, read);
-        registerReadListener.onRegister(this, pipeline);
+        readListener.onRegister(this, pipeline);
     }
 
     public void registerRead()

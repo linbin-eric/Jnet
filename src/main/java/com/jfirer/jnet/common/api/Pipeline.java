@@ -22,7 +22,7 @@ public interface Pipeline
 
     void setAttach(Object attach);
 
-    void setRegisterReadListener(RegisterReadListener registerReadListener);
+    void setReadListener(ReadListener readListener);
 
     void setWriteListener(WriteListener writeListener);
 

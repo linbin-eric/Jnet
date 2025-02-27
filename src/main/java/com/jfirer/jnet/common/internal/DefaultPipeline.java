@@ -19,10 +19,10 @@ public class DefaultPipeline implements InternalPipeline
     private       DefaultWriteCompleteHandler   writeCompleteHandler;
     @Setter
     @Getter
-    private       RegisterReadListener          registerReadListener = RegisterReadListener.INSTANCE;
+    private       ReadListener                  readListener  = ReadListener.INSTANCE;
     @Setter
     @Getter
-    private       WriteListener                 writeListener        = WriteListener.INSTANCE;
+    private       WriteListener                 writeListener = WriteListener.INSTANCE;
     @Setter
     @Getter
     private       Object                        attach;
@@ -132,7 +132,7 @@ public class DefaultPipeline implements InternalPipeline
             jvmExistHandler.accept(e);
             System.exit(127);
         }
-        adaptiveReadCompletionHandler.setRegisterReadListener(registerReadListener);
+        adaptiveReadCompletionHandler.setReadListener(readListener);
         writeCompleteHandler.setWriteListener(writeListener);
         adaptiveReadCompletionHandler.start();
     }
