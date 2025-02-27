@@ -1,14 +1,14 @@
 package com.jfirer.jnet.extend.watercheck;
 
 import com.jfirer.jnet.common.api.Pipeline;
-import com.jfirer.jnet.common.api.RegisterReadCallback;
+import com.jfirer.jnet.common.api.RegisterReadListener;
 import com.jfirer.jnet.common.internal.AdaptiveReadCompletionHandler;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
-public abstract class AbstractReadLimiter extends AtomicInteger implements RegisterReadCallback
+public abstract class AbstractReadLimiter extends AtomicInteger implements RegisterReadListener
 {
     private static final int                           work = 1;
     private static final int                           idle = 0;

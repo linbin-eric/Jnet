@@ -2,9 +2,9 @@ package com.jfirer.jnet.common.api;
 
 import com.jfirer.jnet.common.internal.AdaptiveReadCompletionHandler;
 
-public interface RegisterReadCallback
+public interface RegisterReadListener
 {
-    RegisterReadCallback INSTANCE = new RegisterReadCallback()
+    RegisterReadListener INSTANCE = new RegisterReadListener()
     {
     };
 

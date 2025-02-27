@@ -1,7 +1,7 @@
 package com.jfirer.jnet.common.internal;
 
 import com.jfirer.jnet.common.api.InternalPipeline;
-import com.jfirer.jnet.common.api.PartWriteFinishCallback;
+import com.jfirer.jnet.common.api.WriteListener;
 import com.jfirer.jnet.common.api.Pipeline;
 import com.jfirer.jnet.common.api.WriteCompletionHandler;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
@@ -38,10 +38,10 @@ public class DefaultWriteCompleteHandler extends AtomicInteger implements WriteC
     protected volatile     int                       state                   = OPEN_IDLE;
     //注意，JcTools旧版本的SpscQueue，其实现会出现当queue.isEmpty()==false时，queue.poll()返回null，导致程序异常
     //MpscQueue则是可以的。JDK的并发queue也是可以的
-    protected              Queue<IoBuffer>           queue;
+    protected Queue<IoBuffer> queue;
     @Setter
-    private                PartWriteFinishCallback   partWriteFinishCallback = PartWriteFinishCallback.INSTANCE;
-    private                IoBuffer                  sendingData;
+    private   WriteListener   writeListener = WriteListener.INSTANCE;
+    private   IoBuffer        sendingData;
 
     public DefaultWriteCompleteHandler(Pipeline pipeline)
     {
@@ -63,6 +63,7 @@ public class DefaultWriteCompleteHandler extends AtomicInteger implements WriteC
             {
                 throw new NullPointerException();
             }
+            writeListener.queuedWrite(buffer.remainRead());
             queue.offer(buffer);
             tryWork();
         }
@@ -211,7 +212,7 @@ public class DefaultWriteCompleteHandler extends AtomicInteger implements WriteC
                 return;
             }
             long currentSend = sendingData.getWritePosi();
-            partWriteFinishCallback.partWriteFinish(currentSend);
+            writeListener.partWriteFinish(currentSend);
             sendingData.clear();
             if (!queue.isEmpty())
             {
@@ -288,7 +289,7 @@ public class DefaultWriteCompleteHandler extends AtomicInteger implements WriteC
             sendingData.free();
             sendingData = null;
         }
-        partWriteFinishCallback.writeFailed(e);
+        writeListener.writeFailed(e);
         IoBuffer tmp;
         while ((tmp = queue.poll()) != null)
         {

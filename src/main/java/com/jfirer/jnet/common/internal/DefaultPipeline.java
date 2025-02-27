@@ -16,16 +16,16 @@ public class DefaultPipeline implements InternalPipeline
     private       ReadProcessorNode             readHead;
     private       WriteProcessorNode            writeHead;
     private       AdaptiveReadCompletionHandler adaptiveReadCompletionHandler;
-    private       DefaultWriteCompleteHandler   writeCompleteHandler;
+    private DefaultWriteCompleteHandler writeCompleteHandler;
     @Setter
     @Getter
-    private       RegisterReadCallback          registerReadCallback    = RegisterReadCallback.INSTANCE;
+    private RegisterReadListener        registerReadListener = RegisterReadListener.INSTANCE;
     @Setter
     @Getter
-    private       PartWriteFinishCallback       partWriteFinishCallback = PartWriteFinishCallback.INSTANCE;
+    private WriteListener               writeListener        = WriteListener.INSTANCE;
     @Setter
     @Getter
-    private       Object                        attach;
+    private Object               attach;
 
     public DefaultPipeline(AsynchronousSocketChannel socketChannel, ChannelConfig channelConfig)
     {
@@ -132,8 +132,8 @@ public class DefaultPipeline implements InternalPipeline
             jvmExistHandler.accept(e);
             System.exit(127);
         }
-        adaptiveReadCompletionHandler.setRegisterReadCallback(registerReadCallback);
-        writeCompleteHandler.setPartWriteFinishCallback(partWriteFinishCallback);
+        adaptiveReadCompletionHandler.setRegisterReadListener(registerReadListener);
+        writeCompleteHandler.setWriteListener(writeListener);
         adaptiveReadCompletionHandler.start();
     }
 
