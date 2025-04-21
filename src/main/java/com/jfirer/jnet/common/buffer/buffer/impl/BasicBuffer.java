@@ -353,9 +353,9 @@ public class BasicBuffer implements IoBuffer
     @Override
     public ByteBuffer readableByteBuffer(int posi)
     {
-        if (posi <= readPosi || posi > writePosi)
+        if (posi < readPosi || posi >= writePosi)
         {
-            throw new IllegalArgumentException("posi超出了允许范围，只能在[" + readPosi + "," + writePosi + ")内");
+            throw new IllegalArgumentException("posi超出了允许范围，只能在[" + readPosi + "," + writePosi + ")内,当前请求位置:" + posi);
         }
         return rwDelegation.readableByteBuffer(storageSegment.getMemory(), offset, storageSegment.getNativeAddress(), readPosi, posi);
     }
