@@ -77,6 +77,12 @@ public class DefaultPipeline implements InternalPipeline
     }
 
     @Override
+    public boolean isOpen()
+    {
+        return writeCompleteHandler.get() == DefaultWriteCompleteHandler.OPEN;
+    }
+
+    @Override
     public AsynchronousSocketChannel socketChannel()
     {
         return socketChannel;

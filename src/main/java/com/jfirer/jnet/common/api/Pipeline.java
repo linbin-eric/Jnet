@@ -26,6 +26,8 @@ public interface Pipeline
 
     void setWriteListener(WriteListener writeListener);
 
+    boolean isOpen();
+
     default String getRemoteAddressWithoutException()
     {
         try

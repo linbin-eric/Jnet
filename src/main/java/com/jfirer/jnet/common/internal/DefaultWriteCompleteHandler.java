@@ -21,27 +21,27 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 public class DefaultWriteCompleteHandler extends AtomicInteger implements WriteCompletionHandler
 {
-    protected static final long                      STATE_OFFSET            = UNSAFE.getFieldOffset("state", DefaultWriteCompleteHandler.class);
-    protected static final int                       SPIN_THRESHOLD          = 16;
-    protected static final int                       OPEN_IDLE               = 0b00;
-    protected static final int                       OPEN_WORK               = 0b01;
-    protected static final int                       NOTICE_IDLE             = 0b10;
-    protected static final int                       NOTICE_WORK             = 0b11;
-    private static final   int                       OPEN                    = 1;
-    private static final   int                       CLOSED                  = 0;
+    protected static final long                      STATE_OFFSET   = UNSAFE.getFieldOffset("state", DefaultWriteCompleteHandler.class);
+    protected static final int                       SPIN_THRESHOLD = 16;
+    protected static final int                       OPEN_IDLE      = 0b00;
+    protected static final int                       OPEN_WORK      = 0b01;
+    protected static final int                       NOTICE_IDLE    = 0b10;
+    protected static final int                       NOTICE_WORK    = 0b11;
+    public static final    int                       OPEN           = 1;
+    public static final    int                       CLOSED         = 0;
     protected final        AsynchronousSocketChannel socketChannel;
     protected final        InternalPipeline          pipeline;
     protected final        BufferAllocator           allocator;
     // 终止状态。进入该状态后，不再继续使用
     protected final        int                       maxWriteBytes;
     /// /////////////////////////////////////////////////////////
-    protected volatile     int                       state                   = OPEN_IDLE;
+    protected volatile     int                       state          = OPEN_IDLE;
     //注意，JcTools旧版本的SpscQueue，其实现会出现当queue.isEmpty()==false时，queue.poll()返回null，导致程序异常
     //MpscQueue则是可以的。JDK的并发queue也是可以的
-    protected Queue<IoBuffer> queue;
+    protected              Queue<IoBuffer>           queue;
     @Setter
-    private   WriteListener   writeListener = WriteListener.INSTANCE;
-    private   IoBuffer        sendingData;
+    private                WriteListener             writeListener  = WriteListener.INSTANCE;
+    private                IoBuffer                  sendingData;
 
     public DefaultWriteCompleteHandler(Pipeline pipeline)
     {
