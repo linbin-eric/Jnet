@@ -1,6 +1,8 @@
 package com.jfirer.jnet.extend.http.dto;
 
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -8,6 +10,8 @@ import java.util.Map;
 
 public class HttpRespHead implements HttpRespPart
 {
+    @Setter
+    @Getter
     private int                 responseCode     = 200;
     private Map<String, String> headers          = new HashMap<>();
     private boolean             hasContentLength = false;
