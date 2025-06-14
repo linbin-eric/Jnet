@@ -32,7 +32,7 @@ public class DefaultPipeline implements InternalPipeline
         this.socketChannel = socketChannel;
         this.channelConfig = channelConfig;
         jvmExistHandler    = channelConfig.getJvmExistHandler();
-        writeHead          = new WriteHead(channelConfig.getWorkerGroup().next());
+        writeHead          = new WriteHead(WorkerGroup.next());
     }
 
     @Override

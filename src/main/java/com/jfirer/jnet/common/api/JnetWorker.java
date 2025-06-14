@@ -4,7 +4,5 @@ public interface JnetWorker
 {
     void submit(Runnable runnable);
 
-    void shuwdown();
-
-    Thread thread();
+    void shutdown();
 }

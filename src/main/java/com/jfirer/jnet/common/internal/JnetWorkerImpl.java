@@ -1,66 +1,55 @@
 package com.jfirer.jnet.common.internal;
 
 import com.jfirer.jnet.common.api.JnetWorker;
-import com.jfirer.jnet.common.thread.FastThreadLocalThread;
 import org.jctools.queues.MpscLinkedQueue;
 
 import java.util.concurrent.locks.LockSupport;
-import java.util.function.Consumer;
 
 /**
  * 注意，一个JnetWorker会被分配给不同的通道，这意味着有多个生产者
  */
-public class JnetWorkerImpl extends FastThreadLocalThread implements JnetWorker
+public class JnetWorkerImpl implements JnetWorker, Runnable
 {
     private static final int                       IDLE     = -1;
     private static final int                       WORK     = 1;
-    private final    Consumer<Throwable>       jvmExistHandler;
-    private final    MpscLinkedQueue<Runnable> queue = new MpscLinkedQueue<>();
-    private volatile int                       state = IDLE;
+    private final        MpscLinkedQueue<Runnable> queue    = new MpscLinkedQueue<>();
+    private volatile     int                       state    = IDLE;
     private volatile     boolean                   shutdown = false;
+    private final        Thread                    thread;
 
-    public JnetWorkerImpl(String threadName, Consumer<Throwable> jvmExistHandler)
+    public JnetWorkerImpl(Thread.UncaughtExceptionHandler uncaughtExceptionHandler)
     {
-        super(threadName);
-        this.jvmExistHandler = jvmExistHandler;
+        thread = Thread.ofVirtual().uncaughtExceptionHandler(uncaughtExceptionHandler).unstarted(this);
+        thread.start();
     }
 
     @Override
     public void run()
     {
-        try
+        do
         {
-            do
+            Runnable avail = queue.poll();
+            if (avail != null)
             {
-                Runnable avail = queue.poll();
-                if (avail != null)
+                avail.run();
+            }
+            else
+            {
+                state = IDLE;
+                if (!queue.isEmpty())
                 {
-                    avail.run();
+                    state = WORK;
                 }
                 else
                 {
-                    state = IDLE;
-                    if (!queue.isEmpty())
+                    LockSupport.park(thread);
+                    if (Thread.currentThread().isInterrupted() && shutdown)
                     {
-                        state = WORK;
-                    }
-                    else
-                    {
-                        LockSupport.park(this);
-                        if (Thread.currentThread().isInterrupted() && shutdown)
-                        {
-                            break;
-                        }
+                        break;
                     }
                 }
-            } while (true);
-        }
-        catch (Throwable e)
-        {
-            jvmExistHandler.accept(e);
-            //代码不应该走到这里
-            System.exit(129);
-        }
+            }
+        } while (true);
     }
 
     @Override
@@ -71,20 +60,13 @@ public class JnetWorkerImpl extends FastThreadLocalThread implements JnetWorker
         if (t_state == IDLE)
         {
             this.state = WORK;
-            LockSupport.unpark(this);
+            LockSupport.unpark(thread);
         }
     }
 
     @Override
-    public void shuwdown()
+    public void shutdown()
     {
         shutdown = true;
-        interrupt();
-    }
-
-    @Override
-    public Thread thread()
-    {
-        return this;
     }
 }

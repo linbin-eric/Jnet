@@ -8,7 +8,6 @@ import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
-import com.jfirer.jnet.common.internal.DefaultWorkerGroup;
 import com.jfirer.jnet.common.util.CapacityStat;
 import com.jfirer.jnet.common.util.ChannelConfig;
 import com.jfirer.jnet.server.AioServer;
@@ -54,7 +53,6 @@ public class CloseTest
     public void test() throws Throwable
     {
         ChannelConfig channelConfig = new ChannelConfig();
-        channelConfig.setWorkerGroup(new DefaultWorkerGroup(2, "close_"));
         channelConfig.setChannelGroup(ChannelConfig.DEFAULT_CHANNEL_GROUP);
         channelConfig.setMinReceiveSize(PooledBufferAllocator.PAGESIZE);
         channelConfig.setAllocator(bufferAllocator);

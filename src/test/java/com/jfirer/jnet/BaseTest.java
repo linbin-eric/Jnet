@@ -7,7 +7,6 @@ import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.allocator.impl.CachedBufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
-import com.jfirer.jnet.common.internal.DefaultWorkerGroup;
 import com.jfirer.jnet.common.util.ChannelConfig;
 import com.jfirer.jnet.server.AioServer;
 import org.junit.Test;
@@ -45,7 +44,6 @@ public class BaseTest
     public BaseTest()
     {
         ChannelConfig channelConfig = new ChannelConfig();
-        channelConfig.setWorkerGroup(new DefaultWorkerGroup(Runtime.getRuntime().availableProcessors(), "base_"));
         channelConfig.setChannelGroup(ChannelConfig.DEFAULT_CHANNEL_GROUP);
         this.bufferAllocator = channelConfig.getAllocator();
         clients              = new ClientChannel[numClients];

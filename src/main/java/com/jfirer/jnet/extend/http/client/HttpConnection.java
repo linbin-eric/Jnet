@@ -3,8 +3,6 @@ package com.jfirer.jnet.extend.http.client;
 import com.jfirer.jnet.client.ClientChannel;
 import com.jfirer.jnet.common.api.ReadProcessor;
 import com.jfirer.jnet.common.api.ReadProcessorNode;
-import com.jfirer.jnet.common.api.WorkerGroup;
-import com.jfirer.jnet.common.internal.DefaultWorkerGroup;
 import com.jfirer.jnet.common.recycler.RecycleHandler;
 import com.jfirer.jnet.common.thread.FastThreadLocalThread;
 import com.jfirer.jnet.common.util.ChannelConfig;
@@ -27,7 +25,6 @@ public class HttpConnection
 {
     public static final HttpReceiveResponse      CLOSE_OF_CONNECTION = new HttpReceiveResponse(null);
     public static final long                     KEEP_ALIVE_TIME     = 1000 * 60 * 5;
-    public static final WorkerGroup              HTTP_WORKER_GROUP   = new DefaultWorkerGroup(Runtime.getRuntime().availableProcessors(), "http_connection_worker_");
     public static final AsynchronousChannelGroup HTTP_CHANNEL_GROUP;
 
     static
@@ -49,7 +46,7 @@ public class HttpConnection
 
     public HttpConnection(String domain, int port)
     {
-        ChannelConfig channelConfig = new ChannelConfig().setIp(domain).setPort(port).setChannelGroup(HTTP_CHANNEL_GROUP).setWorkerGroup(HTTP_WORKER_GROUP);
+        ChannelConfig channelConfig = new ChannelConfig().setIp(domain).setPort(port).setChannelGroup(HTTP_CHANNEL_GROUP);
         clientChannel = ClientChannel.newClient(channelConfig, pipeline -> {
             pipeline.addReadProcessor(new HttpReceiveResponseDecoder(this));
             pipeline.addReadProcessor(new ReadProcessor<HttpReceiveResponse>()
