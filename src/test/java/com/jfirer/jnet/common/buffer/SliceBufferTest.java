@@ -18,12 +18,10 @@ import static org.junit.Assert.assertTrue;
 @RunWith(Parameterized.class)
 public class SliceBufferTest
 {
-    private final boolean         preDirect;
     private final BufferAllocator allocator;
 
-    public SliceBufferTest(boolean preDirect, BufferAllocator allocator)
+    public SliceBufferTest(BufferAllocator allocator)
     {
-        this.preDirect = preDirect;
         this.allocator = allocator;
     }
 
@@ -31,15 +29,15 @@ public class SliceBufferTest
     public static Collection<?> data()
     {
         return Arrays.asList(new Object[][]{ //
-                {true, PooledBufferAllocator.DEFAULT},//
-                {false, PooledBufferAllocator.DEFAULT},//
+                {new PooledBufferAllocator("testDirect", true)},//
+                {new PooledBufferAllocator("testHeap", false)},//
         });
     }
 
     @Test
     public void test()
     {
-        IoBuffer buffer = allocator.ioBuffer(128, preDirect);
+        IoBuffer buffer = allocator.ioBuffer(128);
         buffer.putInt(1);
         buffer.putInt(2);
         buffer.putInt(3);
@@ -72,7 +70,7 @@ public class SliceBufferTest
     @Test
     public void test1()
     {
-        IoBuffer buffer = allocator.ioBuffer(128, preDirect);
+        IoBuffer buffer = allocator.ioBuffer(128);
         buffer.putInt(1);
         buffer.putInt(2);
         buffer.putInt(3);
@@ -87,7 +85,7 @@ public class SliceBufferTest
     @Test
     public void test2()
     {
-        IoBuffer buffer = allocator.ioBuffer(128, preDirect);
+        IoBuffer buffer = allocator.ioBuffer(128);
         buffer.putInt(1);
         buffer.putInt(2);
         buffer.putInt(3);

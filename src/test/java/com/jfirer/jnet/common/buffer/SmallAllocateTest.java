@@ -23,7 +23,8 @@ import static org.junit.Assert.*;
 @RunWith(Parameterized.class)
 public class SmallAllocateTest
 {
-    PooledBufferAllocator allocator          = new PooledBufferAllocator("test");
+    PooledBufferAllocator allocatorHeap          = new PooledBufferAllocator("test",false);
+    PooledBufferAllocator allocatorDirect = new PooledBufferAllocator("test",true);
     int                   reqCapacity;
     long                  subPageHeadsOffset = UNSAFE.getFieldOffset("subPageHeads", Arena.class);
     long                  subPagesOffset     = UNSAFE.getFieldOffset("subPages", ChunkListNode.class);
@@ -56,17 +57,17 @@ public class SmallAllocateTest
     @Test
     public void test0()
     {
-        test0(true);
-        test0(false);
+        test0(allocatorHeap);
+        test0(allocatorDirect);
     }
 
-    private void test0(boolean direct)
+    private void test0(PooledBufferAllocator allocator)
     {
         int             pagesize     = allocator.pagesize();
         int             elementNum   = pagesize / reqCapacity;
         int             numOfSubPage = 1 << allocator.maxLevel();
         ChunkListNode   chunk        = null;
-        Arena           arena        = allocator.currentArena(direct);
+        Arena           arena        = allocator.currentArena();
         Queue<IoBuffer> buffers      = new LinkedList<>();
         Queue<SubPage>  subPageQueue = new LinkedList<>();
         SubPage[]       subPageHeads = (SubPage[]) UNSAFE.getObject(arena, subPageHeadsOffset);
@@ -76,7 +77,7 @@ public class SmallAllocateTest
         {
             for (int elementIdx = 0; elementIdx < elementNum; elementIdx++)
             {
-                BasicBuffer buffer = (BasicBuffer) allocator.ioBuffer(reqCapacity, direct);
+                BasicBuffer buffer = (BasicBuffer) allocator.ioBuffer(reqCapacity);
                 buffers.add(buffer);
                 int offset = i * pagesize + elementIdx * reqCapacity;
                 assertEquals(reqCapacity, buffer.capacity());

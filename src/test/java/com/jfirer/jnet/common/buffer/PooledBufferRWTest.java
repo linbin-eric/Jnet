@@ -18,8 +18,10 @@ import static org.junit.Assert.*;
 @RunWith(Parameterized.class)
 public class PooledBufferRWTest
 {
-    private final IoBuffer buffer;
-    private final IoBuffer paramBuffer;
+    private final IoBuffer              buffer;
+    private final IoBuffer              paramBuffer;
+    private   static     PooledBufferAllocator allocatorHeap = new PooledBufferAllocator("heap", false);
+    private     static   PooledBufferAllocator allocatorDirect = new PooledBufferAllocator("direct", true);
 
     public PooledBufferRWTest(IoBuffer buffer, IoBuffer paramBuffer)
     {
@@ -40,12 +42,12 @@ public class PooledBufferRWTest
 
     static BasicBuffer allocate(int size)
     {
-        return (BasicBuffer) PooledBufferAllocator.DEFAULT.heapBuffer(size);
+        return (BasicBuffer) allocatorHeap.ioBuffer(size);
     }
 
     static BasicBuffer allocateDirect(int size)
     {
-        return (BasicBuffer) PooledBufferAllocator.DEFAULT.unsafeBuffer(size);
+        return (BasicBuffer) allocatorDirect.ioBuffer(size);
     }
 
     @Before

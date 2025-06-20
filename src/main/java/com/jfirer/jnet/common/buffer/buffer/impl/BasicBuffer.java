@@ -492,7 +492,10 @@ public class BasicBuffer implements IoBuffer
         storageSegment.free();
         storageSegment = null;
         readPosi       = writePosi = offset = capacity = 0;
-        recycleHandler.recycle(this);
+        if (recycleHandler != null)
+        {
+            recycleHandler.recycle(this);
+        }
     }
 
     @Override

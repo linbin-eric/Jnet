@@ -15,16 +15,17 @@ import static org.junit.Assert.*;
 
 public class ArenaTest
 {
-    private final PooledBufferAllocator allocator;
-    private final long                  c100Offset = UNSAFE.getFieldOffset("c100", Arena.class);
-    private final long                  c075Offset = UNSAFE.getFieldOffset("c075", Arena.class);
-    private final long c050Offset = UNSAFE.getFieldOffset("c050", Arena.class);
-    private final long c025Offset = UNSAFE.getFieldOffset("c025", Arena.class);
-    private final long c000Offset = UNSAFE.getFieldOffset("c000", Arena.class);
-    private final long cIntOffset = UNSAFE.getFieldOffset("cInt", Arena.class);
+    private final PooledBufferAllocator allocatorHeap   = new PooledBufferAllocator("testHeap", false);
+    private final PooledBufferAllocator allocatorDirect = new PooledBufferAllocator("test", true);
+    private final long                  c100Offset      = UNSAFE.getFieldOffset("c100", Arena.class);
+    private final long                  c075Offset      = UNSAFE.getFieldOffset("c075", Arena.class);
+    private final long                  c050Offset      = UNSAFE.getFieldOffset("c050", Arena.class);
+    private final long                  c025Offset      = UNSAFE.getFieldOffset("c025", Arena.class);
+    private final long                  c000Offset      = UNSAFE.getFieldOffset("c000", Arena.class);
+    private final long                  cIntOffset      = UNSAFE.getFieldOffset("cInt", Arena.class);
+
     public ArenaTest()
     {
-        allocator = new PooledBufferAllocator("test");
     }
 
     /**
@@ -33,17 +34,17 @@ public class ArenaTest
     @Test
     public void test()
     {
-        testMove(true);
-        testMove(false);
+        testMove(allocatorHeap);
+        testMove(allocatorDirect);
     }
 
-    private void testMove(boolean preferDirect)
+    private void testMove(PooledBufferAllocator allocator)
     {
-        IoBuffer        buffer = allocator.ioBuffer(allocator.pagesize(), preferDirect);
+        IoBuffer        buffer = allocator.ioBuffer(allocator.pagesize());
         Queue<IoBuffer> queue  = new LinkedList<>();
         queue.add(buffer);
 //        ThreadCache      threadCache = allocator.threadCache();
-        Arena     arena = allocator.currentArena(preferDirect);
+        Arena     arena = allocator.currentArena();
         ChunkList c100  = (ChunkList) UNSAFE.getObject(arena, c100Offset);
         ChunkList c075  = (ChunkList) UNSAFE.getObject(arena, c075Offset);
         ChunkList c050  = (ChunkList) UNSAFE.getObject(arena, c050Offset);
@@ -61,7 +62,7 @@ public class ArenaTest
         int           quarter       = total >>> 2;
         for (int i = 1; i < quarter; i++)
         {
-            queue.add(allocator.ioBuffer(allocator.pagesize(), preferDirect));
+            queue.add(allocator.ioBuffer(allocator.pagesize()));
             assertNull(c100.head());
             assertNull(c075.head());
             assertNull(c050.head());
@@ -73,7 +74,7 @@ public class ArenaTest
         assertEquals(25, chunkListNode.usage());
         for (int i = 0; i < quarter; i++)
         {
-            queue.add(allocator.ioBuffer(allocator.pagesize(), preferDirect));
+            queue.add(allocator.ioBuffer(allocator.pagesize()));
             assertNull(c100.head());
             assertNull(c075.head());
             assertNull(c050.head());
@@ -85,7 +86,7 @@ public class ArenaTest
         assertEquals(50, chunkListNode.usage());
         for (int i = 0; i < quarter; i++)
         {
-            queue.add(allocator.ioBuffer(allocator.pagesize(), preferDirect));
+            queue.add(allocator.ioBuffer(allocator.pagesize()));
             assertNull(c100.head());
             assertNull(c075.head());
             assertNull(c050.head());
@@ -97,7 +98,7 @@ public class ArenaTest
         assertEquals(75, chunkListNode.usage());
         for (int i = 1; i < quarter; i++)
         {
-            queue.add(allocator.ioBuffer(allocator.pagesize(), preferDirect));
+            queue.add(allocator.ioBuffer(allocator.pagesize()));
             assertNull(c100.head());
             if (chunkListNode.usage() <= 90)
             {
@@ -122,7 +123,7 @@ public class ArenaTest
             }
         }
         assertEquals(99, chunkListNode.usage());
-        queue.add(allocator.ioBuffer(allocator.pagesize(), preferDirect));
+        queue.add(allocator.ioBuffer(allocator.pagesize()));
         assertNotNull(c100.head());
         assertNull(c075.head());
         assertNull(c050.head());

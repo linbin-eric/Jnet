@@ -31,7 +31,7 @@ public class BufferRecycleTest
         thread.start();
         thread.join();
         IoBuffer buffer2 = allocator.ioBuffer(12);
-        assertSame(buffer2, buffer);
+        assertTrue(buffer==buffer2);
         buffer2.free();
     }
 

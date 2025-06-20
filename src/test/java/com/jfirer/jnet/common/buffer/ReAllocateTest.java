@@ -10,18 +10,19 @@ import static org.junit.Assert.assertNotEquals;
 
 public class ReAllocateTest
 {
-    PooledBufferAllocator allocator = new PooledBufferAllocator("test");
+    PooledBufferAllocator allocatorHeap   = new PooledBufferAllocator("test", false);
+    PooledBufferAllocator allocatorDirect = new PooledBufferAllocator("test", true);
 
     @Test
     public void test()
     {
-        test0(true);
-        test0(false);
+        test0(allocatorHeap);
+        test0(allocatorDirect);
     }
 
-    private void test0(boolean preferDirect)
+    private void test0(PooledBufferAllocator allocator)
     {
-        BasicBuffer buffer = (BasicBuffer) allocator.ioBuffer(16, preferDirect);
+        BasicBuffer buffer = (BasicBuffer) allocator.ioBuffer(16);
         int         offset = buffer.offset();
         long        handle = ((PooledStorageSegment) buffer.getStorageSegment()).getHandle();
         assertEquals(16, buffer.capacity());

@@ -11,9 +11,9 @@ import java.util.concurrent.atomic.LongAdder;
 
 public class CachedBufferAllocator extends PooledBufferAllocator
 {
-    public static final int                          NUM_OF_CACHE;
-    public static final int                          MAX_CACHED_BUFFER_CAPACITY;
-    public static       CachedBufferAllocator        DEFAULT = new CachedBufferAllocator("CachedPooledBufferAllocator_default");
+    public static final int                   NUM_OF_CACHE;
+    public static final int                   MAX_CACHED_BUFFER_CAPACITY;
+    public static       CachedBufferAllocator DEFAULT = new CachedBufferAllocator("CachedPooledBufferAllocator_default");
 
     static
     {
@@ -21,14 +21,21 @@ public class CachedBufferAllocator extends PooledBufferAllocator
         MAX_CACHED_BUFFER_CAPACITY = SystemPropertyUtil.getInt("io.jnet.PooledBufferAllocator.maxCachedBufferCapacity", 32 * 1024);
     }
 
-    protected final     FastThreadLocal<ThreadCache> THREAD_CACHE_FOR_DIRECT;
-    protected final     FastThreadLocal<ThreadCache> THREAD_CACHE_FOR_HEAP;
-    public LongAdder success = new LongAdder();
-    public LongAdder fail    = new LongAdder();
+    protected final FastThreadLocal<ThreadCache> THREAD_CACHE_FOR_DIRECT;
+    protected final FastThreadLocal<ThreadCache> THREAD_CACHE_FOR_HEAP;
+    public          LongAdder                    success = new LongAdder();
+    public          LongAdder                    fail    = new LongAdder();
 
     public CachedBufferAllocator(String name)
     {
         super(name);
+        THREAD_CACHE_FOR_DIRECT = FastThreadLocal.withInitializeValue(() -> new ThreadCache(NUM_OF_CACHE, MAX_CACHED_BUFFER_CAPACITY, directArenaFastThreadLocal.get(), BufferType.UNSAFE));
+        THREAD_CACHE_FOR_HEAP   = FastThreadLocal.withInitializeValue(() -> new ThreadCache(NUM_OF_CACHE, MAX_CACHED_BUFFER_CAPACITY, heapArenaFastThreadLocal.get(), BufferType.HEAP));
+    }
+
+    public CachedBufferAllocator(String name, boolean preferDirect)
+    {
+        super(name, preferDirect);
         THREAD_CACHE_FOR_DIRECT = FastThreadLocal.withInitializeValue(() -> new ThreadCache(NUM_OF_CACHE, MAX_CACHED_BUFFER_CAPACITY, directArenaFastThreadLocal.get(), BufferType.UNSAFE));
         THREAD_CACHE_FOR_HEAP   = FastThreadLocal.withInitializeValue(() -> new ThreadCache(NUM_OF_CACHE, MAX_CACHED_BUFFER_CAPACITY, heapArenaFastThreadLocal.get(), BufferType.HEAP));
     }
@@ -41,7 +48,7 @@ public class CachedBufferAllocator extends PooledBufferAllocator
     }
 
     @Override
-    public IoBuffer heapBuffer(int initializeCapacity)
+    protected IoBuffer heapBuffer(int initializeCapacity)
     {
         BasicBuffer buffer = BasicBuffer.HEAP_POOL.get();
         buffer.init(THREAD_CACHE_FOR_HEAP.get().allocate(initializeCapacity));
@@ -49,7 +56,7 @@ public class CachedBufferAllocator extends PooledBufferAllocator
     }
 
     @Override
-    public IoBuffer unsafeBuffer(int initializeCapacity)
+    protected IoBuffer unsafeBuffer(int initializeCapacity)
     {
         BasicBuffer buffer = BasicBuffer.UNSAFE_POOL.get();
         buffer.init(THREAD_CACHE_FOR_DIRECT.get().allocate(initializeCapacity));

@@ -1,6 +1,7 @@
 package com.jfirer.jnet.common.buffer.allocator;
 
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
+import com.jfirer.jnet.common.buffer.buffer.storage.StorageSegment;
 
 public interface BufferAllocator
 {
@@ -11,11 +12,9 @@ public interface BufferAllocator
      */
     IoBuffer ioBuffer(int initializeCapacity);
 
-    IoBuffer ioBuffer(int initializeCapacity, boolean direct);
-
-    IoBuffer heapBuffer(int initializeCapacity);
-
-    IoBuffer unsafeBuffer(int initializeCapacity);
-
     String name();
+
+    void cycleBufferInstance(IoBuffer buffer);
+
+    void cycleStorageSegmentInstance(StorageSegment storageSegment);
 }

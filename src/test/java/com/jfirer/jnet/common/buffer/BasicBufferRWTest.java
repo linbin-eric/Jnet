@@ -29,14 +29,15 @@ public class BasicBufferRWTest
     @Parameters
     public static Collection<?> data()
     {
-        UnPoolBufferAllocator allocator = new UnPoolBufferAllocator();
+        UnPoolBufferAllocator allocatorHeap   = new UnPoolBufferAllocator(false);
+        UnPoolBufferAllocator allocatorDirect = new UnPoolBufferAllocator(true);
         return Arrays.asList(new Object[][]{ //
-                {allocator.heapBuffer(128), allocator.heapBuffer(30)},//
-                {allocator.heapBuffer(128), allocator.unsafeBuffer(30)}, //
+                {allocatorHeap.ioBuffer(128), allocatorHeap.ioBuffer(30)},//
+                {allocatorHeap.ioBuffer(128), allocatorDirect.ioBuffer(30)}, //
 //                {allocator.heapBuffer(128), allocator.directByteBuffer(30)},//
 //                {allocator.heapBuffer(128), allocator.memoryBuffer(30)},//
-                {allocator.unsafeBuffer(128), allocator.heapBuffer(30)}, //
-                {allocator.unsafeBuffer(128), allocator.unsafeBuffer(30)}, //
+                {allocatorDirect.ioBuffer(128), allocatorHeap.ioBuffer(30)}, //
+                {allocatorDirect.ioBuffer(128), allocatorDirect.ioBuffer(30)}, //
 //                {allocator.unsafeBuffer(128), allocator.directByteBuffer(30)},//
 //                {allocator.unsafeBuffer(128), allocator.memoryBuffer(30)},//
 //                {allocator.directByteBuffer(128), allocator.heapBuffer(30)},//

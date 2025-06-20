@@ -15,7 +15,8 @@ import java.util.List;
 @RunWith(Parameterized.class)
 public class MemoryRegionCacheSmallTest
 {
-    CachedBufferAllocator allocator = new CachedBufferAllocator("test");
+    CachedBufferAllocator allocatorDirect = new CachedBufferAllocator("testDirect", true);
+    CachedBufferAllocator allocatorHeap   = new CachedBufferAllocator("testHeap", false);
     private final int size;
 
     public MemoryRegionCacheSmallTest(int size)
@@ -39,28 +40,28 @@ public class MemoryRegionCacheSmallTest
     @Test
     public void test() throws InterruptedException
     {
-        test0(false, size);
-        test0(true, size);
+        test0(allocatorHeap, size);
+        test0(allocatorDirect, size);
     }
 
     @SuppressWarnings("unchecked")
-    private void test0(boolean preferDirect, int size) throws InterruptedException
+    private void test0(CachedBufferAllocator allocator, int size) throws InterruptedException
     {
         int                     numOfCached = CachedBufferAllocator.NUM_OF_CACHE;
         final List<BasicBuffer> buffers     = new LinkedList<>();
         for (int i = 0; i < numOfCached; i++)
         {
-            BasicBuffer buffer = (BasicBuffer) allocator.ioBuffer(size, preferDirect);
+            BasicBuffer buffer = (BasicBuffer) allocator.ioBuffer(size);
             buffers.add(buffer);
             CachedStorageSegment storageSegment = (CachedStorageSegment) buffer.getStorageSegment();
             Assert.assertNotNull(storageSegment.getThreadCache());
             Assert.assertEquals(i, storageSegment.getBitMapIndex());
         }
-        BasicBuffer ioBuffer = (BasicBuffer) allocator.ioBuffer(size, preferDirect);
+        BasicBuffer ioBuffer = (BasicBuffer) allocator.ioBuffer(size);
         Assert.assertTrue(ioBuffer.getStorageSegment() instanceof PooledStorageSegment);
         Assert.assertNotNull(((PooledStorageSegment) ioBuffer.getStorageSegment()).getArena());
         ioBuffer.free();
-        ioBuffer = (BasicBuffer) allocator.ioBuffer(size, preferDirect);
+        ioBuffer = (BasicBuffer) allocator.ioBuffer(size);
         Assert.assertTrue(ioBuffer.getStorageSegment() instanceof PooledStorageSegment);
         ioBuffer.free();
         BasicBuffer buffer = buffers.get(numOfCached - 1);

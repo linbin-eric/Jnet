@@ -16,7 +16,8 @@ import static org.junit.Assert.*;
 
 public class ChunkListTest
 {
-    PooledBufferAllocator allocator = new PooledBufferAllocator("test");
+    PooledBufferAllocator allocatorDirect = new PooledBufferAllocator("test", true);
+    PooledBufferAllocator allocatorHeap   = new PooledBufferAllocator("test", false);
     private final long c100Offset = UNSAFE.getFieldOffset("c100", Arena.class);
     private final long c075Offset = UNSAFE.getFieldOffset("c075", Arena.class);
     private final long c050Offset = UNSAFE.getFieldOffset("c050", Arena.class);
@@ -27,29 +28,29 @@ public class ChunkListTest
     @Test
     public void test0()
     {
-        test0(true);
-        test0(false);
+        test0(allocatorDirect);
+        test0(allocatorHeap);
     }
 
-    private void test0(boolean preferDirect)
+    private void test0(PooledBufferAllocator allocator)
     {
         int             chunkSize = allocator.pagesize() << allocator.maxLevel();
         int             size      = chunkSize >> 2;
         Queue<IoBuffer> buffers   = new LinkedList<>();
         for (int i = 0; i < 4; i++)
         {
-            IoBuffer buffer = allocator.ioBuffer(size, preferDirect);
+            IoBuffer buffer = allocator.ioBuffer(size);
             if (i != 3)
             {
                 buffers.add(buffer);
             }
         }
-        Arena         arena  = allocator.currentArena(preferDirect);
+        Arena         arena  = allocator.currentArena();
         ChunkList     c100   = (ChunkList) UNSAFE.getObject(arena, c100Offset);
         ChunkListNode chunk1 = c100.head();
         for (int i = 0; i < 4; i++)
         {
-            IoBuffer buffer = allocator.ioBuffer(size, preferDirect);
+            IoBuffer buffer = allocator.ioBuffer(size);
             if (i != 3)
             {
                 buffers.add(buffer);
@@ -62,12 +63,12 @@ public class ChunkListTest
             buffers.poll().free();
         }
         assertSame(chunk2.getNext(), chunk1);
-        allocator.ioBuffer(size, preferDirect);
-        allocator.ioBuffer(size, preferDirect);
+        allocator.ioBuffer(size);
+        allocator.ioBuffer(size);
         assertEquals(75, chunk2.usage());
-        allocator.ioBuffer(size << 1, preferDirect);
+        allocator.ioBuffer(size << 1);
         assertEquals(75, chunk1.usage());
-        allocator.ioBuffer(size << 1, preferDirect);
+        allocator.ioBuffer(size << 1);
         ChunkList c000   = (ChunkList) UNSAFE.getObject(arena, c000Offset);
         Chunk     chunk3 = c000.head();
         assertNotNull(chunk3);

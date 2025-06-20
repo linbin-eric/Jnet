@@ -13,7 +13,8 @@ import static org.junit.Assert.assertEquals;
 
 public class NormalAllocateTest
 {
-    PooledBufferAllocator allocator = new PooledBufferAllocator("NormalAllocateTest");
+    PooledBufferAllocator allocatorHeap   = new PooledBufferAllocator("NormalAllocateTest", false);
+    PooledBufferAllocator allocatorDirect = new PooledBufferAllocator("NormalAllocateTest", true);
 
     /**
      * 遍历对每层的每一个节点进行分配测试
@@ -21,11 +22,11 @@ public class NormalAllocateTest
     @Test
     public void test0()
     {
-        test0(true);
-        test0(false);
+        test0(allocatorHeap);
+        test0(allocatorDirect);
     }
 
-    private void test0(boolean direct)
+    private void test0(PooledBufferAllocator allocator)
     {
         List<IoBuffer> buffers = new LinkedList<>();
         for (int i = allocator.maxLevel(); i >= 0; i--)
@@ -34,7 +35,7 @@ public class NormalAllocateTest
             int base      = 1 << i;
             for (int j = 0; j < 1 << i; j++)
             {
-                BasicBuffer buffer = (BasicBuffer) allocator.ioBuffer(levelSize, direct);
+                BasicBuffer buffer = (BasicBuffer) allocator.ioBuffer(levelSize);
                 long        handle = ((PooledStorageSegment) buffer.getStorageSegment()).getHandle();
                 assertEquals(base + j, handle);
                 buffers.add(buffer);
@@ -53,18 +54,18 @@ public class NormalAllocateTest
     @Test
     public void test1()
     {
-        test1(true);
-        test1(false);
+        test1(allocatorHeap);
+        test1(allocatorDirect);
     }
 
-    private void test1(boolean preferDirect)
+    private void test1(PooledBufferAllocator allocator)
     {
         int pagesize = allocator.pagesize();
         int maxLevel = allocator.maxLevel();
         for (int i = maxLevel; i > 0; i--)
         {
             int         size   = pagesize << (maxLevel - i);
-            BasicBuffer buffer = (BasicBuffer) allocator.ioBuffer(size, preferDirect);
+            BasicBuffer buffer = (BasicBuffer) allocator.ioBuffer(size);
             if (i == maxLevel)
             {
                 assertEquals(1 << i, ((PooledStorageSegment) buffer.getStorageSegment()).getHandle());
