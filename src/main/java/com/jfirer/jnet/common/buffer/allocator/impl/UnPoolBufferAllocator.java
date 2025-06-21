@@ -3,7 +3,7 @@ package com.jfirer.jnet.common.buffer.allocator.impl;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
-import com.jfirer.jnet.common.buffer.buffer.impl.BasicBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.UnPooledBuffer;
 import com.jfirer.jnet.common.buffer.buffer.storage.StorageSegment;
 import com.jfirer.jnet.common.buffer.buffer.storage.UnPooledStorageSegment;
 import com.jfirer.jnet.common.util.PlatFormFunction;
@@ -28,7 +28,7 @@ public class UnPoolBufferAllocator implements BufferAllocator
     public IoBuffer ioBuffer(int initializeCapacity)
     {
         StorageSegment storageSegment = storageSegmentInstance();
-        BasicBuffer    buffer         = bufferInstance();
+        UnPooledBuffer buffer         = bufferInstance();
         if (preferDirect)
         {
             storageSegment.init(new byte[initializeCapacity], 0, 0, initializeCapacity);
@@ -49,15 +49,15 @@ public class UnPoolBufferAllocator implements BufferAllocator
     }
 
     @Override
-    public BasicBuffer bufferInstance()
+    public UnPooledBuffer bufferInstance()
     {
         if (preferDirect)
         {
-            return new BasicBuffer(BufferType.UNSAFE, this);
+            return new UnPooledBuffer(BufferType.UNSAFE, this);
         }
         else
         {
-            return new BasicBuffer(BufferType.HEAP, this);
+            return new UnPooledBuffer(BufferType.HEAP, this);
         }
     }
 
@@ -68,7 +68,7 @@ public class UnPoolBufferAllocator implements BufferAllocator
     }
 
     @Override
-    public void cycleBufferInstance(BasicBuffer buffer)
+    public void cycleBufferInstance(IoBuffer buffer)
     {
         ;
     }

@@ -1,7 +1,6 @@
 package com.jfirer.jnet.common.buffer.allocator;
 
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
-import com.jfirer.jnet.common.buffer.buffer.impl.BasicBuffer;
 import com.jfirer.jnet.common.buffer.buffer.storage.StorageSegment;
 
 public interface BufferAllocator
@@ -18,11 +17,11 @@ public interface BufferAllocator
         return this.getClass().getName();
     }
 
-    BasicBuffer bufferInstance();
+    IoBuffer bufferInstance();
 
     StorageSegment storageSegmentInstance();
 
-    void cycleBufferInstance(BasicBuffer buffer);
+    void cycleBufferInstance(IoBuffer buffer);
 
     void cycleStorageSegmentInstance(StorageSegment storageSegment);
 }

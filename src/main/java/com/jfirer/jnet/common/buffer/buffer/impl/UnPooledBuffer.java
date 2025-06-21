@@ -13,7 +13,7 @@ import lombok.Setter;
 
 import java.nio.ByteBuffer;
 
-public class BasicBuffer implements IoBuffer
+public class UnPooledBuffer implements IoBuffer
 {
     protected final BufferType      bufferType;
     protected final RwDelegation    rwDelegation;
@@ -28,7 +28,7 @@ public class BasicBuffer implements IoBuffer
     protected       int             watchTraceSkip  = 5;
     protected       int             watchTraceLimit = 3;
 
-    public BasicBuffer(BufferType bufferType, BufferAllocator allocator)
+    public UnPooledBuffer(BufferType bufferType, BufferAllocator allocator)
     {
         this.bufferType = bufferType;
         this.allocator  = allocator;
@@ -581,8 +581,8 @@ public class BasicBuffer implements IoBuffer
     @Override
     public IoBuffer slice(int length)
     {
-        int         oldReadPosi = nextReadPosi(length);
-        BasicBuffer sliceBuffer = allocator.bufferInstance();
+        int            oldReadPosi = nextReadPosi(length);
+        UnPooledBuffer sliceBuffer = (UnPooledBuffer) allocator.bufferInstance();
         sliceBuffer.init(storageSegment, offset + oldReadPosi - storageSegment.getOffset(), length);
         sliceBuffer.setWritePosi(length);
         return sliceBuffer;
@@ -591,6 +591,6 @@ public class BasicBuffer implements IoBuffer
     @Override
     public String toString()
     {
-        return "BasicBuffer{" + "capacity=" + capacity + ", readPosi=" + readPosi + ", writePosi=" + writePosi + ", refCount=" + storageSegment.getRefCount() + '}';
+        return "UnPooledBuffer{" + "capacity=" + capacity + ", readPosi=" + readPosi + ", writePosi=" + writePosi + ", refCount=" + storageSegment.getRefCount() + '}';
     }
 }

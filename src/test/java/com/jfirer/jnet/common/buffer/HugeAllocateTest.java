@@ -2,7 +2,7 @@ package com.jfirer.jnet.common.buffer;
 
 import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 import com.jfirer.jnet.common.buffer.arena.Arena;
-import com.jfirer.jnet.common.buffer.buffer.impl.BasicBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.UnPooledBuffer;
 import com.jfirer.jnet.common.buffer.buffer.storage.PooledStorageSegment;
 import com.jfirer.jnet.common.util.UNSAFE;
 import org.junit.Test;
@@ -21,14 +21,14 @@ public class HugeAllocateTest
     public void testHeap()
     {
         Arena       arena            = allocatorHeap.currentArena();
-        int         allocateCapacity = UNSAFE.getInt(arena, chunkSizeOffset) + 1;
-        BasicBuffer buffer           = (BasicBuffer) allocatorDirect.ioBuffer(allocateCapacity);
-        int         newChunkCount    = UNSAFE.getInt(arena, newChunkCountOffset);
+        int            allocateCapacity = UNSAFE.getInt(arena, chunkSizeOffset) + 1;
+        UnPooledBuffer buffer           = (UnPooledBuffer) allocatorDirect.ioBuffer(allocateCapacity);
+        int            newChunkCount    = UNSAFE.getInt(arena, newChunkCountOffset);
         test0(allocateCapacity, buffer, arena);
         assertEquals(UNSAFE.getInt(arena, newChunkCountOffset), newChunkCount);
     }
 
-    private void test0(int allocateCapacity, BasicBuffer buffer, Arena arena)
+    private void test0(int allocateCapacity, UnPooledBuffer buffer, Arena arena)
     {
         PooledStorageSegment storageSegment = (PooledStorageSegment) buffer.getStorageSegment();
         assertTrue(storageSegment.getChunkListNode().isUnPooled());
@@ -42,8 +42,8 @@ public class HugeAllocateTest
     {
         Arena       arena            = allocatorDirect.currentArena();
         int         allocateCapacity = UNSAFE.getInt(arena, chunkSizeOffset) + 1;
-        int         newChunkCount    = UNSAFE.getInt(arena, newChunkCountOffset);
-        BasicBuffer buffer           = (BasicBuffer) allocatorDirect.ioBuffer(allocateCapacity);
+        int            newChunkCount = UNSAFE.getInt(arena, newChunkCountOffset);
+        UnPooledBuffer buffer        = (UnPooledBuffer) allocatorDirect.ioBuffer(allocateCapacity);
         test0(allocateCapacity, buffer, arena);
         assertEquals(UNSAFE.getInt(arena, newChunkCountOffset), newChunkCount);
     }

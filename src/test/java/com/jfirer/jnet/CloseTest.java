@@ -55,7 +55,7 @@ public class CloseTest
         ChannelConfig channelConfig = new ChannelConfig();
         channelConfig.setChannelGroup(ChannelConfig.DEFAULT_CHANNEL_GROUP);
         channelConfig.setMinReceiveSize(PooledBufferAllocator.PAGESIZE);
-        channelConfig.setAllocator(bufferAllocator);
+        channelConfig.setAllocatorSupplier(()->bufferAllocator);
         final CountDownLatch  countDownLatch = new CountDownLatch(writeNum);
         final Queue<IoBuffer> queue          = new ConcurrentLinkedQueue<>();
         final DataProcessor   dataProcessor  = new DataProcessor(queue, countDownLatch);
@@ -100,8 +100,7 @@ public class CloseTest
     private CapacityStat getStat(PooledBufferAllocator bufferAllocator)
     {
         CapacityStat stat = new CapacityStat();
-        bufferAllocator.directCapacityStat(stat);
-        bufferAllocator.heapCapacityStat(stat);
+        bufferAllocator.capacityStat(stat);
         return stat;
     }
 

@@ -6,7 +6,7 @@ import com.jfirer.jnet.common.recycler.RecycleHandler;
 import lombok.Getter;
 import lombok.Setter;
 
-public class PooledBuffer extends BasicBuffer
+public class PooledBuffer extends UnPooledBuffer
 {
     @Getter
     @Setter

@@ -5,22 +5,20 @@ import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.arena.ArenaAccepter;
 import com.jfirer.jnet.common.buffer.arena.ChunkListNode;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
-import com.jfirer.jnet.common.recycler.RecycleHandler;
 import lombok.Getter;
-import lombok.Setter;
 
-@Getter
-public class PooledStorageSegment extends StorageSegment implements ArenaAccepter
+public class PipelineStorageSegment extends StorageSegment implements ArenaAccepter
 {
-    protected Arena          arena;
-    protected ChunkListNode  chunkListNode;
-    protected long           handle;
-    @Setter
-    protected RecycleHandler recycleHandler;
+    protected     Arena         arena;
+    protected     ChunkListNode chunkListNode;
+    protected     long          handle;
+    @Getter
+    private final int           bitmapIndex;
 
-    public PooledStorageSegment(BufferAllocator allocator)
+    public PipelineStorageSegment(BufferAllocator allocator, int bitmapIndex)
     {
         super(allocator);
+        this.bitmapIndex = bitmapIndex;
     }
 
     @Override
@@ -44,7 +42,7 @@ public class PooledStorageSegment extends StorageSegment implements ArenaAccepte
 
     public StorageSegment makeNewSegment(int newCapacity, BufferType bufferType)
     {
-        PooledStorageSegment newSegment = (PooledStorageSegment) allocator.storageSegmentInstance();
+        PipelineStorageSegment newSegment = (PipelineStorageSegment) allocator.storageSegmentInstance();
         arena.allocate(newCapacity, newSegment);
         return newSegment;
     }

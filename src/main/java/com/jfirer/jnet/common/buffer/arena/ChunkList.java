@@ -1,6 +1,5 @@
 package com.jfirer.jnet.common.buffer.arena;
 
-import com.jfirer.jnet.common.buffer.buffer.storage.PooledStorageSegment;
 import com.jfirer.jnet.common.util.CapacityStat;
 
 public class ChunkList
@@ -51,7 +50,7 @@ public class ChunkList
         this.prevList = prevList;
     }
 
-    public boolean allocate(int normalizeSize, PooledStorageSegment storageSegment)
+    public boolean allocate(int normalizeSize, ArenaAccepter storageSegment)
     {
         if (head == null || normalizeSize > maxReqCapacity)
         {

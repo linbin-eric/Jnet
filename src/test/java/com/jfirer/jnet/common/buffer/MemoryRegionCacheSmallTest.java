@@ -1,7 +1,7 @@
 package com.jfirer.jnet.common.buffer;
 
 import com.jfirer.jnet.common.buffer.allocator.impl.CachedBufferAllocator;
-import com.jfirer.jnet.common.buffer.buffer.impl.BasicBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.UnPooledBuffer;
 import com.jfirer.jnet.common.buffer.buffer.storage.CachedStorageSegment;
 import com.jfirer.jnet.common.buffer.buffer.storage.PooledStorageSegment;
 import org.junit.Assert;
@@ -47,24 +47,24 @@ public class MemoryRegionCacheSmallTest
     @SuppressWarnings("unchecked")
     private void test0(CachedBufferAllocator allocator, int size) throws InterruptedException
     {
-        int                     numOfCached = CachedBufferAllocator.NUM_OF_CACHE;
-        final List<BasicBuffer> buffers     = new LinkedList<>();
+        int                        numOfCached = CachedBufferAllocator.NUM_OF_CACHE;
+        final List<UnPooledBuffer> buffers     = new LinkedList<>();
         for (int i = 0; i < numOfCached; i++)
         {
-            BasicBuffer buffer = (BasicBuffer) allocator.ioBuffer(size);
+            UnPooledBuffer buffer = (UnPooledBuffer) allocator.ioBuffer(size);
             buffers.add(buffer);
             CachedStorageSegment storageSegment = (CachedStorageSegment) buffer.getStorageSegment();
             Assert.assertNotNull(storageSegment.getThreadCache());
             Assert.assertEquals(i, storageSegment.getBitMapIndex());
         }
-        BasicBuffer ioBuffer = (BasicBuffer) allocator.ioBuffer(size);
+        UnPooledBuffer ioBuffer = (UnPooledBuffer) allocator.ioBuffer(size);
         Assert.assertTrue(ioBuffer.getStorageSegment() instanceof PooledStorageSegment);
         Assert.assertNotNull(((PooledStorageSegment) ioBuffer.getStorageSegment()).getArena());
         ioBuffer.free();
-        ioBuffer = (BasicBuffer) allocator.ioBuffer(size);
+        ioBuffer = (UnPooledBuffer) allocator.ioBuffer(size);
         Assert.assertTrue(ioBuffer.getStorageSegment() instanceof PooledStorageSegment);
         ioBuffer.free();
-        BasicBuffer buffer = buffers.get(numOfCached - 1);
+        UnPooledBuffer buffer = buffers.get(numOfCached - 1);
         buffer.free();
     }
 }

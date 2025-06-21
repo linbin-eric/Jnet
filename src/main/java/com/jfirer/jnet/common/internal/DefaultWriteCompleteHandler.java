@@ -48,7 +48,7 @@ public class DefaultWriteCompleteHandler extends AtomicInteger implements WriteC
         this.pipeline      = (InternalPipeline) pipeline;
         this.socketChannel = pipeline.socketChannel();
         ChannelConfig channelConfig = pipeline.channelConfig();
-        this.allocator     = channelConfig.getAllocator();
+        this.allocator     = channelConfig.getAllocatorSupplier().get();
         this.maxWriteBytes = Math.max(1, channelConfig.getMaxBatchWrite());
         queue              = new SpscLinkedQueue<>();
         set(OPEN);

@@ -55,7 +55,7 @@ public class AdaptiveReadCompletionHandler implements CompletionHandler<Integer,
         DECR_COUNT_MAX = config.getDecrCountMax();
         decrCount      = DECR_COUNT_MAX;
         socketChannel  = pipeline.socketChannel();
-        allocator      = config.getAllocator();
+        allocator      = config.getAllocatorSupplier().get();
         minIndex       = indexOf(config.getMinReceiveSize());
         maxIndex       = indexOf(config.getMaxReceiveSize());
         index          = indexOf(config.getInitReceiveSize());

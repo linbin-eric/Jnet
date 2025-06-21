@@ -4,7 +4,6 @@ import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
-import com.jfirer.jnet.common.buffer.buffer.impl.BasicBuffer;
 import com.jfirer.jnet.common.buffer.buffer.impl.PooledBuffer;
 import com.jfirer.jnet.common.buffer.buffer.storage.PooledStorageSegment;
 import com.jfirer.jnet.common.buffer.buffer.storage.StorageSegment;
@@ -41,11 +40,9 @@ public class PooledBufferAllocator implements BufferAllocator
     protected       int                    pagesize;
     protected       int                    maxLevel;
     protected       String                 name;
-    protected       ArenaUseCount[]        heapArenaUseCount;
-    protected       ArenaUseCount[]        directArenaUseCount;
+    protected       ArenaUseCount[]        arenaUseCount;
     protected final boolean                preferDirect;
-    protected final FastThreadLocal<Arena> heapArenaFastThreadLocal   = FastThreadLocal.withInitializeValue(() -> leastUseArena(heapArenaUseCount));
-    protected final FastThreadLocal<Arena> directArenaFastThreadLocal = FastThreadLocal.withInitializeValue(() -> leastUseArena(directArenaUseCount));
+    protected final FastThreadLocal<Arena> arenaFastThreadLocal = FastThreadLocal.withInitializeValue(() -> leastUseArena());
 
     public PooledBufferAllocator(String name)
     {
@@ -59,19 +56,14 @@ public class PooledBufferAllocator implements BufferAllocator
 
     public PooledBufferAllocator(int pagesize, int maxLevel, int numOfArena, boolean preferDirect, String name)
     {
-        this.pagesize       = pagesize;
-        this.maxLevel       = maxLevel;
-        this.preferDirect   = preferDirect;
-        heapArenaUseCount   = new ArenaUseCount[numOfArena];
-        directArenaUseCount = new ArenaUseCount[numOfArena];
-        this.name           = name;
+        this.pagesize     = pagesize;
+        this.maxLevel     = maxLevel;
+        this.preferDirect = preferDirect;
+        arenaUseCount     = new ArenaUseCount[numOfArena];
+        this.name         = name;
         for (int i = 0; i < numOfArena; i++)
         {
-            heapArenaUseCount[i] = new ArenaUseCount(new AtomicInteger(0), new Arena(maxLevel, pagesize, "HeapArena-" + i, BufferType.HEAP));
-        }
-        for (int i = 0; i < numOfArena; i++)
-        {
-            directArenaUseCount[i] = new ArenaUseCount(new AtomicInteger(0), new Arena(maxLevel, pagesize, "DirectArena-" + i, BufferType.UNSAFE));
+            arenaUseCount[i] = new ArenaUseCount(new AtomicInteger(0), new Arena(maxLevel, pagesize, "Arena-" + i, preferDirect ? BufferType.UNSAFE : BufferType.HEAP));
         }
     }
 
@@ -85,10 +77,10 @@ public class PooledBufferAllocator implements BufferAllocator
         return maxLevel;
     }
 
-    private Arena leastUseArena(ArenaUseCount[] arenaUseCounts)
+    private Arena leastUseArena()
     {
-        ArenaUseCount leastUseArena = arenaUseCounts[0];
-        for (ArenaUseCount each : arenaUseCounts)
+        ArenaUseCount leastUseArena = arenaUseCount[0];
+        for (ArenaUseCount each : arenaUseCount)
         {
             if (each.use.get() < leastUseArena.use.get())
             {
@@ -103,29 +95,15 @@ public class PooledBufferAllocator implements BufferAllocator
     public IoBuffer ioBuffer(int initializeCapacity)
     {
         PooledStorageSegment storageSegment = (PooledStorageSegment) storageSegmentInstance();
-        if (preferDirect)
-        {
-            directArenaFastThreadLocal.get().allocate(initializeCapacity, storageSegment);
-        }
-        else
-        {
-            heapArenaFastThreadLocal.get().allocate(initializeCapacity, storageSegment);
-        }
-        BasicBuffer pooledDirectBuffer = bufferInstance();
-        pooledDirectBuffer.init(storageSegment);
-        return pooledDirectBuffer;
+        arenaFastThreadLocal.get().allocate(initializeCapacity, storageSegment);
+        PooledBuffer pooledBuffer = (PooledBuffer) bufferInstance();
+        pooledBuffer.init(storageSegment);
+        return pooledBuffer;
     }
 
     public Arena currentArena()
     {
-        if (preferDirect)
-        {
-            return directArenaFastThreadLocal.get();
-        }
-        else
-        {
-            return heapArenaFastThreadLocal.get();
-        }
+        return arenaFastThreadLocal.get();
     }
 
     @Override
@@ -135,7 +113,7 @@ public class PooledBufferAllocator implements BufferAllocator
     }
 
     @Override
-    public BasicBuffer bufferInstance()
+    public IoBuffer bufferInstance()
     {
         if (preferDirect)
         {
@@ -154,7 +132,7 @@ public class PooledBufferAllocator implements BufferAllocator
     }
 
     @Override
-    public void cycleBufferInstance(BasicBuffer buffer)
+    public void cycleBufferInstance(IoBuffer buffer)
     {
         ((PooledBuffer) buffer).getRecycleHandler().recycle(buffer);
     }
@@ -165,17 +143,9 @@ public class PooledBufferAllocator implements BufferAllocator
         ((PooledStorageSegment) storageSegment).getRecycleHandler().recycle(storageSegment);
     }
 
-    public void heapCapacityStat(CapacityStat stat)
+    public void capacityStat(CapacityStat stat)
     {
-        for (ArenaUseCount each : heapArenaUseCount)
-        {
-            each.arena.capacityStat(stat);
-        }
-    }
-
-    public void directCapacityStat(CapacityStat stat)
-    {
-        for (ArenaUseCount each : directArenaUseCount)
+        for (ArenaUseCount each : arenaUseCount)
         {
             each.arena.capacityStat(stat);
         }

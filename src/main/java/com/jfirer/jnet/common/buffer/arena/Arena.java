@@ -2,7 +2,6 @@ package com.jfirer.jnet.common.buffer.arena;
 
 import com.jfirer.jnet.common.buffer.buffer.Bits;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
-import com.jfirer.jnet.common.buffer.buffer.storage.PooledStorageSegment;
 import com.jfirer.jnet.common.util.CapacityStat;
 import com.jfirer.jnet.common.util.MathUtil;
 import com.jfirer.jnet.common.util.ReflectUtil;
@@ -76,13 +75,13 @@ public class Arena
         return MathUtil.log2(normalizeCapacity) - 4;
     }
 
-    private void allocateHuge(int reqCapacity, PooledStorageSegment storageSegment)
+    private void allocateHuge(int reqCapacity, ArenaAccepter storageSegment)
     {
         storageSegment.init(this, new ChunkListNode(reqCapacity, bufferType), 0, 0, reqCapacity);
         hugeChunkCount.incrementAndGet();
     }
 
-    public void allocate(int reqCapacity, PooledStorageSegment storageSegment)
+    public void allocate(int reqCapacity, ArenaAccepter storageSegment)
     {
         int normalizeCapacity = normalizeCapacity(reqCapacity);
         if (isSmall(normalizeCapacity))
@@ -155,7 +154,7 @@ public class Arena
         return ((int) (handle >>> 32)) & 0x3FFFFFFF;
     }
 
-    private void initSubPageBuffer(SubPage subPage, PooledStorageSegment storageSegment)
+    private void initSubPageBuffer(SubPage subPage, ArenaAccepter storageSegment)
     {
         long handle                 = subPage.allocate();
         int  allocationsCapacityIdx = allocationsCapacityIdx(handle);
@@ -215,7 +214,7 @@ public class Arena
         }
     }
 
-    private void allocateNormal(int normalizeCapacity, PooledStorageSegment storageSegment)
+    private void allocateNormal(int normalizeCapacity, ArenaAccepter storageSegment)
     {
         lock.lock();
         try

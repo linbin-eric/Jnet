@@ -45,7 +45,7 @@ public class BaseTest
     {
         ChannelConfig channelConfig = new ChannelConfig();
         channelConfig.setChannelGroup(ChannelConfig.DEFAULT_CHANNEL_GROUP);
-        this.bufferAllocator = channelConfig.getAllocator();
+        this.bufferAllocator = channelConfig.getAllocatorSupplier().get();
         clients              = new ClientChannel[numClients];
         results              = new int[numClients][numPerThread];
         for (int i = 0; i < numClients; i++)
@@ -116,7 +116,7 @@ public class BaseTest
                 {
                     try
                     {
-                        IoBuffer buffer = bufferAllocator.ioBuffer(8*batch);
+                        IoBuffer buffer = bufferAllocator.ioBuffer(8 * batch);
                         int      num    = j;
                         int      max    = num + batch > numPerThread ? numPerThread : num + batch;
                         for (; num < max; num++)

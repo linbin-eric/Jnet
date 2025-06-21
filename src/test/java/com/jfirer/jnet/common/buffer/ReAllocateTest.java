@@ -1,7 +1,7 @@
 package com.jfirer.jnet.common.buffer;
 
 import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
-import com.jfirer.jnet.common.buffer.buffer.impl.BasicBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.UnPooledBuffer;
 import com.jfirer.jnet.common.buffer.buffer.storage.PooledStorageSegment;
 import org.junit.Test;
 
@@ -22,8 +22,8 @@ public class ReAllocateTest
 
     private void test0(PooledBufferAllocator allocator)
     {
-        BasicBuffer buffer = (BasicBuffer) allocator.ioBuffer(16);
-        int         offset = buffer.offset();
+        UnPooledBuffer buffer = (UnPooledBuffer) allocator.ioBuffer(16);
+        int            offset = buffer.offset();
         long        handle = ((PooledStorageSegment) buffer.getStorageSegment()).getHandle();
         assertEquals(16, buffer.capacity());
         buffer.putInt(4);

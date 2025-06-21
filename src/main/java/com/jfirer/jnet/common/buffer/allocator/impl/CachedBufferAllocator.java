@@ -3,7 +3,7 @@ package com.jfirer.jnet.common.buffer.allocator.impl;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.buffer.buffer.ThreadCache;
-import com.jfirer.jnet.common.buffer.buffer.impl.BasicBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.PooledBuffer;
 import com.jfirer.jnet.common.buffer.buffer.storage.CachedStorageSegment;
 import com.jfirer.jnet.common.buffer.buffer.storage.PooledStorageSegment;
 import com.jfirer.jnet.common.buffer.buffer.storage.StorageSegment;
@@ -24,47 +24,35 @@ public class CachedBufferAllocator extends PooledBufferAllocator
         MAX_CACHED_BUFFER_CAPACITY = SystemPropertyUtil.getInt("io.jnet.PooledBufferAllocator.maxCachedBufferCapacity", 32 * 1024);
     }
 
-    protected final FastThreadLocal<ThreadCache> THREAD_CACHE_FOR_DIRECT;
-    protected final FastThreadLocal<ThreadCache> THREAD_CACHE_FOR_HEAP;
+    protected final FastThreadLocal<ThreadCache> THREAD_CACHE;
     public          LongAdder                    success = new LongAdder();
     public          LongAdder                    fail    = new LongAdder();
 
     public CachedBufferAllocator(String name)
     {
         super(name);
-        THREAD_CACHE_FOR_DIRECT = FastThreadLocal.withInitializeValue(() -> new ThreadCache(NUM_OF_CACHE, MAX_CACHED_BUFFER_CAPACITY, directArenaFastThreadLocal.get(), BufferType.UNSAFE, this));
-        THREAD_CACHE_FOR_HEAP   = FastThreadLocal.withInitializeValue(() -> new ThreadCache(NUM_OF_CACHE, MAX_CACHED_BUFFER_CAPACITY, heapArenaFastThreadLocal.get(), BufferType.HEAP, this));
+        THREAD_CACHE = FastThreadLocal.withInitializeValue(() -> new ThreadCache(NUM_OF_CACHE, MAX_CACHED_BUFFER_CAPACITY, arenaFastThreadLocal.get(), BufferType.UNSAFE, this));
     }
 
     public CachedBufferAllocator(String name, boolean preferDirect)
     {
         super(name, preferDirect);
-        THREAD_CACHE_FOR_DIRECT = FastThreadLocal.withInitializeValue(() -> new ThreadCache(NUM_OF_CACHE, MAX_CACHED_BUFFER_CAPACITY, directArenaFastThreadLocal.get(), BufferType.UNSAFE, this));
-        THREAD_CACHE_FOR_HEAP   = FastThreadLocal.withInitializeValue(() -> new ThreadCache(NUM_OF_CACHE, MAX_CACHED_BUFFER_CAPACITY, heapArenaFastThreadLocal.get(), BufferType.HEAP, this));
+        THREAD_CACHE = FastThreadLocal.withInitializeValue(() -> new ThreadCache(NUM_OF_CACHE, MAX_CACHED_BUFFER_CAPACITY, arenaFastThreadLocal.get(), preferDirect ? BufferType.UNSAFE : BufferType.HEAP, this));
     }
 
     public CachedBufferAllocator(int pagesize, int maxLevel, int numOfArena, boolean preferDirect, String name, int numOfCached, int maxCachedBufferCapacity)
     {
         super(pagesize, maxLevel, numOfArena, preferDirect, name);
-        THREAD_CACHE_FOR_DIRECT = FastThreadLocal.withInitializeValue(() -> new ThreadCache(numOfCached, maxCachedBufferCapacity, directArenaFastThreadLocal.get(), BufferType.UNSAFE, this));
-        THREAD_CACHE_FOR_HEAP   = FastThreadLocal.withInitializeValue(() -> new ThreadCache(numOfCached, maxCachedBufferCapacity, heapArenaFastThreadLocal.get(), BufferType.HEAP, this));
+        THREAD_CACHE = FastThreadLocal.withInitializeValue(() -> new ThreadCache(numOfCached, maxCachedBufferCapacity, arenaFastThreadLocal.get(), preferDirect ? BufferType.UNSAFE : BufferType.HEAP, this));
     }
 
     @Override
     public IoBuffer ioBuffer(int initializeCapacity)
     {
-        StorageSegment storageSegment;
-        if (preferDirect)
-        {
-            storageSegment = THREAD_CACHE_FOR_DIRECT.get().allocate(initializeCapacity);
-        }
-        else
-        {
-            storageSegment = THREAD_CACHE_FOR_HEAP.get().allocate(initializeCapacity);
-        }
-        BasicBuffer pooledDirectBuffer = bufferInstance();
-        pooledDirectBuffer.init(storageSegment);
-        return pooledDirectBuffer;
+        StorageSegment storageSegment = THREAD_CACHE.get().allocate(initializeCapacity);
+        PooledBuffer   pooledBuffer   = (PooledBuffer) bufferInstance();
+        pooledBuffer.init(storageSegment);
+        return pooledBuffer;
     }
 
     @Override
