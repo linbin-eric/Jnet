@@ -1,31 +1,32 @@
 package com.jfirer.jnet.common.buffer.buffer.storage;
 
 import com.jfirer.jnet.common.buffer.LeakDetecter;
+import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
-import com.jfirer.jnet.common.recycler.RecycleHandler;
-import com.jfirer.jnet.common.recycler.Recycler;
 import com.jfirer.jnet.common.util.ChannelConfig;
-import com.jfirer.jnet.common.util.PlatFormFunction;
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Getter
-public class StorageSegment extends AtomicInteger
+public abstract class StorageSegment
 {
-    public static final Recycler<StorageSegment> POOL = new Recycler<>(StorageSegment::new, StorageSegment::setRecycleHandler);
-    protected           Object                   memory;
+    protected       Object                   memory;
     // 当是堆外内存的时候才会有值，0是非法值，不应该使用
-    protected           long                     nativeAddress;
-    protected           int                      capacity;
-    protected           int                      offset;
-    protected           LeakDetecter.LeakTracker watch;
+    protected       long                     nativeAddress;
+    protected       int                      capacity;
+    protected       int                      offset;
+    protected       LeakDetecter.LeakTracker watch;
     @Setter
-    @Getter(AccessLevel.NONE)
-    protected           RecycleHandler           recycleHandler;
+    protected final BufferAllocator          allocator;
+    protected final AtomicInteger            refCount;
+
+    public StorageSegment(BufferAllocator allocator)
+    {
+        this.allocator = allocator;
+        refCount       = new AtomicInteger(0);
+    }
 
     public void init(Object memory, long nativeAddress, int offset, int capacity)
     {
@@ -47,17 +48,17 @@ public class StorageSegment extends AtomicInteger
 
     public int getRefCount()
     {
-        return get();
+        return refCount.get();
     }
 
     public int addRefCount()
     {
-        return incrementAndGet();
+        return refCount.incrementAndGet();
     }
 
     public int decrRefCount()
     {
-        return decrementAndGet();
+        return refCount.decrementAndGet();
     }
 
     public void free()
@@ -78,34 +79,11 @@ public class StorageSegment extends AtomicInteger
         nativeAddress = 0;
         offset        = 0;
         capacity      = 0;
-        if (recycleHandler != null)
-        {
-            recycleHandler.recycle(this);
-        }
+        allocator.cycleStorageSegmentInstance(this);
     }
 
-    public StorageSegment makeNewSegment(int newCapacity, BufferType bufferType)
-    {
-        StorageSegment newSegment = StorageSegment.POOL.get();
-        newCapacity = newCapacity > capacity * 2 ? newCapacity : 2 * capacity;
-        switch (bufferType)
-        {
-            case HEAP ->
-            {
-                newSegment.init(new byte[newCapacity], 0, 0, newCapacity);
-            }
-            case DIRECT, MEMORY ->
-            {
-                throw new UnsupportedOperationException();
-            }
-            case UNSAFE ->
-            {
-                ByteBuffer byteBuffer = ByteBuffer.allocateDirect(newCapacity);
-                newSegment.init(byteBuffer, PlatFormFunction.bytebufferOffsetAddress(byteBuffer), 0, newCapacity);
-            }
-        }
-        return newSegment;
-    }
+    public abstract StorageSegment makeNewSegment(int newCapacity, BufferType bufferType);
+
 
     public void addInvokeTrace(int skip, int limit)
     {

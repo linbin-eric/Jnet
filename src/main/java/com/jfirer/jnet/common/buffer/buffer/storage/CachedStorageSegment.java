@@ -1,17 +1,27 @@
 package com.jfirer.jnet.common.buffer.buffer.storage;
 
+import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.ThreadCache;
-import com.jfirer.jnet.common.recycler.Recycler;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
-@Data
 public class CachedStorageSegment extends StorageSegment
 {
-    public static final Recycler<CachedStorageSegment> POOL = new Recycler<>(CachedStorageSegment::new, StorageSegment::setRecycleHandler);
-    private             ThreadCache                    threadCache;
-    private             int                            bitMapIndex;
-    private             int                            regionIndex;
+    @Setter
+    @Getter
+    private ThreadCache threadCache;
+    @Setter
+    @Getter
+    private int         bitMapIndex;
+    @Setter
+    @Getter
+    private int         regionIndex;
+
+    public CachedStorageSegment(BufferAllocator allocator)
+    {
+        super(allocator);
+    }
 
     @Override
     protected void free0()

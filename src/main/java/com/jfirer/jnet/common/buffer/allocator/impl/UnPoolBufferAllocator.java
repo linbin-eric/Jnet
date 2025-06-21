@@ -5,6 +5,7 @@ import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.buffer.buffer.impl.BasicBuffer;
 import com.jfirer.jnet.common.buffer.buffer.storage.StorageSegment;
+import com.jfirer.jnet.common.buffer.buffer.storage.UnPooledStorageSegment;
 import com.jfirer.jnet.common.util.PlatFormFunction;
 
 import java.nio.ByteBuffer;
@@ -26,36 +27,17 @@ public class UnPoolBufferAllocator implements BufferAllocator
     @Override
     public IoBuffer ioBuffer(int initializeCapacity)
     {
-        return ioBuffer(initializeCapacity, preferDirect);
-    }
-
-    private IoBuffer ioBuffer(int initializeCapacity, boolean direct)
-    {
-        if (direct)
+        StorageSegment storageSegment = storageSegmentInstance();
+        BasicBuffer    buffer         = bufferInstance();
+        if (preferDirect)
         {
-            return unsafeBuffer(initializeCapacity);
+            storageSegment.init(new byte[initializeCapacity], 0, 0, initializeCapacity);
         }
         else
         {
-            return heapBuffer(initializeCapacity);
+            ByteBuffer byteBuffer = ByteBuffer.allocateDirect(initializeCapacity);
+            storageSegment.init(byteBuffer, PlatFormFunction.bytebufferOffsetAddress(byteBuffer), 0, initializeCapacity);
         }
-    }
-
-    private IoBuffer heapBuffer(int initializeCapacity)
-    {
-        BasicBuffer    buffer         = new BasicBuffer(BufferType.HEAP);
-        StorageSegment storageSegment = new StorageSegment();
-        storageSegment.init(new byte[initializeCapacity], 0, 0, initializeCapacity);
-        buffer.init(storageSegment);
-        return buffer;
-    }
-
-    private BasicBuffer unsafeBuffer(int initializeCapacity)
-    {
-        BasicBuffer    buffer         = new BasicBuffer(BufferType.UNSAFE);
-        ByteBuffer     byteBuffer     = ByteBuffer.allocateDirect(initializeCapacity);
-        StorageSegment storageSegment = new StorageSegment();
-        storageSegment.init(byteBuffer, PlatFormFunction.bytebufferOffsetAddress(byteBuffer), 0, initializeCapacity);
         buffer.init(storageSegment);
         return buffer;
     }
@@ -67,14 +49,33 @@ public class UnPoolBufferAllocator implements BufferAllocator
     }
 
     @Override
-    public void cycleBufferInstance(IoBuffer buffer)
+    public BasicBuffer bufferInstance()
     {
-        throw new UnsupportedOperationException();
+        if (preferDirect)
+        {
+            return new BasicBuffer(BufferType.UNSAFE, this);
+        }
+        else
+        {
+            return new BasicBuffer(BufferType.HEAP, this);
+        }
+    }
+
+    @Override
+    public StorageSegment storageSegmentInstance()
+    {
+        return new UnPooledStorageSegment(this);
+    }
+
+    @Override
+    public void cycleBufferInstance(BasicBuffer buffer)
+    {
+        ;
     }
 
     @Override
     public void cycleStorageSegmentInstance(StorageSegment storageSegment)
     {
-        throw new UnsupportedOperationException();
+        ;
     }
 }

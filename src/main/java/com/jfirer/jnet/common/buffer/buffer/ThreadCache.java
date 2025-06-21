@@ -1,6 +1,7 @@
 package com.jfirer.jnet.common.buffer.buffer;
 
 import com.jfirer.jnet.common.buffer.LeakDetecter;
+import com.jfirer.jnet.common.buffer.allocator.impl.CachedBufferAllocator;
 import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.buffer.storage.CachedStorageSegment;
 import com.jfirer.jnet.common.buffer.buffer.storage.PooledStorageSegment;
@@ -15,21 +16,23 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class ThreadCache
 {
-    static final int                      smallestMask = ~15;
+    static final  int                      smallestMask = ~15;
     final         int                      numOfCached;
     private final Arena                    arena;
     private final CachedStorageSegment[][] regionCaches;
     private final long[][]                 bitMaps;
     private final int[]                    numOfAvails;
-    private final int[]    nextAvails;
-    private final BufferType bufferType;
-    private final Lock       lock = new ReentrantLock();
+    private final int[]                    nextAvails;
+    private final BufferType               bufferType;
+    private final Lock                     lock         = new ReentrantLock();
+    private       CachedBufferAllocator    allocator;
 
-    public ThreadCache(int numOfCached, int maxCachedCapacity, Arena arena, BufferType bufferType)
+    public ThreadCache(int numOfCached, int maxCachedCapacity, Arena arena, BufferType bufferType,CachedBufferAllocator allocator)
     {
         this.arena       = arena;
         this.bufferType  = bufferType;
         this.numOfCached = numOfCached;
+        this.allocator = allocator;
         regionCaches     = new CachedStorageSegment[MathUtil.log2(maxCachedCapacity) - 4][];
         bitMaps          = new long[regionCaches.length][];
         numOfAvails      = new int[bitMaps.length];
@@ -58,7 +61,7 @@ public class ThreadCache
                 int bitMapIndex = findAvail(regionIndex);
                 if (bitMapIndex == -1)
                 {
-                    PooledStorageSegment pooledStorageSegment = PooledStorageSegment.POOL.get();
+                    PooledStorageSegment pooledStorageSegment = (PooledStorageSegment) allocator.storageSegmentInstance();
                     arena.allocate(size, pooledStorageSegment);
                     return pooledStorageSegment;
                 }
@@ -69,7 +72,7 @@ public class ThreadCache
                 CachedStorageSegment cached = regionCach[bitMapIndex];
                 if (cached == null)
                 {
-                    cached = new CachedStorageSegment();
+                    cached = new CachedStorageSegment(allocator);
                     cached.setThreadCache(this);
                     cached.setBitMapIndex(bitMapIndex);
                     cached.setRegionIndex(regionIndex);
@@ -103,7 +106,7 @@ public class ThreadCache
         }
         else
         {
-            PooledStorageSegment pooledStorageSegment = PooledStorageSegment.POOL.get();
+            PooledStorageSegment pooledStorageSegment = (PooledStorageSegment) allocator.storageSegmentInstance();
             arena.allocate(size, pooledStorageSegment);
             return pooledStorageSegment;
         }

@@ -1,5 +1,6 @@
 package com.jfirer.jnet.common.buffer.buffer.impl;
 
+import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.Bits;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
@@ -7,31 +8,30 @@ import com.jfirer.jnet.common.buffer.buffer.RwDelegation;
 import com.jfirer.jnet.common.buffer.buffer.impl.rw.HeapRw;
 import com.jfirer.jnet.common.buffer.buffer.impl.rw.UnsafeRw;
 import com.jfirer.jnet.common.buffer.buffer.storage.StorageSegment;
-import com.jfirer.jnet.common.recycler.RecycleHandler;
-import com.jfirer.jnet.common.recycler.Recycler;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.nio.ByteBuffer;
 
 public class BasicBuffer implements IoBuffer
 {
-    public static   Recycler<BasicBuffer> HEAP_POOL       = new Recycler<>(() -> new BasicBuffer(BufferType.HEAP), BasicBuffer::setRecycleHandler);
-    public static   Recycler<BasicBuffer> UNSAFE_POOL     = new Recycler<>(() -> new BasicBuffer(BufferType.UNSAFE), BasicBuffer::setRecycleHandler);
-    protected final BufferType            bufferType;
-    protected final RwDelegation          rwDelegation;
-    protected       int                   readPosi;
-    protected       int                   writePosi;
-    protected       int                   offset;
-    protected       int                   capacity;
-    protected       RecycleHandler        recycleHandler;
+    protected final BufferType      bufferType;
+    protected final RwDelegation    rwDelegation;
+    protected final BufferAllocator allocator;
+    protected       int             readPosi;
+    protected       int             writePosi;
+    protected       int             offset;
+    protected       int             capacity;
+    @Setter
     @Getter
-    protected       StorageSegment        storageSegment;
-    protected       int                   watchTraceSkip  = 5;
-    protected       int                   watchTraceLimit = 3;
+    protected       StorageSegment  storageSegment;
+    protected       int             watchTraceSkip  = 5;
+    protected       int             watchTraceLimit = 3;
 
-    public BasicBuffer(BufferType bufferType)
+    public BasicBuffer(BufferType bufferType, BufferAllocator allocator)
     {
         this.bufferType = bufferType;
+        this.allocator  = allocator;
         switch (bufferType)
         {
             case HEAP -> rwDelegation = HeapRw.INSTANCE;
@@ -492,10 +492,7 @@ public class BasicBuffer implements IoBuffer
         storageSegment.free();
         storageSegment = null;
         readPosi       = writePosi = offset = capacity = 0;
-        if (recycleHandler != null)
-        {
-            recycleHandler.recycle(this);
-        }
+        allocator.cycleBufferInstance(this);
     }
 
     @Override
@@ -519,11 +516,6 @@ public class BasicBuffer implements IoBuffer
     public long nativeAddress()
     {
         return storageSegment.getNativeAddress();
-    }
-
-    public void setRecycleHandler(RecycleHandler handler)
-    {
-        this.recycleHandler = handler;
     }
 
     @Override
@@ -590,13 +582,7 @@ public class BasicBuffer implements IoBuffer
     public IoBuffer slice(int length)
     {
         int         oldReadPosi = nextReadPosi(length);
-        BasicBuffer sliceBuffer = null;
-        switch (bufferType)
-        {
-            case HEAP -> sliceBuffer = HEAP_POOL.get();
-            case DIRECT, MEMORY -> throw new UnsupportedOperationException();
-            case UNSAFE -> sliceBuffer = UNSAFE_POOL.get();
-        }
+        BasicBuffer sliceBuffer = allocator.bufferInstance();
         sliceBuffer.init(storageSegment, offset + oldReadPosi - storageSegment.getOffset(), length);
         sliceBuffer.setWritePosi(length);
         return sliceBuffer;

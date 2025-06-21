@@ -5,8 +5,10 @@ import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.buffer.buffer.impl.BasicBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.PooledBuffer;
 import com.jfirer.jnet.common.buffer.buffer.storage.PooledStorageSegment;
 import com.jfirer.jnet.common.buffer.buffer.storage.StorageSegment;
+import com.jfirer.jnet.common.recycler.Recycler;
 import com.jfirer.jnet.common.thread.FastThreadLocal;
 import com.jfirer.jnet.common.util.CapacityStat;
 import com.jfirer.jnet.common.util.MathUtil;
@@ -16,12 +18,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class PooledBufferAllocator implements BufferAllocator
 {
-    public static final int                   PAGESIZE;
-    public static final int                   PAGESIZE_SHIFT;
-    public static final int                   MAXLEVEL;
-    public static final int                   NUM_OF_ARENA;
-    public static final boolean               PREFER_DIRECT;
-    public static final PooledBufferAllocator DEFAULT;
+    protected final     Recycler<PooledBuffer>         UNSAFE_POOL          = new Recycler<>(() -> new PooledBuffer(BufferType.UNSAFE, this), PooledBuffer::setRecycleHandler);
+    protected final     Recycler<PooledBuffer>         HEAP_POOL            = new Recycler<>(() -> new PooledBuffer(BufferType.HEAP, this), PooledBuffer::setRecycleHandler);
+    protected final     Recycler<PooledStorageSegment> STORAGE_SEGMENT_POOL = new Recycler<>(() -> new PooledStorageSegment(this), PooledStorageSegment::setRecycleHandler);
+    public static final int                            PAGESIZE;
+    public static final int                            PAGESIZE_SHIFT;
+    public static final int                            MAXLEVEL;
+    public static final int                            NUM_OF_ARENA;
+    public static final boolean                        PREFER_DIRECT;
+    public static final PooledBufferAllocator          DEFAULT;
 
     static
     {
@@ -94,35 +99,21 @@ public class PooledBufferAllocator implements BufferAllocator
         return leastUseArena.arena();
     }
 
-    protected IoBuffer heapBuffer(int initializeCapacity)
-    {
-        PooledStorageSegment storageSegment = PooledStorageSegment.POOL.get();
-        heapArenaFastThreadLocal.get().allocate(initializeCapacity, storageSegment);
-        BasicBuffer pooledHeapBuffer = BasicBuffer.HEAP_POOL.get();
-        pooledHeapBuffer.init(storageSegment);
-        return pooledHeapBuffer;
-    }
-
-    protected IoBuffer unsafeBuffer(int initializeCapacity)
-    {
-        PooledStorageSegment storageSegment = PooledStorageSegment.POOL.get();
-        directArenaFastThreadLocal.get().allocate(initializeCapacity, storageSegment);
-        BasicBuffer pooledDirectBuffer = BasicBuffer.UNSAFE_POOL.get();
-        pooledDirectBuffer.init(storageSegment);
-        return pooledDirectBuffer;
-    }
-
     @Override
     public IoBuffer ioBuffer(int initializeCapacity)
     {
+        PooledStorageSegment storageSegment = (PooledStorageSegment) storageSegmentInstance();
         if (preferDirect)
         {
-            return unsafeBuffer(initializeCapacity);
+            directArenaFastThreadLocal.get().allocate(initializeCapacity, storageSegment);
         }
         else
         {
-            return heapBuffer(initializeCapacity);
+            heapArenaFastThreadLocal.get().allocate(initializeCapacity, storageSegment);
         }
+        BasicBuffer pooledDirectBuffer = bufferInstance();
+        pooledDirectBuffer.init(storageSegment);
+        return pooledDirectBuffer;
     }
 
     public Arena currentArena()
@@ -144,15 +135,34 @@ public class PooledBufferAllocator implements BufferAllocator
     }
 
     @Override
-    public void cycleBufferInstance(IoBuffer buffer)
+    public BasicBuffer bufferInstance()
     {
-        throw new UnsupportedOperationException();
+        if (preferDirect)
+        {
+            return UNSAFE_POOL.get();
+        }
+        else
+        {
+            return HEAP_POOL.get();
+        }
+    }
+
+    @Override
+    public StorageSegment storageSegmentInstance()
+    {
+        return STORAGE_SEGMENT_POOL.get();
+    }
+
+    @Override
+    public void cycleBufferInstance(BasicBuffer buffer)
+    {
+        ((PooledBuffer) buffer).getRecycleHandler().recycle(buffer);
     }
 
     @Override
     public void cycleStorageSegmentInstance(StorageSegment storageSegment)
     {
-        throw new UnsupportedOperationException();
+        ((PooledStorageSegment) storageSegment).getRecycleHandler().recycle(storageSegment);
     }
 
     public void heapCapacityStat(CapacityStat stat)

@@ -1,18 +1,26 @@
 package com.jfirer.jnet.common.buffer.buffer.storage;
 
+import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.arena.ChunkListNode;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
-import com.jfirer.jnet.common.recycler.Recycler;
+import com.jfirer.jnet.common.recycler.RecycleHandler;
 import lombok.Getter;
+import lombok.Setter;
 
 @Getter
 public class PooledStorageSegment extends StorageSegment
 {
-    public static final Recycler<PooledStorageSegment> POOL = new Recycler<>(PooledStorageSegment::new, StorageSegment::setRecycleHandler);
-    protected           Arena                          arena;
-    protected           ChunkListNode                  chunkListNode;
-    protected           long                           handle;
+    protected Arena          arena;
+    protected ChunkListNode  chunkListNode;
+    protected long           handle;
+    @Setter
+    protected RecycleHandler recycleHandler;
+
+    public PooledStorageSegment(BufferAllocator allocator)
+    {
+        super(allocator);
+    }
 
     public void init(Arena arena, ChunkListNode chunkListNode, long handle, int offset, int capacity)
     {
@@ -34,7 +42,7 @@ public class PooledStorageSegment extends StorageSegment
 
     public StorageSegment makeNewSegment(int newCapacity, BufferType bufferType)
     {
-        PooledStorageSegment newSegment = PooledStorageSegment.POOL.get();
+        PooledStorageSegment newSegment = (PooledStorageSegment) allocator.storageSegmentInstance();
         arena.allocate(newCapacity, newSegment);
         return newSegment;
     }
