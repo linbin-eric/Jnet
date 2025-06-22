@@ -1,5 +1,6 @@
 package com.jfirer.jnet.common.api;
 
+import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.util.ChannelConfig;
 
 import java.nio.channels.AsynchronousSocketChannel;
@@ -39,4 +40,6 @@ public interface Pipeline
             return null;
         }
     }
+
+    BufferAllocator allocator();
 }

@@ -1,6 +1,7 @@
 package com.jfirer.jnet.common.internal;
 
 import com.jfirer.jnet.common.api.*;
+import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.util.ChannelConfig;
 import lombok.Getter;
 import lombok.Setter;
@@ -14,6 +15,7 @@ public class DefaultPipeline implements InternalPipeline
     private final ChannelConfig                 channelConfig;
     private final Consumer<Throwable>           jvmExistHandler;
     private final WriteHead                     writeHead;
+    private final BufferAllocator               allocator;
     private       ReadProcessorNode             readHead;
     private       AdaptiveReadCompletionHandler adaptiveReadCompletionHandler;
     private       DefaultWriteCompleteHandler   writeCompleteHandler;
@@ -29,10 +31,11 @@ public class DefaultPipeline implements InternalPipeline
 
     public DefaultPipeline(AsynchronousSocketChannel socketChannel, ChannelConfig channelConfig)
     {
+        this.allocator     = channelConfig.getAllocatorSupplier().get();
         this.socketChannel = socketChannel;
         this.channelConfig = channelConfig;
         jvmExistHandler    = channelConfig.getJvmExistHandler();
-        writeHead          = new WriteHead(WorkerGroup.next());
+        writeHead          = new WriteHead(WorkerGroup.next(), this);
     }
 
     @Override
@@ -59,7 +62,7 @@ public class DefaultPipeline implements InternalPipeline
         {
             node = node.getNext();
         }
-        node.setNext(new WriteProcessorNodeImpl(processor));
+        node.setNext(new WriteProcessorNodeImpl(processor, this));
     }
 
     @Override
@@ -80,6 +83,12 @@ public class DefaultPipeline implements InternalPipeline
     public boolean isOpen()
     {
         return writeCompleteHandler.get() == DefaultWriteCompleteHandler.OPEN;
+    }
+
+    @Override
+    public BufferAllocator allocator()
+    {
+        return allocator;
     }
 
     @Override

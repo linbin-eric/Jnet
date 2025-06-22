@@ -11,4 +11,6 @@ public interface WriteProcessorNode
     WriteProcessorNode getNext();
 
     void setNext(WriteProcessorNode next);
+
+    Pipeline pipeline();
 }

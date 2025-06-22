@@ -1,5 +1,6 @@
 package com.jfirer.jnet.common.internal;
 
+import com.jfirer.jnet.common.api.Pipeline;
 import com.jfirer.jnet.common.api.WriteProcessor;
 import com.jfirer.jnet.common.api.WriteProcessorNode;
 
@@ -7,10 +8,12 @@ public class WriteProcessorNodeImpl implements WriteProcessorNode
 {
     protected WriteProcessor     processor;
     protected WriteProcessorNode next;
+    protected Pipeline           pipeline;
 
-    public WriteProcessorNodeImpl(WriteProcessor processor)
+    public WriteProcessorNodeImpl(WriteProcessor processor, Pipeline pipeline)
     {
         this.processor = processor;
+        this.pipeline  = pipeline;
     }
 
     @Override
@@ -41,5 +44,11 @@ public class WriteProcessorNodeImpl implements WriteProcessorNode
     public void setNext(WriteProcessorNode next)
     {
         this.next = next;
+    }
+
+    @Override
+    public Pipeline pipeline()
+    {
+        return pipeline;
     }
 }

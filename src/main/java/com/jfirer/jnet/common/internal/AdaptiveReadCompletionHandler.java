@@ -16,7 +16,7 @@ import java.util.List;
 
 public class AdaptiveReadCompletionHandler implements CompletionHandler<Integer, AdaptiveReadCompletionHandler>
 {
-    public static final int[]                     sizeTable;
+    public static final int[] sizeTable;
 
     static
     {
@@ -36,17 +36,17 @@ public class AdaptiveReadCompletionHandler implements CompletionHandler<Integer,
         }
     }
 
-    protected final     AsynchronousSocketChannel socketChannel;
-    protected final     BufferAllocator           allocator;
-    private final       int                       minIndex;
-    private final       int                       maxIndex;
-    private final       int                       DECR_COUNT_MAX;
-    private final InternalPipeline pipeline;
+    protected final AsynchronousSocketChannel socketChannel;
+    protected final BufferAllocator           allocator;
+    private final   int                       minIndex;
+    private final   int                       maxIndex;
+    private final   int                       DECR_COUNT_MAX;
+    private final   InternalPipeline          pipeline;
     @Setter
-    private       ReadListener     readListener;
-    private       int              index;
-    private             int                       decrCount;
-    private             IoBuffer                  ioBuffer;
+    private         ReadListener              readListener;
+    private         int                       index;
+    private         int                       decrCount;
+    private         IoBuffer                  ioBuffer;
 
     public AdaptiveReadCompletionHandler(InternalPipeline pipeline)
     {
@@ -55,7 +55,7 @@ public class AdaptiveReadCompletionHandler implements CompletionHandler<Integer,
         DECR_COUNT_MAX = config.getDecrCountMax();
         decrCount      = DECR_COUNT_MAX;
         socketChannel  = pipeline.socketChannel();
-        allocator      = config.getAllocatorSupplier().get();
+        allocator      = pipeline.allocator();
         minIndex       = indexOf(config.getMinReceiveSize());
         maxIndex       = indexOf(config.getMaxReceiveSize());
         index          = indexOf(config.getInitReceiveSize());
