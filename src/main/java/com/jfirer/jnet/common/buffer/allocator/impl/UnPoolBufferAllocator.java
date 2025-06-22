@@ -12,7 +12,8 @@ import java.nio.ByteBuffer;
 
 public class UnPoolBufferAllocator implements BufferAllocator
 {
-    private final boolean preferDirect;
+    private final       boolean               preferDirect;
+    public static final UnPoolBufferAllocator DEFAULT = new UnPoolBufferAllocator(false);
 
     public UnPoolBufferAllocator()
     {
@@ -31,12 +32,12 @@ public class UnPoolBufferAllocator implements BufferAllocator
         UnPooledBuffer buffer         = bufferInstance();
         if (preferDirect)
         {
-            storageSegment.init(new byte[initializeCapacity], 0, 0, initializeCapacity);
+            ByteBuffer byteBuffer = ByteBuffer.allocateDirect(initializeCapacity);
+            storageSegment.init(byteBuffer, PlatFormFunction.bytebufferOffsetAddress(byteBuffer), 0, initializeCapacity);
         }
         else
         {
-            ByteBuffer byteBuffer = ByteBuffer.allocateDirect(initializeCapacity);
-            storageSegment.init(byteBuffer, PlatFormFunction.bytebufferOffsetAddress(byteBuffer), 0, initializeCapacity);
+            storageSegment.init(new byte[initializeCapacity], 0, 0, initializeCapacity);
         }
         buffer.init(storageSegment);
         return buffer;
