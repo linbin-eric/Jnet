@@ -214,6 +214,38 @@ public class UnPooledBuffer implements IoBuffer
     }
 
     @Override
+    public IoBuffer putFloat(float f)
+    {
+        int posi = nextWritePosi(4);
+        rwDelegation.putFloat0(posi, f, storageSegment.getMemory(), offset, storageSegment.getNativeAddress());
+        return this;
+    }
+
+    @Override
+    public IoBuffer putFloat(float f, int posi)
+    {
+        checkWritePosi(posi, 4);
+        rwDelegation.putFloat0(posi, f, storageSegment.getMemory(), offset, storageSegment.getNativeAddress());
+        return this;
+    }
+
+    @Override
+    public IoBuffer putDouble(double d)
+    {
+        int posi = nextWritePosi(8);
+        rwDelegation.putDouble0(posi, d, storageSegment.getMemory(), offset, storageSegment.getNativeAddress());
+        return this;
+    }
+
+    @Override
+    public IoBuffer putDouble(double d, int posi)
+    {
+        checkWritePosi(posi, 8);
+        rwDelegation.putDouble0(posi, d, storageSegment.getMemory(), offset, storageSegment.getNativeAddress());
+        return this;
+    }
+
+    @Override
     public IoBuffer putShort(short value, int posi)
     {
         checkWritePosi(posi, 2);
@@ -452,6 +484,20 @@ public class UnPooledBuffer implements IoBuffer
     }
 
     @Override
+    public float getFloat()
+    {
+        int posi = nextReadPosi(4);
+        return rwDelegation.getFloat0(posi, storageSegment.getMemory(), offset, storageSegment.getNativeAddress());
+    }
+
+    @Override
+    public double getDouble()
+    {
+        int posi = nextReadPosi(8);
+        return rwDelegation.getDouble0(posi, storageSegment.getMemory(), offset, storageSegment.getNativeAddress());
+    }
+
+    @Override
     public short getShort()
     {
         int posi = nextReadPosi(2);
@@ -470,6 +516,20 @@ public class UnPooledBuffer implements IoBuffer
     {
         checkReadPosi(posi, 4);
         return rwDelegation.getInt0(posi, storageSegment.getMemory(), offset, storageSegment.getNativeAddress());
+    }
+
+    @Override
+    public float getFloat(int posi)
+    {
+        checkReadPosi(posi, 4);
+        return rwDelegation.getFloat0(posi, storageSegment.getMemory(), offset, storageSegment.getNativeAddress());
+    }
+
+    @Override
+    public double getDouble(int posi)
+    {
+        checkReadPosi(posi, 4);
+        return rwDelegation.getDouble0(posi, storageSegment.getMemory(), offset, storageSegment.getNativeAddress());
     }
 
     @Override

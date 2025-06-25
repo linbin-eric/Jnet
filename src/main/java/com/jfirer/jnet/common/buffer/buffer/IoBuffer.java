@@ -89,6 +89,14 @@ public interface IoBuffer
      */
     IoBuffer putInt(int value, int posi);
 
+    IoBuffer putFloat(float f);
+
+    IoBuffer putFloat(float f, int posi);
+
+    IoBuffer putDouble(double d);
+
+    IoBuffer putDouble(double d, int posi);
+
     /**
      * 在指定位置posi写入一个short
      *
@@ -257,6 +265,10 @@ public interface IoBuffer
      */
     int getInt();
 
+    float getFloat();
+
+    double getDouble();
+
     /**
      * 在读取位置读取short。读取位置增加2
      *
@@ -278,6 +290,10 @@ public interface IoBuffer
      * @return
      */
     int getInt(int posi);
+
+    float getFloat(int posi);
+
+    double getDouble(int posi);
 
     /**
      * 在位置posi读取一个short。该操作不会影响readPosi

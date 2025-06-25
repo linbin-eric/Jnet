@@ -265,4 +265,11 @@ public class UnPooledBufferRWTest
         assertEquals(2, nioBuffer.getShort());
         assertEquals(23L, nioBuffer.getLong());
     }
+
+    @Test
+    public void test6()
+    {
+        paramBuffer.putFloat(0.13f);
+        paramBuffer.putDouble(1.35d);
+    }
 }

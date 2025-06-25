@@ -30,6 +30,13 @@ public class HeapRw implements RwDelegation
     }
 
     @Override
+    public void putFloat0(int posi, float value, Object memory, int offset, long nativeAddress)
+    {
+        int i = Float.floatToRawIntBits(value);
+        putInt0(posi, i, memory, offset, nativeAddress);
+    }
+
+    @Override
     public void putShort0(int posi, short value, Object memory, int offset, long nativeAddress)
     {
         Bits.putShort((byte[]) memory, posi + offset, value);
@@ -39,6 +46,12 @@ public class HeapRw implements RwDelegation
     public void putLong0(int posi, long value, Object memory, int offset, long nativeAddress)
     {
         Bits.putLong((byte[]) memory, posi + offset, value);
+    }
+
+    @Override
+    public void putDouble0(int posi, double value, Object memory, int offset, long nativeAddress)
+    {
+        putLong0(posi, Double.doubleToRawLongBits(value), memory, offset, nativeAddress);
     }
 
     @Override
@@ -60,6 +73,12 @@ public class HeapRw implements RwDelegation
     }
 
     @Override
+    public float getFloat0(int posi, Object memory, int offset, long nativeAddress)
+    {
+        return Float.intBitsToFloat(getInt0(posi, memory, offset, nativeAddress));
+    }
+
+    @Override
     public short getShort0(int posi, Object memory, int offset, long nativeAddress)
     {
         return Bits.getShort((byte[]) memory, posi + offset);
@@ -69,6 +88,12 @@ public class HeapRw implements RwDelegation
     public long getLong0(int posi, Object memory, int offset, long nativeAddress)
     {
         return Bits.getLong((byte[]) memory, posi + offset);
+    }
+
+    @Override
+    public double getDouble0(int posi, Object memory, int offset, long nativeAddress)
+    {
+        return Double.longBitsToDouble(getLong0(posi, memory, offset, nativeAddress));
     }
 
     @Override

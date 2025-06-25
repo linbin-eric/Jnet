@@ -23,12 +23,22 @@ public class DirectBufferRw implements RwDelegation
     }
 
     @Override
+    public void putFloat0(int posi, float value, Object memory, int offset, long nativeAddress)
+    {
+    }
+
+    @Override
     public void putShort0(int posi, short value, Object memory, int offset, long nativeAddress)
     {
     }
 
     @Override
     public void putLong0(int posi, long value, Object memory, int offset, long nativeAddress)
+    {
+    }
+
+    @Override
+    public void putDouble0(int posi, double value, Object memory, int offset, long nativeAddress)
     {
     }
 
@@ -50,6 +60,12 @@ public class DirectBufferRw implements RwDelegation
     }
 
     @Override
+    public float getFloat0(int posi, Object memory, int offset, long nativeAddress)
+    {
+        return 0;
+    }
+
+    @Override
     public short getShort0(int posi, Object memory, int offset, long nativeAddress)
     {
         return 0;
@@ -57,6 +73,12 @@ public class DirectBufferRw implements RwDelegation
 
     @Override
     public long getLong0(int posi, Object memory, int offset, long nativeAddress)
+    {
+        return 0;
+    }
+
+    @Override
+    public double getDouble0(int posi, Object memory, int offset, long nativeAddress)
     {
         return 0;
     }

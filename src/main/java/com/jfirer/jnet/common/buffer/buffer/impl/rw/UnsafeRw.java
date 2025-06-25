@@ -30,6 +30,13 @@ public class UnsafeRw implements RwDelegation
     }
 
     @Override
+    public void putFloat0(int posi, float value, Object memory, int offset, long nativeAddress)
+    {
+        int i = Float.floatToRawIntBits(value);
+        putInt0(posi, i, memory, offset, nativeAddress);
+    }
+
+    @Override
     public void putShort0(int posi, short value, Object memory, int offset, long nativeAddress)
     {
         Bits.putShort(posi + offset + nativeAddress, value);
@@ -39,6 +46,13 @@ public class UnsafeRw implements RwDelegation
     public void putLong0(int posi, long value, Object memory, int offset, long nativeAddress)
     {
         Bits.putLong(posi + offset + nativeAddress, value);
+    }
+
+    @Override
+    public void putDouble0(int posi, double value, Object memory, int offset, long nativeAddress)
+    {
+        long l = Double.doubleToRawLongBits(value);
+        putLong0(posi, l, memory, offset, nativeAddress);
     }
 
     @Override
@@ -60,6 +74,12 @@ public class UnsafeRw implements RwDelegation
     }
 
     @Override
+    public float getFloat0(int posi, Object memory, int offset, long nativeAddress)
+    {
+        return Float.intBitsToFloat(getInt0(posi, memory, offset, nativeAddress));
+    }
+
+    @Override
     public short getShort0(int posi, Object memory, int offset, long nativeAddress)
     {
         return Bits.getShort(posi + offset + nativeAddress);
@@ -69,6 +89,12 @@ public class UnsafeRw implements RwDelegation
     public long getLong0(int posi, Object memory, int offset, long nativeAddress)
     {
         return Bits.getLong(posi + offset + nativeAddress);
+    }
+
+    @Override
+    public double getDouble0(int posi, Object memory, int offset, long nativeAddress)
+    {
+        return Double.longBitsToDouble(getLong0(posi, memory, offset, nativeAddress));
     }
 
     @Override

@@ -10,9 +10,13 @@ public interface RwDelegation
 
     void putInt0(int posi, int value, Object memory, int offset, long nativeAddress);
 
+    void putFloat0(int posi, float value, Object memory, int offset, long nativeAddress);
+
     void putShort0(int posi, short value, Object memory, int offset, long nativeAddress);
 
     void putLong0(int posi, long value, Object memory, int offset, long nativeAddress);
+
+    void putDouble0(int posi, double value, Object memory, int offset, long nativeAddress);
 
     byte get0(int posi, Object memory, int offset, long nativeAddress);
 
@@ -20,9 +24,13 @@ public interface RwDelegation
 
     int getInt0(int posi, Object memory, int offset, long nativeAddress);
 
+    float getFloat0(int posi, Object memory, int offset, long nativeAddress);
+
     short getShort0(int posi, Object memory, int offset, long nativeAddress);
 
     long getLong0(int posi, Object memory, int offset, long nativeAddress);
+
+    double getDouble0(int posi, Object memory, int offset, long nativeAddress);
 
     ByteBuffer writableByteBuffer(Object memory, int offset, long nativeAddress, int writePosi, int capacity);
 

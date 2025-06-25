@@ -100,7 +100,8 @@ public class HttpRespEncoder implements WriteProcessor<Object>
         }
         else
         {
-            throw new IllegalArgumentException("body参数内容是空的");
+            buffer.put(STR.format("Content-Length: {}\r\n", 0).getBytes(StandardCharsets.US_ASCII));
+            buffer.put(NEWLINE);
         }
     }
 }
