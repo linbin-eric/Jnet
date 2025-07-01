@@ -2,7 +2,7 @@ package com.jfirer.jnet.common.util;
 
 import com.jfirer.jnet.common.buffer.LeakDetecter;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
-import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator2;
+import com.jfirer.jnet.common.buffer.allocator.impl.UnPoolBufferAllocator2;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -43,6 +43,7 @@ public class ChannelConfig
         System.err.println("Some RunnableImpl run in Jnet not handle Exception well,Check all ReadProcessor and WriteProcessor");
         e.printStackTrace();
     };
-    private Supplier<BufferAllocator> allocatorSupplier = () ->new PooledBufferAllocator2(10000, true, PooledBufferAllocator2.getArena(true));
+//    private Supplier<BufferAllocator> allocatorSupplier = () ->new PooledBufferAllocator2(100, true, PooledBufferAllocator2.getArena(true));
+    private Supplier<BufferAllocator> allocatorSupplier = () ->new UnPoolBufferAllocator2(true);
     private AsynchronousChannelGroup  channelGroup      = DEFAULT_CHANNEL_GROUP;
 }

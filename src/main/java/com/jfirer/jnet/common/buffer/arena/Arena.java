@@ -1,5 +1,6 @@
 package com.jfirer.jnet.common.buffer.arena;
 
+import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator2;
 import com.jfirer.jnet.common.buffer.buffer.Bits;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.util.CapacityStat;
@@ -36,6 +37,11 @@ public class Arena
     AtomicInteger usedAllocate   = new AtomicInteger();
     String        name;
     private final Lock lock = new ReentrantLock();
+
+    public Arena(String name, BufferType bufferType)
+    {
+        this(PooledBufferAllocator2.MAXLEVEL, PooledBufferAllocator2.PAGESIZE, name, bufferType);
+    }
 
     @SuppressWarnings("unchecked")
     public Arena(int maxLevel, int pageSize, final String name, BufferType bufferType)

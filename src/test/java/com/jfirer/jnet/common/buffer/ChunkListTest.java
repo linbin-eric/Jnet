@@ -1,10 +1,11 @@
 package com.jfirer.jnet.common.buffer;
 
-import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
+import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator2;
 import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.arena.Chunk;
 import com.jfirer.jnet.common.buffer.arena.ChunkList;
 import com.jfirer.jnet.common.buffer.arena.ChunkListNode;
+import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.util.UNSAFE;
 import org.junit.Test;
@@ -16,8 +17,8 @@ import static org.junit.Assert.*;
 
 public class ChunkListTest
 {
-    PooledBufferAllocator allocatorDirect = new PooledBufferAllocator("test", true);
-    PooledBufferAllocator allocatorHeap   = new PooledBufferAllocator("test", false);
+    PooledBufferAllocator2 allocatorDirect = new PooledBufferAllocator2(100, true,new Arena("1", BufferType.UNSAFE));
+    PooledBufferAllocator2  allocatorHeap   = new PooledBufferAllocator2(100,false,new Arena("2",BufferType.HEAP));
     private final long c100Offset = UNSAFE.getFieldOffset("c100", Arena.class);
     private final long c075Offset = UNSAFE.getFieldOffset("c075", Arena.class);
     private final long c050Offset = UNSAFE.getFieldOffset("c050", Arena.class);
@@ -32,9 +33,9 @@ public class ChunkListTest
         test0(allocatorHeap);
     }
 
-    private void test0(PooledBufferAllocator allocator)
+    private void test0(PooledBufferAllocator2 allocator)
     {
-        int             chunkSize = allocator.pagesize() << allocator.maxLevel();
+        int             chunkSize = PooledBufferAllocator2.PAGESIZE << PooledBufferAllocator2.MAXLEVEL;
         int             size      = chunkSize >> 2;
         Queue<IoBuffer> buffers   = new LinkedList<>();
         for (int i = 0; i < 4; i++)
@@ -45,7 +46,7 @@ public class ChunkListTest
                 buffers.add(buffer);
             }
         }
-        Arena         arena  = allocator.currentArena();
+        Arena         arena  = allocator.getArena();
         ChunkList     c100   = (ChunkList) UNSAFE.getObject(arena, c100Offset);
         ChunkListNode chunk1 = c100.head();
         for (int i = 0; i < 4; i++)

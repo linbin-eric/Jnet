@@ -1,6 +1,8 @@
 package com.jfirer.jnet.common.buffer;
 
-import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
+import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator2;
+import com.jfirer.jnet.common.buffer.arena.Arena;
+import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.thread.FastThreadLocalThread;
 import org.junit.Test;
@@ -11,7 +13,7 @@ import static org.junit.Assert.*;
 
 public class BufferRecycleTest
 {
-    PooledBufferAllocator allocator = new PooledBufferAllocator("test");
+    PooledBufferAllocator2 allocator = new PooledBufferAllocator2(100, true, new Arena("default", BufferType.UNSAFE));
 
     @Test
     public void test()
@@ -31,7 +33,7 @@ public class BufferRecycleTest
         thread.start();
         thread.join();
         IoBuffer buffer2 = allocator.ioBuffer(12);
-        assertTrue(buffer==buffer2);
+        assertTrue(buffer == buffer2);
         buffer2.free();
     }
 

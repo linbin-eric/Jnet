@@ -1,8 +1,10 @@
 package com.jfirer.jnet.common.buffer;
 
-import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
+import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator2;
+import com.jfirer.jnet.common.buffer.arena.Arena;
+import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
-import com.jfirer.jnet.common.buffer.buffer.impl.UnPooledBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.PooledBuffer2;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -18,10 +20,10 @@ import static org.junit.Assert.*;
 @RunWith(Parameterized.class)
 public class PooledBufferRWTest
 {
-    private final IoBuffer              buffer;
-    private final IoBuffer              paramBuffer;
-    private   static     PooledBufferAllocator allocatorHeap = new PooledBufferAllocator("heap", false);
-    private     static   PooledBufferAllocator allocatorDirect = new PooledBufferAllocator("direct", true);
+    private final  IoBuffer               buffer;
+    private final  IoBuffer               paramBuffer;
+    private static PooledBufferAllocator2 allocatorHeap   = new PooledBufferAllocator2(100, false, new Arena("heap", BufferType.HEAP));
+    private static PooledBufferAllocator2 allocatorDirect = new PooledBufferAllocator2(100, true, new Arena("direct", BufferType.UNSAFE));
 
     public PooledBufferRWTest(IoBuffer buffer, IoBuffer paramBuffer)
     {
@@ -40,14 +42,14 @@ public class PooledBufferRWTest
         });
     }
 
-    static UnPooledBuffer allocate(int size)
+    static PooledBuffer2 allocate(int size)
     {
-        return (UnPooledBuffer) allocatorHeap.ioBuffer(size);
+        return (PooledBuffer2) allocatorHeap.ioBuffer(size);
     }
 
-    static UnPooledBuffer allocateDirect(int size)
+    static PooledBuffer2 allocateDirect(int size)
     {
-        return (UnPooledBuffer) allocatorDirect.ioBuffer(size);
+        return (PooledBuffer2) allocatorDirect.ioBuffer(size);
     }
 
     @Before

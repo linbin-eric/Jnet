@@ -1,10 +1,11 @@
 package com.jfirer.jnet.common.buffer;
 
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
-import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
+import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator2;
+import com.jfirer.jnet.common.buffer.arena.Arena;
+import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
-import com.jfirer.jnet.common.buffer.buffer.impl.UnPooledBuffer;
-import com.jfirer.jnet.common.buffer.buffer.storage.StorageSegment;
+import com.jfirer.jnet.common.buffer.buffer.impl.UnPooledBuffer2;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -29,8 +30,8 @@ public class SliceBufferTest
     public static Collection<?> data()
     {
         return Arrays.asList(new Object[][]{ //
-                {new PooledBufferAllocator("testDirect", true)},//
-                {new PooledBufferAllocator("testHeap", false)},//
+                {new PooledBufferAllocator2(100, true, new Arena("direct", BufferType.UNSAFE))},//
+                {new PooledBufferAllocator2(100, false, new Arena("heap", BufferType.HEAP))},//
         });
     }
 
@@ -62,9 +63,8 @@ public class SliceBufferTest
         assertEquals(2, slice2.refCount());
         slice2.free();
         assertEquals(1, buffer.refCount());
-        StorageSegment storageSegment = ((UnPooledBuffer) buffer).getStorageSegment();
         buffer.free();
-        assertEquals(0, storageSegment.getRefCount());
+        assertEquals(0, ((UnPooledBuffer2) buffer).getRefCnt().get());
     }
 
     @Test
@@ -74,8 +74,8 @@ public class SliceBufferTest
         buffer.putInt(1);
         buffer.putInt(2);
         buffer.putInt(3);
-        UnPooledBuffer slice  = (UnPooledBuffer) buffer.slice(4);
-        UnPooledBuffer slice2 = (UnPooledBuffer) slice.slice(4);
+        UnPooledBuffer2 slice  = (UnPooledBuffer2) buffer.slice(4);
+        UnPooledBuffer2 slice2 = (UnPooledBuffer2) slice.slice(4);
         buffer.free();
         slice.free();
         assertEquals(1, slice2.refCount());

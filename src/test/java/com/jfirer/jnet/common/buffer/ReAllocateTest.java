@@ -1,8 +1,9 @@
 package com.jfirer.jnet.common.buffer;
 
-import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
-import com.jfirer.jnet.common.buffer.buffer.impl.UnPooledBuffer;
-import com.jfirer.jnet.common.buffer.buffer.storage.PooledStorageSegment;
+import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator2;
+import com.jfirer.jnet.common.buffer.arena.Arena;
+import com.jfirer.jnet.common.buffer.buffer.BufferType;
+import com.jfirer.jnet.common.buffer.buffer.impl.PooledBuffer2;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -10,8 +11,8 @@ import static org.junit.Assert.assertNotEquals;
 
 public class ReAllocateTest
 {
-    PooledBufferAllocator allocatorHeap   = new PooledBufferAllocator("test", false);
-    PooledBufferAllocator allocatorDirect = new PooledBufferAllocator("test", true);
+    PooledBufferAllocator2 allocatorHeap   = new PooledBufferAllocator2(100, false, new Arena("1", BufferType.HEAP));
+    PooledBufferAllocator2 allocatorDirect = new PooledBufferAllocator2(100, true, new Arena("2", BufferType.UNSAFE));
 
     @Test
     public void test()
@@ -20,11 +21,11 @@ public class ReAllocateTest
         test0(allocatorDirect);
     }
 
-    private void test0(PooledBufferAllocator allocator)
+    private void test0(PooledBufferAllocator2 allocator)
     {
-        UnPooledBuffer buffer = (UnPooledBuffer) allocator.ioBuffer(16);
-        int            offset = buffer.offset();
-        long        handle = ((PooledStorageSegment) buffer.getStorageSegment()).getHandle();
+        PooledBuffer2 buffer = (PooledBuffer2) allocator.ioBuffer(16);
+        int           offset = buffer.offset();
+        long           handle = (buffer).getHandle();
         assertEquals(16, buffer.capacity());
         buffer.putInt(4);
         buffer.putInt(5);
@@ -36,7 +37,7 @@ public class ReAllocateTest
         assertEquals(20, buffer.getWritePosi());
         assertEquals(0, buffer.getReadPosi());
         assertNotEquals(offset, buffer.offset());
-        assertNotEquals(handle, ((PooledStorageSegment) buffer.getStorageSegment()).getHandle());
+        assertNotEquals(handle, (buffer).getHandle());
         assertEquals(4, buffer.getInt());
         assertEquals(5, buffer.getInt());
         assertEquals(6, buffer.getInt());

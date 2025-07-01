@@ -1,8 +1,6 @@
 package com.jfirer.jnet.common.buffer;
 
-import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator2;
-import com.jfirer.jnet.common.buffer.allocator.impl.UnPoolBufferAllocator;
 import com.jfirer.jnet.common.buffer.allocator.impl.UnPoolBufferAllocator2;
 import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
@@ -34,12 +32,12 @@ public class UnPooledBufferRWTest
     @Parameters
     public static Collection<?> data()
     {
-        UnPoolBufferAllocator allocatorHeap   = new UnPoolBufferAllocator(false);
-        UnPoolBufferAllocator allocatorDirect = new UnPoolBufferAllocator(true);
-        UnPoolBufferAllocator2 allocatorHeap2 = new UnPoolBufferAllocator2(false);
+        UnPoolBufferAllocator2 allocatorHeap    = new UnPoolBufferAllocator2(false);
+        UnPoolBufferAllocator2 allocatorDirect  = new UnPoolBufferAllocator2(true);
+        UnPoolBufferAllocator2 allocatorHeap2   = new UnPoolBufferAllocator2(false);
         UnPoolBufferAllocator2 allocatorDirect2 = new UnPoolBufferAllocator2(true);
-        PooledBufferAllocator2 allocator = new PooledBufferAllocator2(128, true, new Arena(PooledBufferAllocator.MAXLEVEL, PooledBufferAllocator.PAGESIZE, "test", BufferType.UNSAFE));
-        PooledBufferAllocator2 allocator2 = new PooledBufferAllocator2(128, false, new Arena(PooledBufferAllocator.MAXLEVEL, PooledBufferAllocator.PAGESIZE, "test", BufferType.HEAP));
+        PooledBufferAllocator2 allocator        = new PooledBufferAllocator2(128, true, new Arena("test", BufferType.UNSAFE));
+        PooledBufferAllocator2 allocator2       = new PooledBufferAllocator2(128, false, new Arena("test", BufferType.HEAP));
         return Arrays.asList(new Object[][]{ //
 //                {allocatorHeap.ioBuffer(128), allocatorHeap.ioBuffer(30)},//
 //                {allocatorHeap.ioBuffer(128), allocatorDirect.ioBuffer(30)}, //
@@ -179,7 +177,7 @@ public class UnPooledBufferRWTest
         catch (Exception e)
         {
             e.printStackTrace();
-            assertTrue(e.getClass().getName(),e instanceof IllegalArgumentException);
+            assertTrue(e.getClass().getName(), e instanceof IllegalArgumentException);
         }
         buffer.addReadPosi(125);
         try

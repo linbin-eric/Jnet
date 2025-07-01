@@ -69,7 +69,7 @@ public class CloseTest
         AioServer aioServer = AioServer.newAioServer(channelConfig, initializer);
         aioServer.start();
         Socket socket  = new Socket(ip, port);
-        byte[] content = new byte[PooledBufferAllocator.PAGESIZE];
+        byte[] content = new byte[PooledBufferAllocator2.PAGESIZE];
         content[0] = (byte) ((content.length >> 24) & 0xff);
         content[1] = (byte) ((content.length >> 16) & 0xff);
         content[2] = (byte) ((content.length >> 8) & 0xff);
@@ -83,8 +83,8 @@ public class CloseTest
         }
         countDownLatch.await();
         Thread.sleep(1000);
-        CapacityStat internalStat = getStat((PooledBufferAllocator) bufferAllocator);
-        Assert.assertTrue(internalStat.getChunkCapacity() - internalStat.getFreeBytes() >= PooledBufferAllocator.PAGESIZE * (writeNum + 1));
+        CapacityStat internalStat = getStat((PooledBufferAllocator2) bufferAllocator);
+        Assert.assertTrue(internalStat.getChunkCapacity() - internalStat.getFreeBytes() >= PooledBufferAllocator2.PAGESIZE * (writeNum + 1));
         outputStream.close();
         System.out.println("切分点");
         Thread.sleep(2000);
@@ -93,7 +93,7 @@ public class CloseTest
         aioServer.termination();
         Thread.sleep(100);
         System.out.println("sss");
-        CapacityStat stat = getStat((PooledBufferAllocator) bufferAllocator);
+        CapacityStat stat = getStat((PooledBufferAllocator2) bufferAllocator);
         Assert.assertEquals(0, stat.getChunkCapacity() - stat.getFreeBytes());
     }
 

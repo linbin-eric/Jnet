@@ -7,13 +7,15 @@ import com.jfirer.jnet.common.buffer.arena.ChunkListNode;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import lombok.Getter;
+import lombok.ToString;
 
-import java.awt.image.AreaAveragingScaleFilter;
-
+@ToString
 public class PooledBuffer2 extends UnPooledBuffer2 implements ArenaAccepter
 {
     protected       Arena         arena;
+    @Getter
     protected       ChunkListNode chunkListNode;
+    @Getter
     protected       long          handle;
     /**
      * -1代表这个对象本身不是池化的。
@@ -37,7 +39,7 @@ public class PooledBuffer2 extends UnPooledBuffer2 implements ArenaAccepter
     }
 
     @Override
-    protected void free0()
+    protected void freeMemory0()
     {
         arena.free(chunkListNode, handle, memoryCapacity);
         arena         = null;
@@ -48,25 +50,80 @@ public class PooledBuffer2 extends UnPooledBuffer2 implements ArenaAccepter
     @Override
     protected void expansionCapacity(int newCapacity)
     {
-        PooledBuffer2 newBuffer = (PooledBuffer2) allocator.ioBuffer(newCapacity);
-        memoryCopy(memory, nativeAddress, offset, newBuffer.memory, newBuffer.nativeAddress, newBuffer.offset, writePosi);
+        newCapacity = newCapacity >= (bufferCapacity << 1) ? newCapacity : (bufferCapacity << 1);
+        int           oldReadPosi  = readPosi;
+        int           oldWritePosi = writePosi;
+        PooledBuffer2 newBuffer    = (PooledBuffer2) allocator.ioBuffer(newCapacity);
+        memoryCopy(memory, nativeAddress, offset, newBuffer.memory, newBuffer.nativeAddress, newBuffer.offset, bufferCapacity);
         //当前在扩容，当前就不会slice，这两个不是并发的。因此refCount总是面对当前正确的memory
-        free();
-        init(newBuffer);
+        freeMemory();
         this.arena         = newBuffer.arena;
         this.chunkListNode = newBuffer.chunkListNode;
         this.handle        = newBuffer.handle;
+        init(newBuffer);
+        readPosi           = oldReadPosi;
+        writePosi          = oldWritePosi;
     }
 
     @Override
     public IoBuffer slice(int length)
     {
-        int             oldReadPosi = nextReadPosi(length);
+        int           oldReadPosi = nextReadPosi(length);
         PooledBuffer2 sliceBuffer = (PooledBuffer2) allocator.bufferInstance();
         sliceBuffer.init(this, oldReadPosi, length);
-        sliceBuffer.arena = arena;
+        sliceBuffer.arena         = arena;
         sliceBuffer.chunkListNode = chunkListNode;
-        sliceBuffer.handle = handle;
+        sliceBuffer.handle        = handle;
         return sliceBuffer;
+    }
+
+    @Override
+    public IoBuffer compact()
+    {
+        if (refCnt.get() == 1)
+        {
+            if (readPosi == 0)
+            {
+                return this;
+            }
+            int length = remainRead();
+            if (length == 0)
+            {
+                writePosi = readPosi = 0;
+            }
+            else
+            {
+                rwDelegation.compact0(memory, offset, nativeAddress, readPosi, length);
+                readPosi  = 0;
+                writePosi = length;
+            }
+        }
+        else
+        {
+            int           length    = remainRead();
+            PooledBuffer2 newBuffer = (PooledBuffer2) allocator.ioBuffer(Math.max(16, length));
+            if (length == 0)
+            {
+                ;
+            }
+            else
+            {
+                memoryCopy(memory, nativeAddress, offset + readPosi, newBuffer.memory, newBuffer.nativeAddress, newBuffer.offset, length);
+            }
+            freeMemory();
+            init(newBuffer);
+            this.arena         = newBuffer.arena;
+            this.chunkListNode = newBuffer.chunkListNode;
+            this.handle        = newBuffer.handle;
+            readPosi           = 0;
+            writePosi          = length;
+        }
+        return this;
+    }
+
+    @Override
+    public String toString()
+    {
+        return "PooledBuffer2{" + ", bitmapIndex=" + bitmapIndex + ", refCnt=" + refCnt;
     }
 }

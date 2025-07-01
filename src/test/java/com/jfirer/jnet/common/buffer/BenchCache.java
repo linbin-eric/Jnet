@@ -1,7 +1,7 @@
 package com.jfirer.jnet.common.buffer;
 
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
-import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
+import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator2;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import org.jctools.queues.SpscLinkedQueue;
 import org.openjdk.jmh.annotations.*;
@@ -52,7 +52,7 @@ public class BenchCache
     @State(Scope.Group)
     public static class Data
     {
-        BufferAllocator           pooled      = new PooledBufferAllocator("pool");
+        BufferAllocator           pooled      = new PooledBufferAllocator2(100, true, PooledBufferAllocator2.getArena(true));
         SpscLinkedQueue<IoBuffer> pooledQueue = new SpscLinkedQueue<>();
         SpscLinkedQueue<IoBuffer> cachedQueue = new SpscLinkedQueue<>();
     }

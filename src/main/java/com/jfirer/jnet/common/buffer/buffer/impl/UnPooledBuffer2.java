@@ -7,6 +7,7 @@ import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.buffer.buffer.RwDelegation;
 import com.jfirer.jnet.common.buffer.buffer.impl.rw.HeapRw;
 import com.jfirer.jnet.common.buffer.buffer.impl.rw.UnsafeRw;
+import lombok.Getter;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -28,6 +29,7 @@ public class UnPooledBuffer2 implements IoBuffer
     protected       long            nativeAddress;
     protected       int             memoryCapacity;
     protected       int             memoryOffset;
+    @Getter
     protected       AtomicInteger   refCnt;
     /*实际的内存区域的字段*/
 
@@ -125,11 +127,16 @@ public class UnPooledBuffer2 implements IoBuffer
 
     protected void expansionCapacity(int newCapacity)
     {
+        int oldReadPosi  = this.readPosi;
+        int oldWritePosi = this.writePosi;
+        newCapacity = newCapacity >= (bufferCapacity << 1) ? newCapacity : (bufferCapacity << 1);
         UnPooledBuffer2 newBuffer = (UnPooledBuffer2) allocator.ioBuffer(newCapacity);
-        memoryCopy(memory, nativeAddress, offset, newBuffer.memory, newBuffer.nativeAddress, newBuffer.offset, writePosi);
+        memoryCopy(memory, nativeAddress, offset, newBuffer.memory, newBuffer.nativeAddress, newBuffer.offset, bufferCapacity);
         //当前在扩容，当前就不会slice，这两个不是并发的。因此refCount总是面对当前正确的memory
-        free();
+        freeMemory();
         init(newBuffer);
+        this.readPosi  = oldReadPosi;
+        this.writePosi = oldWritePosi;
     }
 
     protected void memoryCopy(Object src, long srcNativeAddress, int srcOffset, Object desc, long destNativeAddress, int destOffset, int length)
@@ -540,12 +547,19 @@ public class UnPooledBuffer2 implements IoBuffer
     @Override
     public void free()
     {
+        freeMemory();
+        //接下来的动作是回收壳本身，也就是Buffer对象本身。
+        allocator.cycleBufferInstance(this);
+    }
+
+    protected void freeMemory()
+    {
         if (refCnt.decrementAndGet() == 0)
         {
             /**
              * 只有最后执行真正free动作的人，才可以持有那个refCount对象。
              */
-            free0();
+            freeMemory0();
         }
         else
         {
@@ -556,14 +570,12 @@ public class UnPooledBuffer2 implements IoBuffer
         }
         memory        = null;
         nativeAddress = readPosi = writePosi = memoryCapacity = memoryOffset = bufferCapacity = offset = 0;
-        //接下来的动作是回收壳本身，也就是Buffer对象本身。
-        allocator.cycleBufferInstance(this);
     }
 
     /**
      * 在执行真正的free动作的时候会调用这个方法
      */
-    protected void free0() {}
+    protected void freeMemory0() {}
 
     @Override
     public int refCount()
@@ -621,8 +633,9 @@ public class UnPooledBuffer2 implements IoBuffer
             {
                 memoryCopy(memory, nativeAddress, offset + readPosi, newBuffer.memory, newBuffer.nativeAddress, newBuffer.offset, length);
             }
-            free();
+            freeMemory();
             init(newBuffer);
+            readPosi  = 0;
             writePosi = length;
         }
         return this;

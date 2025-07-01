@@ -1,12 +1,13 @@
 package com.jfirer.jnet.common.buffer;
 
-import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
+import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator2;
 import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.arena.ChunkList;
 import com.jfirer.jnet.common.buffer.arena.ChunkListNode;
 import com.jfirer.jnet.common.buffer.arena.SubPage;
+import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
-import com.jfirer.jnet.common.buffer.buffer.impl.UnPooledBuffer;
+import com.jfirer.jnet.common.buffer.buffer.impl.PooledBuffer2;
 import com.jfirer.jnet.common.util.MathUtil;
 import com.jfirer.jnet.common.util.UNSAFE;
 import org.junit.Test;
@@ -23,12 +24,12 @@ import static org.junit.Assert.*;
 @RunWith(Parameterized.class)
 public class SmallAllocateTest
 {
-    PooledBufferAllocator allocatorHeap          = new PooledBufferAllocator("test",false);
-    PooledBufferAllocator allocatorDirect = new PooledBufferAllocator("test",true);
-    int                   reqCapacity;
-    long                  subPageHeadsOffset = UNSAFE.getFieldOffset("subPageHeads", Arena.class);
-    long                  subPagesOffset     = UNSAFE.getFieldOffset("subPages", ChunkListNode.class);
-    long                  bitMapOffset       = UNSAFE.getFieldOffset("bitMap", SubPage.class);
+    PooledBufferAllocator2 allocatorHeap      = new PooledBufferAllocator2(100,false,new Arena("heap", BufferType.HEAP));
+    PooledBufferAllocator2  allocatorDirect    = new PooledBufferAllocator2(100,true,new Arena("direct", BufferType.UNSAFE));
+    int                    reqCapacity;
+    long                   subPageHeadsOffset = UNSAFE.getFieldOffset("subPageHeads", Arena.class);
+    long                   subPagesOffset     = UNSAFE.getFieldOffset("subPages", ChunkListNode.class);
+    long                   bitMapOffset       = UNSAFE.getFieldOffset("bitMap", SubPage.class);
     private final long c100Offset = UNSAFE.getFieldOffset("c100", Arena.class);
     private final long c075Offset = UNSAFE.getFieldOffset("c075", Arena.class);
     private final long c050Offset = UNSAFE.getFieldOffset("c050", Arena.class);
@@ -46,7 +47,7 @@ public class SmallAllocateTest
     {
         List<Integer> list = new LinkedList<>();
         int           size = 16;
-        while (size < PooledBufferAllocator.PAGESIZE)
+        while (size < PooledBufferAllocator2.PAGESIZE)
         {
             list.add(size);
             size <<= 1;
@@ -61,13 +62,13 @@ public class SmallAllocateTest
         test0(allocatorDirect);
     }
 
-    private void test0(PooledBufferAllocator allocator)
+    private void test0(PooledBufferAllocator2 allocator)
     {
-        int             pagesize     = allocator.pagesize();
+        int             pagesize     = PooledBufferAllocator2.PAGESIZE;
         int             elementNum   = pagesize / reqCapacity;
-        int             numOfSubPage = 1 << allocator.maxLevel();
+        int             numOfSubPage = 1 << PooledBufferAllocator2.MAXLEVEL;
         ChunkListNode   chunk        = null;
-        Arena           arena        = allocator.currentArena();
+        Arena           arena        = allocator.getArena();
         Queue<IoBuffer> buffers      = new LinkedList<>();
         Queue<SubPage>  subPageQueue = new LinkedList<>();
         SubPage[]       subPageHeads = (SubPage[]) UNSAFE.getObject(arena, subPageHeadsOffset);
@@ -77,7 +78,7 @@ public class SmallAllocateTest
         {
             for (int elementIdx = 0; elementIdx < elementNum; elementIdx++)
             {
-                UnPooledBuffer buffer = (UnPooledBuffer) allocator.ioBuffer(reqCapacity);
+                PooledBuffer2 buffer = (PooledBuffer2) allocator.ioBuffer(reqCapacity);
                 buffers.add(buffer);
                 int offset = i * pagesize + elementIdx * reqCapacity;
                 assertEquals(reqCapacity, buffer.capacity());

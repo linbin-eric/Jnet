@@ -1,17 +1,18 @@
 package com.jfirer.jnet.common.buffer;
 
-import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
-import com.jfirer.jnet.common.buffer.buffer.impl.UnPooledBuffer;
-import com.jfirer.jnet.common.buffer.buffer.storage.PooledStorageSegment;
+import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator2;
+import com.jfirer.jnet.common.buffer.arena.Arena;
+import com.jfirer.jnet.common.buffer.buffer.BufferType;
+import com.jfirer.jnet.common.buffer.buffer.impl.PooledBuffer2;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
 public class TakeAndRecycleTest
 {
-    int                   pagesize  = 4096;
-    PooledBufferAllocator allocatorDirect = new PooledBufferAllocator(pagesize, 4, 1, true, "testDirect");
-    PooledBufferAllocator allocatorHeap = new PooledBufferAllocator(pagesize, 4, 1, false, "testHeap");
+    int                    pagesize        = PooledBufferAllocator2.PAGESIZE;
+    PooledBufferAllocator2 allocatorDirect = new PooledBufferAllocator2(100, true, new Arena("direct", BufferType.UNSAFE));
+    PooledBufferAllocator2 allocatorHeap   = new PooledBufferAllocator2(100, false, new Arena("heap", BufferType.HEAP));
 
     @Test
     public void test()
@@ -20,23 +21,23 @@ public class TakeAndRecycleTest
         test0(allocatorHeap);
     }
 
-    private void test0(PooledBufferAllocator allocator)
+    private void test0(PooledBufferAllocator2 allocator)
     {
-        UnPooledBuffer buffer = (UnPooledBuffer) allocator.ioBuffer(pagesize);
-        assertEquals(16, ((PooledStorageSegment) buffer.getStorageSegment()).getHandle());
-        UnPooledBuffer buffer2 = (UnPooledBuffer) allocator.ioBuffer(pagesize << 1);
-        assertEquals(9, ((PooledStorageSegment) buffer2.getStorageSegment()).getHandle());
+        PooledBuffer2 buffer = (PooledBuffer2) allocator.ioBuffer(pagesize);
+        assertEquals(2048, (buffer).getHandle());
+        PooledBuffer2 buffer2 = (PooledBuffer2) allocator.ioBuffer(pagesize << 1);
+        assertEquals(1025, buffer2.getHandle());
         buffer.free();
-        UnPooledBuffer buffer3 = (UnPooledBuffer) allocator.ioBuffer(pagesize << 1);
-        assertEquals(8, ((PooledStorageSegment) buffer3.getStorageSegment()).getHandle());
-        UnPooledBuffer buffer4 = (UnPooledBuffer) allocator.ioBuffer(pagesize);
-        assertEquals(20, ((PooledStorageSegment) buffer4.getStorageSegment()).getHandle());
-        UnPooledBuffer buffer5 = (UnPooledBuffer) allocator.ioBuffer(pagesize << 1);
-        assertEquals(11, ((PooledStorageSegment) buffer5.getStorageSegment()).getHandle());
-        UnPooledBuffer buffer6 = (UnPooledBuffer) allocator.ioBuffer(pagesize);
-        assertEquals(21, ((PooledStorageSegment) buffer6.getStorageSegment()).getHandle());
+        PooledBuffer2 buffer3 = (PooledBuffer2) allocator.ioBuffer(pagesize << 1);
+        assertEquals(1024, buffer3.getHandle());
+        PooledBuffer2 buffer4 = (PooledBuffer2) allocator.ioBuffer(pagesize);
+        assertEquals(2052, buffer4.getHandle());
+        PooledBuffer2 buffer5 = (PooledBuffer2) allocator.ioBuffer(pagesize << 1);
+        assertEquals(1027, buffer5.getHandle());
+        PooledBuffer2 buffer6 = (PooledBuffer2) allocator.ioBuffer(pagesize);
+        assertEquals(2053, (buffer6).getHandle());
         buffer2.free();
-        UnPooledBuffer buffer7 = (UnPooledBuffer) allocator.ioBuffer(pagesize << 1);
-        assertEquals(9, ((PooledStorageSegment) buffer7.getStorageSegment()).getHandle());
+        PooledBuffer2 buffer7 = (PooledBuffer2) allocator.ioBuffer(pagesize << 1);
+        assertEquals(1025, buffer7.getHandle());
     }
 }
