@@ -1,7 +1,6 @@
 package com.jfirer.jnet.common.buffer;
 
-import com.jfirer.jnet.common.buffer.allocator.impl.CachedBufferAllocator;
-import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
+import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator2;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
@@ -39,35 +38,9 @@ public class BenchTest
         return ioBuffer;
     }
 
-    @BenchmarkMode(Mode.Throughput)
-    @Benchmark
-    @Measurement(iterations = 3, time = 3, timeUnit = TimeUnit.SECONDS)
-    @Warmup(iterations = 1, time = 1, timeUnit = TimeUnit.SECONDS)
-    public void testCachedPooledBufferAllocator_baseline(TestForCachedPooledBufferAllocator test, Blackhole blackhole)
-    {
-    }
-
-    @BenchmarkMode(Mode.Throughput)
-    @Benchmark
-    @Measurement(iterations = 3, time = 3, timeUnit = TimeUnit.SECONDS)
-    @Warmup(iterations = 1, time = 1, timeUnit = TimeUnit.SECONDS)
-    public IoBuffer testCachedPooledBufferAllocator(TestForCachedPooledBufferAllocator test)
-    {
-        IoBuffer ioBuffer = test.allocator.ioBuffer(10000);
-        ioBuffer.free();
-        return ioBuffer;
-    }
-
     @State(Scope.Benchmark)
     public static class TestForPooledBufferAllocator
     {
-        public PooledBufferAllocator allocator = PooledBufferAllocator.DEFAULT;
-    }
-
-    @State(Scope.Benchmark)
-    public static class TestForCachedPooledBufferAllocator
-    {
-        public CachedBufferAllocator allocator = CachedBufferAllocator.DEFAULT;
-        IoBuffer buffer;
+        public PooledBufferAllocator2 allocator = new PooledBufferAllocator2(100, true, PooledBufferAllocator2.getArena(true));
     }
 }

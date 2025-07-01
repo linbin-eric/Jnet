@@ -1,7 +1,7 @@
 package com.jfirer.jnet.extend.http.client;
 
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
-import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
+import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator2;
 import com.jfirer.jnet.common.recycler.Recycler;
 import com.jfirer.jnet.common.util.ReflectUtil;
 
@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentMap;
 
 public interface HttpClient
 {
-    BufferAllocator ALLOCATOR = new PooledBufferAllocator("HttpClient");
+    BufferAllocator ALLOCATOR = new PooledBufferAllocator2(40000, true, PooledBufferAllocator2.getArena(true));
     ConcurrentMap<Connection, Recycler<HttpConnection>> map = new ConcurrentHashMap<>();
 
     static HttpReceiveResponse newCall(HttpSendRequest request) throws Exception

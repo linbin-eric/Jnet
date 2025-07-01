@@ -1,7 +1,11 @@
 package com.jfirer.jnet.common.buffer;
 
+import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
+import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator2;
 import com.jfirer.jnet.common.buffer.allocator.impl.UnPoolBufferAllocator;
 import com.jfirer.jnet.common.buffer.allocator.impl.UnPoolBufferAllocator2;
+import com.jfirer.jnet.common.buffer.arena.Arena;
+import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,21 +38,21 @@ public class UnPooledBufferRWTest
         UnPoolBufferAllocator allocatorDirect = new UnPoolBufferAllocator(true);
         UnPoolBufferAllocator2 allocatorHeap2 = new UnPoolBufferAllocator2(false);
         UnPoolBufferAllocator2 allocatorDirect2 = new UnPoolBufferAllocator2(true);
+        PooledBufferAllocator2 allocator = new PooledBufferAllocator2(128, true, new Arena(PooledBufferAllocator.MAXLEVEL, PooledBufferAllocator.PAGESIZE, "test", BufferType.UNSAFE));
+        PooledBufferAllocator2 allocator2 = new PooledBufferAllocator2(128, false, new Arena(PooledBufferAllocator.MAXLEVEL, PooledBufferAllocator.PAGESIZE, "test", BufferType.HEAP));
         return Arrays.asList(new Object[][]{ //
-                {allocatorHeap.ioBuffer(128), allocatorHeap.ioBuffer(30)},//
-                {allocatorHeap.ioBuffer(128), allocatorDirect.ioBuffer(30)}, //
-//                {allocator.heapBuffer(128), allocator.directByteBuffer(30)},//
-//                {allocator.heapBuffer(128), allocator.memoryBuffer(30)},//
-                {allocatorDirect.ioBuffer(128), allocatorHeap.ioBuffer(30)}, //
-                {allocatorDirect.ioBuffer(128), allocatorDirect.ioBuffer(30)}, //
-                {allocatorHeap2.ioBuffer(128), allocatorHeap2.ioBuffer(30)},//
-                {allocatorHeap2.ioBuffer(128), allocatorDirect2.ioBuffer(30)},//
-                {allocatorDirect2.ioBuffer(128), allocatorDirect2.ioBuffer(30)},//
-                {allocatorDirect2.ioBuffer(128), allocatorHeap2.ioBuffer(30)},//
-//                {allocator.directByteBuffer(128), allocator.directByteBuffer(30)}, //
-//                {allocator.directByteBuffer(128), allocator.memoryBuffer(30)},//
-//                {allocator.memoryBuffer(128), allocator.heapBuffer(30)}, //
-//                {allocator.memoryBuffer(128), allocator.unsafeBuffer(30)}, //
+//                {allocatorHeap.ioBuffer(128), allocatorHeap.ioBuffer(30)},//
+//                {allocatorHeap.ioBuffer(128), allocatorDirect.ioBuffer(30)}, //
+//                {allocatorDirect.ioBuffer(128), allocatorHeap.ioBuffer(30)}, //
+//                {allocatorDirect.ioBuffer(128), allocatorDirect.ioBuffer(30)}, //
+//                {allocatorHeap2.ioBuffer(128), allocatorHeap2.ioBuffer(30)},//
+//                {allocatorHeap2.ioBuffer(128), allocatorDirect2.ioBuffer(30)},//
+//                {allocatorDirect2.ioBuffer(128), allocatorDirect2.ioBuffer(30)},//
+//                {allocatorDirect2.ioBuffer(128), allocatorHeap2.ioBuffer(30)},//
+//                {allocator.ioBuffer(128), allocator.ioBuffer(30)}, //
+//                {allocator.ioBuffer(128), allocator2.ioBuffer(30)},//
+                {allocator2.ioBuffer(128), allocator.ioBuffer(30)}, //
+                {allocator2.ioBuffer(128), allocator2.ioBuffer(30)}, //
 //                {allocator.memoryBuffer(128), allocator.directByteBuffer(30)}, //
 //                {allocator.memoryBuffer(128), allocator.memoryBuffer(30)},//
         });//
@@ -174,7 +178,8 @@ public class UnPooledBufferRWTest
         }
         catch (Exception e)
         {
-            assertTrue(e instanceof IllegalArgumentException);
+            e.printStackTrace();
+            assertTrue(e.getClass().getName(),e instanceof IllegalArgumentException);
         }
         buffer.addReadPosi(125);
         try

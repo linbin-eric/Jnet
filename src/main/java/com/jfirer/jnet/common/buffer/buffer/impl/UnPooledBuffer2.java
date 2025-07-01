@@ -44,7 +44,7 @@ public class UnPooledBuffer2 implements IoBuffer
         }
     }
 
-    private void init(UnPooledBuffer2 newBuffer)
+    protected void init(UnPooledBuffer2 newBuffer)
     {
         this.memory         = newBuffer.memory;
         this.nativeAddress  = newBuffer.nativeAddress;
@@ -59,7 +59,7 @@ public class UnPooledBuffer2 implements IoBuffer
         newBuffer.free();
     }
 
-    private void init(UnPooledBuffer2 parent, int oldReadPosi, int length)
+    protected void init(UnPooledBuffer2 parent, int oldReadPosi, int length)
     {
         this.memory         = parent.memory;
         this.nativeAddress  = parent.nativeAddress;
@@ -132,7 +132,7 @@ public class UnPooledBuffer2 implements IoBuffer
         init(newBuffer);
     }
 
-    private void memoryCopy(Object src, long srcNativeAddress, int srcOffset, Object desc, long destNativeAddress, int destOffset, int length)
+    protected void memoryCopy(Object src, long srcNativeAddress, int srcOffset, Object desc, long destNativeAddress, int destOffset, int length)
     {
         switch (bufferType)
         {
@@ -545,20 +545,25 @@ public class UnPooledBuffer2 implements IoBuffer
             /**
              * 只有最后执行真正free动作的人，才可以持有那个refCount对象。
              */
+            free0();
         }
         else
         {
             /**
-             * 其实UnPooledBuffer的free是可以忽略的
-             * 但是为了语义上的好义，这里还是加上
-             *
+             * 如果refCnt不是0，意味着这个Buffer没有引用了，但是里面的内存区域是有引用的。因此，只能归还这个壳。
              */
             refCnt = null;
-            /****/
         }
         memory        = null;
         nativeAddress = readPosi = writePosi = memoryCapacity = memoryOffset = bufferCapacity = offset = 0;
+        //接下来的动作是回收壳本身，也就是Buffer对象本身。
+        allocator.cycleBufferInstance(this);
     }
+
+    /**
+     * 在执行真正的free动作的时候会调用这个方法
+     */
+    protected void free0() {}
 
     @Override
     public int refCount()
@@ -649,7 +654,6 @@ public class UnPooledBuffer2 implements IoBuffer
         int             oldReadPosi = nextReadPosi(length);
         UnPooledBuffer2 sliceBuffer = (UnPooledBuffer2) allocator.bufferInstance();
         sliceBuffer.init(this, oldReadPosi, length);
-        sliceBuffer.setWritePosi(length);
         return sliceBuffer;
     }
 

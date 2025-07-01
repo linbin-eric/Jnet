@@ -5,7 +5,7 @@ import com.jfirer.jnet.common.api.PipelineInitializer;
 import com.jfirer.jnet.common.api.ReadProcessor;
 import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
-import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
+import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator2;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
 import com.jfirer.jnet.common.util.CapacityStat;
@@ -44,7 +44,7 @@ public class CloseTest
     {
         return Arrays.asList(new Object[][]{ //
 //                {PooledBufferAllocator.DEFAULT}
-                {new PooledBufferAllocator("closetest")}, //
+                {new PooledBufferAllocator2(100,true,PooledBufferAllocator2.getArena(true))}, //
 //                {PooledUnThreadCacheBufferAllocator.DEFAULT}, //
         });
     }
@@ -54,7 +54,7 @@ public class CloseTest
     {
         ChannelConfig channelConfig = new ChannelConfig();
         channelConfig.setChannelGroup(ChannelConfig.DEFAULT_CHANNEL_GROUP);
-        channelConfig.setMinReceiveSize(PooledBufferAllocator.PAGESIZE);
+        channelConfig.setMinReceiveSize(PooledBufferAllocator2.PAGESIZE);
         channelConfig.setAllocatorSupplier(()->bufferAllocator);
         final CountDownLatch  countDownLatch = new CountDownLatch(writeNum);
         final Queue<IoBuffer> queue          = new ConcurrentLinkedQueue<>();
@@ -97,7 +97,7 @@ public class CloseTest
         Assert.assertEquals(0, stat.getChunkCapacity() - stat.getFreeBytes());
     }
 
-    private CapacityStat getStat(PooledBufferAllocator bufferAllocator)
+    private CapacityStat getStat(PooledBufferAllocator2 bufferAllocator)
     {
         CapacityStat stat = new CapacityStat();
         bufferAllocator.capacityStat(stat);

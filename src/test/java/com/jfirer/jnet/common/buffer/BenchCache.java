@@ -1,7 +1,6 @@
 package com.jfirer.jnet.common.buffer;
 
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
-import com.jfirer.jnet.common.buffer.allocator.impl.CachedBufferAllocator;
 import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import org.jctools.queues.SpscLinkedQueue;
@@ -50,35 +49,10 @@ public class BenchCache
         return poll;
     }
 
-    @Benchmark
-    @Group("cache")
-    @GroupThreads(1)
-    public IoBuffer testCachedBufferGet(Data data)
-    {
-        IoBuffer ioBuffer = data.cached.ioBuffer(100);
-        data.cachedQueue.offer(ioBuffer);
-        return ioBuffer;
-    }
-
-    @Benchmark
-    @Group("cache")
-    @GroupThreads(1)
-    public IoBuffer testCachedBufferFree(Data data)
-    {
-        IoBuffer poll = data.cachedQueue.relaxedPoll();
-        if (poll != null)
-        {
-            poll.free();
-            return poll;
-        }
-        return poll;
-    }
-
     @State(Scope.Group)
     public static class Data
     {
         BufferAllocator           pooled      = new PooledBufferAllocator("pool");
-        BufferAllocator           cached      = new CachedBufferAllocator("cached");
         SpscLinkedQueue<IoBuffer> pooledQueue = new SpscLinkedQueue<>();
         SpscLinkedQueue<IoBuffer> cachedQueue = new SpscLinkedQueue<>();
     }

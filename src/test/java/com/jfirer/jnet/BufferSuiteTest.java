@@ -10,7 +10,6 @@ import org.junit.runners.Suite.SuiteClasses;
         UnPooledBufferRWTest.class, BufferRecycleTest.class, //
         ChunkListTest.class, //
         HugeAllocateTest.class, //
-        MemoryRegionCacheSmallTest.class, //
         NormalAllocateTest.class, //
         PooledBufferRWTest.class, //
         ReAllocateTest.class, //
