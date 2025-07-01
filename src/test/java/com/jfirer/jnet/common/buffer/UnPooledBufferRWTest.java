@@ -1,6 +1,7 @@
 package com.jfirer.jnet.common.buffer;
 
 import com.jfirer.jnet.common.buffer.allocator.impl.UnPoolBufferAllocator;
+import com.jfirer.jnet.common.buffer.allocator.impl.UnPoolBufferAllocator2;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,6 +32,8 @@ public class UnPooledBufferRWTest
     {
         UnPoolBufferAllocator allocatorHeap   = new UnPoolBufferAllocator(false);
         UnPoolBufferAllocator allocatorDirect = new UnPoolBufferAllocator(true);
+        UnPoolBufferAllocator2 allocatorHeap2 = new UnPoolBufferAllocator2(false);
+        UnPoolBufferAllocator2 allocatorDirect2 = new UnPoolBufferAllocator2(true);
         return Arrays.asList(new Object[][]{ //
                 {allocatorHeap.ioBuffer(128), allocatorHeap.ioBuffer(30)},//
                 {allocatorHeap.ioBuffer(128), allocatorDirect.ioBuffer(30)}, //
@@ -38,10 +41,10 @@ public class UnPooledBufferRWTest
 //                {allocator.heapBuffer(128), allocator.memoryBuffer(30)},//
                 {allocatorDirect.ioBuffer(128), allocatorHeap.ioBuffer(30)}, //
                 {allocatorDirect.ioBuffer(128), allocatorDirect.ioBuffer(30)}, //
-//                {allocator.unsafeBuffer(128), allocator.directByteBuffer(30)},//
-//                {allocator.unsafeBuffer(128), allocator.memoryBuffer(30)},//
-//                {allocator.directByteBuffer(128), allocator.heapBuffer(30)},//
-//                {allocator.directByteBuffer(128), allocator.unsafeBuffer(30)},//
+                {allocatorHeap2.ioBuffer(128), allocatorHeap2.ioBuffer(30)},//
+                {allocatorHeap2.ioBuffer(128), allocatorDirect2.ioBuffer(30)},//
+                {allocatorDirect2.ioBuffer(128), allocatorDirect2.ioBuffer(30)},//
+                {allocatorDirect2.ioBuffer(128), allocatorHeap2.ioBuffer(30)},//
 //                {allocator.directByteBuffer(128), allocator.directByteBuffer(30)}, //
 //                {allocator.directByteBuffer(128), allocator.memoryBuffer(30)},//
 //                {allocator.memoryBuffer(128), allocator.heapBuffer(30)}, //
