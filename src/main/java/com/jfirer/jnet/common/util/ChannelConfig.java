@@ -43,7 +43,7 @@ public class ChannelConfig
         System.err.println("Some RunnableImpl run in Jnet not handle Exception well,Check all ReadProcessor and WriteProcessor");
         e.printStackTrace();
     };
-    private Supplier<BufferAllocator> allocatorSupplier = () ->new PooledBufferAllocator2(10000, true, PooledBufferAllocator2.getArena(true));
+    private Supplier<BufferAllocator> allocatorSupplier = () ->new PooledBufferAllocator2(5000, true, PooledBufferAllocator2.getArena(true));
 //    private Supplier<BufferAllocator> allocatorSupplier = () ->new UnPoolBufferAllocator2(true);
     private AsynchronousChannelGroup  channelGroup      = DEFAULT_CHANNEL_GROUP;
 }

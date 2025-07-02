@@ -38,7 +38,7 @@ public class SliceBufferTest
     @Test
     public void test()
     {
-        IoBuffer buffer = allocator.ioBuffer(128);
+        IoBuffer buffer = allocator.allocate(128);
         buffer.putInt(1);
         buffer.putInt(2);
         buffer.putInt(3);
@@ -70,7 +70,7 @@ public class SliceBufferTest
     @Test
     public void test1()
     {
-        IoBuffer buffer = allocator.ioBuffer(128);
+        IoBuffer buffer = allocator.allocate(128);
         buffer.putInt(1);
         buffer.putInt(2);
         buffer.putInt(3);
@@ -85,7 +85,7 @@ public class SliceBufferTest
     @Test
     public void test2()
     {
-        IoBuffer buffer = allocator.ioBuffer(128);
+        IoBuffer buffer = allocator.allocate(128);
         buffer.putInt(1);
         buffer.putInt(2);
         buffer.putInt(3);

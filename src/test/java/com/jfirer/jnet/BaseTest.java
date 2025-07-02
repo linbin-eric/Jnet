@@ -115,7 +115,7 @@ public class BaseTest
                 {
                     try
                     {
-                        IoBuffer buffer = bufferAllocator.ioBuffer(8 * batch);
+                        IoBuffer buffer = bufferAllocator.allocate(8 * batch);
                         int      num    = j;
                         int      max    = num + batch > numPerThread ? numPerThread : num + batch;
                         for (; num < max; num++)

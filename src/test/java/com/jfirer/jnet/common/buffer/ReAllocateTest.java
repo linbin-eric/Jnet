@@ -23,7 +23,7 @@ public class ReAllocateTest
 
     private void test0(PooledBufferAllocator2 allocator)
     {
-        PooledBuffer2 buffer = (PooledBuffer2) allocator.ioBuffer(16);
+        PooledBuffer2 buffer = (PooledBuffer2) allocator.allocate(16);
         int           offset = buffer.offset();
         long           handle = (buffer).getHandle();
         assertEquals(16, buffer.capacity());

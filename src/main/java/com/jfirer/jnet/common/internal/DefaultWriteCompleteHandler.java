@@ -264,7 +264,7 @@ public class DefaultWriteCompleteHandler extends AtomicInteger implements WriteC
             IoBuffer buffer;
             if (sendingData == null)
             {
-                sendingData = allocator.ioBuffer(1024);
+                sendingData = allocator.allocate(1024);
             }
             while (count < maxWriteBytes && (buffer = queue.poll()) != null)
             {

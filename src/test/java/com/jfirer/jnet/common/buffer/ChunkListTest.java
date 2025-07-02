@@ -40,7 +40,7 @@ public class ChunkListTest
         Queue<IoBuffer> buffers   = new LinkedList<>();
         for (int i = 0; i < 4; i++)
         {
-            IoBuffer buffer = allocator.ioBuffer(size);
+            IoBuffer buffer = allocator.allocate(size);
             if (i != 3)
             {
                 buffers.add(buffer);
@@ -51,7 +51,7 @@ public class ChunkListTest
         ChunkListNode chunk1 = c100.head();
         for (int i = 0; i < 4; i++)
         {
-            IoBuffer buffer = allocator.ioBuffer(size);
+            IoBuffer buffer = allocator.allocate(size);
             if (i != 3)
             {
                 buffers.add(buffer);
@@ -64,12 +64,12 @@ public class ChunkListTest
             buffers.poll().free();
         }
         assertSame(chunk2.getNext(), chunk1);
-        allocator.ioBuffer(size);
-        allocator.ioBuffer(size);
+        allocator.allocate(size);
+        allocator.allocate(size);
         assertEquals(75, chunk2.usage());
-        allocator.ioBuffer(size << 1);
+        allocator.allocate(size << 1);
         assertEquals(75, chunk1.usage());
-        allocator.ioBuffer(size << 1);
+        allocator.allocate(size << 1);
         ChunkList c000   = (ChunkList) UNSAFE.getObject(arena, c000Offset);
         Chunk     chunk3 = c000.head();
         assertNotNull(chunk3);

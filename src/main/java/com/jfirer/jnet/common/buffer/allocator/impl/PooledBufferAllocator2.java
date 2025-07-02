@@ -37,7 +37,8 @@ public class PooledBufferAllocator2 implements BufferAllocator
     private final        Arena                           arena;
     private static final Arena[]                         HEAP_ARENAS;
     private static final Arena[]                         UNSAFE_ARENAS;
-    private static final AtomicInteger                   ARENA_COUNT = new AtomicInteger();
+    private static final AtomicInteger                   ARENA_COUNT         = new AtomicInteger();
+    private              boolean                         reUseBufferInstance = true;
 
     static
     {
@@ -63,15 +64,18 @@ public class PooledBufferAllocator2 implements BufferAllocator
     }
 
     @Override
-    public IoBuffer ioBuffer(int initializeCapacity)
+    public IoBuffer allocate(int initializeCapacity)
     {
         PooledBuffer2 buffer2 = bufferInstance();
         arena.allocate(initializeCapacity, buffer2);
         buffer2.initRefCnt();
         return buffer2;
     }
-    public void extended(int initializeCapacity,PooledBuffer2 buffer2){
-        arena.allocate(initializeCapacity, buffer2);
+
+    @Override
+    public void reAllocate(int initializeCapacity, IoBuffer buffer2)
+    {
+        arena.allocate(initializeCapacity, ((PooledBuffer2) buffer2));
     }
 
     @Override
@@ -83,12 +87,19 @@ public class PooledBufferAllocator2 implements BufferAllocator
     @Override
     public PooledBuffer2 bufferInstance()
     {
-        PooledBuffer2 acquire = bufferPool.acquire();
-        if (acquire == null)
+        if (reUseBufferInstance)
         {
-            acquire = new PooledBuffer2(preferDirect ? BufferType.UNSAFE : BufferType.HEAP, this, -1);
+            PooledBuffer2 acquire = bufferPool.acquire();
+            if (acquire == null)
+            {
+                acquire = new PooledBuffer2(preferDirect ? BufferType.UNSAFE : BufferType.HEAP, this, -1);
+            }
+            return acquire;
         }
-        return acquire;
+        else
+        {
+            return new PooledBuffer2(preferDirect ? BufferType.UNSAFE : BufferType.HEAP, this, -1);
+        }
     }
 
     @Override

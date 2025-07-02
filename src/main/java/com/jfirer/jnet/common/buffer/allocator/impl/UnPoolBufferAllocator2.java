@@ -25,7 +25,7 @@ public class UnPoolBufferAllocator2 implements BufferAllocator
     }
 
     @Override
-    public IoBuffer ioBuffer(int initializeCapacity)
+    public IoBuffer allocate(int initializeCapacity)
     {
         UnPooledBuffer2 buffer = bufferInstance();
         if (preferDirect)
@@ -39,6 +39,20 @@ public class UnPoolBufferAllocator2 implements BufferAllocator
         }
         buffer.initRefCnt();
         return buffer;
+    }
+
+    @Override
+    public void reAllocate(int initializeCapacity, IoBuffer buffer)
+    {
+        if (preferDirect)
+        {
+            ByteBuffer byteBuffer = ByteBuffer.allocateDirect(initializeCapacity);
+            ((UnPooledBuffer2) buffer).init(byteBuffer, PlatFormFunction.bytebufferOffsetAddress(byteBuffer), initializeCapacity, 0, 0, initializeCapacity);
+        }
+        else
+        {
+            ((UnPooledBuffer2) buffer).init(new byte[initializeCapacity], 0, initializeCapacity, 0, 0, initializeCapacity);
+        }
     }
 
     @Override

@@ -49,8 +49,8 @@ public class UnPooledBufferRWTest
 //                {allocatorDirect2.ioBuffer(128), allocatorHeap2.ioBuffer(30)},//
 //                {allocator.ioBuffer(128), allocator.ioBuffer(30)}, //
 //                {allocator.ioBuffer(128), allocator2.ioBuffer(30)},//
-                {allocator2.ioBuffer(128), allocator.ioBuffer(30)}, //
-                {allocator2.ioBuffer(128), allocator2.ioBuffer(30)}, //
+                {allocator2.allocate(128), allocator.allocate(30)}, //
+                {allocator2.allocate(128), allocator2.allocate(30)}, //
 //                {allocator.memoryBuffer(128), allocator.directByteBuffer(30)}, //
 //                {allocator.memoryBuffer(128), allocator.memoryBuffer(30)},//
         });//

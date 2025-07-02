@@ -16,7 +16,7 @@ public class HttpSendRequestEncoder implements WriteProcessor<HttpSendRequest>
     @Override
     public void write(HttpSendRequest request, WriteProcessorNode next)
     {
-        IoBuffer buffer = HttpClient.ALLOCATOR.ioBuffer(1024);
+        IoBuffer buffer = HttpClient.ALLOCATOR.allocate(1024);
         buffer.put((request.getMethod() + " " + request.getPath() + " HTTP/1.1\r\n").getBytes(StandardCharsets.US_ASCII));
         request.putHeader("Connection", "keep-alive");
         request.putHeader("User-Agent", "JnetHttpClient");

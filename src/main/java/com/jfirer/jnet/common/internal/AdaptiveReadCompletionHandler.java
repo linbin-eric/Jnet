@@ -85,7 +85,7 @@ public class AdaptiveReadCompletionHandler implements CompletionHandler<Integer,
 
     public void start()
     {
-        ioBuffer = allocator.ioBuffer(sizeTable[index]);
+        ioBuffer = allocator.allocate(sizeTable[index]);
         socketChannel.read(ioBuffer.writableByteBuffer(), this, this);
     }
 
@@ -148,7 +148,7 @@ public class AdaptiveReadCompletionHandler implements CompletionHandler<Integer,
                 }
             }
         }
-        return allocator.ioBuffer(sizeTable[index]);
+        return allocator.allocate(sizeTable[index]);
     }
 
     @Override

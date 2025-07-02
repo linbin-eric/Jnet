@@ -44,12 +44,12 @@ public class PooledBufferRWTest
 
     static PooledBuffer2 allocate(int size)
     {
-        return (PooledBuffer2) allocatorHeap.ioBuffer(size);
+        return (PooledBuffer2) allocatorHeap.allocate(size);
     }
 
     static PooledBuffer2 allocateDirect(int size)
     {
-        return (PooledBuffer2) allocatorDirect.ioBuffer(size);
+        return (PooledBuffer2) allocatorDirect.allocate(size);
     }
 
     @Before

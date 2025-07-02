@@ -242,7 +242,7 @@ public class HttpReceiveResponse implements AutoCloseable
         {
             waitForReceiveFinish();
             generatedUTF8Body = true;
-            IoBuffer   ioBuffer = HttpClient.ALLOCATOR.ioBuffer(512);
+            IoBuffer   ioBuffer = HttpClient.ALLOCATOR.allocate(512);
             PartOfBody needClose;
             while ((needClose = body.poll()) != null && !needClose.isEndOrTerminateOfBody())
             {

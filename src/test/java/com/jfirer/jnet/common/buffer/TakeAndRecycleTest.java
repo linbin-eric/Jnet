@@ -23,21 +23,21 @@ public class TakeAndRecycleTest
 
     private void test0(PooledBufferAllocator2 allocator)
     {
-        PooledBuffer2 buffer = (PooledBuffer2) allocator.ioBuffer(pagesize);
+        PooledBuffer2 buffer = (PooledBuffer2) allocator.allocate(pagesize);
         assertEquals(2048, (buffer).getHandle());
-        PooledBuffer2 buffer2 = (PooledBuffer2) allocator.ioBuffer(pagesize << 1);
+        PooledBuffer2 buffer2 = (PooledBuffer2) allocator.allocate(pagesize << 1);
         assertEquals(1025, buffer2.getHandle());
         buffer.free();
-        PooledBuffer2 buffer3 = (PooledBuffer2) allocator.ioBuffer(pagesize << 1);
+        PooledBuffer2 buffer3 = (PooledBuffer2) allocator.allocate(pagesize << 1);
         assertEquals(1024, buffer3.getHandle());
-        PooledBuffer2 buffer4 = (PooledBuffer2) allocator.ioBuffer(pagesize);
+        PooledBuffer2 buffer4 = (PooledBuffer2) allocator.allocate(pagesize);
         assertEquals(2052, buffer4.getHandle());
-        PooledBuffer2 buffer5 = (PooledBuffer2) allocator.ioBuffer(pagesize << 1);
+        PooledBuffer2 buffer5 = (PooledBuffer2) allocator.allocate(pagesize << 1);
         assertEquals(1027, buffer5.getHandle());
-        PooledBuffer2 buffer6 = (PooledBuffer2) allocator.ioBuffer(pagesize);
+        PooledBuffer2 buffer6 = (PooledBuffer2) allocator.allocate(pagesize);
         assertEquals(2053, (buffer6).getHandle());
         buffer2.free();
-        PooledBuffer2 buffer7 = (PooledBuffer2) allocator.ioBuffer(pagesize << 1);
+        PooledBuffer2 buffer7 = (PooledBuffer2) allocator.allocate(pagesize << 1);
         assertEquals(1025, buffer7.getHandle());
     }
 }

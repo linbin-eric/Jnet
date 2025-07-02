@@ -131,16 +131,27 @@ public class UnPooledBuffer2 implements IoBuffer
 
     protected void expansionCapacity(int newCapacity)
     {
-        int oldReadPosi  = this.readPosi;
-        int oldWritePosi = this.writePosi;
         newCapacity = newCapacity >= (bufferCapacity << 1) ? newCapacity : (bufferCapacity << 1);
-        UnPooledBuffer2 newBuffer = (UnPooledBuffer2) allocator.ioBuffer(newCapacity);
-        memoryCopy(memory, nativeAddress, offset, newBuffer.memory, newBuffer.nativeAddress, newBuffer.offset, bufferCapacity);
-        //当前在扩容，当前就不会slice，这两个不是并发的。因此refCount总是面对当前正确的memory
-        freeMemory();
-        init(newBuffer);
-        this.readPosi  = oldReadPosi;
-        this.writePosi = oldWritePosi;
+        int           oldReadPosi       = readPosi;
+        int           oldWritePosi      = writePosi;
+        int           oldOffset         = offset;
+        int           oldBufferCapacity = bufferCapacity;
+        Object        oldMemory         = memory;
+        long          oldNativeAddress  = nativeAddress;
+        AtomicInteger oldRefCnt         = refCnt;
+        allocator.reAllocate(newCapacity, this);
+        memoryCopy(oldMemory, oldNativeAddress, oldOffset, this.memory, this.nativeAddress, this.offset, oldBufferCapacity);
+        if (oldRefCnt.decrementAndGet() == 0)
+        {
+            oldRefCnt.incrementAndGet();
+            this.refCnt = oldRefCnt;
+        }
+        else
+        {
+            this.refCnt = new AtomicInteger(1);
+        }
+        readPosi  = oldReadPosi;
+        writePosi = oldWritePosi;
     }
 
     protected void memoryCopy(Object src, long srcNativeAddress, int srcOffset, Object desc, long destNativeAddress, int destOffset, int length)
@@ -627,18 +638,30 @@ public class UnPooledBuffer2 implements IoBuffer
         }
         else
         {
-            int             length    = remainRead();
-            UnPooledBuffer2 newBuffer = (UnPooledBuffer2) allocator.ioBuffer(Math.max(16, length));
+            int           length            = remainRead();
+            int           oldReadPosi       = readPosi;
+            int           oldOffset         = offset;
+            Object        oldMemory         = memory;
+            long          oldNativeAddress  = nativeAddress;
+            AtomicInteger oldRefCnt         = refCnt;
+            allocator.reAllocate(Math.max(16, length), this);
             if (length == 0)
             {
                 ;
             }
             else
             {
-                memoryCopy(memory, nativeAddress, offset + readPosi, newBuffer.memory, newBuffer.nativeAddress, newBuffer.offset, length);
+                memoryCopy(oldMemory, oldNativeAddress, oldOffset + oldReadPosi, this.memory, this.nativeAddress, this.offset, length);
             }
-            freeMemory();
-            init(newBuffer);
+            if (oldRefCnt.decrementAndGet() == 0)
+            {
+                oldRefCnt.incrementAndGet();
+                this.refCnt = oldRefCnt;
+            }
+            else
+            {
+                refCnt = new AtomicInteger(1);
+            }
             readPosi  = 0;
             writePosi = length;
         }

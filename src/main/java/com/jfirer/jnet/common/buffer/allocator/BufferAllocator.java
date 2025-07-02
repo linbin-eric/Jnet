@@ -10,7 +10,9 @@ public interface BufferAllocator
      *
      * @return
      */
-    IoBuffer ioBuffer(int initializeCapacity);
+    IoBuffer allocate(int initializeCapacity);
+
+    void reAllocate(int initializeCapacity, IoBuffer buffer2);
 
     default String name()
     {

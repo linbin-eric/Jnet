@@ -1,7 +1,6 @@
 package com.jfirer.jnet.common.buffer.buffer.impl;
 
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
-import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator2;
 import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.arena.ArenaAccepter;
 import com.jfirer.jnet.common.buffer.arena.ChunkListNode;
@@ -64,9 +63,8 @@ public class PooledBuffer2 extends UnPooledBuffer2 implements ArenaAccepter
         Object        oldMemory         = memory;
         long          oldNativeAddress  = nativeAddress;
         int           oldMemoryCapacity = memoryCapacity;
-        int           oldMemoryOffset   = memoryOffset;
         AtomicInteger oldRefCnt         = refCnt;
-        ((PooledBufferAllocator2) allocator).extended(newCapacity, this);
+        allocator.reAllocate(newCapacity, this);
         memoryCopy(oldMemory, oldNativeAddress, oldOffset, this.memory, this.nativeAddress, this.offset, oldBufferCapacity);
         if (oldRefCnt.decrementAndGet() == 0)
         {
@@ -120,18 +118,15 @@ public class PooledBuffer2 extends UnPooledBuffer2 implements ArenaAccepter
         {
             int           length            = remainRead();
             int           oldReadPosi       = readPosi;
-            int           oldWritePosi      = writePosi;
             Arena         oldArena          = arena;
             ChunkListNode oldChunkListNode  = chunkListNode;
             long          oldHandle         = handle;
             int           oldOffset         = offset;
-            int           oldBufferCapacity = bufferCapacity;
             Object        oldMemory         = memory;
             long          oldNativeAddress  = nativeAddress;
             int           oldMemoryCapacity = memoryCapacity;
-            int           oldMemoryOffset   = memoryOffset;
             AtomicInteger oldRefCnt         = refCnt;
-            ((PooledBufferAllocator2) allocator).extended(Math.max(16, length), this);
+            allocator.reAllocate(Math.max(16, length), this);
             if (length == 0)
             {
                 ;

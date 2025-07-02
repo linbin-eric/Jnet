@@ -78,7 +78,7 @@ public class SmallAllocateTest
         {
             for (int elementIdx = 0; elementIdx < elementNum; elementIdx++)
             {
-                PooledBuffer2 buffer = (PooledBuffer2) allocator.ioBuffer(reqCapacity);
+                PooledBuffer2 buffer = (PooledBuffer2) allocator.allocate(reqCapacity);
                 buffers.add(buffer);
                 int offset = i * pagesize + elementIdx * reqCapacity;
                 assertEquals(reqCapacity, buffer.capacity());

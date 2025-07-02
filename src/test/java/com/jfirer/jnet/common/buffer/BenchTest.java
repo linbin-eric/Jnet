@@ -33,7 +33,7 @@ public class BenchTest
     @Warmup(iterations = 1, time = 1, timeUnit = TimeUnit.SECONDS)
     public IoBuffer testPooledBufferAllocator(TestForPooledBufferAllocator test)
     {
-        IoBuffer ioBuffer = test.allocator.ioBuffer(10000);
+        IoBuffer ioBuffer = test.allocator.allocate(10000);
         ioBuffer.free();
         return ioBuffer;
     }

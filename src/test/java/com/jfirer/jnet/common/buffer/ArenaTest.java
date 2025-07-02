@@ -67,7 +67,7 @@ public class ArenaTest
 
     private void testMove(BufferAllocator allocator)
     {
-        IoBuffer        buffer = allocator.ioBuffer(PooledBufferAllocator2.PAGESIZE);
+        IoBuffer        buffer = allocator.allocate(PooledBufferAllocator2.PAGESIZE);
         Queue<IoBuffer> queue  = new LinkedList<>();
         queue.add(buffer);
 //        ThreadCache      threadCache = allocator.threadCache();
@@ -89,7 +89,7 @@ public class ArenaTest
         int           quarter       = total >>> 2;
         for (int i = 1; i < quarter; i++)
         {
-            queue.add(allocator.ioBuffer(PooledBufferAllocator2.PAGESIZE));
+            queue.add(allocator.allocate(PooledBufferAllocator2.PAGESIZE));
             assertNull(c100.head());
             assertNull(c075.head());
             assertNull(c050.head());
@@ -101,7 +101,7 @@ public class ArenaTest
         assertEquals(25, chunkListNode.usage());
         for (int i = 0; i < quarter; i++)
         {
-            queue.add(allocator.ioBuffer(PooledBufferAllocator2.PAGESIZE));
+            queue.add(allocator.allocate(PooledBufferAllocator2.PAGESIZE));
             assertNull(c100.head());
             assertNull(c075.head());
             assertNull(c050.head());
@@ -113,7 +113,7 @@ public class ArenaTest
         assertEquals(50, chunkListNode.usage());
         for (int i = 0; i < quarter; i++)
         {
-            queue.add(allocator.ioBuffer(PooledBufferAllocator2.PAGESIZE));
+            queue.add(allocator.allocate(PooledBufferAllocator2.PAGESIZE));
             assertNull(c100.head());
             assertNull(c075.head());
             assertNull(c050.head());
@@ -125,7 +125,7 @@ public class ArenaTest
         assertEquals(75, chunkListNode.usage());
         for (int i = 1; i < quarter; i++)
         {
-            queue.add(allocator.ioBuffer(PooledBufferAllocator2.PAGESIZE));
+            queue.add(allocator.allocate(PooledBufferAllocator2.PAGESIZE));
             assertNull(c100.head());
             if (chunkListNode.usage() <= 90)
             {
@@ -150,7 +150,7 @@ public class ArenaTest
             }
         }
         assertEquals(99, chunkListNode.usage());
-        queue.add(allocator.ioBuffer(PooledBufferAllocator2.PAGESIZE));
+        queue.add(allocator.allocate(PooledBufferAllocator2.PAGESIZE));
         assertNotNull(c100.head());
         assertNull(c075.head());
         assertNull(c050.head());

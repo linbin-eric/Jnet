@@ -18,9 +18,9 @@ public class BufferRecycleTest
     @Test
     public void test()
     {
-        IoBuffer buffer = allocator.ioBuffer(12);
+        IoBuffer buffer = allocator.allocate(12);
         buffer.free();
-        IoBuffer buffer2 = allocator.ioBuffer(5689);
+        IoBuffer buffer2 = allocator.allocate(5689);
         assertSame(buffer, buffer2);
         buffer2.free();
     }
@@ -28,11 +28,11 @@ public class BufferRecycleTest
     @Test
     public void test2() throws InterruptedException
     {
-        final IoBuffer buffer = allocator.ioBuffer(12);
+        final IoBuffer buffer = allocator.allocate(12);
         Thread         thread = new Thread(buffer::free);
         thread.start();
         thread.join();
-        IoBuffer buffer2 = allocator.ioBuffer(12);
+        IoBuffer buffer2 = allocator.allocate(12);
         assertTrue(buffer == buffer2);
         buffer2.free();
     }
@@ -40,17 +40,17 @@ public class BufferRecycleTest
     @Test
     public void test3() throws InterruptedException
     {
-        final IoBuffer       buffer = allocator.ioBuffer(128);
+        final IoBuffer       buffer = allocator.allocate(128);
         final CountDownLatch latch  = new CountDownLatch(1);
         new FastThreadLocalThread(() -> {
             buffer.free();
             latch.countDown();
         }).start();
         latch.await();
-        IoBuffer buffer2 = allocator.ioBuffer(128);
+        IoBuffer buffer2 = allocator.allocate(128);
         assertEquals(System.identityHashCode(buffer), System.identityHashCode(buffer2));
         buffer2.free();
-        IoBuffer buffer3 = allocator.ioBuffer(128);
+        IoBuffer buffer3 = allocator.allocate(128);
         assertEquals(System.identityHashCode(buffer2), System.identityHashCode(buffer3));
     }
 }

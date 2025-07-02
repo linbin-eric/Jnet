@@ -30,7 +30,7 @@ public class BenchCache
     @GroupThreads(1)
     public IoBuffer testPooledBufferGet(Data data)
     {
-        IoBuffer ioBuffer = data.pooled.ioBuffer(100);
+        IoBuffer ioBuffer = data.pooled.allocate(100);
         data.pooledQueue.offer(ioBuffer);
         return ioBuffer;
     }

@@ -30,7 +30,7 @@ public class HttpSendRequest
     public HttpSendRequest setBody(String body)
     {
         byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
-        this.body = HttpClient.ALLOCATOR.ioBuffer(bytes.length);
+        this.body = HttpClient.ALLOCATOR.allocate(bytes.length);
         this.body.put(bytes);
         return this;
     }

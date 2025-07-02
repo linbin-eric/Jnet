@@ -22,7 +22,7 @@ public class HugeAllocateTest
     {
         Arena         arena            = allocatorHeap.getArena();
         int           allocateCapacity = UNSAFE.getInt(arena, chunkSizeOffset) + 1;
-        PooledBuffer2 buffer           = (PooledBuffer2) allocatorDirect.ioBuffer(allocateCapacity);
+        PooledBuffer2 buffer           = (PooledBuffer2) allocatorDirect.allocate(allocateCapacity);
         int           newChunkCount    = UNSAFE.getInt(arena, newChunkCountOffset);
         test0(allocateCapacity, buffer, arena);
         assertEquals(UNSAFE.getInt(arena, newChunkCountOffset), newChunkCount);
@@ -42,7 +42,7 @@ public class HugeAllocateTest
         Arena         arena            = allocatorDirect.getArena();
         int           allocateCapacity = UNSAFE.getInt(arena, chunkSizeOffset) + 1;
         int           newChunkCount    = UNSAFE.getInt(arena, newChunkCountOffset);
-        PooledBuffer2 buffer           = (PooledBuffer2) allocatorDirect.ioBuffer(allocateCapacity);
+        PooledBuffer2 buffer           = (PooledBuffer2) allocatorDirect.allocate(allocateCapacity);
         test0(allocateCapacity, buffer, arena);
         assertEquals(UNSAFE.getInt(arena, newChunkCountOffset), newChunkCount);
     }

@@ -28,20 +28,20 @@ public class HttpRespEncoder implements WriteProcessor<Object>
     {
         if (obj instanceof HttpRespHead head)
         {
-            IoBuffer buffer = allocator.ioBuffer(1024);
+            IoBuffer buffer = allocator.allocate(1024);
             head.write(buffer);
             buffer.put(NEWLINE);
             next.fireWrite(buffer);
         }
         else if (obj instanceof HttpRespBody body)
         {
-            IoBuffer buffer = allocator.ioBuffer(1024);
+            IoBuffer buffer = allocator.allocate(1024);
             putBody(body, buffer, false);
             next.fireWrite(buffer);
         }
         else if (obj instanceof FullHttpResp fullHttpResp)
         {
-            IoBuffer buffer = allocator.ioBuffer(1024);
+            IoBuffer buffer = allocator.allocate(1024);
             try
             {
                 fullHttpResp.getHead().write(buffer);
