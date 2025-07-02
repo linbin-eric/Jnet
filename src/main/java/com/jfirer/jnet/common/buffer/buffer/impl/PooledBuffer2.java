@@ -1,6 +1,7 @@
 package com.jfirer.jnet.common.buffer.buffer.impl;
 
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
+import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator2;
 import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.arena.ArenaAccepter;
 import com.jfirer.jnet.common.buffer.arena.ChunkListNode;
@@ -8,6 +9,8 @@ import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import lombok.Getter;
 import lombok.ToString;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 @ToString
 public class PooledBuffer2 extends UnPooledBuffer2 implements ArenaAccepter
@@ -51,18 +54,33 @@ public class PooledBuffer2 extends UnPooledBuffer2 implements ArenaAccepter
     protected void expansionCapacity(int newCapacity)
     {
         newCapacity = newCapacity >= (bufferCapacity << 1) ? newCapacity : (bufferCapacity << 1);
-        int           oldReadPosi  = readPosi;
-        int           oldWritePosi = writePosi;
-        PooledBuffer2 newBuffer    = (PooledBuffer2) allocator.ioBuffer(newCapacity);
-        memoryCopy(memory, nativeAddress, offset, newBuffer.memory, newBuffer.nativeAddress, newBuffer.offset, bufferCapacity);
-        //当前在扩容，当前就不会slice，这两个不是并发的。因此refCount总是面对当前正确的memory
-        freeMemory();
-        this.arena         = newBuffer.arena;
-        this.chunkListNode = newBuffer.chunkListNode;
-        this.handle        = newBuffer.handle;
-        init(newBuffer);
-        readPosi           = oldReadPosi;
-        writePosi          = oldWritePosi;
+        int           oldReadPosi       = readPosi;
+        int           oldWritePosi      = writePosi;
+        Arena         oldArena          = arena;
+        ChunkListNode oldChunkListNode  = chunkListNode;
+        long          oldHandle         = handle;
+        int           oldOffset         = offset;
+        int           oldBufferCapacity = bufferCapacity;
+        Object        oldMemory         = memory;
+        long          oldNativeAddress  = nativeAddress;
+        int           oldMemoryCapacity = memoryCapacity;
+        int           oldMemoryOffset   = memoryOffset;
+        AtomicInteger oldRefCnt         = refCnt;
+        ((PooledBufferAllocator2) allocator).extended(newCapacity, this);
+        memoryCopy(oldMemory, oldNativeAddress, oldOffset, this.memory, this.nativeAddress, this.offset, oldBufferCapacity);
+        if (oldRefCnt.decrementAndGet() == 0)
+        {
+            //当前在扩容，当前就不会slice，这两个不是并发的。因此refCount总是面对当前正确的memory
+            oldArena.free(oldChunkListNode, oldHandle, oldMemoryCapacity);
+            oldRefCnt.incrementAndGet();
+            this.refCnt = oldRefCnt;
+        }
+        else
+        {
+            this.refCnt = new AtomicInteger(1);
+        }
+        readPosi  = oldReadPosi;
+        writePosi = oldWritePosi;
     }
 
     @Override
@@ -100,23 +118,40 @@ public class PooledBuffer2 extends UnPooledBuffer2 implements ArenaAccepter
         }
         else
         {
-            int           length    = remainRead();
-            PooledBuffer2 newBuffer = (PooledBuffer2) allocator.ioBuffer(Math.max(16, length));
+            int           length            = remainRead();
+            int           oldReadPosi       = readPosi;
+            int           oldWritePosi      = writePosi;
+            Arena         oldArena          = arena;
+            ChunkListNode oldChunkListNode  = chunkListNode;
+            long          oldHandle         = handle;
+            int           oldOffset         = offset;
+            int           oldBufferCapacity = bufferCapacity;
+            Object        oldMemory         = memory;
+            long          oldNativeAddress  = nativeAddress;
+            int           oldMemoryCapacity = memoryCapacity;
+            int           oldMemoryOffset   = memoryOffset;
+            AtomicInteger oldRefCnt         = refCnt;
+            ((PooledBufferAllocator2) allocator).extended(Math.max(16, length), this);
             if (length == 0)
             {
                 ;
             }
             else
             {
-                memoryCopy(memory, nativeAddress, offset + readPosi, newBuffer.memory, newBuffer.nativeAddress, newBuffer.offset, length);
+                memoryCopy(oldMemory, oldNativeAddress, oldOffset + oldReadPosi, this.memory, this.nativeAddress, this.offset, length);
             }
-            freeMemory();
-            init(newBuffer);
-            this.arena         = newBuffer.arena;
-            this.chunkListNode = newBuffer.chunkListNode;
-            this.handle        = newBuffer.handle;
-            readPosi           = 0;
-            writePosi          = length;
+            if (oldRefCnt.decrementAndGet() == 0)
+            {
+                oldArena.free(oldChunkListNode, oldHandle, oldMemoryCapacity);
+                oldRefCnt.incrementAndGet();
+                this.refCnt = oldRefCnt;
+            }
+            else
+            {
+                refCnt = new AtomicInteger(1);
+            }
+            readPosi  = 0;
+            writePosi = length;
         }
         return this;
     }

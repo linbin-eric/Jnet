@@ -67,7 +67,11 @@ public class PooledBufferAllocator2 implements BufferAllocator
     {
         PooledBuffer2 buffer2 = bufferInstance();
         arena.allocate(initializeCapacity, buffer2);
+        buffer2.initRefCnt();
         return buffer2;
+    }
+    public void extended(int initializeCapacity,PooledBuffer2 buffer2){
+        arena.allocate(initializeCapacity, buffer2);
     }
 
     @Override

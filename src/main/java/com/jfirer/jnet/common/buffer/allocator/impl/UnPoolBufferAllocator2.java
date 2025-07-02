@@ -37,6 +37,7 @@ public class UnPoolBufferAllocator2 implements BufferAllocator
         {
             buffer.init(new byte[initializeCapacity], 0, initializeCapacity, 0, 0, initializeCapacity);
         }
+        buffer.initRefCnt();
         return buffer;
     }
 

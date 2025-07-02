@@ -84,6 +84,10 @@ public class UnPooledBuffer2 implements IoBuffer
         this.bufferCapacity = capacity;
         this.offset         = memoryOffset + compensateOffset;
         readPosi            = writePosi = 0;
+    }
+
+    public void initRefCnt()
+    {
         if (refCnt != null)
         {
             if (refCnt.get() == 0)

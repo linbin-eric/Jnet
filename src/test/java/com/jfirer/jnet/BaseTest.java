@@ -33,7 +33,7 @@ public class BaseTest
     private final AioServer       aioServer;
     private final String          ip           = "127.0.0.1";
     private final int             port         = 7598;
-    private final int             numPerThread = 60000000;
+    private final int             numPerThread = 60000900;
     private final int             numClients   = 8;
     private final ClientChannel[] clients;
     private final CountDownLatch  latch        = new CountDownLatch(numClients);
