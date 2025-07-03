@@ -1,10 +1,10 @@
 package com.jfirer.jnet.common.buffer;
 
-import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator2;
+import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
-import com.jfirer.jnet.common.buffer.buffer.impl.PooledBuffer2;
+import com.jfirer.jnet.common.buffer.buffer.impl.PooledBuffer;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -21,9 +21,9 @@ import static org.junit.Assert.*;
 public class PooledBufferRWTest
 {
     private final  IoBuffer               buffer;
-    private final  IoBuffer               paramBuffer;
-    private static PooledBufferAllocator2 allocatorHeap   = new PooledBufferAllocator2(100, false, new Arena("heap", BufferType.HEAP));
-    private static PooledBufferAllocator2 allocatorDirect = new PooledBufferAllocator2(100, true, new Arena("direct", BufferType.UNSAFE));
+    private final  IoBuffer              paramBuffer;
+    private static PooledBufferAllocator allocatorHeap   = new PooledBufferAllocator(100, false, new Arena("heap", BufferType.HEAP));
+    private static PooledBufferAllocator allocatorDirect = new PooledBufferAllocator(100, true, new Arena("direct", BufferType.UNSAFE));
 
     public PooledBufferRWTest(IoBuffer buffer, IoBuffer paramBuffer)
     {
@@ -42,14 +42,14 @@ public class PooledBufferRWTest
         });
     }
 
-    static PooledBuffer2 allocate(int size)
+    static PooledBuffer allocate(int size)
     {
-        return (PooledBuffer2) allocatorHeap.allocate(size);
+        return (PooledBuffer) allocatorHeap.allocate(size);
     }
 
-    static PooledBuffer2 allocateDirect(int size)
+    static PooledBuffer allocateDirect(int size)
     {
-        return (PooledBuffer2) allocatorDirect.allocate(size);
+        return (PooledBuffer) allocatorDirect.allocate(size);
     }
 
     @Before

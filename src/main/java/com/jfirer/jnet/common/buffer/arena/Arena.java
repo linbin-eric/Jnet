@@ -1,6 +1,6 @@
 package com.jfirer.jnet.common.buffer.arena;
 
-import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator2;
+import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.Bits;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.util.CapacityStat;
@@ -40,7 +40,7 @@ public class Arena
 
     public Arena(String name, BufferType bufferType)
     {
-        this(PooledBufferAllocator2.MAXLEVEL, PooledBufferAllocator2.PAGESIZE, name, bufferType);
+        this(PooledBufferAllocator.MAXLEVEL, PooledBufferAllocator.PAGESIZE, name, bufferType);
     }
 
     @SuppressWarnings("unchecked")

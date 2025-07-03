@@ -1,9 +1,9 @@
 package com.jfirer.jnet.common.buffer;
 
-import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator2;
+import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
-import com.jfirer.jnet.common.buffer.buffer.impl.PooledBuffer2;
+import com.jfirer.jnet.common.buffer.buffer.impl.PooledBuffer;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -11,8 +11,8 @@ import static org.junit.Assert.assertNotEquals;
 
 public class ReAllocateTest
 {
-    PooledBufferAllocator2 allocatorHeap   = new PooledBufferAllocator2(100, false, new Arena("1", BufferType.HEAP));
-    PooledBufferAllocator2 allocatorDirect = new PooledBufferAllocator2(100, true, new Arena("2", BufferType.UNSAFE));
+    PooledBufferAllocator allocatorHeap   = new PooledBufferAllocator(100, false, new Arena("1", BufferType.HEAP));
+    PooledBufferAllocator allocatorDirect = new PooledBufferAllocator(100, true, new Arena("2", BufferType.UNSAFE));
 
     @Test
     public void test()
@@ -21,10 +21,10 @@ public class ReAllocateTest
         test0(allocatorDirect);
     }
 
-    private void test0(PooledBufferAllocator2 allocator)
+    private void test0(PooledBufferAllocator allocator)
     {
-        PooledBuffer2 buffer = (PooledBuffer2) allocator.allocate(16);
-        int           offset = buffer.offset();
+        PooledBuffer buffer = (PooledBuffer) allocator.allocate(16);
+        int          offset = buffer.offset();
         long           handle = (buffer).getHandle();
         assertEquals(16, buffer.capacity());
         buffer.putInt(4);

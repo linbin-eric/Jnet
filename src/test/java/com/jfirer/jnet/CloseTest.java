@@ -5,7 +5,7 @@ import com.jfirer.jnet.common.api.PipelineInitializer;
 import com.jfirer.jnet.common.api.ReadProcessor;
 import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
-import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator2;
+import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
 import com.jfirer.jnet.common.util.CapacityStat;
@@ -44,7 +44,7 @@ public class CloseTest
     {
         return Arrays.asList(new Object[][]{ //
 //                {PooledBufferAllocator.DEFAULT}
-                {new PooledBufferAllocator2(100,true,PooledBufferAllocator2.getArena(true))}, //
+                {new PooledBufferAllocator(100, true, PooledBufferAllocator.getArena(true))}, //
 //                {PooledUnThreadCacheBufferAllocator.DEFAULT}, //
         });
     }
@@ -54,7 +54,7 @@ public class CloseTest
     {
         ChannelConfig channelConfig = new ChannelConfig();
         channelConfig.setChannelGroup(ChannelConfig.DEFAULT_CHANNEL_GROUP);
-        channelConfig.setMinReceiveSize(PooledBufferAllocator2.PAGESIZE);
+        channelConfig.setMinReceiveSize(PooledBufferAllocator.PAGESIZE);
         channelConfig.setAllocatorSupplier(()->bufferAllocator);
         final CountDownLatch  countDownLatch = new CountDownLatch(writeNum);
         final Queue<IoBuffer> queue          = new ConcurrentLinkedQueue<>();
@@ -69,7 +69,7 @@ public class CloseTest
         AioServer aioServer = AioServer.newAioServer(channelConfig, initializer);
         aioServer.start();
         Socket socket  = new Socket(ip, port);
-        byte[] content = new byte[PooledBufferAllocator2.PAGESIZE];
+        byte[] content = new byte[PooledBufferAllocator.PAGESIZE];
         content[0] = (byte) ((content.length >> 24) & 0xff);
         content[1] = (byte) ((content.length >> 16) & 0xff);
         content[2] = (byte) ((content.length >> 8) & 0xff);
@@ -83,8 +83,8 @@ public class CloseTest
         }
         countDownLatch.await();
         Thread.sleep(1000);
-        CapacityStat internalStat = getStat((PooledBufferAllocator2) bufferAllocator);
-        Assert.assertTrue(internalStat.getChunkCapacity() - internalStat.getFreeBytes() >= PooledBufferAllocator2.PAGESIZE * (writeNum + 1));
+        CapacityStat internalStat = getStat((PooledBufferAllocator) bufferAllocator);
+        Assert.assertTrue(internalStat.getChunkCapacity() - internalStat.getFreeBytes() >= PooledBufferAllocator.PAGESIZE * (writeNum + 1));
         outputStream.close();
         System.out.println("切分点");
         Thread.sleep(2000);
@@ -93,11 +93,11 @@ public class CloseTest
         aioServer.termination();
         Thread.sleep(100);
         System.out.println("sss");
-        CapacityStat stat = getStat((PooledBufferAllocator2) bufferAllocator);
+        CapacityStat stat = getStat((PooledBufferAllocator) bufferAllocator);
         Assert.assertEquals(0, stat.getChunkCapacity() - stat.getFreeBytes());
     }
 
-    private CapacityStat getStat(PooledBufferAllocator2 bufferAllocator)
+    private CapacityStat getStat(PooledBufferAllocator bufferAllocator)
     {
         CapacityStat stat = new CapacityStat();
         bufferAllocator.capacityStat(stat);

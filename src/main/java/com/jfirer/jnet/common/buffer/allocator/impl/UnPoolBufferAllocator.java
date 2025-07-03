@@ -3,23 +3,23 @@ package com.jfirer.jnet.common.buffer.allocator.impl;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
-import com.jfirer.jnet.common.buffer.buffer.impl.UnPooledBuffer2;
+import com.jfirer.jnet.common.buffer.buffer.impl.UnPooledBuffer;
 import com.jfirer.jnet.common.buffer.buffer.storage.StorageSegment;
 import com.jfirer.jnet.common.util.PlatFormFunction;
 
 import java.nio.ByteBuffer;
 
-public class UnPoolBufferAllocator2 implements BufferAllocator
+public class UnPoolBufferAllocator implements BufferAllocator
 {
-    private final       boolean                preferDirect;
-    public static final UnPoolBufferAllocator2 DEFAULT = new UnPoolBufferAllocator2(false);
+    private final       boolean               preferDirect;
+    public static final UnPoolBufferAllocator DEFAULT = new UnPoolBufferAllocator(false);
 
-    public UnPoolBufferAllocator2()
+    public UnPoolBufferAllocator()
     {
         this(true);
     }
 
-    public UnPoolBufferAllocator2(boolean preferDirect)
+    public UnPoolBufferAllocator(boolean preferDirect)
     {
         this.preferDirect = preferDirect;
     }
@@ -27,7 +27,7 @@ public class UnPoolBufferAllocator2 implements BufferAllocator
     @Override
     public IoBuffer allocate(int initializeCapacity)
     {
-        UnPooledBuffer2 buffer = bufferInstance();
+        UnPooledBuffer buffer = bufferInstance();
         if (preferDirect)
         {
             ByteBuffer byteBuffer = ByteBuffer.allocateDirect(initializeCapacity);
@@ -47,11 +47,11 @@ public class UnPoolBufferAllocator2 implements BufferAllocator
         if (preferDirect)
         {
             ByteBuffer byteBuffer = ByteBuffer.allocateDirect(initializeCapacity);
-            ((UnPooledBuffer2) buffer).init(byteBuffer, PlatFormFunction.bytebufferOffsetAddress(byteBuffer), initializeCapacity, 0, 0, initializeCapacity);
+            ((UnPooledBuffer) buffer).init(byteBuffer, PlatFormFunction.bytebufferOffsetAddress(byteBuffer), initializeCapacity, 0, 0, initializeCapacity);
         }
         else
         {
-            ((UnPooledBuffer2) buffer).init(new byte[initializeCapacity], 0, initializeCapacity, 0, 0, initializeCapacity);
+            ((UnPooledBuffer) buffer).init(new byte[initializeCapacity], 0, initializeCapacity, 0, 0, initializeCapacity);
         }
     }
 
@@ -62,15 +62,15 @@ public class UnPoolBufferAllocator2 implements BufferAllocator
     }
 
     @Override
-    public UnPooledBuffer2 bufferInstance()
+    public UnPooledBuffer bufferInstance()
     {
         if (preferDirect)
         {
-            return new UnPooledBuffer2(BufferType.UNSAFE, this);
+            return new UnPooledBuffer(BufferType.UNSAFE, this);
         }
         else
         {
-            return new UnPooledBuffer2(BufferType.HEAP, this);
+            return new UnPooledBuffer(BufferType.HEAP, this);
         }
     }
 

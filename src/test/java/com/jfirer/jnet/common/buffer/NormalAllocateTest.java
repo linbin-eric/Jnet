@@ -1,10 +1,10 @@
 package com.jfirer.jnet.common.buffer;
 
-import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator2;
+import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
-import com.jfirer.jnet.common.buffer.buffer.impl.PooledBuffer2;
+import com.jfirer.jnet.common.buffer.buffer.impl.PooledBuffer;
 import org.junit.Test;
 
 import java.util.LinkedList;
@@ -14,8 +14,8 @@ import static org.junit.Assert.assertEquals;
 
 public class NormalAllocateTest
 {
-    PooledBufferAllocator2 allocatorHeap   = new PooledBufferAllocator2(100, false, new Arena("heap", BufferType.HEAP));
-    PooledBufferAllocator2 allocatorDirect = new PooledBufferAllocator2(100, true, new Arena("direct", BufferType.UNSAFE));
+    PooledBufferAllocator allocatorHeap   = new PooledBufferAllocator(100, false, new Arena("heap", BufferType.HEAP));
+    PooledBufferAllocator allocatorDirect = new PooledBufferAllocator(100, true, new Arena("direct", BufferType.UNSAFE));
 
     /**
      * 遍历对每层的每一个节点进行分配测试
@@ -27,17 +27,17 @@ public class NormalAllocateTest
         test0(allocatorDirect);
     }
 
-    private void test0(PooledBufferAllocator2 allocator)
+    private void test0(PooledBufferAllocator allocator)
     {
         List<IoBuffer> buffers = new LinkedList<>();
-        for (int i = PooledBufferAllocator2.MAXLEVEL; i >= 0; i--)
+        for (int i = PooledBufferAllocator.MAXLEVEL; i >= 0; i--)
         {
-            int levelSize = PooledBufferAllocator2.PAGESIZE << (PooledBufferAllocator2.MAXLEVEL - i);
+            int levelSize = PooledBufferAllocator.PAGESIZE << (PooledBufferAllocator.MAXLEVEL - i);
             int base      = 1 << i;
             for (int j = 0; j < 1 << i; j++)
             {
-                PooledBuffer2 buffer = (PooledBuffer2) allocator.allocate(levelSize);
-                long          handle = (buffer).getHandle();
+                PooledBuffer buffer = (PooledBuffer) allocator.allocate(levelSize);
+                long         handle = (buffer).getHandle();
                 assertEquals(base + j, handle);
                 buffers.add(buffer);
             }
@@ -59,14 +59,14 @@ public class NormalAllocateTest
         test1(allocatorDirect);
     }
 
-    private void test1(PooledBufferAllocator2 allocator)
+    private void test1(PooledBufferAllocator allocator)
     {
-        int pagesize = PooledBufferAllocator2.PAGESIZE;
-        int maxLevel = PooledBufferAllocator2.MAXLEVEL;
+        int pagesize = PooledBufferAllocator.PAGESIZE;
+        int maxLevel = PooledBufferAllocator.MAXLEVEL;
         for (int i = maxLevel; i > 0; i--)
         {
-            int           size   = pagesize << (maxLevel - i);
-            PooledBuffer2 buffer = (PooledBuffer2) allocator.allocate(size);
+            int          size   = pagesize << (maxLevel - i);
+            PooledBuffer buffer = (PooledBuffer) allocator.allocate(size);
             if (i == maxLevel)
             {
                 assertEquals(1 << i, (buffer).getHandle());

@@ -1,7 +1,7 @@
 package com.jfirer.jnet.common.buffer;
 
-import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator2;
-import com.jfirer.jnet.common.buffer.allocator.impl.UnPoolBufferAllocator2;
+import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
+import com.jfirer.jnet.common.buffer.allocator.impl.UnPoolBufferAllocator;
 import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
@@ -32,12 +32,12 @@ public class UnPooledBufferRWTest
     @Parameters
     public static Collection<?> data()
     {
-        UnPoolBufferAllocator2 allocatorHeap    = new UnPoolBufferAllocator2(false);
-        UnPoolBufferAllocator2 allocatorDirect  = new UnPoolBufferAllocator2(true);
-        UnPoolBufferAllocator2 allocatorHeap2   = new UnPoolBufferAllocator2(false);
-        UnPoolBufferAllocator2 allocatorDirect2 = new UnPoolBufferAllocator2(true);
-        PooledBufferAllocator2 allocator        = new PooledBufferAllocator2(128, true, new Arena("test", BufferType.UNSAFE));
-        PooledBufferAllocator2 allocator2       = new PooledBufferAllocator2(128, false, new Arena("test", BufferType.HEAP));
+        UnPoolBufferAllocator allocatorHeap    = new UnPoolBufferAllocator(false);
+        UnPoolBufferAllocator allocatorDirect  = new UnPoolBufferAllocator(true);
+        UnPoolBufferAllocator allocatorHeap2   = new UnPoolBufferAllocator(false);
+        UnPoolBufferAllocator allocatorDirect2 = new UnPoolBufferAllocator(true);
+        PooledBufferAllocator allocator        = new PooledBufferAllocator(128, true, new Arena("test", BufferType.UNSAFE));
+        PooledBufferAllocator  allocator2       = new PooledBufferAllocator(128, false, new Arena("test", BufferType.HEAP));
         return Arrays.asList(new Object[][]{ //
 //                {allocatorHeap.ioBuffer(128), allocatorHeap.ioBuffer(30)},//
 //                {allocatorHeap.ioBuffer(128), allocatorDirect.ioBuffer(30)}, //

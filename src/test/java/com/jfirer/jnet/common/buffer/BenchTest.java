@@ -1,6 +1,6 @@
 package com.jfirer.jnet.common.buffer;
 
-import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator2;
+import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
@@ -41,6 +41,6 @@ public class BenchTest
     @State(Scope.Benchmark)
     public static class TestForPooledBufferAllocator
     {
-        public PooledBufferAllocator2 allocator = new PooledBufferAllocator2(100, true, PooledBufferAllocator2.getArena(true));
+        public PooledBufferAllocator allocator = new PooledBufferAllocator(100, true, PooledBufferAllocator.getArena(true));
     }
 }

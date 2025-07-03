@@ -1,6 +1,6 @@
 package com.jfirer.jnet.common.buffer;
 
-import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator2;
+import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.arena.Chunk;
 import com.jfirer.jnet.common.buffer.arena.ChunkList;
@@ -17,8 +17,8 @@ import static org.junit.Assert.*;
 
 public class ChunkListTest
 {
-    PooledBufferAllocator2 allocatorDirect = new PooledBufferAllocator2(100, true,new Arena("1", BufferType.UNSAFE));
-    PooledBufferAllocator2  allocatorHeap   = new PooledBufferAllocator2(100,false,new Arena("2",BufferType.HEAP));
+    PooledBufferAllocator allocatorDirect = new PooledBufferAllocator(100, true, new Arena("1", BufferType.UNSAFE));
+    PooledBufferAllocator allocatorHeap   = new PooledBufferAllocator(100, false, new Arena("2", BufferType.HEAP));
     private final long c100Offset = UNSAFE.getFieldOffset("c100", Arena.class);
     private final long c075Offset = UNSAFE.getFieldOffset("c075", Arena.class);
     private final long c050Offset = UNSAFE.getFieldOffset("c050", Arena.class);
@@ -33,9 +33,9 @@ public class ChunkListTest
         test0(allocatorHeap);
     }
 
-    private void test0(PooledBufferAllocator2 allocator)
+    private void test0(PooledBufferAllocator allocator)
     {
-        int             chunkSize = PooledBufferAllocator2.PAGESIZE << PooledBufferAllocator2.MAXLEVEL;
+        int             chunkSize = PooledBufferAllocator.PAGESIZE << PooledBufferAllocator.MAXLEVEL;
         int             size      = chunkSize >> 2;
         Queue<IoBuffer> buffers   = new LinkedList<>();
         for (int i = 0; i < 4; i++)

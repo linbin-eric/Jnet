@@ -12,7 +12,7 @@ import lombok.Getter;
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class UnPooledBuffer2 implements IoBuffer
+public class UnPooledBuffer implements IoBuffer
 {
     protected final BufferType      bufferType;
     protected final RwDelegation    rwDelegation;
@@ -33,7 +33,7 @@ public class UnPooledBuffer2 implements IoBuffer
     protected       AtomicInteger   refCnt;
     /*实际的内存区域的字段*/
 
-    public UnPooledBuffer2(BufferType bufferType, BufferAllocator allocator)
+    public UnPooledBuffer(BufferType bufferType, BufferAllocator allocator)
     {
         this.bufferType = bufferType;
         this.allocator  = allocator;
@@ -46,7 +46,7 @@ public class UnPooledBuffer2 implements IoBuffer
         }
     }
 
-    protected void init(UnPooledBuffer2 newBuffer)
+    protected void init(UnPooledBuffer newBuffer)
     {
         this.memory         = newBuffer.memory;
         this.nativeAddress  = newBuffer.nativeAddress;
@@ -61,7 +61,7 @@ public class UnPooledBuffer2 implements IoBuffer
         newBuffer.free();
     }
 
-    protected void init(UnPooledBuffer2 parent, int oldReadPosi, int length)
+    protected void init(UnPooledBuffer parent, int oldReadPosi, int length)
     {
         this.memory         = parent.memory;
         this.nativeAddress  = parent.nativeAddress;
@@ -131,7 +131,7 @@ public class UnPooledBuffer2 implements IoBuffer
 
     protected void expansionCapacity(int newCapacity)
     {
-        newCapacity = newCapacity >= (bufferCapacity << 1) ? newCapacity : (bufferCapacity << 1);
+        newCapacity = Math.max(newCapacity, (bufferCapacity << 1));
         int           oldReadPosi       = readPosi;
         int           oldWritePosi      = writePosi;
         int           oldOffset         = offset;
@@ -638,34 +638,39 @@ public class UnPooledBuffer2 implements IoBuffer
         }
         else
         {
-            int           length            = remainRead();
-            int           oldReadPosi       = readPosi;
-            int           oldOffset         = offset;
-            Object        oldMemory         = memory;
-            long          oldNativeAddress  = nativeAddress;
-            AtomicInteger oldRefCnt         = refCnt;
-            allocator.reAllocate(Math.max(16, length), this);
-            if (length == 0)
-            {
-                ;
-            }
-            else
-            {
-                memoryCopy(oldMemory, oldNativeAddress, oldOffset + oldReadPosi, this.memory, this.nativeAddress, this.offset, length);
-            }
-            if (oldRefCnt.decrementAndGet() == 0)
-            {
-                oldRefCnt.incrementAndGet();
-                this.refCnt = oldRefCnt;
-            }
-            else
-            {
-                refCnt = new AtomicInteger(1);
-            }
+            int length = remainRead();
+            compactByNewSpace(length);
             readPosi  = 0;
             writePosi = length;
         }
         return this;
+    }
+
+    protected void compactByNewSpace(int length)
+    {
+        int           oldReadPosi      = readPosi;
+        int           oldOffset        = offset;
+        Object        oldMemory        = memory;
+        long          oldNativeAddress = nativeAddress;
+        AtomicInteger oldRefCnt        = refCnt;
+        allocator.reAllocate(Math.max(16, length), this);
+        if (length == 0)
+        {
+            ;
+        }
+        else
+        {
+            memoryCopy(oldMemory, oldNativeAddress, oldOffset + oldReadPosi, this.memory, this.nativeAddress, this.offset, length);
+        }
+        if (oldRefCnt.decrementAndGet() == 0)
+        {
+            oldRefCnt.incrementAndGet();
+            this.refCnt = oldRefCnt;
+        }
+        else
+        {
+            refCnt = new AtomicInteger(1);
+        }
     }
 
     @Override
@@ -691,8 +696,8 @@ public class UnPooledBuffer2 implements IoBuffer
     @Override
     public IoBuffer slice(int length)
     {
-        int             oldReadPosi = nextReadPosi(length);
-        UnPooledBuffer2 sliceBuffer = (UnPooledBuffer2) allocator.bufferInstance();
+        int            oldReadPosi = nextReadPosi(length);
+        UnPooledBuffer sliceBuffer = (UnPooledBuffer) allocator.bufferInstance();
         sliceBuffer.init(this, oldReadPosi, length);
         return sliceBuffer;
     }

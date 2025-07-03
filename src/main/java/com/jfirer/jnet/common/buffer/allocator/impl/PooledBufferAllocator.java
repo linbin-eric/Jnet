@@ -5,7 +5,7 @@ import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
-import com.jfirer.jnet.common.buffer.buffer.impl.PooledBuffer2;
+import com.jfirer.jnet.common.buffer.buffer.impl.PooledBuffer;
 import com.jfirer.jnet.common.buffer.buffer.storage.StorageSegment;
 import com.jfirer.jnet.common.util.CapacityStat;
 import com.jfirer.jnet.common.util.MathUtil;
@@ -14,7 +14,7 @@ import lombok.Getter;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class PooledBufferAllocator2 implements BufferAllocator
+public class PooledBufferAllocator implements BufferAllocator
 {
     public static final int     PAGESIZE;
     public static final int     PAGESIZE_SHIFT;
@@ -31,8 +31,8 @@ public class PooledBufferAllocator2 implements BufferAllocator
         PREFER_DIRECT  = SystemPropertyUtil.getBoolean("io.jnet.PooledBufferAllocator.preferDirect", true);
     }
 
-    private              BitmapObjectPool<PooledBuffer2> bufferPool;
-    private final        boolean                         preferDirect;
+    private              BitmapObjectPool<PooledBuffer> bufferPool;
+    private final        boolean                        preferDirect;
     @Getter
     private final        Arena                           arena;
     private static final Arena[]                         HEAP_ARENAS;
@@ -42,10 +42,10 @@ public class PooledBufferAllocator2 implements BufferAllocator
 
     static
     {
-        HEAP_ARENAS = new Arena[PooledBufferAllocator2.NUM_OF_ARENA];
+        HEAP_ARENAS = new Arena[PooledBufferAllocator.NUM_OF_ARENA];
         for (int i = 0; i < HEAP_ARENAS.length; i++)
         {
-            HEAP_ARENAS[i] = new Arena(PooledBufferAllocator2.MAXLEVEL, PooledBufferAllocator2.PAGESIZE, "PipelineBufferAllocator_heap_" + i, BufferType.HEAP);
+            HEAP_ARENAS[i] = new Arena(PooledBufferAllocator.MAXLEVEL, PooledBufferAllocator.PAGESIZE, "PipelineBufferAllocator_heap_" + i, BufferType.HEAP);
         }
         UNSAFE_ARENAS = new Arena[NUM_OF_ARENA];
         for (int i = 0; i < UNSAFE_ARENAS.length; i++)
@@ -54,19 +54,19 @@ public class PooledBufferAllocator2 implements BufferAllocator
         }
     }
 
-    public PooledBufferAllocator2(int cachedNum, boolean preferDirect, Arena arena)
+    public PooledBufferAllocator(int cachedNum, boolean preferDirect, Arena arena)
     {
         this.preferDirect = preferDirect;
         this.arena        = arena;
         cachedNum         = MathUtil.normalizeSize(cachedNum);
-        bufferPool        = preferDirect ? new BitmapObjectPool<>(i -> new PooledBuffer2(BufferType.UNSAFE, this, i), cachedNum)//
-                : new BitmapObjectPool<>(i -> new PooledBuffer2(BufferType.HEAP, this, i), cachedNum);
+        bufferPool        = preferDirect ? new BitmapObjectPool<>(i -> new PooledBuffer(BufferType.UNSAFE, this, i), cachedNum)//
+                : new BitmapObjectPool<>(i -> new PooledBuffer(BufferType.HEAP, this, i), cachedNum);
     }
 
     @Override
     public IoBuffer allocate(int initializeCapacity)
     {
-        PooledBuffer2 buffer2 = bufferInstance();
+        PooledBuffer buffer2 = bufferInstance();
         arena.allocate(initializeCapacity, buffer2);
         buffer2.initRefCnt();
         return buffer2;
@@ -75,7 +75,7 @@ public class PooledBufferAllocator2 implements BufferAllocator
     @Override
     public void reAllocate(int initializeCapacity, IoBuffer buffer2)
     {
-        arena.allocate(initializeCapacity, ((PooledBuffer2) buffer2));
+        arena.allocate(initializeCapacity, ((PooledBuffer) buffer2));
     }
 
     @Override
@@ -85,20 +85,20 @@ public class PooledBufferAllocator2 implements BufferAllocator
     }
 
     @Override
-    public PooledBuffer2 bufferInstance()
+    public PooledBuffer bufferInstance()
     {
         if (reUseBufferInstance)
         {
-            PooledBuffer2 acquire = bufferPool.acquire();
+            PooledBuffer acquire = bufferPool.acquire();
             if (acquire == null)
             {
-                acquire = new PooledBuffer2(preferDirect ? BufferType.UNSAFE : BufferType.HEAP, this, -1);
+                acquire = new PooledBuffer(preferDirect ? BufferType.UNSAFE : BufferType.HEAP, this, -1);
             }
             return acquire;
         }
         else
         {
-            return new PooledBuffer2(preferDirect ? BufferType.UNSAFE : BufferType.HEAP, this, -1);
+            return new PooledBuffer(preferDirect ? BufferType.UNSAFE : BufferType.HEAP, this, -1);
         }
     }
 
@@ -111,8 +111,8 @@ public class PooledBufferAllocator2 implements BufferAllocator
     @Override
     public void cycleBufferInstance(IoBuffer buffer)
     {
-        PooledBuffer2 pipelineBuffer = (PooledBuffer2) buffer;
-        int           bitmapIndex    = pipelineBuffer.getBitmapIndex();
+        PooledBuffer pipelineBuffer = (PooledBuffer) buffer;
+        int          bitmapIndex    = pipelineBuffer.getBitmapIndex();
         if (bitmapIndex == -1)
         {
             ;
