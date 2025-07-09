@@ -43,7 +43,7 @@ public class HttpRespHead implements HttpRespPart
 
     public void write(IoBuffer buffer)
     {
-        buffer.put(("HTTP/1.1 " + responseCode + " OK\n").getBytes(StandardCharsets.US_ASCII));
+        buffer.put(("HTTP/1.1 " + responseCode + " OK\r\n").getBytes(StandardCharsets.US_ASCII));
         headers.forEach((name, value) -> buffer.put((name + ": " + value + "\r\n").getBytes(StandardCharsets.US_ASCII)));
     }
 }

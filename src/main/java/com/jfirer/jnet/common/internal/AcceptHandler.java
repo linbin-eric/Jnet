@@ -2,11 +2,13 @@ package com.jfirer.jnet.common.internal;
 
 import com.jfirer.jnet.common.api.PipelineInitializer;
 import com.jfirer.jnet.common.util.ChannelConfig;
+import lombok.extern.slf4j.Slf4j;
 
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 
+@Slf4j
 public class AcceptHandler implements CompletionHandler<AsynchronousSocketChannel, AsynchronousServerSocketChannel>
 {
     protected final ChannelConfig       channelConfig;
@@ -21,10 +23,12 @@ public class AcceptHandler implements CompletionHandler<AsynchronousSocketChanne
     @Override
     public void completed(AsynchronousSocketChannel socketChannel, AsynchronousServerSocketChannel serverChannel)
     {
-        DefaultPipeline pipeline = new DefaultPipeline(socketChannel, channelConfig);
-        pipelineInitializer.onPipelineComplete(pipeline);
-        pipeline.complete();
         serverChannel.accept(serverChannel, this);
+        Thread.startVirtualThread(() -> {
+            DefaultPipeline pipeline = new DefaultPipeline(socketChannel, channelConfig);
+            pipelineInitializer.onPipelineComplete(pipeline);
+            pipeline.complete();
+        });
     }
 
     @Override

@@ -8,12 +8,14 @@ import com.jfirer.jnet.common.exception.EndOfStreamException;
 import com.jfirer.jnet.common.util.ChannelConfig;
 import com.jfirer.jnet.common.util.MathUtil;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 public class AdaptiveReadCompletionHandler implements CompletionHandler<Integer, AdaptiveReadCompletionHandler>
 {
     public static final int[] sizeTable;
