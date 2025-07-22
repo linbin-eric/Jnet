@@ -15,36 +15,48 @@ import javax.net.ssl.SSLException;
 @Slf4j
 public class SSLEncoder implements WriteProcessor<IoBuffer>
 {
-    private final    SSLEngine sslEngine;
-    private volatile boolean   handshakeFinished = false;
+    private volatile SSLEngine sslEngine;
 
     @Override
     public void write(IoBuffer data, WriteProcessorNode next)
     {
-        if (handshakeFinished)
+        if (sslEngine == null)
         {
+            log.debug("还在握手阶段，直接输出数据");
             next.fireWrite(data);
         }
         else
         {
             BufferAllocator allocator = next.pipeline().allocator();
             IoBuffer        dst       = allocator.allocate((int) (data.remainRead() * 1.2));
-            try
+            while (true)
             {
-                SSLEngineResult result = sslEngine.wrap(data.readableByteBuffer(), dst.writableByteBuffer());
-                switch (result.getStatus())
+                try
                 {
-                    case OK ->
+                    SSLEngineResult        result = sslEngine.wrap(data.readableByteBuffer(), dst.writableByteBuffer());
+                    SSLEngineResult.Status status = result.getStatus();
+                    if (status == SSLEngineResult.Status.OK)
                     {
                         data.free();
                         dst.addWritePosi(result.bytesProduced());
                         next.fireWrite(dst);
+                        return;
+                    }
+                    else if (status == SSLEngineResult.Status.BUFFER_OVERFLOW)
+                    {
+                        dst.capacityReadyFor(sslEngine.getSession().getPacketBufferSize());
+                    }
+                    else if (status == SSLEngineResult.Status.BUFFER_UNDERFLOW)
+                    {
+                        log.error("不会出现这个结果");
+                        System.exit(3);
                     }
                 }
-            }
-            catch (SSLException e)
-            {
-                throw new RuntimeException(e);
+                catch (SSLException e)
+                {
+                    dst.free();
+                    throw new RuntimeException(e);
+                }
             }
         }
     }

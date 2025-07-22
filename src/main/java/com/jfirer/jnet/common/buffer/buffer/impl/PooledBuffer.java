@@ -94,6 +94,6 @@ public class PooledBuffer extends UnPooledBuffer implements ArenaAccepter
     @Override
     public String toString()
     {
-        return "PooledBuffer{" + ", bitmapIndex=" + bitmapIndex + ", refCnt=" + refCnt;
+        return "PooledBuffer{" + ", bitmapIndex=" + bitmapIndex + ", refCnt=" + refCnt+ ",capacity=" + bufferCapacity + ", readPosi=" + readPosi + ", writePosi=" + writePosi + ", refCount=" + refCnt.get() + '}';
     }
 }

@@ -9,9 +9,11 @@ import com.jfirer.jnet.common.util.ReflectUtil;
 import com.jfirer.jnet.extend.http.dto.FullHttpResp;
 import com.jfirer.jnet.extend.http.dto.HttpRespBody;
 import com.jfirer.jnet.extend.http.dto.HttpRespHead;
+import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.StandardCharsets;
 
+@Slf4j
 public class HttpRespEncoder implements WriteProcessor<Object>
 {
     private final       BufferAllocator allocator;
