@@ -3,6 +3,7 @@ package com.jfirer.jnet.extend.http.decode;
 import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.decoder.AbstractDecoder;
+import com.jfirer.jnet.common.util.DataIgnore;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
@@ -19,6 +20,7 @@ public class SSLDecoder extends AbstractDecoder
     private final SSLEncoder sslEncoder;
     private       boolean    handshakeFinished = false;
     private       int        count             = 1;
+    private       boolean    closeInbound      = false;
 
     @Override
     protected void process0(ReadProcessorNode next)
@@ -76,6 +78,18 @@ public class SSLDecoder extends AbstractDecoder
                                 log.debug("当前步骤:{},握手阶段unwrap失败，因为输入空间不足，读取更多数据后继续尝试。", count);
                                 return;
                             }
+                            else if (status == SSLEngineResult.Status.CLOSED)
+                            {
+                                dst.free();
+                                accumulation.addReadPosi(result.bytesConsumed());
+                                if (closeInbound == false)
+                                {
+                                    closeInbound = true;
+                                    sslEngine.closeInbound();
+                                    next.pipeline().fireWrite(SSLCloseNotify.INSTANCE);
+                                }
+                                return;
+                            }
                         }
                     }
                     catch (SSLException e)
@@ -129,7 +143,12 @@ public class SSLDecoder extends AbstractDecoder
                         else if (status == SSLEngineResult.Status.CLOSED)
                         {
                             dst.free();
-                            next.pipeline().shutdownInput();
+                            if (closeInbound == false)
+                            {
+                                closeInbound = true;
+                                sslEngine.closeInbound();
+                                next.pipeline().fireWrite(SSLCloseNotify.INSTANCE);
+                            }
                             return;
                         }
                     }
@@ -196,6 +215,18 @@ public class SSLDecoder extends AbstractDecoder
                     }
                     return;
                 }
+                else if (status == SSLEngineResult.Status.CLOSED)
+                {
+                    accumulation.addReadPosi(result.bytesConsumed());
+                    dst.free();
+                    if (closeInbound == false)
+                    {
+                        closeInbound = true;
+                        sslEngine.closeInbound();
+                        next.pipeline().fireWrite(SSLCloseNotify.INSTANCE);
+                    }
+                    return;
+                }
             }
         }
         catch (SSLException e)
@@ -203,5 +234,10 @@ public class SSLDecoder extends AbstractDecoder
             dst.free();
             throw new RuntimeException(e);
         }
+    }
+
+    public static class SSLCloseNotify implements DataIgnore
+    {
+        public static SSLCloseNotify INSTANCE = new SSLCloseNotify();
     }
 }

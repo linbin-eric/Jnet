@@ -5,6 +5,7 @@ import com.jfirer.jnet.common.api.WriteProcessor;
 import com.jfirer.jnet.common.api.WriteProcessorNode;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
+import com.jfirer.jnet.common.util.DataIgnore;
 import com.jfirer.jnet.common.util.ReflectUtil;
 import com.jfirer.jnet.extend.http.dto.FullHttpResp;
 import com.jfirer.jnet.extend.http.dto.HttpRespBody;
@@ -59,9 +60,9 @@ public class HttpRespEncoder implements WriteProcessor<Object>
                 ReflectUtil.throwException(e);
             }
         }
-        else if (obj instanceof IoBuffer buffer)
+        else if (obj instanceof IoBuffer || obj instanceof DataIgnore)
         {
-            next.fireWrite(buffer);
+            next.fireWrite(obj);
         }
         else
         {
