@@ -4,8 +4,6 @@ public interface WriteProcessorNode
 {
     void fireWrite(Object data);
 
-    void fireChannelClosed();
-
     void fireWriteFailed(Throwable e);
 
     WriteProcessorNode getNext();

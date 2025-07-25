@@ -2,26 +2,20 @@ package com.jfirer.jnet.extend.http.client;
 
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
-import com.jfirer.jnet.common.recycler.Recycler;
 import com.jfirer.jnet.common.util.ReflectUtil;
-
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 public interface HttpClient
 {
     BufferAllocator ALLOCATOR = new PooledBufferAllocator(40000, true, PooledBufferAllocator.getArena(true));
-    ConcurrentMap<Connection, Recycler<HttpConnection>> map = new ConcurrentHashMap<>();
 
     static HttpReceiveResponse newCall(HttpSendRequest request) throws Exception
     {
         perfect(request);
-        Connection               connection     = new Connection(request.getDoMain(), request.getPort());
-        Recycler<HttpConnection> recycler       = map.computeIfAbsent(connection, c -> new Recycler<>(() -> new HttpConnection(c.domain, c.port), HttpConnection::setHandler));
-        HttpConnection           httpConnection = null;
+        HttpConnection httpConnection = null;
         try
         {
-            httpConnection = getAvailableConnection(recycler);
+            // 每次请求都创建新的连接（已移除连接池功能）
+            httpConnection = new HttpConnection(request.getDoMain(), request.getPort());
         }
         catch (Throwable e)
         {
@@ -31,45 +25,6 @@ public interface HttpClient
         return httpConnection.write(request);
     }
 
-    private static HttpConnection getAvailableConnection(Recycler<HttpConnection> recycler)
-    {
-        HttpConnection httpConnection = null;
-        try
-        {
-            httpConnection = recycler.get();
-        }
-        catch (Exception e)
-        {
-            ReflectUtil.throwException(e);
-        }
-        if (httpConnection.isConnectionClosed())
-        {
-            httpConnection.close();
-            do
-            {
-                try
-                {
-                    httpConnection = recycler.get();
-                }
-                catch (Throwable e)
-                {
-                    ReflectUtil.throwException(e);
-                }
-                if (httpConnection.isConnectionClosed())
-                {
-                    httpConnection.close();
-                }
-                else
-                {
-                    return httpConnection;
-                }
-            } while (true);
-        }
-        else
-        {
-            return httpConnection;
-        }
-    }
 
     private static void perfect(HttpSendRequest request)
     {
@@ -93,7 +48,4 @@ public interface HttpClient
         request.putHeader("Host", url.substring(domainStart, index));
     }
 
-    record Connection(String domain, int port)
-    {
-    }
 }

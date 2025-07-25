@@ -29,7 +29,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
     {
         if (receiveResponse == null)
         {
-            receiveResponse = new HttpReceiveResponse(httpConnection);
+            receiveResponse = new HttpReceiveResponse();
         }
         boolean goToNextState = false;
         do

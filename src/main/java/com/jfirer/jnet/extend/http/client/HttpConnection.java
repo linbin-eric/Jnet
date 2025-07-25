@@ -3,7 +3,6 @@ package com.jfirer.jnet.extend.http.client;
 import com.jfirer.jnet.client.ClientChannel;
 import com.jfirer.jnet.common.api.ReadProcessor;
 import com.jfirer.jnet.common.api.ReadProcessorNode;
-import com.jfirer.jnet.common.recycler.RecycleHandler;
 import com.jfirer.jnet.common.thread.FastThreadLocalThread;
 import com.jfirer.jnet.common.util.ChannelConfig;
 import com.jfirer.jnet.common.util.ReflectUtil;
@@ -15,15 +14,14 @@ import java.net.ConnectException;
 import java.net.SocketTimeoutException;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.ClosedChannelException;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 
 @Data
 @Slf4j
 public class HttpConnection
 {
-    public static final HttpReceiveResponse      CLOSE_OF_CONNECTION = new HttpReceiveResponse(null);
+    public static final HttpReceiveResponse      CLOSE_OF_CONNECTION = new HttpReceiveResponse();
     public static final long                     KEEP_ALIVE_TIME     = 1000 * 60 * 5;
     public static final AsynchronousChannelGroup HTTP_CHANNEL_GROUP;
 
@@ -39,10 +37,12 @@ public class HttpConnection
         }
     }
 
-    private final BlockingQueue<HttpReceiveResponse> responseSync = new LinkedBlockingQueue<>();
     private final ClientChannel                      clientChannel;
     private       long                               lastResponseTime;
-    private       RecycleHandler                     handler;
+    // LockSupport相关字段
+    private volatile Thread                          waitingThread;
+    private volatile HttpReceiveResponse             responseResult;
+    private volatile boolean                         responseReady = false;
 
     public HttpConnection(String domain, int port)
     {
@@ -54,13 +54,25 @@ public class HttpConnection
                 @Override
                 public void readFailed(Throwable e, ReadProcessorNode next)
                 {
-                    responseSync.offer(HttpConnection.CLOSE_OF_CONNECTION);
+                    responseResult = HttpConnection.CLOSE_OF_CONNECTION;
+                    responseReady = true;
+                    Thread waiting = waitingThread;
+                    if (waiting != null)
+                    {
+                        LockSupport.unpark(waiting);
+                    }
                 }
 
                 @Override
                 public void read(HttpReceiveResponse response, ReadProcessorNode next)
                 {
-                    responseSync.offer(response);
+                    responseResult = response;
+                    responseReady = true;
+                    Thread waiting = waitingThread;
+                    if (waiting != null)
+                    {
+                        LockSupport.unpark(waiting);
+                    }
                 }
             });
             pipeline.addWriteProcessor(new HttpSendRequestEncoder());
@@ -74,7 +86,7 @@ public class HttpConnection
 
     public boolean isConnectionClosed()
     {
-        return !clientChannel.alive() || responseSync.peek() == CLOSE_OF_CONNECTION || (System.currentTimeMillis() - lastResponseTime) > KEEP_ALIVE_TIME;
+        return !clientChannel.alive() || (System.currentTimeMillis() - lastResponseTime) > KEEP_ALIVE_TIME;
     }
 
     public HttpReceiveResponse write(HttpSendRequest request) throws ClosedChannelException, SocketTimeoutException
@@ -84,36 +96,59 @@ public class HttpConnection
             request.freeBodyBuffer();
             throw new ClosedChannelException();
         }
+        
+        // 设置等待状态
+        waitingThread = Thread.currentThread();
+        responseReady = false;
+        responseResult = null;
+        
+        // 发送请求
         clientChannel.pipeline().fireWrite(request);
-        HttpReceiveResponse response = null;
-        try
+        
+        // 使用LockSupport等待响应，支持20秒超时
+        long timeoutNanos = TimeUnit.SECONDS.toNanos(20);
+        long startTime = System.nanoTime();
+        
+        while (!responseReady)
         {
-            response = responseSync.poll(20, TimeUnit.SECONDS);
+            long elapsed = System.nanoTime() - startTime;
+            long remaining = timeoutNanos - elapsed;
+            
+            if (remaining <= 0)
+            {
+                // 超时处理
+                waitingThread = null;
+                log.debug("超时等待20秒，没有收到响应，关闭Http链接");
+                String msg = clientChannel.alive() ? "通道仍然alive" : "通道已经失效";
+                clientChannel.pipeline().shutdownInput();
+                throw new SocketTimeoutException(msg);
+            }
+            
+            LockSupport.parkNanos(remaining);
+            
+            // 检查中断
+            if (Thread.interrupted())
+            {
+                waitingThread = null;
+                clientChannel.pipeline().shutdownInput();
+                throw new ClosedChannelException();
+            }
         }
-        catch (InterruptedException e)
-        {
-            clientChannel.pipeline().shutdownInput();
-            throw new ClosedChannelException();
-        }
-        if (response == null)
-        {
-            log.debug("超时等待20秒，没有收到响应，关闭Http链接");
-            String msg = clientChannel.alive() ? "通道仍然alive" : "通道已经失效";
-            clientChannel.pipeline().shutdownInput();
-            SocketTimeoutException socketTimeoutException = new SocketTimeoutException(msg);
-            throw socketTimeoutException;
-        }
+        
+        // 重置状态并返回结果
+        waitingThread = null;
+        HttpReceiveResponse response = responseResult;
+        responseResult = null;
+        responseReady = false;
+        
         if (response == CLOSE_OF_CONNECTION)
         {
             log.debug("收到链接终止响应");
             clientChannel.pipeline().shutdownInput();
-            ClosedChannelException closedChannelException = new ClosedChannelException();
-            throw closedChannelException;
+            throw new ClosedChannelException();
         }
-        else
-        {
-            return response;
-        }
+        
+        return response;
     }
 
     public void close()
@@ -121,12 +156,4 @@ public class HttpConnection
         clientChannel.pipeline().shutdownInput();
     }
 
-    /**
-     * 在一个HttpConnect 完成请求发送，响应解析并且业务端代码使用完毕后，就可以将这个链接归还到连接池中。
-     */
-    public void recycle()
-    {
-        lastResponseTime = System.currentTimeMillis();
-        handler.recycle(this);
-    }
 }

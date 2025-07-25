@@ -24,10 +24,4 @@ public class TailWriteProcessor implements WriteProcessor
     {
         ;
     }
-
-    @Override
-    public void channelClosed(WriteProcessorNode next)
-    {
-        ;
-    }
 }

@@ -2,14 +2,12 @@ package com.jfirer.jnet.common.decoder;
 
 import com.jfirer.baseutil.schedule.timer.SimpleWheelTimer;
 import com.jfirer.baseutil.schedule.trigger.RepeatDelayTrigger;
-import com.jfirer.jnet.common.api.Pipeline;
-import com.jfirer.jnet.common.api.ReadProcessor;
-import com.jfirer.jnet.common.api.ReadProcessorNode;
+import com.jfirer.jnet.common.api.*;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-public class HeartBeatDecoder implements ReadProcessor
+public class HeartBeat implements ReadProcessor, WriteProcessor
 {
     private static final SimpleWheelTimer timer       = new SimpleWheelTimer(Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()), 1000);
     private final        long             heartBeatDuration;
@@ -17,7 +15,7 @@ public class HeartBeatDecoder implements ReadProcessor
     private volatile     long             prevTime;
     private volatile     boolean          noNeedWatch = false;
 
-    public HeartBeatDecoder(int secondOfTimeout, Pipeline pipeline)
+    public HeartBeat(int secondOfTimeout, Pipeline pipeline)
     {
         this.pipeline     = pipeline;
         prevTime          = System.currentTimeMillis();
@@ -37,6 +35,20 @@ public class HeartBeatDecoder implements ReadProcessor
     {
         noNeedWatch = true;
         next.fireReadFailed(e);
+    }
+
+    @Override
+    public void write(Object data, WriteProcessorNode next)
+    {
+        prevTime = System.currentTimeMillis();
+        next.fireWrite(data);
+    }
+
+    @Override
+    public void writeFailed(WriteProcessorNode next, Throwable e)
+    {
+        noNeedWatch = true;
+        next.fireWriteFailed(e);
     }
 
     class CheckTrigger extends RepeatDelayTrigger

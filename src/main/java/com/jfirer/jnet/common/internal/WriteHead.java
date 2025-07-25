@@ -19,12 +19,6 @@ public class WriteHead implements WriteProcessorNode
     }
 
     @Override
-    public void fireChannelClosed()
-    {
-        worker.submit(() -> next.fireChannelClosed());
-    }
-
-    @Override
     public void fireWriteFailed(Throwable e)
     {
         worker.submit(() -> next.fireWriteFailed(e));

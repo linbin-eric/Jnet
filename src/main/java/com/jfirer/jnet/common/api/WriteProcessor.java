@@ -11,9 +11,4 @@ public interface WriteProcessor<T>
     {
         next.fireWriteFailed(e);
     }
-
-    default void channelClosed(WriteProcessorNode next)
-    {
-        next.fireChannelClosed();
-    }
 }

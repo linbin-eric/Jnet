@@ -179,18 +179,4 @@ public class DefaultPipeline implements InternalPipeline
             System.exit(127);
         }
     }
-
-    @Override
-    public void fireChannelClosed()
-    {
-        try
-        {
-            writeHead.fireChannelClosed();
-        }
-        catch (Throwable e)
-        {
-            jvmExistHandler.accept(e);
-            System.exit(127);
-        }
-    }
 }

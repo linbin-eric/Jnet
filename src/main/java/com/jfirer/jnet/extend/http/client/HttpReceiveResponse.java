@@ -27,7 +27,6 @@ public class HttpReceiveResponse implements AutoCloseable
     private static final int                       RECEIVE_FINISH_AND_NOT_CLOSE    = 0b10;
     private static final int                       RECEIVE_FINISH_AND_CLOSE        = 0b11;
     private static final long                      STATE_OFFSET                    = UNSAFE.getFieldOffset("state", HttpReceiveResponse.class);
-    private final        HttpConnection            connection;
     private              int                       httpCode;
     private              Map<String, String>       headers                         = new HashMap<>();
     /**
@@ -98,7 +97,7 @@ public class HttpReceiveResponse implements AutoCloseable
                         {
                             needClose.freeBuffer();
                         }
-                        connection.recycle();
+                        // connection.recycle()已移除，连接池功能不再使用
                         return;
                     }
                     else
@@ -191,7 +190,7 @@ public class HttpReceiveResponse implements AutoCloseable
                         {
                             needClose.freeBuffer();
                         }
-                        connection.recycle();
+                        // connection.recycle()已移除，连接池功能不再使用
                         return;
                     }
                     else

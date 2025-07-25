@@ -6,6 +6,7 @@ import com.jfirer.jnet.common.api.WriteCompletionHandler;
 import com.jfirer.jnet.common.api.WriteListener;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
+import com.jfirer.jnet.common.exception.EndOfStreamException;
 import com.jfirer.jnet.common.util.ChannelConfig;
 import com.jfirer.jnet.common.util.UNSAFE;
 import lombok.Setter;
@@ -117,7 +118,7 @@ public class DefaultWriteCompleteHandler extends AtomicInteger implements WriteC
                 {
                     if (queue.isEmpty())
                     {
-                        closeChannel();
+                        closeChannel(new EndOfStreamException());
                         quitToIdle();
                     }
                     else
@@ -130,7 +131,7 @@ public class DefaultWriteCompleteHandler extends AtomicInteger implements WriteC
         }
     }
 
-    private void closeChannel()
+    private void closeChannel(Throwable e)
     {
         if (get() == CLOSED)
         {
@@ -146,7 +147,7 @@ public class DefaultWriteCompleteHandler extends AtomicInteger implements WriteC
             {
                 ;
             }
-            pipeline.fireChannelClosed();
+            pipeline.fireWriteFailed(e);
         }
     }
 
@@ -237,7 +238,7 @@ public class DefaultWriteCompleteHandler extends AtomicInteger implements WriteC
                 {
                     if (queue.isEmpty())
                     {
-                        closeChannel();
+                        closeChannel(new EndOfStreamException());
                         quitToIdle();
                     }
                     else
@@ -295,8 +296,7 @@ public class DefaultWriteCompleteHandler extends AtomicInteger implements WriteC
         {
             tmp.free();
         }
-        pipeline.fireWriteFailed(e);
-        closeChannel();
+        closeChannel(e);
         quitToIdle();
     }
 }
