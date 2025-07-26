@@ -5,7 +5,7 @@ import com.jfirer.jnet.common.api.ReadProcessor;
 import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
-import com.jfirer.jnet.common.decoder.TotalLengthFieldBasedFrameDecoder;
+import com.jfirer.jnet.common.coder.TotalLengthFieldBasedFrameDecoder;
 import com.jfirer.jnet.common.util.ChannelConfig;
 import com.jfirer.jnet.server.AioServer;
 import org.junit.Test;

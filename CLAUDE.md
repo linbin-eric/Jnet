@@ -41,7 +41,7 @@ The project includes JMH (Java Microbenchmark Harness) for performance testing:
 - **ClientChannel**: Client-side connection management
 - Both use `ChannelConfig` for configuration
 
-**Decoders** (`com.jfirer.jnet.common.decoder`):
+**Decoders** (`com.jfirer.jnet.common.coder`):
 - Frame-based decoders for protocol handling
 - `TotalLengthFieldBasedFrameDecoder`: Length-prefixed frame decoder
 - `HeartBeatDecoder`, `FixLengthDecoder`: Specialized decoders

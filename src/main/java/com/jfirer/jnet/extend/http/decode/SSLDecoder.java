@@ -2,7 +2,7 @@ package com.jfirer.jnet.extend.http.decode;
 
 import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
-import com.jfirer.jnet.common.decoder.AbstractDecoder;
+import com.jfirer.jnet.common.coder.AbstractDecoder;
 import com.jfirer.jnet.common.util.DataIgnore;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;

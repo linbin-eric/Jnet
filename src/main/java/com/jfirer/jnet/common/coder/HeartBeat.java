@@ -1,4 +1,4 @@
-package com.jfirer.jnet.common.decoder;
+package com.jfirer.jnet.common.coder;
 
 import com.jfirer.baseutil.schedule.timer.SimpleWheelTimer;
 import com.jfirer.baseutil.schedule.trigger.RepeatDelayTrigger;

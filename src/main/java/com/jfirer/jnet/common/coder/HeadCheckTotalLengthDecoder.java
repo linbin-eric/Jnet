@@ -1,4 +1,4 @@
-package com.jfirer.jnet.common.decoder;
+package com.jfirer.jnet.common.coder;
 
 import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
