@@ -8,9 +8,11 @@ import java.nio.charset.StandardCharsets;
 
 public class HttpReceiveResponseDecoder extends AbstractDecoder
 {
-    private static final byte                re        = "\r".getBytes(StandardCharsets.US_ASCII)[0];
-    private static final byte                nl        = "\n".getBytes(StandardCharsets.US_ASCII)[0];
-    private final        byte[]              httpCode  = new byte[3];
+    private static final byte                CR        = (byte) '\r';
+    private static final byte                LF        = (byte) '\n';
+    private static final int                 HTTP_VERSION_PREFIX_LENGTH = 9; // "HTTP/1.1 "
+    private static final int                 HTTP_CODE_LENGTH = 3;
+    private final        byte[]              httpCode  = new byte[HTTP_CODE_LENGTH];
     private final        HttpConnection      httpConnection;
     private              HttpReceiveResponse receiveResponse;
     private              ParseState          state     = ParseState.RESPONSE_LINE;
@@ -55,9 +57,9 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
         {
             if (chunkSize == -1)
             {
-                for (int i = accumulation.getReadPosi(); i < accumulation.getWritePosi(); i++)
+                for (int i = accumulation.getReadPosi(); i < accumulation.getWritePosi() - 1; i++)
                 {
-                    if (accumulation.get(i) == '\r' && accumulation.get(i + 1) == '\n')
+                    if (accumulation.get(i) == CR && accumulation.get(i + 1) == LF)
                     {
                         chunkSize         = Integer.parseInt(StandardCharsets.US_ASCII.decode(accumulation.readableByteBuffer(i)).toString(), 16);
                         chunkHeaderLength = i + 2 - accumulation.getReadPosi();
@@ -137,7 +139,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
     {
         for (; lastCheck + 3 < accumulation.getWritePosi(); lastCheck++)
         {
-            if (accumulation.get(lastCheck) == '\r' && accumulation.get(lastCheck + 1) == '\n' && accumulation.get(lastCheck + 2) == '\r' && accumulation.get(lastCheck + 3) == '\n')
+            if (accumulation.get(lastCheck) == CR && accumulation.get(lastCheck + 1) == LF && accumulation.get(lastCheck + 2) == CR && accumulation.get(lastCheck + 3) == LF)
             {
                 lastCheck = -1;
                 state     = ParseState.BODY;
@@ -184,7 +186,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
         lastCheck = lastCheck == -1 ? accumulation.getReadPosi() : lastCheck;
         for (; lastCheck + 1 < accumulation.getWritePosi(); lastCheck++)
         {
-            if (accumulation.get(lastCheck) == '\r' && accumulation.get(lastCheck + 1) == '\n')
+            if (accumulation.get(lastCheck) == CR && accumulation.get(lastCheck + 1) == LF)
             {
                 lastCheck += 2;
                 state = ParseState.HEADER;
@@ -193,7 +195,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
         }
         if (state == ParseState.HEADER)
         {
-            accumulation.get(httpCode, 0, 3, accumulation.getReadPosi() + 9);
+            accumulation.get(httpCode, 0, HTTP_CODE_LENGTH, accumulation.getReadPosi() + HTTP_VERSION_PREFIX_LENGTH);
             receiveResponse.setHttpCode(Integer.parseInt(new String(httpCode, StandardCharsets.US_ASCII)));
             accumulation.setReadPosi(lastCheck);
             return true;
