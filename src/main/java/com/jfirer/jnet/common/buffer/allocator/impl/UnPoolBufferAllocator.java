@@ -4,7 +4,6 @@ import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.buffer.buffer.impl.UnPooledBuffer;
-import com.jfirer.jnet.common.buffer.buffer.storage.StorageSegment;
 import com.jfirer.jnet.common.util.PlatFormFunction;
 
 import java.nio.ByteBuffer;
@@ -74,11 +73,6 @@ public class UnPoolBufferAllocator implements BufferAllocator
         }
     }
 
-    @Override
-    public StorageSegment storageSegmentInstance()
-    {
-        throw new UnsupportedOperationException();
-    }
 
     @Override
     public void cycleBufferInstance(IoBuffer buffer)
@@ -86,9 +80,4 @@ public class UnPoolBufferAllocator implements BufferAllocator
         ;
     }
 
-    @Override
-    public void cycleStorageSegmentInstance(StorageSegment storageSegment)
-    {
-        ;
-    }
 }

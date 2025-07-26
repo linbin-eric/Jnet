@@ -4,7 +4,6 @@ import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.arena.Chunk;
 import com.jfirer.jnet.common.buffer.arena.ChunkList;
-import com.jfirer.jnet.common.buffer.arena.ChunkListNode;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.util.UNSAFE;
@@ -48,7 +47,7 @@ public class ChunkListTest
         }
         Arena         arena  = allocator.getArena();
         ChunkList     c100   = (ChunkList) UNSAFE.getObject(arena, c100Offset);
-        ChunkListNode chunk1 = c100.head();
+        Chunk chunk1 = c100.head();
         for (int i = 0; i < 4; i++)
         {
             IoBuffer buffer = allocator.allocate(size);
@@ -57,7 +56,7 @@ public class ChunkListTest
                 buffers.add(buffer);
             }
         }
-        ChunkListNode chunk2 = c100.head();
+        Chunk chunk2 = c100.head();
         assertNotSame(chunk1, chunk2);
         while (!buffers.isEmpty())
         {

@@ -4,6 +4,8 @@ import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.util.MathUtil;
 import com.jfirer.jnet.common.util.PlatFormFunction;
 import com.jfirer.jnet.common.util.UNSAFE;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.nio.ByteBuffer;
 
@@ -18,25 +20,39 @@ public class Chunk
     protected final int              pageSizeShift;
     //用于快速判断申请大小是否小于PageSize
     protected final int              subPageOverflowMask;
+    @Getter
     protected final int              chunkSize;
     protected final Object           memory;
-    protected final boolean          unpooled;
     protected final long             directBufferAddress;
     protected final BufferType       bufferType;
+    @Getter
     protected       int              freeBytes;
+    /**
+     * 非池化，意味着这个chunk整块来完整使用，也就是分配超大内存的时候存在的情况。
+     * 此时这个chunk不在整个池子里，就不会有chunkList的相关属性和操作。
+     */
+    protected final boolean          unpooled;
+    // Chunk list specific fields
+    private final   SubPage[]        subPages;
+    private final   int              subPageIdxMask;
+    @Setter
+    private         ChunkList        parent;
+    private         Chunk            prev;
+    @Setter
+    @Getter
+    private         Chunk            next;
 
     /* 供ChunkList使用 */
-    public Chunk(int maxLevel, int pageSize, BufferType bufferType)
+    public Chunk(ChunkList parent, int maxLevel, int pageSize, BufferType bufferType)
     {
-        this.pageSize       = pageSize;
-        this.maxLevel       = maxLevel;
-        this.bufferType     = bufferType;
-        pageSizeShift       = MathUtil.log2(pageSize);
-        subPageOverflowMask = ~(pageSize - 1);
-        freeBytes           = chunkSize = 1 << (maxLevel + pageSizeShift);
-        memory              = initializeMemory(chunkSize);
-        memoryTree          = initMemoryTree(maxLevel);
-        unpooled            = false;
+        this.pageSize   = pageSize;
+        this.maxLevel   = maxLevel;
+        this.bufferType = bufferType;
+        pageSizeShift   = MathUtil.log2(pageSize);
+        freeBytes       = chunkSize = 1 << (maxLevel + pageSizeShift);
+        memory          = initializeMemory(chunkSize);
+        memoryTree      = initMemoryTree(maxLevel);
+        unpooled        = false;
         if (memory instanceof ByteBuffer buffer && buffer.isDirect())
         {
             directBufferAddress = UNSAFE.bytebufferOffsetAddress(buffer);
@@ -45,6 +61,11 @@ public class Chunk
         {
             directBufferAddress = 0;
         }
+        // Chunk list specific fields
+        this.parent         = parent;
+        subPageIdxMask      = 1 << maxLevel;
+        subPageOverflowMask = ~(pageSize - 1);
+        subPages            = new SubPage[1 << maxLevel];
     }
 
     /**
@@ -61,6 +82,9 @@ public class Chunk
         memoryTree          = null;
         subPageOverflowMask = 0;
         pageSize            = 0;
+        parent              = null;
+        subPageIdxMask      = 0;
+        subPages            = null;
         if (memory instanceof ByteBuffer buffer && buffer.isDirect())
         {
             directBufferAddress = PlatFormFunction.bytebufferOffsetAddress(buffer);
@@ -239,16 +263,6 @@ public class Chunk
         }
     }
 
-    public int getChunkSize()
-    {
-        return chunkSize;
-    }
-
-    public int getFreeBytes()
-    {
-        return freeBytes;
-    }
-
     public long directChunkAddress()
     {
         return directBufferAddress;
@@ -286,6 +300,65 @@ public class Chunk
     public int pageSize()
     {
         return pageSize;
+    }
+
+    // Chunk list methods
+    public SubPage allocateSubPage(int normalizeCapacity)
+    {
+        if (isUnPooled())
+        {
+            throw new UnsupportedOperationException();
+        }
+        MemoryArea memoryArea = allocate(pageSize);
+        int        subPageIdx = subPageIdx(memoryArea.handle());
+        SubPage    subPage    = subPages[subPageIdx];
+        if (subPage == null)
+        {
+            subPages[subPageIdx] = subPage = new SubPage(this, pageSize, memoryArea.handle(), memoryArea.offset());
+        }
+        subPage.reset(normalizeCapacity);
+        return subPage;
+    }
+
+    private int subPageIdx(int allocationsCapacityIdx)
+    {
+        return allocationsCapacityIdx ^ subPageIdxMask;
+    }
+
+    public SubPage find(int subPageIdx)
+    {
+        if (isUnPooled())
+        {
+            throw new UnsupportedOperationException();
+        }
+        return subPages[subPageIdx];
+    }
+
+    public ChunkList getParent()
+    {
+        if (unpooled)
+        {
+            throw new UnsupportedOperationException();
+        }
+        return parent;
+    }
+
+    public Chunk getPrev()
+    {
+        if (unpooled)
+        {
+            throw new UnsupportedOperationException();
+        }
+        return prev;
+    }
+
+    public void setPrev(Chunk prev)
+    {
+        if (unpooled)
+        {
+            throw new UnsupportedOperationException();
+        }
+        this.prev = prev;
     }
 
     /**

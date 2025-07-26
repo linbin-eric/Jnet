@@ -263,15 +263,18 @@ public class DefaultWriteCompleteHandler extends AtomicInteger implements WriteC
         {
             int      count = 0;
             IoBuffer buffer;
-            if (sendingData == null)
-            {
-                sendingData = allocator.allocate(1024);
-            }
             while (count < maxWriteBytes && (buffer = queue.poll()) != null)
             {
                 count += buffer.remainRead();
-                sendingData.put(buffer);
-                buffer.free();
+                if (sendingData == null)
+                {
+                    sendingData = buffer;
+                }
+                else
+                {
+                    sendingData.put(buffer);
+                    buffer.free();
+                }
             }
             ByteBuffer byteBuffer = sendingData.readableByteBuffer();
             socketChannel.write(byteBuffer, byteBuffer, this);

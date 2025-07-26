@@ -3,7 +3,7 @@ package com.jfirer.jnet.common.buffer;
 import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.arena.ChunkList;
-import com.jfirer.jnet.common.buffer.arena.ChunkListNode;
+import com.jfirer.jnet.common.buffer.arena.Chunk;
 import com.jfirer.jnet.common.buffer.arena.SubPage;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
@@ -28,7 +28,7 @@ public class SmallAllocateTest
     PooledBufferAllocator allocatorDirect = new PooledBufferAllocator(100, true, new Arena("direct", BufferType.UNSAFE));
     int                   reqCapacity;
     long                   subPageHeadsOffset = UNSAFE.getFieldOffset("subPageHeads", Arena.class);
-    long                   subPagesOffset     = UNSAFE.getFieldOffset("subPages", ChunkListNode.class);
+    long                   subPagesOffset     = UNSAFE.getFieldOffset("subPages", Chunk.class);
     long                   bitMapOffset       = UNSAFE.getFieldOffset("bitMap", SubPage.class);
     private final long c100Offset = UNSAFE.getFieldOffset("c100", Arena.class);
     private final long c075Offset = UNSAFE.getFieldOffset("c075", Arena.class);
@@ -67,7 +67,7 @@ public class SmallAllocateTest
         int             pagesize     = PooledBufferAllocator.PAGESIZE;
         int             elementNum   = pagesize / reqCapacity;
         int             numOfSubPage = 1 << PooledBufferAllocator.MAXLEVEL;
-        ChunkListNode   chunk        = null;
+        Chunk chunk = null;
         Arena           arena        = allocator.getArena();
         Queue<IoBuffer> buffers      = new LinkedList<>();
         Queue<SubPage>  subPageQueue = new LinkedList<>();

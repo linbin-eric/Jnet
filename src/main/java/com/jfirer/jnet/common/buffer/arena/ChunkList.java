@@ -10,7 +10,7 @@ public class ChunkList
     final Arena arena;
     ChunkList     prevList;
     ChunkList     nextList;
-    ChunkListNode head;
+    Chunk head;
 
     /**
      * 两个边界都是闭区间。也就是大于等于最小使用率，小于等于最大使用率都在这个List中
@@ -56,7 +56,7 @@ public class ChunkList
         {
             return false;
         }
-        ChunkListNode node = head;
+        Chunk node = head;
         do
         {
             Chunk.MemoryArea allocate = node.allocate(normalizeSize);
@@ -81,7 +81,7 @@ public class ChunkList
         {
             return null;
         }
-        ChunkListNode node = head;
+        Chunk node = head;
         do
         {
             SubPage subPage = node.allocateSubPage(normalizeCapacity);
@@ -106,7 +106,7 @@ public class ChunkList
      * @param handle
      * @return
      */
-    public boolean free(ChunkListNode node, int handle)
+    public boolean free(Chunk node, int handle)
     {
         node.free(handle);
         int usage = node.usage();
@@ -118,9 +118,9 @@ public class ChunkList
         return false;
     }
 
-    void remove(ChunkListNode node)
+    void remove(Chunk node)
     {
-        ChunkListNode head = this.head;
+        Chunk head = this.head;
         if (node == head)
         {
             head = node.getNext();
@@ -132,7 +132,7 @@ public class ChunkList
         }
         else
         {
-            ChunkListNode next = node.getNext();
+            Chunk next = node.getNext();
             node.getPrev().setNext(next);
             if (next != null)
             {
@@ -148,7 +148,7 @@ public class ChunkList
      * @param usage
      * @return
      */
-    boolean addFromNext(ChunkListNode node, int usage)
+    boolean addFromNext(Chunk node, int usage)
     {
         if (usage < minUsage)
         {
@@ -165,7 +165,7 @@ public class ChunkList
         return true;
     }
 
-    public void add(ChunkListNode node)
+    public void add(Chunk node)
     {
         node.setParent(this);
         if (head == null)
@@ -183,7 +183,7 @@ public class ChunkList
         }
     }
 
-    void addFromPrev(ChunkListNode node, int usage)
+    void addFromPrev(Chunk node, int usage)
     {
         if (usage > maxUsage)
         {
@@ -195,7 +195,7 @@ public class ChunkList
 
     public void stat(CapacityStat stat)
     {
-        ChunkListNode cursor = head;
+        Chunk cursor = head;
         if (cursor == null)
         {
             return;
@@ -212,7 +212,7 @@ public class ChunkList
         return arena;
     }
 
-    public ChunkListNode head()
+    public Chunk head()
     {
         return head;
     }

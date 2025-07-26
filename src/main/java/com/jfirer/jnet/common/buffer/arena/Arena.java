@@ -83,7 +83,7 @@ public class Arena
 
     private void allocateHuge(int reqCapacity, ArenaAccepter storageSegment)
     {
-        storageSegment.init(this, new ChunkListNode(reqCapacity, bufferType), 0, 0, reqCapacity);
+        storageSegment.init(this, new Chunk(reqCapacity, bufferType), 0, 0, reqCapacity);
         hugeChunkCount.incrementAndGet();
     }
 
@@ -166,7 +166,7 @@ public class Arena
         int  allocationsCapacityIdx = allocationsCapacityIdx(handle);
         int  bitmapIdx              = bitmapIdx(handle);
         int  offset                 = calcuteOffset(allocationsCapacityIdx) + bitmapIdx * subPage.elementSize();
-        storageSegment.init(this, subPage.getChunkListNode(), handle, offset, subPage.elementSize());
+        storageSegment.init(this, subPage.getChunk(), handle, offset, subPage.elementSize());
     }
 
     private int calcuteOffset(int allocationsCapacityIdx)
@@ -209,7 +209,7 @@ public class Arena
             {
                 return subPage;
             }
-            cInt.add(new ChunkListNode(cInt, maxLevel, pageSize, bufferType));
+            cInt.add(new Chunk(cInt, maxLevel, pageSize, bufferType));
             newChunkCount++;
             subPage = cInt.allocateSubpage(normalizeCapacity);
             return subPage;
@@ -233,7 +233,7 @@ public class Arena
             {
                 return;
             }
-            cInt.add(new ChunkListNode(cInt, maxLevel, pageSize, bufferType));
+            cInt.add(new Chunk(cInt, maxLevel, pageSize, bufferType));
             newChunkCount++;
             cInt.allocate(normalizeCapacity, storageSegment);
         }
@@ -271,12 +271,12 @@ public class Arena
         return (normCapacity & subpageOverflowMask) == 0;
     }
 
-    public void free(ChunkListNode chunkListNode, long handle, int capacity)
+    public void free(Chunk chunk, long handle, int capacity)
     {
-        if (chunkListNode.isUnPooled())
+        if (chunk.isUnPooled())
         {
             hugeChunkCount.decrementAndGet();
-            chunkListNode.destory();
+            chunk.destory();
         }
         else
         {
@@ -285,7 +285,7 @@ public class Arena
             {
                 SubPage head = subPageHeads[smallIdx(capacity)];
                 head.getLock().lock();
-                SubPage subPage = chunkListNode.find(subPageIdx((int) handle));
+                SubPage subPage = chunk.find(subPageIdx((int) handle));
                 subPage.free(bitmapIdx(handle));
                 if (subPage.oneAvail())
                 {
@@ -301,9 +301,9 @@ public class Arena
                     {
                         removeFromArena(subPage);
                         lock.lock();
-                        if (chunkListNode.getParent().free(chunkListNode, (int) handle))
+                        if (chunk.getParent().free(chunk, (int) handle))
                         {
-                            chunkListNode.destory();
+                            chunk.destory();
                         }
                         lock.unlock();
                     }
@@ -313,9 +313,9 @@ public class Arena
             else
             {
                 lock.lock();
-                if (chunkListNode.getParent().free(chunkListNode, (int) handle))
+                if (chunk.getParent().free(chunk, (int) handle))
                 {
-                    chunkListNode.destory();
+                    chunk.destory();
                 }
                 lock.unlock();
             }

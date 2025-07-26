@@ -6,7 +6,6 @@ import com.jfirer.jnet.common.buffer.arena.Arena;
 import com.jfirer.jnet.common.buffer.buffer.BufferType;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.buffer.buffer.impl.PooledBuffer;
-import com.jfirer.jnet.common.buffer.buffer.storage.StorageSegment;
 import com.jfirer.jnet.common.util.CapacityStat;
 import com.jfirer.jnet.common.util.MathUtil;
 import com.jfirer.jnet.common.util.SystemPropertyUtil;
@@ -102,11 +101,6 @@ public class PooledBufferAllocator implements BufferAllocator
         }
     }
 
-    @Override
-    public StorageSegment storageSegmentInstance()
-    {
-        throw new UnsupportedOperationException();
-    }
 
     @Override
     public void cycleBufferInstance(IoBuffer buffer)
@@ -123,11 +117,6 @@ public class PooledBufferAllocator implements BufferAllocator
         }
     }
 
-    @Override
-    public void cycleStorageSegmentInstance(StorageSegment storageSegment)
-    {
-        throw new UnsupportedOperationException();
-    }
 
     public void capacityStat(CapacityStat stat)
     {

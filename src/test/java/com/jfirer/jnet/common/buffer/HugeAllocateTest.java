@@ -30,7 +30,7 @@ public class HugeAllocateTest
 
     private void test0(int allocateCapacity, PooledBuffer buffer, Arena arena)
     {
-        assertTrue(buffer.getChunkListNode().isUnPooled());
+        assertTrue(buffer.getChunk().isUnPooled());
         assertEquals(0, buffer.offset());
         assertEquals(allocateCapacity, buffer.capacity());
         buffer.free();

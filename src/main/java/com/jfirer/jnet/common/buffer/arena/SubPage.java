@@ -15,7 +15,7 @@ public class SubPage
     final         int           index;
     final         long[]        bitMap;
     final Lock lock;
-    private final ChunkListNode node;
+    private final Chunk chunk;
     int     elementSize;
     int     bitMapLength;
     int     nextAvail;
@@ -24,13 +24,13 @@ public class SubPage
     SubPage prev;
     SubPage next;
 
-    public SubPage(ChunkListNode node, int pageSize, int handle, int offset)
+    public SubPage(Chunk chunk, int pageSize, int handle, int offset)
     {
-        this.node     = node;
+        this.chunk    = chunk;
         this.handle   = handle;
         this.offset   = offset;
         this.pageSize = pageSize;
-        index         = handle ^ (1 << node.maxLevel());
+        index         = handle ^ (1 << chunk.maxLevel());
         // elementSize最小是16。一个long可以表达64个元素
         bitMap = new long[pageSize >> 4 >> 6];
         lock   = null;
@@ -43,7 +43,7 @@ public class SubPage
         offset   = 0;
         index    = 0;
         bitMap   = null;
-        node     = null;
+        chunk    = null;
         prev     = next = this;
         lock     = new ReentrantLock();
     }
@@ -120,7 +120,7 @@ public class SubPage
 
     public Chunk chunk()
     {
-        return node;
+        return chunk;
     }
 
     public int handle()
@@ -158,9 +158,9 @@ public class SubPage
         return numAvail;
     }
 
-    public ChunkListNode getChunkListNode()
+    public Chunk getChunk()
     {
-        return node;
+        return chunk;
     }
 
     public SubPage getNext()
