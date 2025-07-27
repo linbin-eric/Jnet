@@ -21,9 +21,8 @@ public interface HttpClient
             httpConnection = CONNECTION_POOL.borrowConnection(host, port, 60);
             // 执行请求
             HttpReceiveResponse response = httpConnection.write(request, 60);
-            // 请求成功，归还连接
-            CONNECTION_POOL.returnConnection(host, port, httpConnection);
-            return response;
+            // 将响应包装成连接池管理的响应，延迟归还连接
+            return new PooledHttpReceiveResponse(response, CONNECTION_POOL, httpConnection, host, port);
         }
         catch (Throwable e)
         {

@@ -22,6 +22,13 @@ import java.util.concurrent.locks.LockSupport;
 @Data
 public class HttpReceiveResponse implements AutoCloseable
 {
+    /**
+     * 响应完成回调接口
+     */
+    public interface CompletionCallback
+    {
+        void onCompleted(HttpReceiveResponse response);
+    }
     private static final int                 RECEIVE_UN_FINISH_AND_NOT_CLOSE = 0b00;
     private static final int                 RECEIVE_UN_FINISH_AND_CLOSE     = 0b01;
     private static final int                 RECEIVE_FINISH_AND_NOT_CLOSE    = 0b10;
@@ -44,10 +51,16 @@ public class HttpReceiveResponse implements AutoCloseable
     private volatile     boolean             generatedUTF8Body               = false;
     private volatile     Thread              waitForReceiveFinshThread;
     private volatile     int                 state                           = RECEIVE_UN_FINISH_AND_NOT_CLOSE;
+    private volatile     CompletionCallback  completionCallback;
 
     public void putHeader(String name, String value)
     {
         headers.put(name, value);
+    }
+
+    public void setCompletionCallback(CompletionCallback callback)
+    {
+        this.completionCallback = callback;
     }
 
     public void addPartOfBody(Part part)
@@ -72,6 +85,8 @@ public class HttpReceiveResponse implements AutoCloseable
                             waitForReceiveFinshThread = null;
                             LockSupport.unpark(thread);
                         }
+                        // 触发完成回调
+                        triggerCompletionCallback();
                         return;
                     }
                     else
@@ -88,6 +103,8 @@ public class HttpReceiveResponse implements AutoCloseable
                         {
                             part.free();
                         }
+                        // 触发完成回调
+                        triggerCompletionCallback();
                         return;
                     }
                     else
@@ -96,6 +113,23 @@ public class HttpReceiveResponse implements AutoCloseable
                     }
                 }
                 default -> throw new IllegalStateException("endOfBody 方法只能由解码器调用，在调用这个方法的时候，消息体流的状态应该是为未解析完成");
+            }
+        }
+    }
+
+    private void triggerCompletionCallback()
+    {
+        CompletionCallback callback = this.completionCallback;
+        if (callback != null)
+        {
+            try
+            {
+                callback.onCompleted(this);
+            }
+            catch (Exception e)
+            {
+                // 记录异常但不影响正常流程
+                System.err.println("完成回调执行异常: " + e.getMessage());
             }
         }
     }
