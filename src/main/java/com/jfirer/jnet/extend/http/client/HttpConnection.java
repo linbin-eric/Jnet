@@ -3,16 +3,14 @@ package com.jfirer.jnet.extend.http.client;
 import com.jfirer.jnet.client.ClientChannel;
 import com.jfirer.jnet.common.api.ReadProcessor;
 import com.jfirer.jnet.common.api.ReadProcessorNode;
-import com.jfirer.jnet.common.thread.FastThreadLocalThread;
+import com.jfirer.jnet.common.coder.HeartBeat;
 import com.jfirer.jnet.common.util.ChannelConfig;
 import com.jfirer.jnet.common.util.ReflectUtil;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.IOException;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
-import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.ClosedChannelException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
@@ -21,41 +19,29 @@ import java.util.concurrent.locks.LockSupport;
 @Slf4j
 public class HttpConnection
 {
-    public static final HttpReceiveResponse      CLOSE_OF_CONNECTION = new HttpReceiveResponse();
-    public static final long                     KEEP_ALIVE_TIME     = 1000 * 60 * 5;
-    public static final AsynchronousChannelGroup HTTP_CHANNEL_GROUP;
-
-    static
-    {
-        try
-        {
-            HTTP_CHANNEL_GROUP = AsynchronousChannelGroup.withFixedThreadPool(Runtime.getRuntime().availableProcessors(), r -> new FastThreadLocalThread(r, "http-connection-channel-"));
-        }
-        catch (IOException e)
-        {
-            throw new RuntimeException(e);
-        }
-    }
-
     private final    ClientChannel       clientChannel;
-    private          long                lastResponseTime;
     // LockSupport相关字段
     private volatile Thread              waitingThread;
     private volatile HttpReceiveResponse responseResult;
-    private volatile boolean             responseReady = false;
+    private volatile WriteResult         result = WriteResult.NEED_RESULT;
 
-    public HttpConnection(String domain, int port)
+    enum WriteResult
     {
-        ChannelConfig channelConfig = new ChannelConfig().setIp(domain).setPort(port).setChannelGroup(HTTP_CHANNEL_GROUP);
+        NEED_RESULT, SUCCESS, CLOSE_OF_CONNECTION
+    }
+
+    public HttpConnection(String domain, int port, int secondsOfKeepAlive)
+    {
+        ChannelConfig channelConfig = new ChannelConfig().setIp(domain).setPort(port);
         clientChannel = ClientChannel.newClient(channelConfig, pipeline -> {
+            pipeline.addReadProcessor(new HeartBeat(secondsOfKeepAlive, pipeline));
             pipeline.addReadProcessor(new HttpReceiveResponseDecoder());
             pipeline.addReadProcessor(new ReadProcessor<HttpReceiveResponse>()
             {
                 @Override
                 public void readFailed(Throwable e, ReadProcessorNode next)
                 {
-                    responseResult = HttpConnection.CLOSE_OF_CONNECTION;
-                    responseReady  = true;
+                    result = WriteResult.CLOSE_OF_CONNECTION;
                     Thread waiting = waitingThread;
                     if (waiting != null)
                     {
@@ -67,29 +53,30 @@ public class HttpConnection
                 public void read(HttpReceiveResponse response, ReadProcessorNode next)
                 {
                     responseResult = response;
-                    responseReady  = true;
+                    result         = WriteResult.SUCCESS;
                     Thread waiting = waitingThread;
                     if (waiting != null)
                     {
+                        waitingThread = null;
                         LockSupport.unpark(waiting);
                     }
                 }
             });
             pipeline.addWriteProcessor(new HttpSendRequestEncoder());
+            pipeline.addWriteProcessor(new HeartBeat(secondsOfKeepAlive, pipeline));
         });
         if (!clientChannel.connect())
         {
             ReflectUtil.throwException(new ConnectException("无法连接" + domain + ":" + port));
         }
-        lastResponseTime = System.currentTimeMillis();
     }
 
     public boolean isConnectionClosed()
     {
-        return !clientChannel.alive() || (System.currentTimeMillis() - lastResponseTime) > KEEP_ALIVE_TIME;
+        return !clientChannel.alive();
     }
 
-    public HttpReceiveResponse write(HttpSendRequest request) throws ClosedChannelException, SocketTimeoutException
+    public HttpReceiveResponse write(HttpSendRequest request, int secondsOfTimeout) throws ClosedChannelException, SocketTimeoutException
     {
         if (isConnectionClosed())
         {
@@ -98,14 +85,13 @@ public class HttpConnection
         }
         // 设置等待状态
         waitingThread  = Thread.currentThread();
-        responseReady  = false;
         responseResult = null;
+        result         = WriteResult.NEED_RESULT;
         // 发送请求
         clientChannel.pipeline().fireWrite(request);
-        // 使用LockSupport等待响应，支持20秒超时
-        long timeoutNanos = TimeUnit.SECONDS.toNanos(20);
+        long timeoutNanos = TimeUnit.SECONDS.toNanos(secondsOfTimeout);
         long startTime    = System.nanoTime();
-        while (!responseReady)
+        while (result == WriteResult.NEED_RESULT)
         {
             long elapsed   = System.nanoTime() - startTime;
             long remaining = timeoutNanos - elapsed;
@@ -113,7 +99,6 @@ public class HttpConnection
             {
                 // 超时处理
                 waitingThread = null;
-                log.debug("超时等待20秒，没有收到响应，关闭Http链接");
                 String msg = clientChannel.alive() ? "通道仍然alive" : "通道已经失效";
                 clientChannel.pipeline().shutdownInput();
                 throw new SocketTimeoutException(msg);
@@ -130,14 +115,13 @@ public class HttpConnection
         // 重置状态并返回结果
         waitingThread = null;
         HttpReceiveResponse response = responseResult;
-        responseResult = null;
-        responseReady  = false;
-        if (response == CLOSE_OF_CONNECTION)
+        if (result == WriteResult.CLOSE_OF_CONNECTION)
         {
             log.debug("收到链接终止响应");
             clientChannel.pipeline().shutdownInput();
             throw new ClosedChannelException();
         }
+        responseResult = null;
         return response;
     }
 

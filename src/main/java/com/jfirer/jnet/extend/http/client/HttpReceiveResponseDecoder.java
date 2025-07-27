@@ -25,7 +25,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
     {
         if (receiveResponse == null)
         {
-            receiveResponse = new HttpReceiveResponse();
+            receiveResponse = new HttpReceiveResponse(next.pipeline());
         }
         boolean goToNextState = false;
         do
@@ -67,13 +67,13 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
             }
             else if (chunkSize > 0)
             {
-                receiveResponse.addPartOfBody(new PartOfBody(2, accumulation.slice(chunkHeaderLength + chunkSize + 2), chunkHeaderLength, chunkSize));
+                receiveResponse.addPartOfBody(new ChunkedPart(chunkHeaderLength, chunkSize, accumulation.slice(chunkHeaderLength + chunkSize + 2)));
                 chunkSize = -1;
                 return true;
             }
             else if (chunkSize == 0)
             {
-                receiveResponse.addPartOfBody(new PartOfBody(2, accumulation.slice(chunkHeaderLength + 2), chunkHeaderLength, 0));
+                receiveResponse.addPartOfBody(new ChunkedPart(chunkHeaderLength, 0, accumulation.slice(chunkHeaderLength + 2)));
                 receiveResponse.endOfBody();
                 receiveResponse = null;
                 chunkSize       = -1;
@@ -98,19 +98,23 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
 
     private boolean decodeBodyWithFixLength()
     {
-        int left = receiveResponse.getContentLength() - bodyRead;
-        if (left > accumulation.remainRead())
+        int left   = receiveResponse.getContentLength() - bodyRead;
+        int remain = accumulation.remainRead();
+        bodyRead += remain;
+        receiveResponse.addPartOfBody(new FixLengthPart(accumulation));
+        accumulation = null;
+        if (left > remain)
         {
-            bodyRead += accumulation.remainRead();
-            receiveResponse.addPartOfBody(new PartOfBody(1, accumulation, 0, 0));
-            accumulation = null;
+            return false;
+        }
+        else if (left == remain)
+        {
+            endOfBody();
             return false;
         }
         else
         {
-            receiveResponse.addPartOfBody(new PartOfBody(1, accumulation.slice(left), 0, 0));
-            endOfBody();
-            return false;
+            throw new IllegalStateException();
         }
     }
 
@@ -125,8 +129,11 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
         {
             throw new IllegalStateException();
         }
-        accumulation.free();
-        accumulation = null;
+        if (accumulation != null)
+        {
+            accumulation.free();
+            accumulation = null;
+        }
     }
 
     private boolean decodeHeader(ReadProcessorNode next)
@@ -205,7 +212,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
     {
         if (receiveResponse != null)
         {
-            receiveResponse.terminate();
+            receiveResponse.endOfBody();
         }
         super.readFailed(e, next);
     }

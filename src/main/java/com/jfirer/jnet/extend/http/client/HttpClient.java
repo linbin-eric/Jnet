@@ -15,16 +15,15 @@ public interface HttpClient
         try
         {
             // 每次请求都创建新的连接（已移除连接池功能）
-            httpConnection = new HttpConnection(request.getDoMain(), request.getPort());
+            httpConnection = new HttpConnection(request.getDoMain(), request.getPort(), 60 * 5);
         }
         catch (Throwable e)
         {
             request.close();
             ReflectUtil.throwException(e);
         }
-        return httpConnection.write(request);
+        return httpConnection.write(request, 60);
     }
-
 
     private static void perfect(HttpSendRequest request)
     {
@@ -47,5 +46,4 @@ public interface HttpClient
         request.setDoMain(portStart == -1 ? url.substring(domainStart, index) : url.substring(domainStart, portStart));
         request.putHeader("Host", url.substring(domainStart, index));
     }
-
 }
