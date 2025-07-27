@@ -5,7 +5,6 @@ import com.jfirer.jnet.extend.http.decode.ContentType;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -19,7 +18,8 @@ public class HttpSendRequest
     private int                 port;
     private String              contentType;
     private Map<String, String> headers = new HashMap<>();
-    private IoBuffer            body;
+    private IoBuffer            bodyBuffer;
+    private String              bodyString;
     private String              method;
 
     public void putHeader(String name, String value)
@@ -29,25 +29,23 @@ public class HttpSendRequest
 
     public HttpSendRequest setBody(String body)
     {
-        byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
-        this.body = HttpClient.ALLOCATOR.allocate(bytes.length);
-        this.body.put(bytes);
+        this.bodyString = body;
         return this;
     }
 
     public HttpSendRequest setBody(IoBuffer buffer)
     {
-        this.body = buffer;
+        this.bodyBuffer = buffer;
         return this;
     }
 
-    public HttpSendRequest getRequest()
+    public HttpSendRequest get()
     {
         method = "GET";
         return this;
     }
 
-    public HttpSendRequest postRequest()
+    public HttpSendRequest post()
     {
         method = "POST";
         return this;
@@ -59,12 +57,13 @@ public class HttpSendRequest
         return this;
     }
 
-    public void freeBodyBuffer()
+    public void close()
     {
-        if (body != null)
+        if (bodyBuffer != null)
         {
-            body.free();
-            body = null;
+            bodyBuffer.free();
+            bodyBuffer = null;
         }
+        bodyString = null;
     }
 }

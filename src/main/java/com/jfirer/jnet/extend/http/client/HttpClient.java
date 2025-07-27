@@ -19,7 +19,7 @@ public interface HttpClient
         }
         catch (Throwable e)
         {
-            request.freeBodyBuffer();
+            request.close();
             ReflectUtil.throwException(e);
         }
         return httpConnection.write(request);

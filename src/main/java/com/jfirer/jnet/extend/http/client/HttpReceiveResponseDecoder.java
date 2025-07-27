@@ -8,23 +8,17 @@ import java.nio.charset.StandardCharsets;
 
 public class HttpReceiveResponseDecoder extends AbstractDecoder
 {
-    private static final byte                CR        = (byte) '\r';
-    private static final byte                LF        = (byte) '\n';
+    private static final byte                CR                         = (byte) '\r';
+    private static final byte                LF                         = (byte) '\n';
     private static final int                 HTTP_VERSION_PREFIX_LENGTH = 9; // "HTTP/1.1 "
-    private static final int                 HTTP_CODE_LENGTH = 3;
-    private final        byte[]              httpCode  = new byte[HTTP_CODE_LENGTH];
-    private final        HttpConnection      httpConnection;
+    private static final int                 HTTP_CODE_LENGTH           = 3;
+    private final        byte[]              httpCode                   = new byte[HTTP_CODE_LENGTH];
     private              HttpReceiveResponse receiveResponse;
-    private              ParseState          state     = ParseState.RESPONSE_LINE;
-    private              int                 lastCheck = -1;
-    private              int                 bodyRead  = 0;
-    private              int                 chunkSize = -1;
+    private              ParseState          state                      = ParseState.RESPONSE_LINE;
+    private              int                 lastCheck                  = -1;
+    private              int                 bodyRead                   = 0;
+    private              int                 chunkSize                  = -1;
     private              int                 chunkHeaderLength;
-
-    public HttpReceiveResponseDecoder(HttpConnection httpConnection)
-    {
-        this.httpConnection = httpConnection;
-    }
 
     @Override
     protected void process0(ReadProcessorNode next)

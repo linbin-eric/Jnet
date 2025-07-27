@@ -21,7 +21,7 @@ public class HttpClientTest
     {
         String          url     = "http://op.yynas.cn:2000/health";
         String          url2    = "http://127.0.0.1:10086/config/all";
-        HttpSendRequest request = new HttpSendRequest().setUrl(url2).getRequest();
+        HttpSendRequest request = new HttpSendRequest().setUrl(url2).get();
         for (int i = 0; i < 50; i++)
         {
             try (HttpReceiveResponse receiveResponse = HttpClient.newCall(request))
@@ -40,7 +40,7 @@ public class HttpClientTest
     {
         for (int i = 0; i < 10; i++)
         {
-            HttpReceiveResponse receiveResponse = HttpClient.newCall(new HttpSendRequest().setUrl("http://yynas.cn:5678/1662645602015.jpg").getRequest());
+            HttpReceiveResponse receiveResponse = HttpClient.newCall(new HttpSendRequest().setUrl("http://yynas.cn:5678/1662645602015.jpg").get());
             File                file            = new File("/Users/linbin/Downloads/" + System.currentTimeMillis());
             file.createNewFile();
             FileChannel fileChannel = FileChannel.open(file.toPath(), StandardOpenOption.WRITE);

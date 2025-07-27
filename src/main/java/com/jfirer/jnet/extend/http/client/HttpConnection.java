@@ -37,25 +37,25 @@ public class HttpConnection
         }
     }
 
-    private final ClientChannel                      clientChannel;
-    private       long                               lastResponseTime;
+    private final    ClientChannel       clientChannel;
+    private          long                lastResponseTime;
     // LockSupport相关字段
-    private volatile Thread                          waitingThread;
-    private volatile HttpReceiveResponse             responseResult;
-    private volatile boolean                         responseReady = false;
+    private volatile Thread              waitingThread;
+    private volatile HttpReceiveResponse responseResult;
+    private volatile boolean             responseReady = false;
 
     public HttpConnection(String domain, int port)
     {
         ChannelConfig channelConfig = new ChannelConfig().setIp(domain).setPort(port).setChannelGroup(HTTP_CHANNEL_GROUP);
         clientChannel = ClientChannel.newClient(channelConfig, pipeline -> {
-            pipeline.addReadProcessor(new HttpReceiveResponseDecoder(this));
+            pipeline.addReadProcessor(new HttpReceiveResponseDecoder());
             pipeline.addReadProcessor(new ReadProcessor<HttpReceiveResponse>()
             {
                 @Override
                 public void readFailed(Throwable e, ReadProcessorNode next)
                 {
                     responseResult = HttpConnection.CLOSE_OF_CONNECTION;
-                    responseReady = true;
+                    responseReady  = true;
                     Thread waiting = waitingThread;
                     if (waiting != null)
                     {
@@ -67,7 +67,7 @@ public class HttpConnection
                 public void read(HttpReceiveResponse response, ReadProcessorNode next)
                 {
                     responseResult = response;
-                    responseReady = true;
+                    responseReady  = true;
                     Thread waiting = waitingThread;
                     if (waiting != null)
                     {
@@ -93,27 +93,22 @@ public class HttpConnection
     {
         if (isConnectionClosed())
         {
-            request.freeBodyBuffer();
+            request.close();
             throw new ClosedChannelException();
         }
-        
         // 设置等待状态
-        waitingThread = Thread.currentThread();
-        responseReady = false;
+        waitingThread  = Thread.currentThread();
+        responseReady  = false;
         responseResult = null;
-        
         // 发送请求
         clientChannel.pipeline().fireWrite(request);
-        
         // 使用LockSupport等待响应，支持20秒超时
         long timeoutNanos = TimeUnit.SECONDS.toNanos(20);
-        long startTime = System.nanoTime();
-        
+        long startTime    = System.nanoTime();
         while (!responseReady)
         {
-            long elapsed = System.nanoTime() - startTime;
+            long elapsed   = System.nanoTime() - startTime;
             long remaining = timeoutNanos - elapsed;
-            
             if (remaining <= 0)
             {
                 // 超时处理
@@ -123,9 +118,7 @@ public class HttpConnection
                 clientChannel.pipeline().shutdownInput();
                 throw new SocketTimeoutException(msg);
             }
-            
             LockSupport.parkNanos(remaining);
-            
             // 检查中断
             if (Thread.interrupted())
             {
@@ -134,20 +127,17 @@ public class HttpConnection
                 throw new ClosedChannelException();
             }
         }
-        
         // 重置状态并返回结果
         waitingThread = null;
         HttpReceiveResponse response = responseResult;
         responseResult = null;
-        responseReady = false;
-        
+        responseReady  = false;
         if (response == CLOSE_OF_CONNECTION)
         {
             log.debug("收到链接终止响应");
             clientChannel.pipeline().shutdownInput();
             throw new ClosedChannelException();
         }
-        
         return response;
     }
 
@@ -155,5 +145,4 @@ public class HttpConnection
     {
         clientChannel.pipeline().shutdownInput();
     }
-
 }

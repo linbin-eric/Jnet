@@ -25,22 +25,31 @@ public class HttpSendRequestEncoder implements WriteProcessor<HttpSendRequest>
         {
             request.putHeader("Content-Type", request.getContentType());
         }
-        IoBuffer body = request.getBody();
-        if (body != null)
+        int contentLength = 0;
+        // 优先级判断：IoBuffer > String
+        if (request.getBodyBuffer() != null)
         {
-            request.putHeader("Content-Length", String.valueOf(body.remainRead()));
+            contentLength = request.getBodyBuffer().remainRead();
         }
-        else
+        else if (request.getBodyString() != null)
         {
-            request.putHeader("Content-Length", "0");
+            byte[] bodyBytes = request.getBodyString().getBytes(StandardCharsets.UTF_8);
+            contentLength = bodyBytes.length;
+            if (contentLength > 0)
+            {
+                IoBuffer bodyBuffer = next.pipeline().allocator().allocate(contentLength);
+                bodyBuffer.put(bodyBytes);
+                request.setBody(bodyBuffer);
+            }
         }
+        request.putHeader("Content-Length", String.valueOf(contentLength));
         request.getHeaders().forEach((name, value) -> buffer.put((name + ": " + value + "\r\n").getBytes(StandardCharsets.US_ASCII)));
         buffer.put(NEW_LINE);
-        if (body != null)
+        if (contentLength > 0)
         {
-            buffer.put(body);
-            body.free();
+            buffer.put(request.getBodyBuffer());
         }
+        request.close();
         next.fireWrite(buffer);
     }
 }
