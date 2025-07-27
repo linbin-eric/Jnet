@@ -1,12 +1,9 @@
 package com.jfirer.jnet.extend.http.client;
 
-import com.jfirer.jnet.common.buffer.allocator.BufferAllocator;
-import com.jfirer.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
 import com.jfirer.jnet.common.util.ReflectUtil;
 
 public interface HttpClient
 {
-    BufferAllocator    ALLOCATOR       = new PooledBufferAllocator(40000, true, PooledBufferAllocator.getArena(true));
     HttpConnectionPool CONNECTION_POOL = new HttpConnectionPool();
 
     static HttpReceiveResponse newCall(HttpSendRequest request) throws Exception

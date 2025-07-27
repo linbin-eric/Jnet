@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 public class HttpConnectionPool
 {
-    private static final int                                                      MAX_CONNECTIONS_PER_HOST  = 10;
+    private static final int                                                      MAX_CONNECTIONS_PER_HOST = 10;
     private final        ConcurrentHashMap<String, BlockingQueue<HttpConnection>> pools;
     private final        ConcurrentHashMap<String, AtomicInteger>                 connectionCounts;
     private final        SimpleWheelTimer                                         timer;
@@ -93,7 +93,6 @@ public class HttpConnectionPool
             }
             return;
         }
-        
         String                        key  = buildKey(host, port);
         BlockingQueue<HttpConnection> pool = pools.get(key);
         if (pool != null)
