@@ -6,23 +6,36 @@ import com.jfirer.jnet.common.util.ReflectUtil;
 
 public interface HttpClient
 {
-    BufferAllocator ALLOCATOR = new PooledBufferAllocator(40000, true, PooledBufferAllocator.getArena(true));
+    BufferAllocator    ALLOCATOR       = new PooledBufferAllocator(40000, true, PooledBufferAllocator.getArena(true));
+    HttpConnectionPool CONNECTION_POOL = new HttpConnectionPool();
 
     static HttpReceiveResponse newCall(HttpSendRequest request) throws Exception
     {
         perfect(request);
+        String         host           = request.getDoMain();
+        int            port           = request.getPort();
         HttpConnection httpConnection = null;
         try
         {
-            // 每次请求都创建新的连接（已移除连接池功能）
-            httpConnection = new HttpConnection(request.getDoMain(), request.getPort(), 60 * 5);
+            // 从连接池借用连接（自动创建或复用）
+            httpConnection = CONNECTION_POOL.borrowConnection(host, port, 60);
+            // 执行请求
+            HttpReceiveResponse response = httpConnection.write(request, 60);
+            // 请求成功，归还连接
+            CONNECTION_POOL.returnConnection(host, port, httpConnection);
+            return response;
         }
         catch (Throwable e)
         {
             request.close();
+            if (httpConnection != null)
+            {
+                // 异常时移除连接，不归还
+                CONNECTION_POOL.removeConnection(host, port, httpConnection);
+            }
             ReflectUtil.throwException(e);
+            return null;
         }
-        return httpConnection.write(request, 60);
     }
 
     private static void perfect(HttpSendRequest request)
