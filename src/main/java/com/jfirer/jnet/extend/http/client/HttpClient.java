@@ -1,7 +1,5 @@
 package com.jfirer.jnet.extend.http.client;
 
-import com.jfirer.jnet.common.util.ReflectUtil;
-
 public interface HttpClient
 {
     HttpConnectionPool CONNECTION_POOL = new HttpConnectionPool();
@@ -29,8 +27,7 @@ public interface HttpClient
                 // 异常时移除连接，不归还
                 CONNECTION_POOL.removeConnection(host, port, httpConnection);
             }
-            ReflectUtil.throwException(e);
-            return null;
+            throw e;
         }
     }
 
@@ -49,8 +46,12 @@ public interface HttpClient
             index       = url.indexOf("/", 9);
             domainStart = 8;
         }
+        if (index == -1)
+        {
+            index = url.length();
+        }
         int portStart = url.indexOf(':', domainStart);
-        request.setPath(index == -1 ? "/" : url.substring(index));
+        request.setPath(index == url.length() ? "/" : url.substring(index));
         request.setPort(portStart == -1 ? 80 : Integer.parseInt(url.substring(portStart + 1, index)));
         request.setDoMain(portStart == -1 ? url.substring(domainStart, index) : url.substring(domainStart, portStart));
         request.putHeader("Host", url.substring(domainStart, index));

@@ -18,7 +18,11 @@ public class HttpRequest implements AutoCloseable
     protected int                 contentLength = 0;
     protected String              contentType;
     protected IoBuffer            body;
-    private   IoBuffer            wholeRequest;
+    //整个request请求的buffer
+    protected IoBuffer            wholeRequest;
+    protected int                 lineLength;
+    protected int                 headerLength;
+    protected int                 bodyLength;
 
     public void close()
     {

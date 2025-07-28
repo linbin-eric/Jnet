@@ -12,6 +12,10 @@ public class HttpRequestDecoder extends AbstractDecoder
     private ParseState  state          = ParseState.REQUEST_LINE;
     private HttpRequest decodeObject;
     private int         firstByteIndex = -1;
+    //line的结束坐标，在/r/n后
+    private int         lineEndIndex   = -1;
+    //header的结束坐标，在/r/n后
+    private int         headerEndIndex = -1;
 
     @Override
     protected void process0(ReadProcessorNode next)
@@ -47,10 +51,13 @@ public class HttpRequestDecoder extends AbstractDecoder
             }
         }
         accumulation.setReadPosi(firstByteIndex);
+        decodeObject.setLineLength(lineEndIndex - firstByteIndex);
+        decodeObject.setHeaderLength(headerEndIndex - lineEndIndex);
+        decodeObject.setBodyLength(accumulation.remainRead());
         decodeObject.setWholeRequest(accumulation.slice(accumulation.remainRead()));
         next.fireRead(decodeObject);
         decodeObject   = null;
-        firstByteIndex = -1;
+        firstByteIndex = lineEndIndex = headerEndIndex = -1;
         state          = ParseState.REQUEST_LINE;
         if (accumulation.remainRead() != 0)
         {
@@ -69,7 +76,8 @@ public class HttpRequestDecoder extends AbstractDecoder
             if (accumulation.get(lastCheck) == '\r' && accumulation.get(lastCheck + 1) == '\n' && accumulation.get(lastCheck + 2) == '\r' && accumulation.get(lastCheck + 3) == '\n')
             {
                 lastCheck += 4;
-                state = ParseState.REQUEST_BODY;
+                headerEndIndex = lastCheck;
+                state          = ParseState.REQUEST_BODY;
                 break;
             }
         }
@@ -95,7 +103,8 @@ public class HttpRequestDecoder extends AbstractDecoder
             if (accumulation.get(lastCheck) == '\r' && accumulation.get(lastCheck + 1) == '\n')
             {
                 lastCheck += 2;
-                state = ParseState.REQUEST_HEADER;
+                lineEndIndex = lastCheck;
+                state        = ParseState.REQUEST_HEADER;
                 break;
             }
         }

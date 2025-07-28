@@ -29,6 +29,7 @@ public class HttpReceiveResponse implements AutoCloseable
     {
         void onCompleted(HttpReceiveResponse response);
     }
+
     private static final int                 RECEIVE_UN_FINISH_AND_NOT_CLOSE = 0b00;
     private static final int                 RECEIVE_UN_FINISH_AND_CLOSE     = 0b01;
     private static final int                 RECEIVE_FINISH_AND_NOT_CLOSE    = 0b10;
@@ -237,13 +238,13 @@ public class HttpReceiveResponse implements AutoCloseable
     }
 
     /**
-     * 基于超时时间进行的消息体数据提取。如果在超时时间到达前读取到数据则返回，否则返回 null。
+     * 基于超时时间进行的消息体数据提取。
      *
      * @return
      * @throws InterruptedException
      */
-    public Part pollChunk(long timeout) throws InterruptedException
+    public Part pollChunk(long msOfTimeout) throws InterruptedException
     {
-        return body.poll(timeout, TimeUnit.MILLISECONDS);
+        return body.poll(msOfTimeout, TimeUnit.MILLISECONDS);
     }
 }
