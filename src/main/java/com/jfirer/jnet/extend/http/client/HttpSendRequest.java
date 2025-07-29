@@ -1,7 +1,7 @@
 package com.jfirer.jnet.extend.http.client;
 
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
-import com.jfirer.jnet.extend.http.decode.ContentType;
+import com.jfirer.jnet.extend.http.coder.ContentType;
 import lombok.Data;
 import lombok.experimental.Accessors;
 

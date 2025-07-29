@@ -1,4 +1,4 @@
-package com.jfirer.jnet.extend.http.decode;
+package com.jfirer.jnet.extend.http.coder;
 
 public class ContentType
 {

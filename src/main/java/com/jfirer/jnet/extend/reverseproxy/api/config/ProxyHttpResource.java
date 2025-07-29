@@ -1,0 +1,33 @@
+package com.jfirer.jnet.extend.reverseproxy.api.config;
+
+import com.jfirer.jnet.extend.reverseproxy.api.ResourceConfig;
+import com.jfirer.jnet.extend.reverseproxy.api.ResourceHandler;
+import com.jfirer.jnet.extend.reverseproxy.api.handler.FullMatchProxyHttpHandler;
+import com.jfirer.jnet.extend.reverseproxy.api.handler.PrefixMatchProxyHttpHandler;
+import lombok.Data;
+import lombok.experimental.Accessors;
+
+@Data
+@Accessors(chain = true)
+public class ProxyHttpResource implements ResourceConfig
+{
+    private final MatchType matchType;
+    private final String    match;
+    private final String    proxy;
+    private final int       order;
+
+    public enum MatchType
+    {
+        PREFIX, FULL
+    }
+
+    @Override
+    public ResourceHandler parse()
+    {
+        return switch (matchType)
+        {
+            case FULL -> new FullMatchProxyHttpHandler(match, proxy);
+            case PREFIX -> new PrefixMatchProxyHttpHandler(match, proxy);
+        };
+    }
+}

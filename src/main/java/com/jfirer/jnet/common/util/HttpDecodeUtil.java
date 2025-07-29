@@ -1,6 +1,7 @@
 package com.jfirer.jnet.common.util;
 
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
+import com.jfirer.jnet.extend.reverseproxy.ContentTypeDist;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -108,5 +109,35 @@ public class HttpDecodeUtil
     public static void findContentLength(Map<String, String> headers, Consumer<Integer> contentLengthConsumer)
     {
         headers.entrySet().stream().filter(entry -> entry.getKey().equalsIgnoreCase("Content-Length")).map(entry -> Integer.valueOf(entry.getValue())).findFirst().ifPresent(contentLengthConsumer);
+    }
+
+    public static String pureUrl(String url)
+    {
+        int index = url.indexOf("#");
+        if (index != -1)
+        {
+            url = url.substring(0, index);
+        }
+        index = url.indexOf("?");
+        if (index != -1)
+        {
+            url = url.substring(0, index);
+        }
+        return url;
+    }
+
+    public static String findContentType(String url)
+    {
+        String contentType;
+        int    i = url.lastIndexOf(".");
+        if (i == -1)
+        {
+            contentType = "text/html";
+        }
+        else
+        {
+            contentType = ContentTypeDist.getOrDefault(url.substring(i), "text/html");
+        }
+        return contentType;
     }
 }

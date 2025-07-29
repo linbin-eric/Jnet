@@ -1,4 +1,4 @@
-package com.jfirer.jnet.extend.http.decode;
+package com.jfirer.jnet.extend.http.coder;
 
 import com.jfirer.baseutil.STR;
 import com.jfirer.jnet.common.api.WriteProcessor;

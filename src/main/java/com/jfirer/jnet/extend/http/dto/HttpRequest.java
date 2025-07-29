@@ -1,4 +1,4 @@
-package com.jfirer.jnet.extend.http.decode;
+package com.jfirer.jnet.extend.http.dto;
 
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import lombok.Data;

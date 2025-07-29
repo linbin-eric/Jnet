@@ -1,8 +1,9 @@
-package com.jfirer.jnet.extend.http.decode;
+package com.jfirer.jnet.extend.http.coder;
 
 import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.coder.AbstractDecoder;
 import com.jfirer.jnet.common.util.HttpDecodeUtil;
+import com.jfirer.jnet.extend.http.dto.HttpRequest;
 
 import java.nio.charset.StandardCharsets;
 
