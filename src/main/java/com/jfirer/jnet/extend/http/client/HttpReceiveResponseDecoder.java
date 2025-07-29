@@ -38,7 +38,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
                 case NO_BODY ->
                 {
                     goToNextState = false;
-                    endOfBody();
+                    endThisRound();
                 }
                 case BODY_CHUNKED -> goToNextState = decodeBodyWithChunked();
             }
@@ -74,19 +74,8 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
             else if (chunkSize == 0)
             {
                 receiveResponse.addPartOfBody(new ChunkedPart(chunkHeaderLength, 0, accumulation.slice(chunkHeaderLength + 2)));
-                receiveResponse.endOfBody();
-                receiveResponse = null;
-                chunkSize       = -1;
-                state           = ParseState.RESPONSE_LINE;
-                if (accumulation.remainRead() != 0)
-                {
-                    throw new IllegalStateException();
-                }
-                else
-                {
-                    accumulation.free();
-                    accumulation = null;
-                }
+                chunkSize = -1;
+                endThisRound();
                 return false;
             }
             else
@@ -109,7 +98,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
         }
         else if (left == remain)
         {
-            endOfBody();
+            endThisRound();
             return false;
         }
         else
@@ -118,19 +107,18 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
         }
     }
 
-    private void endOfBody()
+    private void endThisRound()
     {
         bodyRead = 0;
-        //应用程序已经提前关闭了流，则此时流里可能存在Buffer，需要清空
         receiveResponse.endOfBody();
         receiveResponse = null;
         state           = ParseState.RESPONSE_LINE;
-        if (accumulation.remainRead() != 0)
-        {
-            throw new IllegalStateException();
-        }
         if (accumulation != null)
         {
+            if (accumulation.remainRead() != 0)
+            {
+                throw new IllegalStateException();
+            }
             accumulation.free();
             accumulation = null;
         }
