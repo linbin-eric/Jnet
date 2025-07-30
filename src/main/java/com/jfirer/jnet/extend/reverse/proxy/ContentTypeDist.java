@@ -1,4 +1,4 @@
-package com.jfirer.jnet.extend.reverseproxy;
+package com.jfirer.jnet.extend.reverse.proxy;
 
 import java.util.HashMap;
 import java.util.Map;

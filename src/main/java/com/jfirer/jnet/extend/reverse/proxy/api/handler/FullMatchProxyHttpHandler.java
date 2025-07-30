@@ -1,4 +1,4 @@
-package com.jfirer.jnet.extend.reverseproxy.api.handler;
+package com.jfirer.jnet.extend.reverse.proxy.api.handler;
 
 import com.jfirer.jnet.common.api.Pipeline;
 import com.jfirer.jnet.extend.http.dto.HttpRequest;

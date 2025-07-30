@@ -1,22 +1,22 @@
-package com.jfirer.jnet.extend.reverseproxy;
+package com.jfirer.jnet.extend.reverse.proxy;
 
 import com.jfirer.jnet.common.api.ReadProcessor;
 import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.extend.http.dto.FullHttpResp;
 import com.jfirer.jnet.extend.http.dto.HttpRequest;
-import com.jfirer.jnet.extend.reverseproxy.api.ResourceConfig;
-import com.jfirer.jnet.extend.reverseproxy.api.ResourceHandler;
+import com.jfirer.jnet.extend.reverse.proxy.api.ResourceConfig;
+import com.jfirer.jnet.extend.reverse.proxy.api.ResourceHandler;
 
-import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
 
 public class TransferProcessor implements ReadProcessor<HttpRequest>
 {
     private ResourceHandler[] handlers;
 
-    public TransferProcessor(ResourceConfig[] configs)
+    public TransferProcessor(List<ResourceConfig> configs)
     {
-        handlers = Arrays.stream(configs)//
+        handlers = configs.stream()//
                          .sorted(Comparator.comparingInt(ResourceConfig::getOrder))//
                          .map(ResourceConfig::parse).toArray(ResourceHandler[]::new);
     }

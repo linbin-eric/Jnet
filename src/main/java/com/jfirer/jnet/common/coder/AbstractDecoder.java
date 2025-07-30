@@ -27,7 +27,6 @@ public abstract class AbstractDecoder implements ReadProcessor<IoBuffer>
         }
         catch (Throwable e)
         {
-            System.err.println(this.getClass());
             log.error("解码过程中发生未知异常", e);
             next.pipeline().shutdownInput();
         }

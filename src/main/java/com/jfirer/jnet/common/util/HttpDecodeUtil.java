@@ -1,7 +1,7 @@
 package com.jfirer.jnet.common.util;
 
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
-import com.jfirer.jnet.extend.reverseproxy.ContentTypeDist;
+import com.jfirer.jnet.extend.reverse.proxy.ContentTypeDist;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;

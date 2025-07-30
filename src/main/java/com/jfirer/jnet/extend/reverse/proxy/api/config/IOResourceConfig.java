@@ -1,9 +1,9 @@
-package com.jfirer.jnet.extend.reverseproxy.api.config;
+package com.jfirer.jnet.extend.reverse.proxy.api.config;
 
-import com.jfirer.jnet.extend.reverseproxy.api.ResourceConfig;
-import com.jfirer.jnet.extend.reverseproxy.api.ResourceHandler;
-import com.jfirer.jnet.extend.reverseproxy.api.handler.ClassResourceHandler;
-import com.jfirer.jnet.extend.reverseproxy.api.handler.FileResourceHandler;
+import com.jfirer.jnet.extend.reverse.proxy.api.ResourceConfig;
+import com.jfirer.jnet.extend.reverse.proxy.api.ResourceHandler;
+import com.jfirer.jnet.extend.reverse.proxy.api.handler.ClassResourceHandler;
+import com.jfirer.jnet.extend.reverse.proxy.api.handler.FileResourceHandler;
 import lombok.Data;
 import lombok.experimental.Accessors;
 

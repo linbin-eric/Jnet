@@ -1,7 +1,7 @@
-package com.jfirer.jnet.extend.reverseproxy.api;
+package com.jfirer.jnet.extend.reverse.proxy.api;
 
-import com.jfirer.jnet.extend.reverseproxy.api.config.IOResourceConfig;
-import com.jfirer.jnet.extend.reverseproxy.api.config.ProxyHttpResource;
+import com.jfirer.jnet.extend.reverse.proxy.api.config.IOResourceConfig;
+import com.jfirer.jnet.extend.reverse.proxy.api.config.ProxyHttpResource;
 
 public interface ResourceConfig
 {

@@ -1,6 +1,6 @@
-package com.jfirer.jnet.extend.reverseproxy.api.handler;
+package com.jfirer.jnet.extend.reverse.proxy.api.handler;
 
-import com.jfirer.jnet.extend.reverseproxy.api.ResourceHandler;
+import com.jfirer.jnet.extend.reverse.proxy.api.ResourceHandler;
 import com.jfirer.jnet.client.ClientChannel;
 import com.jfirer.jnet.common.api.Pipeline;
 import com.jfirer.jnet.common.api.ReadProcessor;

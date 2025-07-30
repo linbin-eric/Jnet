@@ -63,18 +63,26 @@ public class SSLEncoder implements WriteProcessor<Object>
         {
             BufferAllocator allocator = next.pipeline().allocator();
             IoBuffer        dst       = allocator.allocate((int) (buffer.remainRead() * 1.2));
+            ByteBuffer      src       = buffer.readableByteBuffer();
             while (true)
             {
                 try
                 {
-                    SSLEngineResult        result = sslEngine.wrap(buffer.readableByteBuffer(), dst.writableByteBuffer());
+                    SSLEngineResult        result = sslEngine.wrap(src, dst.writableByteBuffer());
                     SSLEngineResult.Status status = result.getStatus();
                     if (status == SSLEngineResult.Status.OK)
                     {
-                        buffer.free();
                         dst.addWritePosi(result.bytesProduced());
-                        next.fireWrite(dst);
-                        return;
+                        if (src.hasRemaining())
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            buffer.free();
+                            next.fireWrite(dst);
+                            return;
+                        }
                     }
                     else if (status == SSLEngineResult.Status.BUFFER_OVERFLOW)
                     {

@@ -37,7 +37,6 @@
         </Root>
         <Logger name="com.jfirer" level="debug">
             <AppenderRef ref="Console"/>
-            <AppenderRef ref="SerAppFile"/>
         </Logger>
     </Loggers>
 </Configuration>

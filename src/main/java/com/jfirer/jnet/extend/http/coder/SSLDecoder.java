@@ -4,6 +4,7 @@ import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.coder.AbstractDecoder;
 import com.jfirer.jnet.common.util.DataIgnore;
+import com.jfirer.jnet.common.util.ReflectUtil;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
@@ -142,7 +143,7 @@ public class SSLDecoder extends AbstractDecoder
                         }
                         else if (status == SSLEngineResult.Status.CLOSED)
                         {
-                            dst.free();
+                            dst.addWritePosi(result.bytesProduced());
                             if (closeInbound == false)
                             {
                                 closeInbound = true;
@@ -183,6 +184,8 @@ public class SSLDecoder extends AbstractDecoder
     {
         if (accumulation.remainRead() == 0)
         {
+            accumulation.free();
+            accumulation = null;
             return;
         }
         IoBuffer dst = next.pipeline().allocator().allocate(sslEngine.getSession().getApplicationBufferSize());
@@ -197,14 +200,26 @@ public class SSLDecoder extends AbstractDecoder
                     accumulation.addReadPosi(result.bytesConsumed());
                     dst.addWritePosi(result.bytesProduced());
                     next.fireRead(dst);
-                    accumulation.compact();
+                    dst = null;
                     log.debug("当前步骤:{},数据处理阶段unwrap成功，发送数据。", count++);
-                    return;
+                    if (accumulation.remainRead() > 0)
+                    {
+                        //还有数据可以处理，申请下一个空间
+                        dst = next.pipeline().allocator().allocate(sslEngine.getSession().getApplicationBufferSize());
+                        continue;
+                    }
+                    else
+                    {
+                        accumulation.free();
+                        accumulation = null;
+                        return;
+                    }
                 }
                 else if (status == SSLEngineResult.Status.BUFFER_OVERFLOW)
                 {
                     dst.capacityReadyFor(sslEngine.getSession().getApplicationBufferSize());
                     log.debug("当前步骤:{},数据处理阶段unwrap失败，因为输出空间不足，扩容后继续。", count++);
+                    continue;
                 }
                 else if (status == SSLEngineResult.Status.BUFFER_UNDERFLOW)
                 {
@@ -213,12 +228,16 @@ public class SSLDecoder extends AbstractDecoder
                     {
                         accumulation.capacityReadyFor(sslEngine.getSession().getPacketBufferSize());
                     }
+                    dst.free();
+                    dst = null;
                     return;
                 }
                 else if (status == SSLEngineResult.Status.CLOSED)
                 {
                     accumulation.addReadPosi(result.bytesConsumed());
-                    dst.free();
+                    dst.addWritePosi(result.bytesProduced());
+                    next.pipeline().fireWrite(dst);
+                    dst = null;
                     if (closeInbound == false)
                     {
                         closeInbound = true;
@@ -231,8 +250,11 @@ public class SSLDecoder extends AbstractDecoder
         }
         catch (SSLException e)
         {
-            dst.free();
-            throw new RuntimeException(e);
+            if (dst != null)
+            {
+                dst.free();
+            }
+            ReflectUtil.throwException(e);
         }
     }
 

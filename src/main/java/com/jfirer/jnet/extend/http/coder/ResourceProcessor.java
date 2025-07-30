@@ -6,7 +6,7 @@ import com.jfirer.jnet.common.api.ReadProcessor;
 import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.extend.http.dto.FullHttpResp;
 import com.jfirer.jnet.extend.http.dto.HttpRequest;
-import com.jfirer.jnet.extend.reverseproxy.ContentTypeDist;
+import com.jfirer.jnet.extend.reverse.proxy.ContentTypeDist;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
