@@ -22,10 +22,10 @@ public class ReverseApp
     {
         RuntimeJVM.registerMainClass();
         File file = new File(RuntimeJVM.getDirOfMainClass(), "reverse.config");
-        if (RuntimeJVM.detectRunningInJar())
-        {
-            RuntimeJVM.checkMainStart("ReverseApp", "ReverseApp-copy.jar");
-        }
+//        if (RuntimeJVM.detectRunningInJar())
+//        {
+//            RuntimeJVM.checkMainStart("ReverseApp", "ReverseApp-copy.jar");
+//        }
         try (FileInputStream fileInputStream = new FileInputStream(file))
         {
             byte[]              bytes                  = IoUtil.readAllBytes(fileInputStream);
@@ -34,19 +34,20 @@ public class ReverseApp
             Map<String, Object> mapWithIndentStructure = yamlReader.getMapWithIndentStructure();
             for (Map.Entry<String, Object> entry : mapWithIndentStructure.entrySet())
             {
-                String               port  = entry.getKey();
-                List<ResourceConfig> list  = new ArrayList<>();
-                Map<String, Object>  value = (Map<String, Object>) entry.getValue();
-                boolean              ssl   = false;
-                String               cert  = "";
+                String               port    = entry.getKey();
+                List<ResourceConfig> list    = new ArrayList<>();
+                Map<String, Object>  value   = (Map<String, Object>) entry.getValue();
+                SslInfo              sslInfo = null;
                 for (Map.Entry<String, Object> each : value.entrySet())
                 {
                     String url = each.getKey();
                     if (url.equals("ssl"))
                     {
                         Map<String, String> sslConfig = (Map<String, String>) each.getValue();
-                        ssl  = Boolean.parseBoolean(sslConfig.get("enable"));
-                        cert = sslConfig.get("cert");
+                        sslInfo = new SslInfo()//
+                                               .setEnable(Boolean.parseBoolean(sslConfig.get("enable")))//
+                                               .setPassword(sslConfig.get("password"))//
+                                               .setCert(sslConfig.get("cert"));
                         continue;
                     }
                     Map<String, String> value1 = (Map<String, String>) each.getValue();
@@ -69,9 +70,9 @@ public class ReverseApp
                         }
                     }
                 }
-                if (ssl)
+                if (sslInfo != null && sslInfo.isEnable())
                 {
-                    new ReverseProxyServer(Integer.parseInt(port), list, cert).start();
+                    new ReverseProxyServer(Integer.parseInt(port), list, sslInfo).start();
                 }
                 else
                 {

@@ -13,11 +13,10 @@ public interface HttpClient
         try
         {
             // 从连接池借用连接（自动创建或复用）
-            httpConnection = CONNECTION_POOL.borrowConnection(host, port, 60);
+            httpConnection = CONNECTION_POOL.borrowConnection(host, port, 60, res -> CONNECTION_POOL.returnConnection(host, port, res.getHttpConnection()));
             // 执行请求
             HttpReceiveResponse response = httpConnection.write(request, 60);
-            // 将响应包装成连接池管理的响应，延迟归还连接
-            return new PooledHttpReceiveResponse(response, CONNECTION_POOL, httpConnection, host, port);
+            return response;
         }
         catch (Throwable e)
         {

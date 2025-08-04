@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLSession;
 import java.nio.ByteBuffer;
 
 @Data
@@ -17,34 +18,44 @@ import java.nio.ByteBuffer;
 public class SSLEncoder implements WriteProcessor<Object>
 {
     private volatile SSLEngine sslEngine;
+    private          String    remote;
 
     @Override
     public void write(Object data, WriteProcessorNode next)
     {
+        if (remote == null)
+        {
+            remote = next.pipeline().getRemoteAddressWithoutException();
+        }
         if (sslEngine == null)
         {
-            log.debug("还在握手阶段，直接输出数据");
+            log.trace("还在握手阶段，直接输出数据");
             next.fireWrite(data);
         }
         else if (data instanceof SSLDecoder.SSLCloseNotify)
         {
-            sslEngine.closeOutbound();
-            IoBuffer dst = next.pipeline().allocator().allocate(sslEngine.getSession().getPacketBufferSize());
             while (true)
             {
+                IoBuffer dst = null;
                 try
                 {
+                    dst = next.pipeline().allocator().allocate(sslEngine.getSession().getPacketBufferSize());
                     SSLEngineResult        result = sslEngine.wrap(ByteBuffer.allocate(0), dst.writableByteBuffer());
                     SSLEngineResult.Status status = result.getStatus();
                     if (status == SSLEngineResult.Status.OK)
                     {
                         dst.addWritePosi(result.bytesProduced());
                         next.fireWrite(dst);
+                        if (result.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NEED_WRAP)
+                        {
+                            continue;
+                        }
                         return;
                     }
                     else if (status == SSLEngineResult.Status.BUFFER_OVERFLOW)
                     {
-                        dst.capacityReadyFor(sslEngine.getSession().getPacketBufferSize());
+                        dst.free();
+                        dst = null;
                     }
                     else if (status == SSLEngineResult.Status.BUFFER_UNDERFLOW)
                     {
@@ -54,7 +65,11 @@ public class SSLEncoder implements WriteProcessor<Object>
                 }
                 catch (SSLException e)
                 {
-                    dst.free();
+                    if (dst != null)
+                    {
+                        dst.free();
+                    }
+                    log.error("当前握手出现错误,");
                     throw new RuntimeException(e);
                 }
             }
@@ -86,7 +101,16 @@ public class SSLEncoder implements WriteProcessor<Object>
                     }
                     else if (status == SSLEngineResult.Status.BUFFER_OVERFLOW)
                     {
-                        dst.capacityReadyFor(sslEngine.getSession().getPacketBufferSize());
+                        SSLSession session = sslEngine.getSession();
+                        int        need    = Math.max(session.getApplicationBufferSize(), session.getPacketBufferSize()) - dst.remainWrite();
+                        if (need > 0)
+                        {
+                            dst.capacityReadyFor(dst.capacity() + need);
+                        }
+                        else
+                        {
+                            log.error("不应该出现");
+                        }
                     }
                     else if (status == SSLEngineResult.Status.BUFFER_UNDERFLOW)
                     {

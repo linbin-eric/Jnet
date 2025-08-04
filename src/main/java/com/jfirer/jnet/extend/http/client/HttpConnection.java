@@ -1,41 +1,50 @@
 package com.jfirer.jnet.extend.http.client;
 
 import com.jfirer.jnet.client.ClientChannel;
+import com.jfirer.jnet.common.api.Pipeline;
 import com.jfirer.jnet.common.api.ReadProcessor;
 import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.coder.HeartBeat;
 import com.jfirer.jnet.common.util.ChannelConfig;
 import com.jfirer.jnet.common.util.ReflectUtil;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
-import java.net.ConnectException;
 import java.net.SocketTimeoutException;
 import java.nio.channels.ClosedChannelException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
+import java.util.function.BiFunction;
 
 @Data
 @Slf4j
 public class HttpConnection
 {
+    @Getter
+    private final    int                 id;
     private final    ClientChannel       clientChannel;
     // LockSupport相关字段
     private volatile Thread              waitingThread;
     private volatile HttpReceiveResponse responseResult;
     private volatile WriteResult         result = WriteResult.NEED_RESULT;
+    @Getter
+    @Setter
+    private volatile long                lastBorrowTime;
 
     enum WriteResult
     {
         NEED_RESULT, SUCCESS, CLOSE_OF_CONNECTION
     }
 
-    public HttpConnection(String domain, int port, int secondsOfKeepAlive)
+    public HttpConnection(String domain, int port, int secondsOfKeepAlive, int id, BiFunction<Pipeline, HttpConnection, HttpReceiveResponse> responseCreator)
     {
+        this.id = id;
         ChannelConfig channelConfig = new ChannelConfig().setIp(domain).setPort(port);
         clientChannel = ClientChannel.newClient(channelConfig, pipeline -> {
             pipeline.addReadProcessor(new HeartBeat(secondsOfKeepAlive, pipeline));
-            pipeline.addReadProcessor(new HttpReceiveResponseDecoder());
+            pipeline.addReadProcessor(new HttpReceiveResponseDecoder(HttpConnection.this, responseCreator));
             pipeline.addReadProcessor(new ReadProcessor<HttpReceiveResponse>()
             {
                 @Override
@@ -67,7 +76,7 @@ public class HttpConnection
         });
         if (!clientChannel.connect())
         {
-            ReflectUtil.throwException(new ConnectException("无法连接" + domain + ":" + port));
+            ReflectUtil.throwException(new RuntimeException("无法连接" + domain + ":" + port, clientChannel.getConnectionException()));
         }
     }
 
@@ -80,6 +89,7 @@ public class HttpConnection
     {
         if (isConnectionClosed())
         {
+            log.error("连接关闭,地址:{}", clientChannel.pipeline().getRemoteAddressWithoutException());
             request.close();
             throw new ClosedChannelException();
         }
@@ -101,6 +111,7 @@ public class HttpConnection
                 waitingThread = null;
                 String msg = clientChannel.alive() ? "通道仍然alive" : "通道已经失效";
                 clientChannel.pipeline().shutdownInput();
+                log.error("连接关闭，地址:{}", clientChannel.pipeline().getRemoteAddressWithoutException());
                 throw new SocketTimeoutException(msg);
             }
             LockSupport.parkNanos(remaining);
@@ -109,6 +120,7 @@ public class HttpConnection
             {
                 waitingThread = null;
                 clientChannel.pipeline().shutdownInput();
+                log.error("连接关闭，地址:{}", clientChannel.pipeline().getRemoteAddressWithoutException());
                 throw new ClosedChannelException();
             }
         }
@@ -117,7 +129,7 @@ public class HttpConnection
         HttpReceiveResponse response = responseResult;
         if (result == WriteResult.CLOSE_OF_CONNECTION)
         {
-            log.debug("收到链接终止响应");
+            log.debug("收到链接终止响应,连接关闭,地址:{}", clientChannel.pipeline().getRemoteAddressWithoutException());
             clientChannel.pipeline().shutdownInput();
             throw new ClosedChannelException();
         }

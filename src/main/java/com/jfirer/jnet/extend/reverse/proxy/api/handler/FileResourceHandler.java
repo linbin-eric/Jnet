@@ -45,6 +45,10 @@ public final class FileResourceHandler extends AbstractIOResourceHandler
         File resourceFile = new File(dir, requestUrl);
         if (resourceFile.exists())
         {
+//            if (resourceFile.isDirectory())
+//            {
+//                resourceFile = new File(resourceFile, "index.html");
+//            }
             try (InputStream inputStream = new FileInputStream(resourceFile))
             {
                 byte[] bytes = IoUtil.readAllBytes(inputStream);

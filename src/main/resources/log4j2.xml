@@ -6,10 +6,10 @@
                     pattern="%-5level %d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-80msg %l{%n%ex}%n"/>
         </Console>
         <RollingRandomAccessFile name="AllFile"
-                                 fileName="target/logs/app.log"
-                                 filePattern="target/all_file_logs/$${date:yyyy-MM}/app_%d{yyyy-MM-dd}_%i.log.gz">
+                                 fileName="logs/jnet.log"
+                                 filePattern="logs/jnet/$${date:yyyy-MM}/app_%d{yyyy-MM-dd}_%i.log.gz">
             <PatternLayout>
-                <Pattern>%d %p %c{1.} [%t] %m%n</Pattern>
+                <Pattern>%-5level %d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-80msg %l{%n%ex}%n</Pattern>
             </PatternLayout>
             <Policies>
                 <TimeBasedTriggeringPolicy/>
@@ -18,10 +18,10 @@
             <DefaultRolloverStrategy max="20"/>
         </RollingRandomAccessFile>
         <RollingRandomAccessFile name="SerAppFile"
-                                 fileName="target/logs/app.log"
-                                 filePattern="target/app_logs/$${date:yyyy-MM}/app_%d{yyyy-MM-dd}_%i.log.gz">
+                                 fileName="logs/jnet.log"
+                                 filePattern="logs/jnet/$${date:yyyy-MM}/app_%d{yyyy-MM-dd}_%i.log.gz">
             <PatternLayout>
-                <Pattern>%d %p %c{1.} [%t] %m%n</Pattern>
+                <Pattern>%-5level %d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-80msg %l{%n%ex}%n</Pattern>
             </PatternLayout>
             <Policies>
                 <TimeBasedTriggeringPolicy/>
@@ -33,9 +33,14 @@
 
     <Loggers>
         <Root level="error">
-            <AppenderRef ref="AllFile"/>
+<!--            <AppenderRef ref="AllFile"/>-->
         </Root>
-        <Logger name="com.jfirer" level="debug">
+        <Logger name="com.jfirer.jnet.extend.http.coder.SSLDecoder" level="off">
+<!--            <AppenderRef ref="Console"/>-->
+            <AppenderRef ref="AllFile"/>
+        </Logger>
+        <Logger name="com.jfirer.jnet.extend.http.client.HttpConnectionPool" level="off">
+<!--            <AppenderRef ref="AllFile"/>-->
             <AppenderRef ref="Console"/>
         </Logger>
     </Loggers>

@@ -6,26 +6,29 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 @Slf4j
 public class HttpConnectionPool
 {
-    private static final int                                                      MAX_CONNECTIONS_PER_HOST = 10;
+    private static final int                                                      MAX_CONNECTIONS_PER_HOST = 2;
     private final        ConcurrentHashMap<String, BlockingQueue<HttpConnection>> pools;
     private final        ConcurrentHashMap<String, AtomicInteger>                 connectionCounts;
+    private final        ConcurrentHashMap<String, AtomicInteger>                 ids                      = new ConcurrentHashMap<>();
     private final        SimpleWheelTimer                                         timer;
 
     public HttpConnectionPool()
     {
         this.pools            = new ConcurrentHashMap<>();
         this.connectionCounts = new ConcurrentHashMap<>();
-        this.timer            = new SimpleWheelTimer(Executors.newVirtualThreadPerTaskExecutor(), 1000 * 30);
+        this.timer            = new SimpleWheelTimer(Executors.newVirtualThreadPerTaskExecutor(), 1000 * 60 * 60);
         startConnectionChecker();
     }
 
-    public HttpConnection borrowConnection(String host, int port, int timeoutSeconds) throws TimeoutException, InterruptedException
+    public HttpConnection borrowConnection(String host, int port, int timeoutSeconds, Consumer<HttpReceiveResponse> callback) throws TimeoutException, InterruptedException
     {
         String                        key   = buildKey(host, port);
+        AtomicInteger                 idGen = ids.computeIfAbsent(key, k -> new AtomicInteger(1));
         BlockingQueue<HttpConnection> pool  = pools.computeIfAbsent(key, k -> new ArrayBlockingQueue<>(MAX_CONNECTIONS_PER_HOST));
         AtomicInteger                 count = connectionCounts.computeIfAbsent(key, k -> new AtomicInteger(0));
         // 首先尝试从池中获取可用连接
@@ -34,6 +37,8 @@ public class HttpConnectionPool
         {
             if (!connection.isConnectionClosed())
             {
+                log.debug("地址:{}:{}连接:{}被借出,当前剩余:{}", host, port, connection.getId(), pool.size());
+                connection.setLastBorrowTime(System.currentTimeMillis());
                 return connection;
             }
             else
@@ -46,32 +51,45 @@ public class HttpConnectionPool
         if (count.get() < MAX_CONNECTIONS_PER_HOST)
         {
             // 可以创建新连接
-            count.incrementAndGet();
+            int currentAvail = count.incrementAndGet();
             try
             {
-                return new HttpConnection(host, port, 60 * 5);
+                if (callback == null)
+                {
+                    connection = new HttpConnection(host, port, 60 * 30, idGen.getAndIncrement(), (pipeline, http) -> new HttpReceiveResponse(pipeline, http, null));
+                }
+                else
+                {
+                    connection = new HttpConnection(host, port, 60 * 30, idGen.getAndIncrement(), (pipeline, http) -> new HttpReceiveResponse(pipeline, http, callback));
+                }
+                log.debug("地址:{}:{}连接:{}被借出,当前创建:{}", host, port, connection.getId(), currentAvail);
+                connection.setLastBorrowTime(System.currentTimeMillis());
+                return connection;
             }
             catch (Exception e)
             {
                 // 创建失败，回退计数
                 count.decrementAndGet();
+                log.error("创建连接失败: " + e.getMessage(), e);
                 throw new RuntimeException("创建连接失败: " + e.getMessage(), e);
             }
         }
         // 达到最大连接数，等待其他连接归还
-        log.debug("达到最大连接数限制 {}, 等待可用连接", MAX_CONNECTIONS_PER_HOST);
+        log.debug("地址:{}:{},达到最大连接数限制 {}, 等待可用连接", host, port, MAX_CONNECTIONS_PER_HOST);
         connection = pool.poll(timeoutSeconds, TimeUnit.SECONDS);
         if (connection != null)
         {
             if (!connection.isConnectionClosed())
             {
+                log.debug("地址:{}:{}连接:{}被借出,当前队列:{}", host, port, connection.getId(), pool.size());
+                connection.setLastBorrowTime(System.currentTimeMillis());
                 return connection;
             }
             else
             {
                 // 获取的连接已失效，减少计数并递归重试
                 count.decrementAndGet();
-                return borrowConnection(host, port, timeoutSeconds);
+                return borrowConnection(host, port, timeoutSeconds,callback);
             }
         }
         // 超时未获取到连接
@@ -80,6 +98,7 @@ public class HttpConnectionPool
 
     public void returnConnection(String host, int port, HttpConnection connection)
     {
+        long lastBorrowTime = connection.getLastBorrowTime();
         if (connection == null || connection.isConnectionClosed())
         {
             if (connection != null)
@@ -88,7 +107,8 @@ public class HttpConnectionPool
                 AtomicInteger count = connectionCounts.get(key);
                 if (count != null)
                 {
-                    count.decrementAndGet();
+                    int left = count.decrementAndGet();
+                    log.debug("地址:{}:{},连接:{}被归还，已经失效，扣减有效数字,当前有效:{},当前队列:{}.花费时间:{}", host, port, connection.getId(), left, pools.get(key).size(), System.currentTimeMillis() - lastBorrowTime);
                 }
             }
             return;
@@ -97,10 +117,20 @@ public class HttpConnectionPool
         BlockingQueue<HttpConnection> pool = pools.get(key);
         if (pool != null)
         {
-            pool.offer(connection);
+            boolean offer = pool.offer(connection);
+            if (!offer)
+            {
+                log.warn("地址:{}:{},连接:{}被归还，但无法加入队列，地址: {},花费时间:{}", host, port, connection.getId(), key, System.currentTimeMillis() - lastBorrowTime);
+            }
+            else
+            {
+                log.debug("地址:{}:{},连接:{}被归还，加入队列，当前队列:{},花费时间:{}", host, port, connection.getId(), pool.size(), System.currentTimeMillis() - lastBorrowTime);
+            }
         }
         else
         {
+            log.error("异常");
+            System.exit(10);
             connection.close();
             AtomicInteger count = connectionCounts.get(key);
             if (count != null)
@@ -117,10 +147,8 @@ public class HttpConnectionPool
             connection.close();
             String        key   = buildKey(host, port);
             AtomicInteger count = connectionCounts.get(key);
-            if (count != null)
-            {
-                count.decrementAndGet();
-            }
+            count.decrementAndGet();
+            log.debug("连接:{}被移除，当前队列:{}", connection.getId(), pools.get(key).size());
         }
     }
 

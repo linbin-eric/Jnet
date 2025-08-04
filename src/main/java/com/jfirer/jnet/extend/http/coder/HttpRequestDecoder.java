@@ -4,9 +4,11 @@ import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.coder.AbstractDecoder;
 import com.jfirer.jnet.common.util.HttpDecodeUtil;
 import com.jfirer.jnet.extend.http.dto.HttpRequest;
+import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.StandardCharsets;
 
+@Slf4j
 public class HttpRequestDecoder extends AbstractDecoder
 {
     private int         lastCheck      = -1;
@@ -17,10 +19,15 @@ public class HttpRequestDecoder extends AbstractDecoder
     private int         lineEndIndex   = -1;
     //header的结束坐标，在/r/n后
     private int         headerEndIndex = -1;
+    private String      remote;
 
     @Override
     protected void process0(ReadProcessorNode next)
     {
+        if (remote == null)
+        {
+            remote = next.pipeline().getRemoteAddressWithoutException();
+        }
         if (decodeObject == null)
         {
             decodeObject = new HttpRequest();

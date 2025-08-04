@@ -1,31 +1,37 @@
 package com.jfirer.jnet.extend.http.client;
 
+import com.jfirer.jnet.common.api.Pipeline;
 import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.coder.AbstractDecoder;
 import com.jfirer.jnet.common.util.HttpDecodeUtil;
+import lombok.Data;
 
 import java.nio.charset.StandardCharsets;
+import java.util.function.BiFunction;
 
+@Data
 public class HttpReceiveResponseDecoder extends AbstractDecoder
 {
-    private static final byte                CR                         = (byte) '\r';
-    private static final byte                LF                         = (byte) '\n';
-    private static final int                 HTTP_VERSION_PREFIX_LENGTH = 9; // "HTTP/1.1 "
-    private static final int                 HTTP_CODE_LENGTH           = 3;
-    private final        byte[]              httpCode                   = new byte[HTTP_CODE_LENGTH];
-    private              HttpReceiveResponse receiveResponse;
-    private              ParseState          state                      = ParseState.RESPONSE_LINE;
-    private              int                 lastCheck                  = -1;
-    private              int                 bodyRead                   = 0;
-    private              int                 chunkSize                  = -1;
-    private              int                 chunkHeaderLength;
+    private static final byte                                                      CR                         = (byte) '\r';
+    private static final byte                                                      LF                         = (byte) '\n';
+    private static final int                                                       HTTP_VERSION_PREFIX_LENGTH = 9; // "HTTP/1.1 "
+    private static final int                                                       HTTP_CODE_LENGTH           = 3;
+    private final        byte[]                                                    httpCode                   = new byte[HTTP_CODE_LENGTH];
+    private              HttpReceiveResponse                                       receiveResponse;
+    private              ParseState                                                state                      = ParseState.RESPONSE_LINE;
+    private              int                                                       lastCheck                  = -1;
+    private              int                                                       bodyRead                   = 0;
+    private              int                                                       chunkSize                  = -1;
+    private              int                                                       chunkHeaderLength;
+    private final        HttpConnection                                            httpConnection;
+    private final        BiFunction<Pipeline, HttpConnection, HttpReceiveResponse> responseCreator;
 
     @Override
     protected void process0(ReadProcessorNode next)
     {
         if (receiveResponse == null)
         {
-            receiveResponse = new HttpReceiveResponse(next.pipeline());
+            receiveResponse = responseCreator.apply(next.pipeline(), httpConnection);
         }
         boolean goToNextState = false;
         do

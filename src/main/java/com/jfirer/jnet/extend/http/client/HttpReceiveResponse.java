@@ -15,6 +15,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
+import java.util.function.Consumer;
 
 /**
  * 非线程并发安全的类。使用消息体的方法均只能由一个线程来使用。
@@ -22,46 +23,34 @@ import java.util.concurrent.locks.LockSupport;
 @Data
 public class HttpReceiveResponse implements AutoCloseable
 {
-    /**
-     * 响应完成回调接口
-     */
-    public interface CompletionCallback
-    {
-        void onCompleted(HttpReceiveResponse response);
-    }
-
-    private static final int                 RECEIVE_UN_FINISH_AND_NOT_CLOSE = 0b00;
-    private static final int                 RECEIVE_UN_FINISH_AND_CLOSE     = 0b01;
-    private static final int                 RECEIVE_FINISH_AND_NOT_CLOSE    = 0b10;
-    private static final int                 RECEIVE_FINISH_AND_CLOSE        = 0b11;
-    private static final long                STATE_OFFSET                    = UNSAFE.getFieldOffset("state", HttpReceiveResponse.class);
-    private final        Pipeline            pipeline;
-    private              int                 httpCode;
-    private              Map<String, String> headers                         = new HashMap<>();
+    private static final int                           RECEIVE_UN_FINISH_AND_NOT_CLOSE = 0b00;
+    private static final int                           RECEIVE_UN_FINISH_AND_CLOSE     = 0b01;
+    private static final int                           RECEIVE_FINISH_AND_NOT_CLOSE    = 0b10;
+    private static final int                           RECEIVE_FINISH_AND_CLOSE        = 0b11;
+    private static final long                          STATE_OFFSET                    = UNSAFE.getFieldOffset("state", HttpReceiveResponse.class);
+    private              int                           httpCode;
+    private              Map<String, String>           headers                         = new HashMap<>();
     /**
      * 值的取值范围有：
      * -1：代表这个响应的消息体是个不定长的以Transfer-Encoding:chunked 编码的消息体。
      * 0：代表没有响应体。
      * 正数：代表响应的消息体的字节长度。
      */
-    private              int                 contentLength;
-    private              String              contentType;
-    private              BlockingQueue<Part> body                            = new LinkedBlockingQueue<>();
+    private              int                           contentLength;
+    private              String                        contentType;
+    private              BlockingQueue<Part>           body                            = new LinkedBlockingQueue<>();
     @Getter(AccessLevel.NONE)
-    private              String              decodedUTF8Body;
-    private volatile     boolean             generatedUTF8Body               = false;
-    private volatile     Thread              waitForReceiveFinshThread;
-    private volatile     int                 state                           = RECEIVE_UN_FINISH_AND_NOT_CLOSE;
-    private volatile     CompletionCallback  completionCallback;
+    protected            String                        decodedUTF8Body;
+    protected volatile   boolean                       generatedUTF8Body               = false;
+    protected volatile   Thread                        waitForReceiveFinshThread;
+    protected volatile   int                           state                           = RECEIVE_UN_FINISH_AND_NOT_CLOSE;
+    protected final      Pipeline                      pipeline;
+    protected final      HttpConnection                httpConnection;
+    protected final      Consumer<HttpReceiveResponse> completionCallback;
 
     public void putHeader(String name, String value)
     {
         headers.put(name, value);
-    }
-
-    public void setCompletionCallback(CompletionCallback callback)
-    {
-        this.completionCallback = callback;
     }
 
     public void addPartOfBody(Part part)
@@ -120,12 +109,12 @@ public class HttpReceiveResponse implements AutoCloseable
 
     private void triggerCompletionCallback()
     {
-        CompletionCallback callback = this.completionCallback;
+        Consumer callback = this.completionCallback;
         if (callback != null)
         {
             try
             {
-                callback.onCompleted(this);
+                callback.accept(this);
             }
             catch (Exception e)
             {
@@ -134,6 +123,7 @@ public class HttpReceiveResponse implements AutoCloseable
             }
         }
     }
+
 
     /**
      * 客户端代码消费完毕响应后关闭该响应。该方法应该只能由客户端代码来调用。
