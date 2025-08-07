@@ -5,6 +5,7 @@ import com.jfirer.baseutil.RuntimeJVM;
 import com.jfirer.baseutil.YamlReader;
 import com.jfirer.jnet.extend.reverse.proxy.ReverseProxyServer;
 import com.jfirer.jnet.extend.reverse.proxy.api.ResourceConfig;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
@@ -18,14 +19,15 @@ import java.util.Map;
 @Slf4j
 public class ReverseApp
 {
+    @SneakyThrows
     public static void main(String[] args)
     {
         RuntimeJVM.registerMainClass();
         File file = new File(RuntimeJVM.getDirOfMainClass(), "reverse.config");
-//        if (RuntimeJVM.detectRunningInJar())
-//        {
-//            RuntimeJVM.checkMainStart("ReverseApp", "ReverseApp-copy.jar");
-//        }
+        if (RuntimeJVM.detectRunningInJar())
+        {
+            RuntimeJVM.checkMainStart("ReverseApp", "ReverseApp-copy");
+        }
         try (FileInputStream fileInputStream = new FileInputStream(file))
         {
             byte[]              bytes                  = IoUtil.readAllBytes(fileInputStream);

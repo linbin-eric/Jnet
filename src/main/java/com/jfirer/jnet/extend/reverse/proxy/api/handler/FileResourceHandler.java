@@ -4,8 +4,8 @@ import com.jfirer.baseutil.IoUtil;
 import com.jfirer.baseutil.RuntimeJVM;
 import com.jfirer.baseutil.STR;
 import com.jfirer.jnet.common.api.Pipeline;
-import com.jfirer.jnet.extend.http.dto.HttpRequest;
 import com.jfirer.jnet.extend.http.dto.FullHttpResp;
+import com.jfirer.jnet.extend.http.dto.HttpRequest;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -45,10 +45,6 @@ public final class FileResourceHandler extends AbstractIOResourceHandler
         File resourceFile = new File(dir, requestUrl);
         if (resourceFile.exists())
         {
-//            if (resourceFile.isDirectory())
-//            {
-//                resourceFile = new File(resourceFile, "index.html");
-//            }
             try (InputStream inputStream = new FileInputStream(resourceFile))
             {
                 byte[] bytes = IoUtil.readAllBytes(inputStream);
@@ -68,7 +64,7 @@ public final class FileResourceHandler extends AbstractIOResourceHandler
             httpRequest.close();
             FullHttpResp response = new FullHttpResp();
             response.getHead().addHeader("Content-Type", "text/html;charset=utf-8");
-            response.getBody().setBodyText(STR.format("not available path:{},not find in :{}", httpRequest.getUrl(), resourceFile.getAbsolutePath()));
+            response.getBody().setBodyText(STR.format("not available path:{},not find in :{}", requestUrl, resourceFile.getAbsolutePath()));
             pipeline.fireWrite(response);
         }
     }

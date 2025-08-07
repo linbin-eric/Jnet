@@ -6,6 +6,9 @@ import com.jfirer.jnet.common.util.HttpDecodeUtil;
 import com.jfirer.jnet.extend.http.dto.HttpRequest;
 import com.jfirer.jnet.extend.reverse.proxy.api.ResourceHandler;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+
 public sealed abstract class AbstractIOResourceHandler implements ResourceHandler permits FileResourceHandler, ClassResourceHandler
 {
     protected String prefixMatch;
@@ -36,7 +39,7 @@ public sealed abstract class AbstractIOResourceHandler implements ResourceHandle
     @Override
     public boolean process(HttpRequest httpRequest, Pipeline pipeline)
     {
-        String requestUrl = httpRequest.getUrl();
+        String requestUrl = URLDecoder.decode(httpRequest.getUrl(), StandardCharsets.UTF_8);
         requestUrl = HttpDecodeUtil.pureUrl(requestUrl);
         if (!requestUrl.startsWith(prefixMatch))
         {
