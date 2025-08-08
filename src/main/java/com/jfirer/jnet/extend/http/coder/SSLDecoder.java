@@ -96,15 +96,17 @@ public class SSLDecoder extends AbstractDecoder
                     else if (status == SSLEngineResult.Status.CLOSED)
                     {
                         dst.free();
-                        if (closeInbound == false)
-                        {
-                            closeInbound = true;
-                            sslEngine.closeInbound();
-                            sslEngine.closeOutbound();
-                            sslEncoder.setSslEngine(sslEngine);
-                            next.pipeline().fireWrite(SSLCloseNotify.INSTANCE);
-                        }
-                        log.error("当前连接:{},当前步骤:{},握手阶段unwrap失败，状态为:{},因为ssl已关闭，握手结束。", remote, count, hs);
+//                        if (closeInbound == false)
+//                        {
+//                            closeInbound = true;
+//                            sslEngine.closeInbound();
+//                            sslEngine.closeOutbound();
+//                            sslEncoder.setSslEngine(sslEngine);
+//                            next.pipeline().fireWrite(SSLCloseNotify.INSTANCE);
+//                        }
+//                        log.error("当前连接:{},当前步骤:{},握手阶段unwrap失败，状态为:{},因为ssl已关闭，握手结束。", remote, count, hs);
+                        log.error("在握手阶段不应该出现close的状态，严重异常，系统退出");
+                        System.exit(10);
                         return;
                     }
                 }
@@ -112,7 +114,6 @@ public class SSLDecoder extends AbstractDecoder
                 {
                     log.error("当前连接:{},当前步骤:{},握手阶段unwrap失败，状态为:{},因为ssl异常，握手失败。后续状态为:{}.SSL错误原因:{}", remote, count, hs, sslEngine.getHandshakeStatus(), e.getMessage());
                     dst.free();
-                    dst = null;
                     next.pipeline().shutdownInput();
                     return;
                 }
@@ -135,7 +136,6 @@ public class SSLDecoder extends AbstractDecoder
                     hs = result.getHandshakeStatus();
                     if (status == SSLEngineResult.Status.OK)
                     {
-                        /*写法1:只有这种才是正确的。写法2会导致客户端ssl异常，但是原因不明确。推断是因为在快速的交互下，异步的数据写出，导致客户端出现了异常。*/
                         AsynchronousSocketChannel asynchronousSocketChannel = next.pipeline().socketChannel();
                         ByteBuffer                byteBuffer                = dst.readableByteBuffer();
                         while (byteBuffer.hasRemaining())
@@ -143,19 +143,6 @@ public class SSLDecoder extends AbstractDecoder
                             asynchronousSocketChannel.write(byteBuffer);
                         }
                         dst.free();
-                        /*写法1:*/
-                        /*写法2*/
-//                        next.pipeline().fireWrite(dst);
-//                        LockSupport.parkNanos(TimeUnit.SECONDS.toNanos(1));
-                        /*写法2*/
-                        /*写法3*/
-//                        if (need_send == null)
-//                        {
-//                            need_send = next.pipeline().allocator().allocate(8196);
-//                        }
-//                        need_send.put(dst);
-//                        dst.free();
-                        /*写法3*/
                         dst = null;
                         log.debug("当前连接:{},当前步骤:{},握手阶段wrap成功,后续阶段为:{}", remote, count++, hs);
                     }
@@ -176,16 +163,8 @@ public class SSLDecoder extends AbstractDecoder
                     }
                     else if (status == SSLEngineResult.Status.CLOSED)
                     {
-                        dst.addWritePosi(bytesProduced);
-                        if (closeInbound == false)
-                        {
-                            closeInbound = true;
-                            sslEngine.closeInbound();
-                            sslEngine.closeOutbound();
-                            sslEncoder.setSslEngine(sslEngine);
-                            next.pipeline().fireWrite(SSLCloseNotify.INSTANCE);
-                        }
-                        log.error("当前连接:{},当前步骤:{},握手阶段wrap失败，状态为:{},因为ssl已关闭，握手结束。", remote, count++, hs);
+                        log.error("在握手阶段不应该出现close的状态，严重异常，系统退出");
+                        System.exit(10);
                         return;
                     }
                 }
@@ -317,13 +296,14 @@ public class SSLDecoder extends AbstractDecoder
             sslEngine.closeInbound();
             sslEngine.closeOutbound();
             closeInbound = true;
-            sslEncoder.setSslEngine(sslEngine);
-            next.pipeline().fireWrite(SSLCloseNotify.INSTANCE);
+//            sslEncoder.setSslEngine(sslEngine);
+//            next.pipeline().fireWrite(SSLCloseNotify.INSTANCE);
         }
         catch (SSLException ex)
         {
             ;
         }
+        next.pipeline().shutdownInput();
         super.readFailed(e, next);
     }
 
