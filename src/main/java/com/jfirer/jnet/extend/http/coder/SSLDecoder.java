@@ -45,7 +45,6 @@ public class SSLDecoder extends AbstractDecoder
 
     private void handshake(ReadProcessorNode next, SSLEngineResult.HandshakeStatus hs)
     {
-        IoBuffer need_send = null;
         while (true)
         {
             if (hs == null)
@@ -54,11 +53,6 @@ public class SSLDecoder extends AbstractDecoder
             }
             if (hs == SSLEngineResult.HandshakeStatus.NEED_UNWRAP || hs == SSLEngineResult.HandshakeStatus.NEED_UNWRAP_AGAIN)
             {
-                if (need_send != null && need_send.remainRead() > 0)
-                {
-                    next.pipeline().fireWrite(need_send);
-                    need_send = null;
-                }
                 if (accumulation == null || accumulation.remainRead() == 0)
                 {
                     return;
@@ -204,11 +198,6 @@ public class SSLDecoder extends AbstractDecoder
             }
             else if (hs == SSLEngineResult.HandshakeStatus.NEED_TASK)
             {
-                if (need_send != null && need_send.remainRead() > 0)
-                {
-                    next.pipeline().fireWrite(need_send);
-                    need_send = null;
-                }
 
                 Runnable task;
                 while ((task = sslEngine.getDelegatedTask()) != null)
@@ -220,11 +209,6 @@ public class SSLDecoder extends AbstractDecoder
             }
             else if (hs == SSLEngineResult.HandshakeStatus.FINISHED)
             {
-                if (need_send != null && need_send.remainRead() > 0)
-                {
-                    next.pipeline().fireWrite(need_send);
-                    need_send = null;
-                }
                 log.debug("当前连接:{},当前步骤:{},握手成功，开始处理数据。当前状态:{}", remote, count++, hs);
                 handshakeFinished = true;
                 sslEncoder.setSslEngine(sslEngine);
