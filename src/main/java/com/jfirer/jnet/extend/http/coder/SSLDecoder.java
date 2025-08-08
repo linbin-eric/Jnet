@@ -96,15 +96,6 @@ public class SSLDecoder extends AbstractDecoder
                     else if (status == SSLEngineResult.Status.CLOSED)
                     {
                         dst.free();
-//                        if (closeInbound == false)
-//                        {
-//                            closeInbound = true;
-//                            sslEngine.closeInbound();
-//                            sslEngine.closeOutbound();
-//                            sslEncoder.setSslEngine(sslEngine);
-//                            next.pipeline().fireWrite(SSLCloseNotify.INSTANCE);
-//                        }
-//                        log.error("当前连接:{},当前步骤:{},握手阶段unwrap失败，状态为:{},因为ssl已关闭，握手结束。", remote, count, hs);
                         log.error("在握手阶段不应该出现close的状态，严重异常，系统退出");
                         System.exit(10);
                         return;
@@ -177,7 +168,6 @@ public class SSLDecoder extends AbstractDecoder
             }
             else if (hs == SSLEngineResult.HandshakeStatus.NEED_TASK)
             {
-
                 Runnable task;
                 while ((task = sslEngine.getDelegatedTask()) != null)
                 {
@@ -296,14 +286,13 @@ public class SSLDecoder extends AbstractDecoder
             sslEngine.closeInbound();
             sslEngine.closeOutbound();
             closeInbound = true;
-//            sslEncoder.setSslEngine(sslEngine);
-//            next.pipeline().fireWrite(SSLCloseNotify.INSTANCE);
+            sslEncoder.setSslEngine(sslEngine);
+            next.pipeline().fireWrite(SSLCloseNotify.INSTANCE);
         }
         catch (SSLException ex)
         {
             ;
         }
-        next.pipeline().shutdownInput();
         super.readFailed(e, next);
     }
 
