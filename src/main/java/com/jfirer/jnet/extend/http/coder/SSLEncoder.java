@@ -34,8 +34,13 @@ public class SSLEncoder implements WriteProcessor<Object>
         }
         else if (data instanceof SSLDecoder.SSLCloseNotify)
         {
+            int count =0;
             while (true)
             {
+                if (count++ > 10)
+                {
+                    log.error("严重循环错误");
+                }
                 IoBuffer dst = null;
                 try
                 {
@@ -61,6 +66,10 @@ public class SSLEncoder implements WriteProcessor<Object>
                     {
                         log.error("不会出现这个结果");
                         System.exit(3);
+                    }
+                    else if(status==SSLEngineResult.Status.CLOSED){
+                        dst.free();
+                        return;
                     }
                 }
                 catch (SSLException e)
