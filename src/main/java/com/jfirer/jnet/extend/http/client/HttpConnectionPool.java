@@ -70,7 +70,6 @@ public class HttpConnectionPool
             {
                 // 创建失败，回退计数
                 count.decrementAndGet();
-                log.error("创建连接失败: " + e.getMessage(), e);
                 throw new RuntimeException("创建连接失败: " + e.getMessage(), e);
             }
         }

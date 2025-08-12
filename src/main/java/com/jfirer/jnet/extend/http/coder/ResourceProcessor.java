@@ -1,7 +1,6 @@
 package com.jfirer.jnet.extend.http.coder;
 
 import com.jfirer.baseutil.IoUtil;
-import com.jfirer.baseutil.RuntimeJVM;
 import com.jfirer.jnet.common.api.ReadProcessor;
 import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.extend.http.dto.FullHttpResp;
@@ -22,11 +21,15 @@ public class ResourceProcessor implements ReadProcessor<HttpRequest>
     {
     }
 
-    private       ConcurrentMap<String, StaticResource> map      = new ConcurrentHashMap<>();
+    private       ConcurrentMap<String, StaticResource> map = new ConcurrentHashMap<>();
     private final String                                prefixPath;
-    private final boolean                               runInIDE = RuntimeJVM.detectRunningInJar();
+    private final boolean                               runInIDE;
 
-    public ResourceProcessor(String prefixPath) {this.prefixPath = prefixPath;}
+    public ResourceProcessor(String prefixPath, boolean runInIDE)
+    {
+        this.prefixPath = prefixPath;
+        this.runInIDE   = runInIDE;
+    }
 
     public void setNotFound(String url, HttpRequest httpRequest)
     {

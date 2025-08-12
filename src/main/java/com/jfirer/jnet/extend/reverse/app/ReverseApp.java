@@ -10,7 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +23,7 @@ public class ReverseApp
     {
         RuntimeJVM.registerMainClass();
         File file = new File(RuntimeJVM.getDirOfMainClass(), "reverse.config");
-        if (RuntimeJVM.detectRunningInJar())
+        if (RuntimeJVM.detectRunningInJar(ReverseApp.class))
         {
             RuntimeJVM.checkMainStart("ReverseApp", "ReverseApp-copy");
         }
@@ -82,6 +81,9 @@ public class ReverseApp
                 }
             }
         }
-        catch (IOException e) {}
+        catch (Throwable e)
+        {
+            log.error("启动失败", e);
+        }
     }
 }

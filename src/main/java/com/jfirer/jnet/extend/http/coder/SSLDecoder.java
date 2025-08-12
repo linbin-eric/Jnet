@@ -14,6 +14,8 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 @Slf4j
 @Data
@@ -131,7 +133,16 @@ public class SSLDecoder extends AbstractDecoder
                         ByteBuffer                byteBuffer                = dst.readableByteBuffer();
                         while (byteBuffer.hasRemaining())
                         {
-                            asynchronousSocketChannel.write(byteBuffer);
+                            Future<Integer> write = asynchronousSocketChannel.write(byteBuffer);
+                            try
+                            {
+                                write.get();
+                            }
+                            catch (InterruptedException | ExecutionException e)
+                            {
+                                log.error("写出数据异常");
+                                throw new RuntimeException(e);
+                            }
                         }
                         dst.free();
                         dst = null;
