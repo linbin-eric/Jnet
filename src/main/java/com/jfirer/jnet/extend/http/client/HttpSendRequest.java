@@ -39,6 +39,12 @@ public class HttpSendRequest
         return this;
     }
 
+    public HttpSendRequest delete()
+    {
+        method = "DELETE";
+        return this;
+    }
+
     public HttpSendRequest get()
     {
         method = "GET";
