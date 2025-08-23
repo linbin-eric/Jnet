@@ -71,6 +71,10 @@ public final class FileResourceHandler extends AbstractIOResourceHandler
 
     private static boolean isAbsolutePath(String path)
     {
+        if (path.length() == 0)
+        {
+            return false;
+        }
         char c = path.charAt(0);
         //这个地址是绝对路径
         return c == '/' || (c >= 'a' && c <= 'z' && path.charAt(1) == ':') || (c >= 'A' && c <= 'Z' && path.charAt(1) == ':');

@@ -1,32 +1,28 @@
 package com.jfirer.jnet.extend.http.coder;
 
-import com.jfirer.baseutil.STR;
+import com.jfirer.jnet.common.api.Pipeline;
 import com.jfirer.jnet.common.api.ReadProcessorNode;
 import com.jfirer.jnet.common.buffer.buffer.IoBuffer;
 import com.jfirer.jnet.common.coder.AbstractDecoder;
 import com.jfirer.jnet.common.util.DataIgnore;
 import lombok.Data;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLSession;
 import java.nio.ByteBuffer;
-import java.nio.channels.AsynchronousSocketChannel;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 @Slf4j
 @Data
 public class SSLDecoder extends AbstractDecoder
 {
-    private final SSLEngine  sslEngine;
-    private final SSLEncoder sslEncoder;
-    private       boolean    handshakeFinished = false;
-    private       int        count             = 1;
-    private       boolean    closeInbound      = false;
-    private       String     remote;
+    private final    SSLEngine sslEngine;
+    private          boolean   handshakeFinished = false;
+    private          int       count             = 1;
+    private volatile boolean   closeInbound      = false;
+    private          String    remote;
 
     @Override
     protected void process0(ReadProcessorNode next)
@@ -43,6 +39,26 @@ public class SSLDecoder extends AbstractDecoder
         {
             handshake(next, null);
         }
+    }
+
+    public synchronized void gracefulClose(Pipeline pipeline)
+    {
+        if (closeInbound)
+        {
+            return;
+        }
+        closeInbound = true;
+        try
+        {
+            sslEngine.closeInbound();
+        }
+        catch (SSLException e)
+        {
+            log.error("当前连接:{}已经结束", remote, e);
+        }
+        sslEngine.closeOutbound();
+        pipeline.fireWrite(new SSLProtocol().setCloseNotify(true));
+        pipeline.shutdownInput();
     }
 
     private void handshake(ReadProcessorNode next, SSLEngineResult.HandshakeStatus hs)
@@ -65,28 +81,22 @@ public class SSLDecoder extends AbstractDecoder
                 {
                     SSLEngineResult result        = sslEngine.unwrap(accumulation.readableByteBuffer(), dst.writableByteBuffer());
                     int             bytesConsumed = result.bytesConsumed();
-                    int             bytesProduced = result.bytesProduced();
                     accumulation.addReadPosi(bytesConsumed);
-                    dst.addWritePosi(bytesProduced);
-                    if (bytesProduced > 0)
-                    {
-                        log.warn("出现早期数据");
-                    }
+                    //握手阶段进行解密操作，数据不需要保留
+                    dst.free();
+                    dst = null;
                     SSLEngineResult.Status status = result.getStatus();
                     hs = result.getHandshakeStatus();
                     if (status == SSLEngineResult.Status.OK)
                     {
-                        dst.free();
                         log.debug("当前连接:{},当前步骤:{},握手阶段unwrap成功，后续阶段为:{}.剩余可以读取的长度是:{}", remote, count++, hs, accumulation.remainRead());
                     }
                     else if (status == SSLEngineResult.Status.BUFFER_OVERFLOW)
                     {
-                        dst.free();
-                        log.debug("当前连接:{},当前步骤:{},握手阶段unwrap失败，因为输出空间不足", remote, count++);
+                        log.debug("当前连接:{},当前步骤:{},握手阶段unwrap失败，因为输出空间不足，会进行重试。下一个步骤:{}", remote, count++, hs);
                     }
                     else if (status == SSLEngineResult.Status.BUFFER_UNDERFLOW)
                     {
-                        dst.free();
                         accumulation.compact();
                         if (accumulation.remainWrite() < 1000)
                         {
@@ -97,16 +107,20 @@ public class SSLDecoder extends AbstractDecoder
                     }
                     else if (status == SSLEngineResult.Status.CLOSED)
                     {
-                        dst.free();
-                        log.error("在握手阶段不应该出现close的状态，严重异常，系统退出");
-                        System.exit(10);
+                        log.warn("当前连接:{},当前步骤:{}在握手协议阶段，对端发送了SSL关闭消息。现在准备关闭整条连接。", remote, count);
+                        gracefulClose(next.pipeline());
                         return;
                     }
                 }
                 catch (SSLException e)
                 {
-                    log.error("当前连接:{},当前步骤:{},握手阶段unwrap失败，状态为:{},因为ssl异常，握手失败。后续状态为:{}.SSL错误原因:{}", remote, count, hs, sslEngine.getHandshakeStatus(), e.getMessage());
-                    dst.free();
+                    log.error("当前连接:{},当前步骤:{},握手阶段unwrap失败，状态为:{},因为ssl异常，握手失败。后续状态为:{}。SSL错误原因:{}。", remote, count++, hs, sslEngine.getHandshakeStatus(), e.getMessage(), e);
+                    if (dst != null)
+                    {
+                        dst.free();
+                        dst = null;
+                    }
+                    //出现致命错误，不需要优雅关闭
                     next.pipeline().shutdownInput();
                     return;
                 }
@@ -119,62 +133,55 @@ public class SSLDecoder extends AbstractDecoder
                     SSLEngineResult result        = sslEngine.wrap(ByteBuffer.allocate(0), dst.writableByteBuffer());
                     int             bytesProduced = result.bytesProduced();
                     int             bytesConsumed = result.bytesConsumed();
+                    dst.addWritePosi(bytesProduced);
                     if (bytesConsumed > 0)
                     {
                         log.error("当前连接:{},当前步骤:{},当前状态:{},wrap时消耗了数据:{}", remote, count++, hs, bytesConsumed);
                     }
-                    dst.addWritePosi(bytesProduced);
+                    if (bytesProduced > 0)
+                    {
+                        next.pipeline().fireWrite(new SSLProtocol().setData(dst));
+                    }
+                    else
+                    {
+                        dst.free();
+                    }
+                    dst = null;
                     log.debug("当前连接:{},当前步骤:{},本次wrap，消耗了读取长度:{}，产生的写出长度:{}", remote, count++, bytesConsumed, bytesProduced);
                     SSLEngineResult.Status status = result.getStatus();
                     hs = result.getHandshakeStatus();
                     if (status == SSLEngineResult.Status.OK)
                     {
-                        AsynchronousSocketChannel asynchronousSocketChannel = next.pipeline().socketChannel();
-                        ByteBuffer                byteBuffer                = dst.readableByteBuffer();
-                        while (byteBuffer.hasRemaining())
-                        {
-                            Future<Integer> write = asynchronousSocketChannel.write(byteBuffer);
-                            try
-                            {
-                                write.get();
-                            }
-                            catch (InterruptedException | ExecutionException e)
-                            {
-                                log.error("写出数据异常");
-                                throw new RuntimeException(e);
-                            }
-                        }
-                        dst.free();
-                        dst = null;
                         log.debug("当前连接:{},当前步骤:{},握手阶段wrap成功,后续阶段为:{}", remote, count++, hs);
                     }
                     else if (status == SSLEngineResult.Status.BUFFER_OVERFLOW)
                     {
                         log.warn("当前连接:{},当前步骤:{},握手阶段wrap失败，因为输出空间不足，扩容后继续。", remote, count);
-                        dst.free();
-                        dst = null;
                     }
                     else if (status == SSLEngineResult.Status.BUFFER_UNDERFLOW)
                     {
-                        log.error("当前连接:{},当前步骤:{},握手阶段wrap失败，因为输入空间不足，继续尝试。", remote, count);
-                        dst.free();
-                        dst = null;
                         log.error("握手的输出阶段不应该出现这种情况才对");
                         System.exit(3);
                         return;
                     }
                     else if (status == SSLEngineResult.Status.CLOSED)
                     {
-                        log.error("在握手阶段不应该出现close的状态，严重异常，系统退出");
-                        System.exit(10);
+                        log.warn("当前连接:{},当前步骤:{}在握手协议阶段，对端发送了SSL关闭消息。现在准备关闭整条连接。", remote, count);
+                        gracefulClose(next.pipeline());
                         return;
                     }
                 }
                 catch (SSLException e)
                 {
-                    dst.free();
+                    if (dst != null)
+                    {
+                        dst.free();
+                        dst = null;
+                    }
                     log.error("当前连接:{},当前步骤:{},握手阶段wrap失败，状态为:{},因为ssl异常，握手失败。当前状态为:{},后续状态为:{}", remote, count, hs, sslEngine.getHandshakeStatus(), e);
+                    //出现致命错误，不需要优雅关闭
                     next.pipeline().shutdownInput();
+                    return;
                 }
             }
             else if (hs == SSLEngineResult.HandshakeStatus.NEED_TASK)
@@ -191,15 +198,15 @@ public class SSLDecoder extends AbstractDecoder
             {
                 log.debug("当前连接:{},当前步骤:{},握手成功，开始处理数据。当前状态:{}", remote, count++, hs);
                 handshakeFinished = true;
-                sslEncoder.setSslEngine(sslEngine);
                 log.debug("当前连接:{},当前步骤:{},握手成功，开始处理数据。当前剩余数据长度:{}", remote, count++, accumulation.remainRead());
                 handData(next);
                 return;
             }
             else if (hs == SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING)
             {
-                log.error("严重异常");
-                System.exit(100);
+                log.debug("当前连接:{},还在握手期间，却退出了握手，说明本次连接终止，当前步骤:{}", remote, count++);
+                gracefulClose(next.pipeline());
+                return;
             }
         }
     }
@@ -218,19 +225,27 @@ public class SSLDecoder extends AbstractDecoder
             {
                 IoBuffer dst = next.pipeline().allocator().allocate(sslEngine.getSession().getApplicationBufferSize());
                 log.debug("当前连接:{},当前步骤:{},数据处理阶段开始。当前长度为:{},当前状态:{}", remote, count++, accumulation.remainRead(), sslEngine.getHandshakeStatus());
-                SSLEngineResult        result = sslEngine.unwrap(accumulation.readableByteBuffer(), dst.writableByteBuffer());
-                SSLEngineResult.Status status = result.getStatus();
-                log.debug("当前连接:{},当前步骤:{},数据处理阶段unwrap开始，消耗长度为:{}，产生长度为:{}", remote, count++, result.bytesConsumed(), result.bytesProduced());
+                SSLEngineResult        result        = sslEngine.unwrap(accumulation.readableByteBuffer(), dst.writableByteBuffer());
+                SSLEngineResult.Status status        = result.getStatus();
+                int                    bytesProduced = result.bytesProduced();
+                accumulation.addReadPosi(result.bytesConsumed());
+                dst.addWritePosi(bytesProduced);
+                if (bytesProduced > 0)
+                {
+                    next.fireRead(dst);
+                }
+                else
+                {
+                    dst.free();
+                }
+                dst = null;
+                log.debug("当前连接:{},当前步骤:{},数据处理阶段unwrap开始，消耗长度为:{}，产生长度为:{}", remote, count++, result.bytesConsumed(), bytesProduced);
                 if (status == SSLEngineResult.Status.OK)
                 {
-                    accumulation.addReadPosi(result.bytesConsumed());
-                    dst.addWritePosi(result.bytesProduced());
-                    log.debug("当前连接:{},当前步骤:{},数据处理阶段unwrap成功，消耗数据长度:{},当前状态:{}", remote, count++, result.bytesConsumed(), result.getHandshakeStatus());
-                    next.fireRead(dst);
-                    dst = null;
+                    log.debug("当前连接:{},当前步骤:{},数据处理阶段unwrap成功，消耗数据长度:{},下一步骤:{}", remote, count++, result.bytesConsumed(), result.getStatus());
                     if (accumulation.remainRead() > 0)
                     {
-                        log.debug("当前连接:{},当前步骤:{},数据处理阶段unwrap成功，还有剩余数据:{}可以处理，继续。当前状态:{}", remote, count++, accumulation.remainRead(), result.getHandshakeStatus());
+                        log.debug("当前连接:{},当前步骤:{},数据处理阶段unwrap成功，还有剩余数据:{}可以处理，继续。下一步骤:{}", remote, count++, accumulation.remainRead(), result.getStatus());
                         //还有数据可以处理，申请下一个空间
                         ;
                     }
@@ -244,12 +259,6 @@ public class SSLDecoder extends AbstractDecoder
                 }
                 else if (status == SSLEngineResult.Status.BUFFER_OVERFLOW)
                 {
-                    SSLSession session = sslEngine.getSession();
-                    int        need    = Math.max(session.getApplicationBufferSize(), session.getPacketBufferSize()) - dst.remainWrite();
-                    if (need > 0)
-                    {
-                        dst.capacityReadyFor(dst.capacity() + need);
-                    }
                     log.warn("当前连接:{},当前步骤:{},数据处理阶段unwrap失败，因为输出空间不足，扩容后继续。", remote, count++);
                 }
                 else if (status == SSLEngineResult.Status.BUFFER_UNDERFLOW)
@@ -260,24 +269,12 @@ public class SSLDecoder extends AbstractDecoder
                         accumulation.capacityReadyFor(sslEngine.getSession().getPacketBufferSize());
                     }
                     log.debug("当前连接:{},当前步骤:{},数据处理阶段unwrap失败，因为输入空间不足，继续。", remote, count++);
-                    dst.free();
-                    dst = null;
                     return;
                 }
                 else if (status == SSLEngineResult.Status.CLOSED)
                 {
                     log.debug("当前连接:{},当前步骤:{},数据处理阶段unwrap失败，因为ssl已关闭，握手结束。", remote, count++);
-                    accumulation.addReadPosi(result.bytesConsumed());
-                    dst.free();
-                    dst = null;
-                    if (closeInbound == false)
-                    {
-                        sslEngine.closeInbound();
-                        sslEngine.closeOutbound();
-                        closeInbound = true;
-                        sslEncoder.setSslEngine(sslEngine);
-                        next.pipeline().fireWrite(SSLCloseNotify.INSTANCE);
-                    }
+                    gracefulClose(next.pipeline());
                     return;
                 }
             }
@@ -285,30 +282,31 @@ public class SSLDecoder extends AbstractDecoder
         catch (SSLException e)
         {
             log.debug("当前连接:{},当前步骤:{},数据处理阶段unwrap失败，因为ssl异常，握手结束。", remote, count);
-            throw new RuntimeException(STR.format("当前连接:{},当前步骤:{},数据处理阶段unwrap失败，因为ssl异常，握手结束。", remote, count), e);
+            //出现致命错误，不需要优雅关闭
+            next.pipeline().shutdownInput();
         }
     }
 
     @Override
     public void readFailed(Throwable e, ReadProcessorNode next)
     {
-        try
+        if (accumulation != null)
         {
-            sslEngine.closeInbound();
-            sslEngine.closeOutbound();
-            closeInbound = true;
-            sslEncoder.setSslEngine(sslEngine);
-            next.pipeline().fireWrite(SSLCloseNotify.INSTANCE);
-        }
-        catch (SSLException ex)
-        {
-            ;
+            accumulation.free();
+            accumulation = null;
         }
         super.readFailed(e, next);
     }
 
-    public static class SSLCloseNotify implements DataIgnore
+    @Data
+    @Accessors(chain = true)
+    public static class SSLProtocol implements DataIgnore
     {
-        public static SSLCloseNotify INSTANCE = new SSLCloseNotify();
+        /**
+         * 当为true的时候，意味着是关闭ssl连接，需要发送端生成close_notify消息。
+         * 当为false的时候，意味着有数据需要发出
+         */
+        private boolean  closeNotify = false;
+        private IoBuffer data;
     }
 }
