@@ -77,19 +77,44 @@ public class DefaultWriteCompleteHandler extends AtomicInteger implements WriteC
 
     public void noticeClose()
     {
-        int now = state;
-        switch (now)
+        while (true)
         {
-            case OPEN_IDLE ->
+            int now = state;
+            switch (now)
             {
-                if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, OPEN_IDLE, NOTICE_IDLE))
+                case OPEN_IDLE ->
+                {
+                    if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, OPEN_IDLE, NOTICE_IDLE))
+                    {
+                        //通知成功，尝试进入工作状态来关闭
+                        tryWork();
+                        return;
+                    }
+                    else
+                    {
+                        //通知失败，继续尝试通知
+                    }
+                }
+
+                case OPEN_WORK ->
+                {
+                    if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, OPEN_WORK, NOTICE_WORK))
+                    {
+                        //通知成功，别的线程已经在工作中，交给该线程即可。
+                        return;
+                    }
+                    else
+                    {
+                        //通知失败，继续尝试通知
+                    }
+                }
+                case NOTICE_IDLE ->
                 {
                     tryWork();
+                    return;
                 }
+                case NOTICE_WORK -> {return;}
             }
-            case OPEN_WORK -> UNSAFE.compareAndSwapInt(this, STATE_OFFSET, OPEN_WORK, NOTICE_WORK);
-            case NOTICE_IDLE -> tryWork();
-            case NOTICE_WORK -> {;}
         }
     }
 
@@ -177,7 +202,15 @@ public class DefaultWriteCompleteHandler extends AtomicInteger implements WriteC
                         log.error("系统状态故障");
                         System.exit(108);
                     }
-                    quitToIdle();
+                    if (queue.isEmpty())
+                    {
+                        closeChannel(new EndOfStreamException());
+                        quitToIdle();
+                    }
+                    else
+                    {
+                        writeQueuedBuffer();
+                    }
                 }
             }
             case NOTICE_WORK ->

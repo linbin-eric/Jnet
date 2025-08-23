@@ -161,7 +161,7 @@ public class AdaptiveReadCompletionHandler implements CompletionHandler<Integer,
             ioBuffer.free();
         }
         /**
-         * 这些方法只能在这里被调用，因为InternalPipeline#fireReadFailed(java.lang.Throwable)方法可能在多个地方被调用，这样可能会违背当前的线程模型。
+         * fireReadFailed方法只能在这里被调用，因为InternalPipeline#fireReadFailed(java.lang.Throwable)方法可能在多个地方被调用，这样可能会违背当前的线程模型。
          * 在这个地方调用保证了这些方法的起点都是当前的线程.
          */
         pipeline.fireReadFailed(e);
