@@ -1,0 +1,9 @@
+package cc.jfire.jnet.extend.http.coder;
+
+public class ContentType
+{
+    public static final String APPLICATION_JSON = "application/json; charset=utf-8";
+    public static final String STREAM           = "application/octet-stream";
+    public static final String DISPOSITION      = "Content-Disposition";
+    public static final String TEXT             = "text/plain; charset=utf-8";
+}

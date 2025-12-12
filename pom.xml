@@ -2,19 +2,36 @@
 <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.jfirer</groupId>
-    <artifactId>jnet</artifactId>
-    <version>1.0.2-SNAPSHOT</version>
+    <groupId>cc.jfire</groupId>
+    <artifactId>Jnet</artifactId>
+    <version>1.0</version>
     <name>jnet</name>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>21</maven.compiler.release>
     </properties>
+    <scm>
+        <url>https://github.com/linbin-eric/Jnet</url>
+    </scm>
+    <url>https://github.com/linbin-eric/Jnet</url>
+    <developers>
+        <developer>
+            <name>jfirer</name>
+            <email>495561397@qq.com</email>
+        </developer>
+    </developers>
+    <licenses>
+        <license>
+            <name>GNU Affero General Public License v3.0</name>
+            <url>https://www.gnu.org/licenses/agpl-3.0.txt</url>
+        </license>
+    </licenses>
+    <description>A high-performance network communication framework based on Java</description>
     <dependencies>
         <dependency>
-            <groupId>com.jfirer</groupId>
+            <groupId>cc.jfire</groupId>
             <artifactId>baseutil</artifactId>
-            <version>1.1.12-SNAPSHOT</version>
+            <version>1.0</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -93,31 +110,46 @@
                 </executions>
             </plugin>
             <plugin>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <version>0.9.0</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <publishingServerId>central</publishingServerId>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <version>3.6.0</version>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.6.3</version>
                 <executions>
                     <execution>
-                        <id>make-assembly-ReverseApp</id>
-                        <phase>package</phase>
+                        <id>attach-javadocs</id>
                         <goals>
-                            <goal>single</goal>
+                            <goal>jar</goal>
                         </goals>
-                        <configuration>
-                            <finalName>ReverseApp</finalName>
-                            <appendAssemblyId>false</appendAssemblyId>
-                            <archive>
-                                <manifest>
-                                    <mainClass>com.jfirer.jnet.extend.reverse.app.ReverseApp</mainClass>
-                                </manifest>
-                            </archive>
-                            <descriptorRefs>
-                                <descriptorRef>jar-with-dependencies</descriptorRef>
-                            </descriptorRefs>
-                            <attach>false</attach>
-                        </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>3.2.4</version>   <!-- 2025年最新版 -->
+                <executions>
+                    <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <gpgArguments>
+                        <arg>--pinentry-mode</arg>
+                        <arg>loopback</arg>
+                    </gpgArguments>
+                </configuration>
             </plugin>
         </plugins>
     </build>

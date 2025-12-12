@@ -13,7 +13,7 @@
  */
 package org.jctools.util;
 
-import com.jfirer.jnet.common.util.UNSAFE;
+import cc.jfire.jnet.common.util.UNSAFE;
 
 import java.util.function.LongBinaryOperator;
 import java.util.function.LongUnaryOperator;

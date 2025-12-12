@@ -1,0 +1,77 @@
+package cc.jfire.jnet.common.buffer;
+
+import cc.jfire.jnet.common.buffer.allocator.impl.PooledBufferAllocator;
+import cc.jfire.jnet.common.buffer.arena.Arena;
+import cc.jfire.jnet.common.buffer.arena.Chunk;
+import cc.jfire.jnet.common.buffer.arena.ChunkList;
+import cc.jfire.jnet.common.buffer.buffer.BufferType;
+import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
+import cc.jfire.jnet.common.util.UNSAFE;
+import org.junit.Test;
+
+import java.util.LinkedList;
+import java.util.Queue;
+
+import static org.junit.Assert.*;
+
+public class ChunkListTest
+{
+    PooledBufferAllocator allocatorDirect = new PooledBufferAllocator(100, true, new Arena("1", BufferType.UNSAFE));
+    PooledBufferAllocator allocatorHeap   = new PooledBufferAllocator(100, false, new Arena("2", BufferType.HEAP));
+    private final long c100Offset = UNSAFE.getFieldOffset("c100", Arena.class);
+    private final long c075Offset = UNSAFE.getFieldOffset("c075", Arena.class);
+    private final long c050Offset = UNSAFE.getFieldOffset("c050", Arena.class);
+    private final long c025Offset = UNSAFE.getFieldOffset("c025", Arena.class);
+    private final long c000Offset = UNSAFE.getFieldOffset("c000", Arena.class);
+    private final long cIntOffset = UNSAFE.getFieldOffset("cInt", Arena.class);
+
+    @Test
+    public void test0()
+    {
+        test0(allocatorDirect);
+        test0(allocatorHeap);
+    }
+
+    private void test0(PooledBufferAllocator allocator)
+    {
+        int             chunkSize = PooledBufferAllocator.PAGESIZE << PooledBufferAllocator.MAXLEVEL;
+        int             size      = chunkSize >> 2;
+        Queue<IoBuffer> buffers   = new LinkedList<>();
+        for (int i = 0; i < 4; i++)
+        {
+            IoBuffer buffer = allocator.allocate(size);
+            if (i != 3)
+            {
+                buffers.add(buffer);
+            }
+        }
+        Arena         arena  = allocator.getArena();
+        ChunkList     c100   = (ChunkList) UNSAFE.getObject(arena, c100Offset);
+        Chunk chunk1 = c100.head();
+        for (int i = 0; i < 4; i++)
+        {
+            IoBuffer buffer = allocator.allocate(size);
+            if (i != 3)
+            {
+                buffers.add(buffer);
+            }
+        }
+        Chunk chunk2 = c100.head();
+        assertNotSame(chunk1, chunk2);
+        while (!buffers.isEmpty())
+        {
+            buffers.poll().free();
+        }
+        assertSame(chunk2.getNext(), chunk1);
+        allocator.allocate(size);
+        allocator.allocate(size);
+        assertEquals(75, chunk2.usage());
+        allocator.allocate(size << 1);
+        assertEquals(75, chunk1.usage());
+        allocator.allocate(size << 1);
+        ChunkList c000   = (ChunkList) UNSAFE.getObject(arena, c000Offset);
+        Chunk     chunk3 = c000.head();
+        assertNotNull(chunk3);
+        assertEquals(50, chunk3.usage());
+    }
+}

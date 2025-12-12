@@ -13,7 +13,7 @@
  */
 package org.jctools.queues;
 
-import com.jfirer.jnet.common.util.UNSAFE;
+import cc.jfire.jnet.common.util.UNSAFE;
 
 public final class LinkedQueueNode<E>
 {
