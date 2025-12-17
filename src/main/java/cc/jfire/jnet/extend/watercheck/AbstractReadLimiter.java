@@ -22,7 +22,7 @@ public abstract class AbstractReadLimiter extends AtomicInteger implements ReadL
     }
 
     @Override
-    public void onRegister(AdaptiveReadCompletionHandler readCompletionHandler, Pipeline pipeline)
+    public void onNeedRegister(AdaptiveReadCompletionHandler readCompletionHandler, Pipeline pipeline)
     {
         long capacity = getLimitSize();
         if (capacity == -1 || capacity < LIMIT)

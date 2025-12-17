@@ -113,7 +113,7 @@ public class AdaptiveReadCompletionHandler implements CompletionHandler<Integer,
             System.err.println("读取到了0");
         }
         ioBuffer = nextReadBuffer(except, read);
-        readListener.onRegister(this, pipeline);
+        readListener.onNeedRegister(this, pipeline);
     }
 
     public void registerRead()

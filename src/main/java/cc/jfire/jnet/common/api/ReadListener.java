@@ -8,7 +8,12 @@ public interface ReadListener
     {
     };
 
-    default void onRegister(AdaptiveReadCompletionHandler readCompletionHandler, Pipeline pipeline)
+    /**
+     * 当需要注册读取的时候触发该方法
+     * @param readCompletionHandler
+     * @param pipeline
+     */
+    default void onNeedRegister(AdaptiveReadCompletionHandler readCompletionHandler, Pipeline pipeline)
     {
         readCompletionHandler.registerRead();
     }

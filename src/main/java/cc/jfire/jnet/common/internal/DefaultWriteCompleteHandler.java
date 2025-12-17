@@ -11,7 +11,7 @@ import cc.jfire.jnet.common.util.ChannelConfig;
 import cc.jfire.jnet.common.util.UNSAFE;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.jctools.queues.SpscLinkedQueue;
+import org.jctools.queues.MpscLinkedQueue;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -51,7 +51,7 @@ public class DefaultWriteCompleteHandler extends AtomicInteger implements WriteC
         ChannelConfig channelConfig = pipeline.channelConfig();
         this.allocator     = pipeline.allocator();
         this.maxWriteBytes = Math.max(1024 * 1024, channelConfig.getMaxBatchWrite());
-        queue              = new SpscLinkedQueue<>();
+        queue              = new MpscLinkedQueue<>();
         set(OPEN);
     }
 
