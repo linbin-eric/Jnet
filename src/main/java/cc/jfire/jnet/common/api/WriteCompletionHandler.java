@@ -2,10 +2,13 @@ package cc.jfire.jnet.common.api;
 
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 
-import java.nio.ByteBuffer;
-import java.nio.channels.CompletionHandler;
-
-public interface WriteCompletionHandler extends CompletionHandler<Integer, ByteBuffer>
+public interface WriteCompletionHandler
 {
     void write(IoBuffer buffer);
+
+    void noticeClose();
+
+    int get();
+
+    void setWriteListener(WriteListener writeListener);
 }

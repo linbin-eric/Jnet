@@ -1,14 +1,15 @@
 package cc.jfire.jnet.common.internal;
 
+import cc.jfire.jnet.common.api.WriteCompletionHandler;
 import cc.jfire.jnet.common.api.WriteProcessor;
 import cc.jfire.jnet.common.api.WriteProcessorNode;
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 
 public class TailWriteProcessor implements WriteProcessor
 {
-    private final DefaultWriteCompleteHandler writeCompleteHandler;
+    private final WriteCompletionHandler writeCompleteHandler;
 
-    public TailWriteProcessor(DefaultWriteCompleteHandler writeCompleteHandler)
+    public TailWriteProcessor(WriteCompletionHandler writeCompleteHandler)
     {
         this.writeCompleteHandler = writeCompleteHandler;
     }

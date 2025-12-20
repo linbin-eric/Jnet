@@ -18,7 +18,7 @@ public class DefaultPipeline implements InternalPipeline
     private       ReadProcessorNode             readHead;
     private  WriteProcessorNode                     writeHead;
     private       AdaptiveReadCompletionHandler adaptiveReadCompletionHandler;
-    private       DefaultWriteCompleteHandler   writeCompleteHandler;
+    private       WriteCompletionHandler   writeCompleteHandler;
     @Setter
     @Getter
     private       ReadListener                  readListener  = ReadListener.INSTANCE;
