@@ -16,6 +16,8 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
     private static final byte                                                      LF                         = (byte) '\n';
     private static final int                                                       HTTP_VERSION_PREFIX_LENGTH = 9; // "HTTP/1.1 "
     private static final int                                                       HTTP_CODE_LENGTH           = 3;
+    private static final int                                                       MAX_CHUNK_SIZE_LINE_LENGTH = 32;
+    private static final int                                                       CHUNK_TRAILING_CRLF_LENGTH = 2;
     private final        byte[]                                                    httpCode                   = new byte[HTTP_CODE_LENGTH];
     private              HttpReceiveResponse                                       receiveResponse;
     private              ParseState                                                state                      = ParseState.RESPONSE_LINE;
@@ -59,34 +61,45 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
             {
                 for (int i = accumulation.getReadPosi(); i < accumulation.getWritePosi() - 1; i++)
                 {
+                    if (i - accumulation.getReadPosi() > MAX_CHUNK_SIZE_LINE_LENGTH)
+                    {
+                        throw new IllegalStateException("Chunk size line exceeds " + MAX_CHUNK_SIZE_LINE_LENGTH + " bytes");
+                    }
                     if (accumulation.get(i) == CR && accumulation.get(i + 1) == LF)
                     {
-                        chunkSize         = Integer.parseInt(StandardCharsets.US_ASCII.decode(accumulation.readableByteBuffer(i)).toString(), 16);
-                        chunkHeaderLength = i + 2 - accumulation.getReadPosi();
+                        try
+                        {
+                            chunkSize = Integer.parseInt(StandardCharsets.US_ASCII.decode(accumulation.readableByteBuffer(i)).toString().trim(), 16);
+                        }
+                        catch (NumberFormatException e)
+                        {
+                            throw new IllegalStateException("Invalid chunk size format", e);
+                        }
+                        chunkHeaderLength = i + CHUNK_TRAILING_CRLF_LENGTH - accumulation.getReadPosi();
                         break;
                     }
                 }
             }
-            if (chunkSize == -1 || (chunkSize > 0 && accumulation.remainRead() < chunkHeaderLength + chunkSize + 2))
+            if (chunkSize == -1 || (chunkSize > 0 && accumulation.remainRead() < chunkHeaderLength + chunkSize + CHUNK_TRAILING_CRLF_LENGTH))
             {
                 return false;
             }
             else if (chunkSize > 0)
             {
-                receiveResponse.addPartOfBody(new ChunkedPart(chunkHeaderLength, chunkSize, accumulation.slice(chunkHeaderLength + chunkSize + 2)));
+                receiveResponse.addPartOfBody(new ChunkedPart(chunkHeaderLength, chunkSize, accumulation.slice(chunkHeaderLength + chunkSize + CHUNK_TRAILING_CRLF_LENGTH)));
                 chunkSize = -1;
                 return true;
             }
             else if (chunkSize == 0)
             {
-                receiveResponse.addPartOfBody(new ChunkedPart(chunkHeaderLength, 0, accumulation.slice(chunkHeaderLength + 2)));
+                receiveResponse.addPartOfBody(new ChunkedPart(chunkHeaderLength, 0, accumulation.slice(chunkHeaderLength + CHUNK_TRAILING_CRLF_LENGTH)));
                 chunkSize = -1;
                 endThisRound();
                 return false;
             }
             else
             {
-                throw new IllegalArgumentException();
+                throw new IllegalArgumentException("Chunk size cannot be negative: " + chunkSize);
             }
         } while (true);
     }
@@ -109,7 +122,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
         }
         else
         {
-            throw new IllegalStateException();
+            throw new IllegalStateException("Body content length mismatch: expected " + receiveResponse.getContentLength() + " bytes, but got more data");
         }
     }
 
@@ -123,7 +136,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
         {
             if (accumulation.remainRead() != 0)
             {
-                throw new IllegalStateException();
+                throw new IllegalStateException("Accumulation buffer should be fully consumed at the end of response");
             }
             accumulation.free();
             accumulation = null;
@@ -137,21 +150,13 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
             if (accumulation.get(lastCheck) == CR && accumulation.get(lastCheck + 1) == LF && accumulation.get(lastCheck + 2) == CR && accumulation.get(lastCheck + 3) == LF)
             {
                 lastCheck = -1;
-                state     = ParseState.BODY;
-                break;
+                HttpDecodeUtil.findAllHeaders(accumulation, receiveResponse::putHeader);
+                parseBodyType();
+                next.fireRead(receiveResponse);
+                return true;
             }
         }
-        if (state == ParseState.BODY)
-        {
-            HttpDecodeUtil.findAllHeaders(accumulation, receiveResponse::putHeader);
-            parseBodyType();
-            next.fireRead(receiveResponse);
-            return true;
-        }
-        else
-        {
-            return false;
-        }
+        return false;
     }
 
     private void parseBodyType()
@@ -160,7 +165,16 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
         HttpDecodeUtil.findContentLength(receiveResponse.getHeaders(), receiveResponse::setContentLength);
         if (receiveResponse.getContentLength() == 0)
         {
-            if (receiveResponse.getHeaders().entrySet().stream().noneMatch(entry -> entry.getKey().equalsIgnoreCase("Transfer-Encoding")))
+            boolean hasTransferEncoding = false;
+            for (java.util.Map.Entry<String, String> entry : receiveResponse.getHeaders().entrySet())
+            {
+                if (entry.getKey().equalsIgnoreCase("Transfer-Encoding"))
+                {
+                    hasTransferEncoding = true;
+                    break;
+                }
+            }
+            if (!hasTransferEncoding)
             {
                 state = ParseState.NO_BODY;
             }
@@ -213,6 +227,6 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
 
     enum ParseState
     {
-        RESPONSE_LINE, HEADER, BODY, NO_BODY, BODY_FIX_LENGTH, BODY_CHUNKED
+        RESPONSE_LINE, HEADER, NO_BODY, BODY_FIX_LENGTH, BODY_CHUNKED
     }
 }
