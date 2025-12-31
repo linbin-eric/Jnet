@@ -136,7 +136,8 @@ public class HttpsServer {
 
             // 添加处理器链
             pipeline.addReadProcessor(sslDecoder);
-            pipeline.addReadProcessor(new HttpRequestDecoder());
+            pipeline.addReadProcessor(new HttpReqPartDecoder());
+            pipeline.addReadProcessor(new AggregationHttpReqDecoder());
             pipeline.addReadProcessor(new ReadProcessor<HttpRequest>() {
                 @Override
                 public void read(HttpRequest request, ReadProcessorNode next) {
@@ -226,7 +227,8 @@ ChannelConfig config = new ChannelConfig()
 
 | 类名 | 说明 |
 |------|------|
-| `HttpRequestDecoder` | HTTP 请求解码器 |
+| `HttpReqPartDecoder` | HTTP 分段解码器（支持 chunked） |
+| `AggregationHttpReqDecoder` | HTTP 请求聚合器（组装 HttpRequest） |
 | `HttpRespEncoder` | HTTP 响应编码器 |
 | `SSLDecoder` / `SSLEncoder` | SSL/TLS 编解码器 |
 

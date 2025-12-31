@@ -1,22 +1,14 @@
 package cc.jfire.jnet.extend.reverse.proxy.api.handler;
 
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceHandler;
-import cc.jfire.jnet.client.ClientChannel;
 import cc.jfire.jnet.common.api.Pipeline;
-import cc.jfire.jnet.common.api.ReadProcessor;
-import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
-import cc.jfire.jnet.common.coder.HeartBeat;
-import cc.jfire.jnet.common.util.ChannelConfig;
 import cc.jfire.jnet.extend.http.client.HttpClient;
 import cc.jfire.jnet.extend.http.client.HttpReceiveResponse;
 import cc.jfire.jnet.extend.http.client.HttpSendRequest;
 import cc.jfire.jnet.extend.http.client.Part;
 import cc.jfire.jnet.extend.http.dto.HttpRequest;
 import cc.jfire.jnet.extend.http.dto.FullHttpResp;
-
-import java.net.ConnectException;
-import java.nio.charset.StandardCharsets;
 
 public sealed abstract class ProxyHttpHandler implements ResourceHandler permits PrefixMatchProxyHttpHandler, FullMatchProxyHttpHandler
 {
@@ -57,66 +49,5 @@ public sealed abstract class ProxyHttpHandler implements ResourceHandler permits
         {
             throw new RuntimeException(e);
         }
-    }
-
-    protected void proxyBackendUrl2(HttpRequest request, Pipeline pipeline, String backendUrl) throws ConnectException
-    {
-        int index       = 0;
-        int domainStart = 0;
-        if (backendUrl.startsWith("http://"))
-        {
-            index       = backendUrl.indexOf("/", 8);
-            domainStart = 7;
-        }
-        else if (backendUrl.startsWith("https://"))
-        {
-            index       = backendUrl.indexOf("/", 9);
-            domainStart = 8;
-        }
-        if (index == -1)
-        {
-            index = backendUrl.length();
-        }
-        int      portStart = backendUrl.indexOf(':', domainStart);
-        String   path      = index == backendUrl.length() ? "/" : backendUrl.substring(index);
-        int      port      = portStart == -1 ? 80 : Integer.parseInt(backendUrl.substring(portStart + 1, index));
-        String   domain    = portStart == -1 ? backendUrl.substring(domainStart, index) : backendUrl.substring(domainStart, portStart);
-        IoBuffer buffer    = pipeline.allocator().allocate(1024);
-        buffer.put((request.getMethod() + " " + path + " HTTP/1.1\r\n").getBytes(StandardCharsets.US_ASCII));
-        IoBuffer originBuffer = request.getWholeRequest();
-        originBuffer.addReadPosi(request.getLineLength());
-        buffer.put(originBuffer);
-        request.close();
-        ClientChannel clientChannel = (ClientChannel) pipeline.getAttach();
-        if (clientChannel == null || clientChannel.alive() == false)
-        {
-            clientChannel = ClientChannel.newClient(new ChannelConfig().setIp(domain).setPort(port), backend -> {
-                backend.addReadProcessor(new HeartBeat(60 * 300, backend));
-                backend.addReadProcessor(new ReadProcessor<IoBuffer>()
-                {
-                    @Override
-                    public void read(IoBuffer data, ReadProcessorNode next)
-                    {
-                        pipeline.fireWrite(data);
-                    }
-
-                    @Override
-                    public void readFailed(Throwable e, ReadProcessorNode next)
-                    {
-                        pipeline.shutdownInput();
-                    }
-                });
-            });
-            if (clientChannel.connect())
-            {
-                ;
-            }
-            else
-            {
-                pipeline.shutdownInput();
-                throw new ConnectException(backendUrl + "无法联通");
-            }
-        }
-        clientChannel.pipeline().fireWrite(buffer);
     }
 }

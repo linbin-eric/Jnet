@@ -96,7 +96,8 @@ public class ReverseProxyServer
                     SSLDecoder sslDecoder = new SSLDecoder(sslEngine);
                     SSLEncoder sslEncoder = new SSLEncoder(sslEngine, sslDecoder);
                     pipeline.addReadProcessor(sslDecoder);
-                    pipeline.addReadProcessor(new HttpRequestDecoder());
+                    pipeline.addReadProcessor(new HttpReqPartDecoder());
+                    pipeline.addReadProcessor(new AggregationHttpReqDecoder());
                     pipeline.addReadProcessor(new TransferProcessor(configs));
                     pipeline.addWriteProcessor(new CorsEncoder());
                     pipeline.addWriteProcessor(new HttpRespEncoder(pipeline.allocator()));
@@ -113,7 +114,8 @@ public class ReverseProxyServer
         else
         {
             Consumer<Pipeline> s = pipeline -> {
-                pipeline.addReadProcessor(new HttpRequestDecoder());
+                pipeline.addReadProcessor(new HttpReqPartDecoder());
+                pipeline.addReadProcessor(new AggregationHttpReqDecoder());
                 pipeline.addReadProcessor(new TransferProcessor(configs));
                 pipeline.addWriteProcessor(new CorsEncoder());
                 pipeline.addWriteProcessor(new HttpRespEncoder(pipeline.allocator()));

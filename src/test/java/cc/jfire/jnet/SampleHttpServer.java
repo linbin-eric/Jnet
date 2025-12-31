@@ -50,7 +50,8 @@ public class SampleHttpServer
                 SSLEncoder sslEncoder        = new SSLEncoder(sslEngine, sslRequestDecoder);
                 sslEngine.beginHandshake();
                 pipeline.addReadProcessor(sslRequestDecoder);
-                pipeline.addReadProcessor(new HttpRequestDecoder());
+                pipeline.addReadProcessor(new HttpReqPartDecoder());
+                pipeline.addReadProcessor(new AggregationHttpReqDecoder());
                 pipeline.addReadProcessor(new OptionsProcessor());
                 pipeline.addReadProcessor(new ReadProcessor<HttpRequest>()
                 {
