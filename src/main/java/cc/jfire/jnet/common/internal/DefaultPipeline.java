@@ -16,9 +16,9 @@ public class DefaultPipeline implements InternalPipeline
     private final Consumer<Throwable>           jvmExistHandler;
     private final BufferAllocator               allocator;
     private       ReadProcessorNode             readHead;
-    private  WriteProcessorNode                     writeHead;
+    private       WriteProcessorNode            writeHead;
     private       AdaptiveReadCompletionHandler adaptiveReadCompletionHandler;
-    private       WriteCompletionHandler   writeCompleteHandler;
+    private       WriteCompletionHandler        writeCompleteHandler;
     @Setter
     @Getter
     private       ReadListener                  readListener  = ReadListener.INSTANCE;
@@ -59,8 +59,8 @@ public class DefaultPipeline implements InternalPipeline
     {
         if (writeHead == null)
         {
-            writeHead = new WriteProcessorNodeImpl(processor, this
-            );
+            writeHead = new WriteProcessorNodeImpl(processor, this);
+            return;
         }
         WriteProcessorNode node = writeHead;
         while (node.getNext() != null)

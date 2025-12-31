@@ -37,7 +37,7 @@ public class PooledBufferAllocator implements BufferAllocator
     private static final Arena[]                         HEAP_ARENAS;
     private static final Arena[]                         UNSAFE_ARENAS;
     private static final AtomicInteger                   ARENA_COUNT         = new AtomicInteger();
-    private              boolean                         reUseBufferInstance = true;
+    private              boolean                         reUseBufferInstance = false;
 
     static
     {
