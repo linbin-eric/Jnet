@@ -136,13 +136,7 @@ public class DefaultPipeline implements InternalPipeline
     public void complete()
     {
         adaptiveReadCompletionHandler = new AdaptiveReadCompletionHandler(this);
-        addReadProcessor((Object data, ReadProcessorNode next)->{
-            if (data != null)
-            {
-                throw new IllegalArgumentException();
-            }
-            adaptiveReadCompletionHandler.registerRead();
-        });
+        addReadProcessor((Void data, ReadProcessorNode next)-> adaptiveReadCompletionHandler.registerRead());
         writeCompleteHandler = new DefaultWriteCompleteHandler(this);
         addWriteProcessor(new TailWriteProcessor(writeCompleteHandler));
         try

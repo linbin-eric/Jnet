@@ -110,12 +110,12 @@ public class DefaultWriteCompleteHandler extends AbstractWriteCompleteHandler im
             sendingData.free();
             sendingData = null;
         }
-        writeListener.writeFailed(e);
         IoBuffer tmp;
         while ((tmp = queue.poll()) != null)
         {
             tmp.free();
         }
+        writeListener.writeFailed(e);
         closeChannel(e);
         quitToIdle();
     }

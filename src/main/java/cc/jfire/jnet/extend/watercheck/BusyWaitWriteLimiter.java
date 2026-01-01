@@ -6,9 +6,9 @@ import lombok.Data;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Data
-public class BusywaitWriteLimiter implements WriteListener
+public class BusyWaitWriteLimiter implements WriteListener
 {
-    private final AtomicInteger counter ;
+    private final AtomicInteger counter;
 
     @Override
     public void partWriteFinish(long currentSend)
@@ -25,6 +25,6 @@ public class BusywaitWriteLimiter implements WriteListener
     @Override
     public void writeFailed(Throwable e)
     {
-
+        counter.set(0);
     }
 }
