@@ -23,8 +23,6 @@ public interface Pipeline
 
     void setAttach(Object attach);
 
-    void setReadListener(ReadListener readListener);
-
     void setWriteListener(WriteListener writeListener);
 
     boolean isOpen();

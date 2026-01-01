@@ -21,9 +21,6 @@ public class DefaultPipeline implements InternalPipeline
     private       WriteCompletionHandler        writeCompleteHandler;
     @Setter
     @Getter
-    private       ReadListener                  readListener  = ReadListener.INSTANCE;
-    @Setter
-    @Getter
     private       WriteListener                 writeListener = WriteListener.INSTANCE;
     @Setter
     @Getter
@@ -35,7 +32,6 @@ public class DefaultPipeline implements InternalPipeline
         this.socketChannel = socketChannel;
         this.channelConfig = channelConfig;
         jvmExistHandler    = channelConfig.getJvmExistHandler();
-//        writeHead          = new WriteHead(WorkerGroup.next(), this);
     }
 
     @Override
@@ -140,7 +136,13 @@ public class DefaultPipeline implements InternalPipeline
     public void complete()
     {
         adaptiveReadCompletionHandler = new AdaptiveReadCompletionHandler(this);
-        addReadProcessor(TailReadProcessor.INSTANCE);
+        addReadProcessor((Object data, ReadProcessorNode next)->{
+            if (data != null)
+            {
+                throw new IllegalArgumentException();
+            }
+            adaptiveReadCompletionHandler.registerRead();
+        });
         writeCompleteHandler = new DefaultWriteCompleteHandler(this);
         addWriteProcessor(new TailWriteProcessor(writeCompleteHandler));
         try
@@ -152,7 +154,6 @@ public class DefaultPipeline implements InternalPipeline
             jvmExistHandler.accept(e);
             System.exit(127);
         }
-        adaptiveReadCompletionHandler.setReadListener(readListener);
         writeCompleteHandler.setWriteListener(writeListener);
         adaptiveReadCompletionHandler.start();
     }
