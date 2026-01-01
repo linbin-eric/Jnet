@@ -1,4 +1,4 @@
-package cc.jfire.jnet.common.internal;
+package cc.jfire.jnet.extend.watercheck;
 
 import cc.jfire.jnet.common.api.ReadProcessor;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
@@ -12,7 +12,6 @@ import java.util.concurrent.locks.LockSupport;
 public class BusyWaitReadLimiter implements ReadProcessor<Object>
 {
     private final AtomicInteger                 count;
-    private final AdaptiveReadCompletionHandler adaptiveReadCompletionHandler;
     private final int                           limit;
 
     @Override
@@ -20,7 +19,7 @@ public class BusyWaitReadLimiter implements ReadProcessor<Object>
     {
         if (count.get() < limit)
         {
-            adaptiveReadCompletionHandler.registerRead();
+            next.fireRead(null);
         }
         else
         {
@@ -36,7 +35,7 @@ public class BusyWaitReadLimiter implements ReadProcessor<Object>
                     park(parkCount++);
                 }
             }
-            adaptiveReadCompletionHandler.registerRead();
+            next.fireRead(null);
         }
     }
 

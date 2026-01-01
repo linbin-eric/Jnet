@@ -1,8 +1,8 @@
-package cc.jfire.jnet.common.internal;
+package cc.jfire.jnet.extend.watercheck;
 
 import cc.jfire.jnet.common.api.ReadProcessor;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
-import lombok.Data;
+import cc.jfire.jnet.common.internal.AdaptiveReadCompletionHandler;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -10,9 +10,9 @@ public class NoticeReadLimiter extends AtomicInteger implements ReadProcessor<Vo
 {
     private static final int                           WORK = 1;
     private static final int                           IDLE = 0;
-    private final        AtomicInteger                 counter;
-    private final        AdaptiveReadCompletionHandler adaptiveReadCompletionHandler;
-    private final        int                           limit;
+    private final AtomicInteger                 counter;
+    private final AdaptiveReadCompletionHandler adaptiveReadCompletionHandler;
+    private final int                           limit;
 
     public NoticeReadLimiter(AtomicInteger counter, AdaptiveReadCompletionHandler adaptiveReadCompletionHandler, int limit)
     {

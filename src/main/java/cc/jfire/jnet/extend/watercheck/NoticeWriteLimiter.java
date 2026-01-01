@@ -1,7 +1,6 @@
 package cc.jfire.jnet.extend.watercheck;
 
 import cc.jfire.jnet.common.api.WriteListener;
-import cc.jfire.jnet.common.internal.NoticeReadLimiter;
 import lombok.Data;
 
 import java.util.concurrent.atomic.AtomicInteger;
