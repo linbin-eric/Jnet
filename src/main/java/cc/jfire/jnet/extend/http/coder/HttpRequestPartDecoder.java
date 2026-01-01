@@ -3,7 +3,8 @@ package cc.jfire.jnet.extend.http.coder;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.common.coder.AbstractDecoder;
 import cc.jfire.jnet.common.util.HttpDecodeUtil;
-import cc.jfire.jnet.extend.http.dto.HttpRequestPartBodyPart;
+import cc.jfire.jnet.extend.http.dto.HttpRequestChunkedBodyPart;
+import cc.jfire.jnet.extend.http.dto.HttpRequestFixLengthBodyPart;
 import cc.jfire.jnet.extend.http.dto.HttpRequestPartEnd;
 import cc.jfire.jnet.extend.http.dto.HttpRequestPartHead;
 
@@ -17,6 +18,7 @@ public class HttpRequestPartDecoder extends AbstractDecoder
     private              HttpRequestPartHead reqHead;
     private              int                 bodyRead                   = 0;
     private              int                 chunkSize                  = -1;
+    private              int                 chunkSizeLineLength        = -1;
 
     @Override
     protected void process0(ReadProcessorNode next)
@@ -143,7 +145,7 @@ public class HttpRequestPartDecoder extends AbstractDecoder
         int remain = accumulation.remainRead();
         if (remain > left)
         {
-            HttpRequestPartBodyPart part = new HttpRequestPartBodyPart();
+            HttpRequestFixLengthBodyPart part = new HttpRequestFixLengthBodyPart();
             part.setPart(accumulation.slice(left));
             next.fireRead(part);
             next.fireRead(new HttpRequestPartEnd());
@@ -152,7 +154,7 @@ public class HttpRequestPartDecoder extends AbstractDecoder
         }
         else if (remain == left)
         {
-            HttpRequestPartBodyPart part = new HttpRequestPartBodyPart();
+            HttpRequestFixLengthBodyPart part = new HttpRequestFixLengthBodyPart();
             part.setPart(accumulation);
             accumulation = null;
             next.fireRead(part);
@@ -163,7 +165,7 @@ public class HttpRequestPartDecoder extends AbstractDecoder
         else
         {
             bodyRead += remain;
-            HttpRequestPartBodyPart part = new HttpRequestPartBodyPart();
+            HttpRequestFixLengthBodyPart part = new HttpRequestFixLengthBodyPart();
             part.setPart(accumulation);
             accumulation = null;
             next.fireRead(part);
@@ -175,16 +177,18 @@ public class HttpRequestPartDecoder extends AbstractDecoder
     {
         if (chunkSize == -1)
         {
-            for (int i = accumulation.getReadPosi(); i < accumulation.getWritePosi() - 1; i++)
+            int startPosi = accumulation.getReadPosi();
+            for (int i = startPosi; i < accumulation.getWritePosi() - 1; i++)
             {
-                if (i - accumulation.getReadPosi() > MAX_CHUNK_SIZE_LINE_LENGTH)
+                if (i - startPosi > MAX_CHUNK_SIZE_LINE_LENGTH)
                 {
                     throw new IllegalStateException("Chunk size line exceeds " + MAX_CHUNK_SIZE_LINE_LENGTH + " bytes");
                 }
                 if (accumulation.get(i) == '\r' && accumulation.get(i + 1) == '\n')
                 {
                     chunkSize = Integer.parseInt(StandardCharsets.US_ASCII.decode(accumulation.readableByteBuffer(i)).toString().trim(), 16);
-                    accumulation.setReadPosi(i + 2);
+                    chunkSizeLineLength = i + 2 - startPosi; // 记录chunk size行的长度（包含CRLF）
+                    // 注意：这里不移动readPosi，保持在chunk size行的起始位置
                     break;
                 }
             }
@@ -193,26 +197,39 @@ public class HttpRequestPartDecoder extends AbstractDecoder
         {
             return false;
         }
+        // 处理chunk size为0的情况（结束标志）
         if (chunkSize == 0)
         {
-            if (accumulation.remainRead() < 2)
+            // chunk size为0时，格式为：0\r\n\r\n（chunk size行 + 结尾的CRLF）
+            int totalLength = chunkSizeLineLength + 2;
+            if (accumulation.remainRead() < totalLength)
             {
                 return false;
             }
-            accumulation.addReadPosi(2);
+            // 跳过整个结束chunk
+            accumulation.addReadPosi(totalLength);
             next.fireRead(new HttpRequestPartEnd());
             resetState();
             return accumulation != null && accumulation.remainRead() > 0;
         }
-        if (accumulation.remainRead() < chunkSize + 2)
+
+        // 检查是否已接收完整的chunk（chunk size行 + chunk数据 + 结尾CRLF）
+        int totalChunkLength = chunkSizeLineLength + chunkSize + 2;
+        if (accumulation.remainRead() < totalChunkLength)
         {
             return false;
         }
-        HttpRequestPartBodyPart part = new HttpRequestPartBodyPart();
-        part.setPart(accumulation.slice(chunkSize));
-        accumulation.addReadPosi(2);
+
+        // 创建HttpRequestChunkedBodyPart对象
+        HttpRequestChunkedBodyPart part = new HttpRequestChunkedBodyPart();
+        part.setHeadLength(chunkSizeLineLength);
+        part.setChunkLength(totalChunkLength);
+        // 从当前读取位置（chunk size行起始）截取完整的chunk内容
+        part.setPart(accumulation.slice(totalChunkLength));
+
         next.fireRead(part);
         chunkSize = -1;
+        chunkSizeLineLength = -1; // 重置chunk size行长度
         return true;
     }
 
@@ -221,6 +238,7 @@ public class HttpRequestPartDecoder extends AbstractDecoder
         reqHead   = null;
         bodyRead  = 0;
         chunkSize = -1;
+        chunkSizeLineLength = -1; // 新增：重置chunk size行长度
         state     = ParseState.REQUEST_LINE;
         if (accumulation != null && accumulation.remainRead() == 0)
         {
