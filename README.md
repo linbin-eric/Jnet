@@ -109,38 +109,37 @@ import cc.jfire.jnet.common.util.ChannelConfig;
 import cc.jfire.jnet.extend.http.coder.*;
 import cc.jfire.jnet.extend.http.dto.*;
 import cc.jfire.jnet.server.AioServer;
+
 import javax.net.ssl.*;
 import java.security.KeyStore;
 
-public class HttpsServer {
-    public static void main(String[] args) throws Exception {
+public class HttpsServer
+{
+    public static void main(String[] args) throws Exception
+    {
         ChannelConfig config = new ChannelConfig().setPort(8443);
-
         AioServer server = AioServer.newAioServer(config, pipeline -> {
             // 初始化 SSL
             KeyStore keyStore = KeyStore.getInstance("JKS");
             keyStore.load(getClass().getResourceAsStream("/keystore.jks"), "password".toCharArray());
-
             KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
             kmf.init(keyStore, "password".toCharArray());
-
             SSLContext sslContext = SSLContext.getInstance("TLS");
             sslContext.init(kmf.getKeyManagers(), null, null);
-
             SSLEngine sslEngine = sslContext.createSSLEngine();
             sslEngine.setUseClientMode(false);
             sslEngine.beginHandshake();
-
             SSLDecoder sslDecoder = new SSLDecoder(sslEngine);
             SSLEncoder sslEncoder = new SSLEncoder(sslEngine, sslDecoder);
-
             // 添加处理器链
             pipeline.addReadProcessor(sslDecoder);
-            pipeline.addReadProcessor(new HttpReqPartDecoder());
-            pipeline.addReadProcessor(new AggregationHttpReqDecoder());
-            pipeline.addReadProcessor(new ReadProcessor<HttpRequest>() {
+            pipeline.addReadProcessor(new HttpRequestPartDecoder());
+            pipeline.addReadProcessor(new HttpRequestAggregator());
+            pipeline.addReadProcessor(new ReadProcessor<HttpRequest>()
+            {
                 @Override
-                public void read(HttpRequest request, ReadProcessorNode next) {
+                public void read(HttpRequest request, ReadProcessorNode next)
+                {
                     request.close();
                     FullHttpResp resp = new FullHttpResp();
                     resp.getHead().addHeader("content-type", "text/html");
@@ -151,7 +150,6 @@ public class HttpsServer {
             pipeline.addWriteProcessor(new HttpRespEncoder(pipeline.allocator()));
             pipeline.addWriteProcessor(sslEncoder);
         });
-
         server.start();
     }
 }

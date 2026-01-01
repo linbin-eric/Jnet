@@ -6,21 +6,21 @@ import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 import cc.jfire.jnet.common.util.HttpDecodeUtil;
 import cc.jfire.jnet.extend.http.dto.*;
 
-public class AggregationHttpReqDecoder implements ReadProcessor<HttpReq>
+public class HttpRequestAggregator implements ReadProcessor<HttpRequestPart>
 {
-    private HttpReqHead head;
-    private IoBuffer    body;
+    private HttpRequestPartHead head;
+    private IoBuffer            body;
 
     @Override
-    public void read(HttpReq data, ReadProcessorNode next)
+    public void read(HttpRequestPart data, ReadProcessorNode next)
     {
-        if (data instanceof HttpReqHead)
+        if (data instanceof HttpRequestPartHead)
         {
-            head = (HttpReqHead) data;
+            head = (HttpRequestPartHead) data;
         }
-        else if (data instanceof HttpReqBodyPart)
+        else if (data instanceof HttpRequestPartBodyPart)
         {
-            HttpReqBodyPart part = (HttpReqBodyPart) data;
+            HttpRequestPartBodyPart part = (HttpRequestPartBodyPart) data;
             if (body == null)
             {
                 body = part.getPart();
@@ -31,7 +31,7 @@ public class AggregationHttpReqDecoder implements ReadProcessor<HttpReq>
                 part.getPart().free();
             }
         }
-        else if (data instanceof HttpReqEnd)
+        else if (data instanceof HttpRequestPartEnd)
         {
             HttpRequest request = new HttpRequest();
             request.setMethod(head.getMethod());

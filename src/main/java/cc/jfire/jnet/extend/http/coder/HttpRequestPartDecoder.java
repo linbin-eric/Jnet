@@ -3,20 +3,20 @@ package cc.jfire.jnet.extend.http.coder;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.common.coder.AbstractDecoder;
 import cc.jfire.jnet.common.util.HttpDecodeUtil;
-import cc.jfire.jnet.extend.http.dto.HttpReqBodyPart;
-import cc.jfire.jnet.extend.http.dto.HttpReqEnd;
-import cc.jfire.jnet.extend.http.dto.HttpReqHead;
+import cc.jfire.jnet.extend.http.dto.HttpRequestPartBodyPart;
+import cc.jfire.jnet.extend.http.dto.HttpRequestPartEnd;
+import cc.jfire.jnet.extend.http.dto.HttpRequestPartHead;
 
 import java.nio.charset.StandardCharsets;
 
-public class HttpReqPartDecoder extends AbstractDecoder
+public class HttpRequestPartDecoder extends AbstractDecoder
 {
-    private static final int MAX_CHUNK_SIZE_LINE_LENGTH = 32;
-    private int         lastCheck = -1;
-    private ParseState  state     = ParseState.REQUEST_LINE;
-    private HttpReqHead reqHead;
-    private int         bodyRead  = 0;
-    private int         chunkSize = -1;
+    private static final int                 MAX_CHUNK_SIZE_LINE_LENGTH = 32;
+    private              int                 lastCheck                  = -1;
+    private              ParseState          state                      = ParseState.REQUEST_LINE;
+    private              HttpRequestPartHead reqHead;
+    private              int                 bodyRead                   = 0;
+    private              int                 chunkSize                  = -1;
 
     @Override
     protected void process0(ReadProcessorNode next)
@@ -32,7 +32,7 @@ public class HttpReqPartDecoder extends AbstractDecoder
                 case BODY_CHUNKED -> parseBodyChunked(next);
                 case NO_BODY ->
                 {
-                    next.fireRead(new HttpReqEnd());
+                    next.fireRead(new HttpRequestPartEnd());
                     resetState();
                     yield accumulation != null && accumulation.remainRead() > 0;
                 }
@@ -57,7 +57,7 @@ public class HttpReqPartDecoder extends AbstractDecoder
         }
         if (state == ParseState.REQUEST_HEADER)
         {
-            reqHead = new HttpReqHead();
+            reqHead = new HttpRequestPartHead();
             decodeRequestLine();
             return true;
         }
@@ -99,8 +99,7 @@ public class HttpReqPartDecoder extends AbstractDecoder
     {
         for (; lastCheck + 3 < accumulation.getWritePosi(); lastCheck++)
         {
-            if (accumulation.get(lastCheck) == '\r' && accumulation.get(lastCheck + 1) == '\n'
-                && accumulation.get(lastCheck + 2) == '\r' && accumulation.get(lastCheck + 3) == '\n')
+            if (accumulation.get(lastCheck) == '\r' && accumulation.get(lastCheck + 1) == '\n' && accumulation.get(lastCheck + 2) == '\r' && accumulation.get(lastCheck + 3) == '\n')
             {
                 lastCheck = -1;
                 HttpDecodeUtil.findAllHeaders(accumulation, reqHead::addHeader);
@@ -121,8 +120,7 @@ public class HttpReqPartDecoder extends AbstractDecoder
         }
         else
         {
-            boolean hasTransferEncoding = reqHead.getHeaders().entrySet().stream()
-                .anyMatch(e -> e.getKey().equalsIgnoreCase("Transfer-Encoding") && e.getValue().equalsIgnoreCase("chunked"));
+            boolean hasTransferEncoding = reqHead.getHeaders().entrySet().stream().anyMatch(e -> e.getKey().equalsIgnoreCase("Transfer-Encoding") && e.getValue().equalsIgnoreCase("chunked"));
             if (hasTransferEncoding)
             {
                 state = ParseState.BODY_CHUNKED;
@@ -141,31 +139,31 @@ public class HttpReqPartDecoder extends AbstractDecoder
         {
             return false;
         }
-        int left = reqHead.getContentLength() - bodyRead;
+        int left   = reqHead.getContentLength() - bodyRead;
         int remain = accumulation.remainRead();
         if (remain > left)
         {
-            HttpReqBodyPart part = new HttpReqBodyPart();
+            HttpRequestPartBodyPart part = new HttpRequestPartBodyPart();
             part.setPart(accumulation.slice(left));
             next.fireRead(part);
-            next.fireRead(new HttpReqEnd());
+            next.fireRead(new HttpRequestPartEnd());
             resetState();
             return accumulation != null && accumulation.remainRead() > 0;
         }
         else if (remain == left)
         {
-            HttpReqBodyPart part = new HttpReqBodyPart();
+            HttpRequestPartBodyPart part = new HttpRequestPartBodyPart();
             part.setPart(accumulation);
             accumulation = null;
             next.fireRead(part);
-            next.fireRead(new HttpReqEnd());
+            next.fireRead(new HttpRequestPartEnd());
             resetState();
             return false;
         }
         else
         {
             bodyRead += remain;
-            HttpReqBodyPart part = new HttpReqBodyPart();
+            HttpRequestPartBodyPart part = new HttpRequestPartBodyPart();
             part.setPart(accumulation);
             accumulation = null;
             next.fireRead(part);
@@ -202,7 +200,7 @@ public class HttpReqPartDecoder extends AbstractDecoder
                 return false;
             }
             accumulation.addReadPosi(2);
-            next.fireRead(new HttpReqEnd());
+            next.fireRead(new HttpRequestPartEnd());
             resetState();
             return accumulation != null && accumulation.remainRead() > 0;
         }
@@ -210,7 +208,7 @@ public class HttpReqPartDecoder extends AbstractDecoder
         {
             return false;
         }
-        HttpReqBodyPart part = new HttpReqBodyPart();
+        HttpRequestPartBodyPart part = new HttpRequestPartBodyPart();
         part.setPart(accumulation.slice(chunkSize));
         accumulation.addReadPosi(2);
         next.fireRead(part);
@@ -220,10 +218,10 @@ public class HttpReqPartDecoder extends AbstractDecoder
 
     private void resetState()
     {
-        reqHead = null;
-        bodyRead = 0;
+        reqHead   = null;
+        bodyRead  = 0;
         chunkSize = -1;
-        state = ParseState.REQUEST_LINE;
+        state     = ParseState.REQUEST_LINE;
         if (accumulation != null && accumulation.remainRead() == 0)
         {
             accumulation.free();

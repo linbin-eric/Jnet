@@ -31,7 +31,7 @@ public abstract class AbstractReadLimiter extends AtomicInteger implements ReadL
         }
         else
         {
-            setIdle(readCompletionHandler, capacity);
+            setIdle(readCompletionHandler);
         }
     }
 
@@ -44,11 +44,11 @@ public abstract class AbstractReadLimiter extends AtomicInteger implements ReadL
         }
     }
 
-    public void setIdle(AdaptiveReadCompletionHandler readCompletionHandler, long capacity)
+    public void setIdle(AdaptiveReadCompletionHandler readCompletionHandler)
     {
         adaptiveReadCompletionHandler = readCompletionHandler;
         set(idle);
-        if (capacity < LIMIT && compareAndSet(idle, work))
+        if (getLimitSize() < LIMIT && compareAndSet(idle, work))
         {
             readCompletionHandler.registerRead();
         }
