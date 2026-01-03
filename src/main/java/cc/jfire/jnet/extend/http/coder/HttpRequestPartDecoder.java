@@ -16,6 +16,7 @@ public class HttpRequestPartDecoder extends AbstractDecoder
     private              int                 lastCheck                  = -1;
     private              ParseState          state                      = ParseState.REQUEST_LINE;
     private              HttpRequestPartHead reqHead;
+    private              int                 headStartPosi              = -1;
     private              int                 bodyRead                   = 0;
     private              int                 chunkSize                  = -1;
     private              int                 chunkSizeLineLength        = -1;
@@ -47,6 +48,7 @@ public class HttpRequestPartDecoder extends AbstractDecoder
         if (lastCheck == -1)
         {
             lastCheck = accumulation.getReadPosi();
+            headStartPosi = lastCheck;
         }
         for (; lastCheck + 1 < accumulation.getWritePosi(); lastCheck++)
         {
@@ -103,6 +105,10 @@ public class HttpRequestPartDecoder extends AbstractDecoder
         {
             if (accumulation.get(lastCheck) == '\r' && accumulation.get(lastCheck + 1) == '\n' && accumulation.get(lastCheck + 2) == '\r' && accumulation.get(lastCheck + 3) == '\n')
             {
+                int headEndPosi = lastCheck + 4;
+                int headLength = headEndPosi - headStartPosi;
+                accumulation.setReadPosi(headStartPosi);
+                reqHead.setHeadBuffer(accumulation.slice(headLength));
                 lastCheck = -1;
                 HttpDecodeUtil.findAllHeaders(accumulation, reqHead::addHeader);
                 HttpDecodeUtil.findContentLength(reqHead.getHeaders(), reqHead::setContentLength);
@@ -235,8 +241,9 @@ public class HttpRequestPartDecoder extends AbstractDecoder
 
     private void resetState()
     {
-        reqHead   = null;
-        bodyRead  = 0;
+        reqHead       = null;
+        headStartPosi = -1;
+        bodyRead      = 0;
         chunkSize = -1;
         chunkSizeLineLength = -1; // 新增：重置chunk size行长度
         state     = ParseState.REQUEST_LINE;

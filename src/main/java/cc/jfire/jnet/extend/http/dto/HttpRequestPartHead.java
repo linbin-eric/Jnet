@@ -1,5 +1,6 @@
 package cc.jfire.jnet.extend.http.dto;
 
+import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 import lombok.Data;
 
 import java.util.HashMap;
@@ -8,6 +9,7 @@ import java.util.Map;
 @Data
 public class HttpRequestPartHead implements HttpRequestPart
 {
+    protected IoBuffer            headBuffer;
     protected String              method;
     protected String              url;
     protected String              version;
