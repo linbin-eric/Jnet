@@ -17,7 +17,7 @@ public class OptionsProcessor implements ReadProcessor<HttpRequest>
         }
         else
         {
-            String url = request.getUrl();
+            String url = request.getPath();
             if (url.equals("/favicon.ico") || url.equals("/robots.txt"))
             {
                 FullHttpResp response = new FullHttpResp();

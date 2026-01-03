@@ -83,7 +83,7 @@ public class HttpRequestPartDecoder extends AbstractDecoder
         {
             if (accumulation.get(i) == ' ')
             {
-                reqHead.setUrl(StandardCharsets.US_ASCII.decode(accumulation.readableByteBuffer(i)).toString());
+                reqHead.setPath(StandardCharsets.US_ASCII.decode(accumulation.readableByteBuffer(i)).toString());
                 accumulation.setReadPosi(i + 1);
                 break;
             }

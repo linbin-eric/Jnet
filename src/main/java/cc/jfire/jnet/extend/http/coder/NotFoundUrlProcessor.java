@@ -17,7 +17,7 @@ public class NotFoundUrlProcessor implements ReadProcessor<HttpRequest>
     @Override
     public void read(HttpRequest data, ReadProcessorNode next)
     {
-        String url      = data.getUrl();
+        String url      = data.getPath();
         String purePath = url.contains("?") ? url.substring(0, url.indexOf("?")) : url;
         barrier.notAvailablePaths.add(purePath);
         FullHttpResp response = new FullHttpResp();
@@ -33,7 +33,7 @@ public class NotFoundUrlProcessor implements ReadProcessor<HttpRequest>
         @Override
         public void read(HttpRequest request, ReadProcessorNode next)
         {
-            String url      = request.getUrl();
+            String url      = request.getPath();
             String purePath = url.contains("?") ? url.substring(0, url.indexOf("?")) : url;
             if (notAvailablePaths.contains(purePath))
             {

@@ -9,9 +9,12 @@ import java.util.Map;
 @Data
 public class HttpRequestPartHead implements HttpRequestPart
 {
+    /**
+     * 完整的请求头部内容，包含结束的 CRLF
+     */
     protected IoBuffer            headBuffer;
     protected String              method;
-    protected String              url;
+    protected String              path;
     protected String              version;
     protected Map<String, String> headers       = new HashMap<>();
     /**

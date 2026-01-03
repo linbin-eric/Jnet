@@ -56,7 +56,7 @@ public abstract class AbstractResourceEncoder implements ReadProcessor<HttpReque
     @Override
     public void read(HttpRequest request, ReadProcessorNode next)
     {
-        String url = request.getUrl();
+        String url = request.getPath();
         if (!request.getMethod().equalsIgnoreCase("get"))
         {
             next.fireRead(request);

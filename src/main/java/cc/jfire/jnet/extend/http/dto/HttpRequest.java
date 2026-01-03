@@ -12,7 +12,7 @@ import java.util.Map;
 public class HttpRequest implements AutoCloseable
 {
     protected String              method;
-    protected String              url;
+    protected String              path;
     protected String              version;
     protected Map<String, String> headers       = new HashMap<>();
     protected int                 contentLength = 0;

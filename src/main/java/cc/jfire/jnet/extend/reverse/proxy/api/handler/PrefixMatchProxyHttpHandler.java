@@ -40,7 +40,7 @@ public final class PrefixMatchProxyHttpHandler extends ProxyHttpHandler
     @Override
     public boolean process(HttpRequest request, Pipeline pipeline)
     {
-        String requestUrl = request.getUrl();
+        String requestUrl = request.getPath();
         int    index      = requestUrl.indexOf("#");
         if (index != -1)
         {

@@ -53,7 +53,7 @@ public class HttpRequestAggregator implements ReadProcessor<HttpRequestPart>
         {
             HttpRequest request = new HttpRequest();
             request.setMethod(head.getMethod());
-            request.setUrl(head.getUrl());
+            request.setPath(head.getPath());
             request.setVersion(head.getVersion());
             request.setHeaders(head.getHeaders());
             if (head.isChunked())

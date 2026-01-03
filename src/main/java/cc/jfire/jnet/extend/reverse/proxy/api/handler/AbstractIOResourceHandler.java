@@ -39,7 +39,7 @@ public sealed abstract class AbstractIOResourceHandler implements ResourceHandle
     @Override
     public boolean process(HttpRequest httpRequest, Pipeline pipeline)
     {
-        String requestUrl = URLDecoder.decode(httpRequest.getUrl(), StandardCharsets.UTF_8);
+        String requestUrl = URLDecoder.decode(httpRequest.getPath(), StandardCharsets.UTF_8);
         requestUrl = HttpDecodeUtil.pureUrl(requestUrl);
         if (!requestUrl.startsWith(prefixMatch))
         {

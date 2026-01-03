@@ -33,7 +33,7 @@ public class TransferProcessor implements ReadProcessor<HttpRequest>
         }
         request.close();
         FullHttpResp response = new FullHttpResp();
-        response.getBody().setBodyText("not found address:" + request.getUrl());
+        response.getBody().setBodyText("not found address:" + request.getPath());
         next.pipeline().fireWrite(response);
     }
 

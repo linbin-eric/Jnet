@@ -38,7 +38,7 @@ public final class ClassResourceHandler extends AbstractIOResourceHandler
                 }
                 else
                 {
-                    return new Tuper("text/html;charset=utf-8", STR.format("not available path:{},not find in :{}", httpRequest.getUrl(), realClassResourcePath).getBytes(StandardCharsets.UTF_8));
+                    return new Tuper("text/html;charset=utf-8", STR.format("not available path:{},not find in :{}", httpRequest.getPath(), realClassResourcePath).getBytes(StandardCharsets.UTF_8));
                 }
             }
             catch (IOException e)
