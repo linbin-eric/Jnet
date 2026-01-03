@@ -1,5 +1,6 @@
 package cc.jfire.jnet.extend.http.dto;
 
+import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 import lombok.Data;
 
 import java.util.HashMap;
@@ -19,9 +20,23 @@ public class HttpResponsePartHead implements HttpResponsePart
      */
     protected int                 contentLength = 0;
     protected boolean             chunked       = false;
+    /**
+     * 代表该头部片段（响应行 + headers + CRLFCRLF）的原始字节；用于在被丢弃/超时/流式消费后释放。
+     */
+    protected IoBuffer            part;
 
     public void addHeader(String name, String value)
     {
         headers.put(name, value);
+    }
+
+    @Override
+    public void free()
+    {
+        if (part != null)
+        {
+            part.free();
+            part = null;
+        }
     }
 }

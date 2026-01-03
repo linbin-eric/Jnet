@@ -16,6 +16,7 @@ public class HttpResponsePartDecoder extends AbstractDecoder
     private              int                  lastCheck                  = -1;
     private              ParseState           state                      = ParseState.RESPONSE_LINE;
     private              HttpResponsePartHead respHead;
+    private              int                  headStartPosi              = -1;
     private              int                  bodyRead                   = 0;
     private              int                  chunkSize                  = -1;
     private              int                  chunkSizeLineLength        = -1;
@@ -47,6 +48,7 @@ public class HttpResponsePartDecoder extends AbstractDecoder
         if (lastCheck == -1)
         {
             lastCheck = accumulation.getReadPosi();
+            headStartPosi = lastCheck;
         }
         for (; lastCheck + 1 < accumulation.getWritePosi(); lastCheck++)
         {
@@ -109,6 +111,13 @@ public class HttpResponsePartDecoder extends AbstractDecoder
                 lastCheck = -1;
                 HttpDecodeUtil.findAllHeaders(accumulation, respHead::addHeader);
                 HttpDecodeUtil.findContentLength(respHead.getHeaders(), respHead::setContentLength);
+                int bodyStartPosi = accumulation.getReadPosi();
+                int headLength = bodyStartPosi - headStartPosi;
+                if (headLength > 0)
+                {
+                    accumulation.setReadPosi(headStartPosi);
+                    respHead.setPart(accumulation.slice(headLength));
+                }
                 parseBodyType();
                 next.fireRead(respHead);
                 return true;
@@ -232,6 +241,7 @@ public class HttpResponsePartDecoder extends AbstractDecoder
     private void resetState()
     {
         respHead            = null;
+        headStartPosi       = -1;
         bodyRead            = 0;
         chunkSize           = -1;
         chunkSizeLineLength = -1;
