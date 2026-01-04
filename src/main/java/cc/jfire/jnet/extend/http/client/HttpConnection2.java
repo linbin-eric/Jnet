@@ -6,9 +6,9 @@ import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.common.coder.HeartBeat;
 import cc.jfire.jnet.common.util.ChannelConfig;
 import cc.jfire.jnet.common.util.ReflectUtil;
+import cc.jfire.jnet.extend.http.coder.HttpRequestPartEncoder;
 import cc.jfire.jnet.extend.http.coder.HttpResponsePartDecoder;
-import cc.jfire.jnet.extend.http.dto.HttpResponsePart;
-import cc.jfire.jnet.extend.http.dto.HttpResponsePartEnd;
+import cc.jfire.jnet.extend.http.dto.*;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -58,7 +58,7 @@ public class HttpConnection2
                     }
                 }
             });
-            pipeline.addWriteProcessor(new HttpSendRequestEncoder());
+            pipeline.addWriteProcessor(new HttpRequestPartEncoder());
             pipeline.addWriteProcessor(new HeartBeat(secondsOfKeepAlive, pipeline));
         });
         if (!clientChannel.connect())
@@ -83,12 +83,9 @@ public class HttpConnection2
             request.close();
             throw new ClosedChannelException();
         }
-
         AggregatorResponseFuture aggregator = new AggregatorResponseFuture(clientChannel.pipeline().allocator());
         this.responseFuture = aggregator;
-
         clientChannel.pipeline().fireWrite(request);
-
         try
         {
             return aggregator.waitForEnd(secondsOfTimeout);
@@ -121,13 +118,44 @@ public class HttpConnection2
             request.close();
             throw new ClosedChannelException();
         }
-
         StreamableResponseFuture streamable = new StreamableResponseFuture(partConsumer, errorConsumer);
         this.responseFuture = streamable;
-
         clientChannel.pipeline().fireWrite(request);
-
         return streamable;
+    }
+
+    public StreamableResponseFuture write(HttpRequestPartHead request, Consumer<HttpResponsePart> partConsumer, Consumer<Throwable> errorConsumer) throws ClosedChannelException
+    {
+        if (isConnectionClosed())
+        {
+            log.error("连接已关闭，地址：{}", clientChannel.pipeline().getRemoteAddressWithoutException());
+            request.close();
+            throw new ClosedChannelException();
+        }
+        if (this.responseFuture != null)
+        {
+            request.close();
+            log.error("上一个响应还没有收到完全，不应该发起新的 Http 请求");
+            ReflectUtil.throwException(new IllegalStateException("上一个响应还没有收到完全，不应该发起新的 Http 响应"));
+        }
+        StreamableResponseFuture streamable = new StreamableResponseFuture(partConsumer, errorConsumer);
+        this.responseFuture = streamable;
+        clientChannel.pipeline().fireWrite(request);
+        return streamable;
+    }
+
+    public void write(HttpRequestPart body)
+    {
+        if (body instanceof HttpRequestFixLengthBodyPart || body instanceof HttpRequestChunkedBodyPart)
+        {
+            clientChannel.pipeline().fireWrite(body);
+        }
+        else
+        {
+            log.error("HttpRequestPart 只能是 HttpRequestFixLengthBodyPart 或 HttpRequestChunkedBodyPart");
+            body.close();
+            ReflectUtil.throwException(new IllegalArgumentException("HttpRequestPart 只能是 HttpRequestFixLengthBodyPart 或 HttpRequestChunkedBodyPart"));
+        }
     }
 
     public void close()

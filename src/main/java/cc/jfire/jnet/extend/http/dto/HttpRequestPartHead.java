@@ -29,4 +29,16 @@ public class HttpRequestPartHead implements HttpRequestPart
     {
         headers.put(name, value);
     }
+
+    @Override
+    public void close()
+    {
+        if (headBuffer != null)
+        {
+            headBuffer.free();
+            headBuffer = null;
+        }
+        method  = path = version = null;
+        headers = null;
+    }
 }

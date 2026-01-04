@@ -7,4 +7,14 @@ import lombok.Data;
 public class HttpRequestFixLengthBodyPart implements HttpRequestPart
 {
     protected IoBuffer part;
+
+    @Override
+    public void close()
+    {
+        if (part != null)
+        {
+            part.free();
+            part = null;
+        }
+    }
 }

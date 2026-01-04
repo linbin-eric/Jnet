@@ -18,4 +18,14 @@ public class HttpRequestChunkedBodyPart implements HttpRequestPart
      * 完整的内容，包含头部，内容，CRLF
      */
     private IoBuffer part;
+
+    @Override
+    public void close()
+    {
+        if (part != null)
+        {
+            part.free();
+            part=null;
+        }
+    }
 }
