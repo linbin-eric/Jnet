@@ -22,7 +22,7 @@ import java.util.function.Consumer;
 public class ReverseProxyServer
 {
     private int                  port;
-    private List<ResourceConfig> configs;
+    private  List<ResourceConfig> configs;
     private SslInfo              sslInfo;
 
     public ReverseProxyServer(int port, List<ResourceConfig> configs)
