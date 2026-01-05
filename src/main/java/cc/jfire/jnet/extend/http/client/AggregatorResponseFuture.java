@@ -6,7 +6,6 @@ import cc.jfire.jnet.common.util.UNSAFE;
 import cc.jfire.jnet.extend.http.dto.HttpResponseChunkedBodyPart;
 import cc.jfire.jnet.extend.http.dto.HttpResponseFixLengthBodyPart;
 import cc.jfire.jnet.extend.http.dto.HttpResponsePart;
-import cc.jfire.jnet.extend.http.dto.HttpResponsePartEnd;
 import cc.jfire.jnet.extend.http.dto.HttpResponsePartHead;
 
 import java.net.SocketTimeoutException;
@@ -80,6 +79,11 @@ public class AggregatorResponseFuture implements ResponseFuture
             {
                 bodyBuffer = allocator.allocate(1024);
             }
+            // 无body响应，head就是最后一个part
+            if (head.isLast())
+            {
+                handleEnd();
+            }
         }
         else if (part instanceof HttpResponseFixLengthBodyPart fixPart)
         {
@@ -89,6 +93,10 @@ public class AggregatorResponseFuture implements ResponseFuture
                 return;
             }
             appendFixLength(fixPart);
+            if (fixPart.isLast())
+            {
+                handleEnd();
+            }
         }
         else if (part instanceof HttpResponseChunkedBodyPart chunkedPart)
         {
@@ -98,35 +106,40 @@ public class AggregatorResponseFuture implements ResponseFuture
                 return;
             }
             appendChunked(chunkedPart);
-        }
-        else if (part instanceof HttpResponsePartEnd)
-        {
-            while (true)
+            if (chunkedPart.isLast())
             {
-                int currentStatus = status;
-                if (currentStatus == NO_ERROR_NO_TIMEOUT_NO_END)
+                handleEnd();
+            }
+        }
+    }
+
+    private void handleEnd()
+    {
+        while (true)
+        {
+            int currentStatus = status;
+            if (currentStatus == NO_ERROR_NO_TIMEOUT_NO_END)
+            {
+                HttpResponse response = assembleResponse();
+                if (UNSAFE.compareAndSwapInt(this, STATUS_OFFSET, NO_ERROR_NO_TIMEOUT_NO_END, NO_ERROR_NO_TIMEOUT_END))
                 {
-                    HttpResponse response = assembleResponse();
-                    if (UNSAFE.compareAndSwapInt(this, STATUS_OFFSET, NO_ERROR_NO_TIMEOUT_NO_END, NO_ERROR_NO_TIMEOUT_END))
-                    {
-                        this.httpResponse = response;
-                        wakeUpWaitingThread();
-                        break;
-                    }
-                    response.free();
-                }
-                else if (currentStatus == NO_ERROR_TIMEOUT_NO_END)
-                {
-                    if (UNSAFE.compareAndSwapInt(this, STATUS_OFFSET, NO_ERROR_TIMEOUT_NO_END, NO_ERROR_TIMEOUT_END))
-                    {
-                        releaseBodyBuffer();
-                        break;
-                    }
-                }
-                else
-                {
+                    this.httpResponse = response;
+                    wakeUpWaitingThread();
                     break;
                 }
+                response.free();
+            }
+            else if (currentStatus == NO_ERROR_TIMEOUT_NO_END)
+            {
+                if (UNSAFE.compareAndSwapInt(this, STATUS_OFFSET, NO_ERROR_TIMEOUT_NO_END, NO_ERROR_TIMEOUT_END))
+                {
+                    releaseBodyBuffer();
+                    break;
+                }
+            }
+            else
+            {
+                break;
             }
         }
     }

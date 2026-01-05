@@ -38,13 +38,15 @@ public class HttpConnection2
                     if (future == null)
                     {
                         part.free();
+                        next.fireRead(null);
                         return;
                     }
                     future.onReceive(part);
-                    if (part instanceof HttpResponsePartEnd)
+                    if (part.isLast())
                     {
                         responseFuture = null;
                     }
+                    next.fireRead(null);
                 }
 
                 @Override

@@ -5,7 +5,6 @@ import cc.jfire.jnet.common.coder.AbstractDecoder;
 import cc.jfire.jnet.common.util.HttpDecodeUtil;
 import cc.jfire.jnet.extend.http.dto.HttpResponseChunkedBodyPart;
 import cc.jfire.jnet.extend.http.dto.HttpResponseFixLengthBodyPart;
-import cc.jfire.jnet.extend.http.dto.HttpResponsePartEnd;
 import cc.jfire.jnet.extend.http.dto.HttpResponsePartHead;
 
 import java.nio.charset.StandardCharsets;
@@ -35,7 +34,8 @@ public class HttpResponsePartDecoder extends AbstractDecoder
                 case BODY_CHUNKED -> parseBodyChunked(next);
                 case NO_BODY ->
                 {
-                    next.fireRead(new HttpResponsePartEnd());
+                    respHead.setLast(true);
+                    next.fireRead(respHead);
                     resetState();
                     yield accumulation != null && accumulation.remainRead() > 0;
                 }
@@ -119,7 +119,11 @@ public class HttpResponsePartDecoder extends AbstractDecoder
                     respHead.setPart(accumulation.slice(headLength));
                 }
                 parseBodyType();
-                next.fireRead(respHead);
+                // NO_BODY 情况下不在此处发送，由 NO_BODY 状态处理
+                if (state != ParseState.NO_BODY)
+                {
+                    next.fireRead(respHead);
+                }
                 return true;
             }
         }
@@ -159,8 +163,8 @@ public class HttpResponsePartDecoder extends AbstractDecoder
         {
             HttpResponseFixLengthBodyPart part = new HttpResponseFixLengthBodyPart();
             part.setPart(accumulation.slice(left));
+            part.setLast(true);
             next.fireRead(part);
-            next.fireRead(new HttpResponsePartEnd());
             resetState();
             return accumulation != null && accumulation.remainRead() > 0;
         }
@@ -168,9 +172,9 @@ public class HttpResponsePartDecoder extends AbstractDecoder
         {
             HttpResponseFixLengthBodyPart part = new HttpResponseFixLengthBodyPart();
             part.setPart(accumulation);
+            part.setLast(true);
             accumulation = null;
             next.fireRead(part);
-            next.fireRead(new HttpResponsePartEnd());
             resetState();
             return false;
         }
@@ -220,8 +224,8 @@ public class HttpResponsePartDecoder extends AbstractDecoder
             part.setHeadLength(chunkSizeLineLength);
             part.setChunkLength(totalLength);
             part.setPart(accumulation.slice(totalLength));
+            part.setLast(true);
             next.fireRead(part);
-            next.fireRead(new HttpResponsePartEnd());
             resetState();
             return accumulation != null && accumulation.remainRead() > 0;
         }

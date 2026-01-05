@@ -18,6 +18,7 @@ public class HttpResponseChunkedBodyPart implements HttpResponsePart
      * 完整的内容，包含头部，内容，CRLF
      */
     private IoBuffer part;
+    private boolean  last = false;
 
     @Override
     public void free()
@@ -27,5 +28,11 @@ public class HttpResponseChunkedBodyPart implements HttpResponsePart
             part.free();
             part = null;
         }
+    }
+
+    @Override
+    public boolean isLast()
+    {
+        return last;
     }
 }

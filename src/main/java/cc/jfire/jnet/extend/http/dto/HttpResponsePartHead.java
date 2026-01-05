@@ -20,6 +20,7 @@ public class HttpResponsePartHead implements HttpResponsePart
      */
     protected int                 contentLength = 0;
     protected boolean             chunked       = false;
+    protected boolean             last          = false;
     /**
      * 代表该头部片段（响应行 + headers + CRLFCRLF）的原始字节；用于在被丢弃/超时/流式消费后释放。
      */
@@ -38,5 +39,11 @@ public class HttpResponsePartHead implements HttpResponsePart
             part.free();
             part = null;
         }
+    }
+
+    @Override
+    public boolean isLast()
+    {
+        return last;
     }
 }

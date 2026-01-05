@@ -7,6 +7,7 @@ import lombok.Data;
 public class HttpResponseFixLengthBodyPart implements HttpResponsePart
 {
     protected IoBuffer part;
+    protected boolean  last = false;
 
     @Override
     public void free()
@@ -16,5 +17,11 @@ public class HttpResponseFixLengthBodyPart implements HttpResponsePart
             part.free();
             part = null;
         }
+    }
+
+    @Override
+    public boolean isLast()
+    {
+        return last;
     }
 }

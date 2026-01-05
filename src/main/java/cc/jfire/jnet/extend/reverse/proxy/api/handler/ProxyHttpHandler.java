@@ -10,7 +10,6 @@ import cc.jfire.jnet.extend.http.dto.HttpRequestPart;
 import cc.jfire.jnet.extend.http.dto.HttpRequestPartHead;
 import cc.jfire.jnet.extend.http.dto.HttpResponseChunkedBodyPart;
 import cc.jfire.jnet.extend.http.dto.HttpResponseFixLengthBodyPart;
-import cc.jfire.jnet.extend.http.dto.HttpResponsePartEnd;
 import cc.jfire.jnet.extend.http.dto.HttpResponsePartHead;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceHandler;
 import lombok.extern.slf4j.Slf4j;
@@ -188,31 +187,28 @@ public sealed abstract class ProxyHttpHandler implements ResourceHandler permits
                     log.trace("[ProxyHttpHandler] 透传响应头, statusCode: {}", respHead.getStatusCode());
                     // 透传对象本身，交由 CorsEncoder 注入 CORS，再由 HttpRespEncoder 编码写出
                     pipeline.fireWrite(respHead);
+                    if (respHead.isLast())
+                    {
+                        handleResponseEnd(pipeline);
+                    }
                 }
                 else if (responsePart instanceof HttpResponseFixLengthBodyPart body)
                 {
                     log.trace("[ProxyHttpHandler] 透传FixLength响应体, 大小: {}", body.getPart() != null ? body.getPart().remainRead() : 0);
                     pipeline.fireWrite(body.getPart());
+                    if (body.isLast())
+                    {
+                        handleResponseEnd(pipeline);
+                    }
                 }
                 else if (responsePart instanceof HttpResponseChunkedBodyPart body)
                 {
                     log.trace("[ProxyHttpHandler] 透传Chunked响应体, 大小: {}", body.getPart() != null ? body.getPart().remainRead() : 0);
                     pipeline.fireWrite(body.getPart());
-                }
-                else if (responsePart instanceof HttpResponsePartEnd)
-                {
-                    log.trace("[ProxyHttpHandler] 收到响应结束标记, requestEndReceived: {}", requestEndReceived);
-                    if (!requestEndReceived)
+                    if (body.isLast())
                     {
-                        // 后端响应已结束但请求未结束：连接不可复用，后续 body 静默丢弃
-                        log.warn("[ProxyHttpHandler] 响应结束但请求未结束, 连接不可复用");
-                        dropMode = DropMode.DROP_SILENT;
-                        closeAndReleaseBackendConn();
-                        return;
+                        handleResponseEnd(pipeline);
                     }
-                    // 请求已结束：连接可复用
-                    log.trace("[ProxyHttpHandler] 响应完成, 连接可复用");
-                    releaseReusableBackendConn();
                 }
             }, error -> {
                 log.error("[ProxyHttpHandler] 后端请求失败", error);
@@ -261,6 +257,22 @@ public sealed abstract class ProxyHttpHandler implements ResourceHandler permits
                 sendErrorResponse(pipeline, 503, "Service Unavailable - Connection Failed");
             }
         }
+    }
+
+    private void handleResponseEnd(Pipeline pipeline)
+    {
+        log.trace("[ProxyHttpHandler] 收到响应结束标记, requestEndReceived: {}", requestEndReceived);
+        if (!requestEndReceived)
+        {
+            // 后端响应已结束但请求未结束：连接不可复用，后续 body 静默丢弃
+            log.warn("[ProxyHttpHandler] 响应结束但请求未结束, 连接不可复用");
+            dropMode = DropMode.DROP_SILENT;
+            closeAndReleaseBackendConn();
+            return;
+        }
+        // 请求已结束：连接可复用
+        log.trace("[ProxyHttpHandler] 响应完成, 连接可复用");
+        releaseReusableBackendConn();
     }
 
     protected void processBody(HttpRequestPart body, Pipeline pipeline)
