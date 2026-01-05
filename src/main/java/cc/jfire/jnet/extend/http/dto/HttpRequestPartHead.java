@@ -26,6 +26,18 @@ public class HttpRequestPartHead implements HttpRequestPart
      */
     protected int                 contentLength = 0;
     protected boolean             chunked       = false;
+    protected boolean             last          = false;
+
+    @Override
+    public boolean isLast()
+    {
+        return last;
+    }
+
+    public void setLast(boolean last)
+    {
+        this.last = last;
+    }
 
     public void addHeader(String name, String value)
     {
@@ -38,7 +50,6 @@ public class HttpRequestPartHead implements HttpRequestPart
         setPath(parsed.path());
         setDomain(parsed.domain());
         setPort(parsed.port());
-
         // Host header：大小写不敏感替换，避免产生重复 Host
         String matchedKey = null;
         for (String key : headers.keySet())
@@ -54,7 +65,6 @@ public class HttpRequestPartHead implements HttpRequestPart
             headers.remove(matchedKey);
         }
         headers.put("Host", parsed.hostHeader());
-
         // 关键：清空并释放 headBuffer，否则编码器会直接写出原始头部，同时避免内存泄漏
         IoBuffer old = getHeadBuffer();
         setHeadBuffer(null);

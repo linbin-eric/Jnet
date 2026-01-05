@@ -1,32 +1,56 @@
-package cc.jfire.jnet.extend.reverse.app;
+package cc.jfire.jnet;
 
 import cc.jfire.baseutil.IoUtil;
-import cc.jfire.baseutil.RuntimeJVM;
 import cc.jfire.baseutil.YamlReader;
-import cc.jfire.jnet.extend.reverse.proxy.ReverseProxyServer;
+import cc.jfire.jnet.common.api.PipelineInitializer;
+import cc.jfire.jnet.common.util.ChannelConfig;
+import cc.jfire.jnet.extend.http.client.HttpConnection2Pool;
+import cc.jfire.jnet.extend.http.coder.CorsEncoder;
+import cc.jfire.jnet.extend.http.coder.HttpRequestPartDecoder;
+import cc.jfire.jnet.extend.http.coder.HttpRespEncoder;
+import cc.jfire.jnet.extend.reverse.app.SslInfo;
+import cc.jfire.jnet.extend.reverse.proxy.TransferProcessor;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceConfig;
-import lombok.SneakyThrows;
+import cc.jfire.jnet.server.AioServer;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.Test;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.LockSupport;
 
 @Slf4j
-public class ReverseApp
+public class TestReverseApp
 {
-    @SneakyThrows
-    public static void main(String[] args)
+    @Test
+    public void test() throws URISyntaxException
     {
-        RuntimeJVM.registerMainClass();
-        File file = new File(RuntimeJVM.getDirOfMainClass().getParentFile().getParentFile(), "reverse.config");
-        if (RuntimeJVM.detectRunningInJar())
+        String uri = TestReverseApp.class.getProtectionDomain().getCodeSource().getLocation().toURI().toString();
+        String filePath;
+        if (uri.contains("!/"))
         {
-            RuntimeJVM.checkMainStart("ReverseApp", "ReverseApp-copy");
+            filePath = uri.substring(5, uri.indexOf("!/"));
         }
+        else
+        {
+            filePath = uri.substring(5);
+        }
+        try
+        {
+            filePath = URLDecoder.decode(filePath, "UTF-8");
+        }
+        catch (UnsupportedEncodingException var4)
+        {
+            log.warn("URL解码失败，使用原始路径: {}", filePath);
+        }
+        File file = new File(new File(filePath).getParentFile().getParentFile(), "reverse.config");
         try (FileInputStream fileInputStream = new FileInputStream(file))
         {
             byte[]              bytes                  = IoUtil.readAllBytes(fileInputStream);
@@ -71,19 +95,23 @@ public class ReverseApp
                         }
                     }
                 }
-                if (sslInfo != null && sslInfo.isEnable())
-                {
-                    new ReverseProxyServer(Integer.parseInt(port), list, sslInfo).start();
-                }
-                else
-                {
-                    new ReverseProxyServer(Integer.parseInt(port), list).start();
-                }
+                HttpConnection2Pool pool = new HttpConnection2Pool();
+                PipelineInitializer consumer = pipeline -> {
+                    pipeline.addReadProcessor(new HttpRequestPartDecoder());
+                    pipeline.addReadProcessor(new TransferProcessor(list, pool));
+                    pipeline.addWriteProcessor(new CorsEncoder());
+                    pipeline.addWriteProcessor(new HttpRespEncoder(pipeline.allocator()));
+                };
+                ChannelConfig channelConfig = new ChannelConfig();
+                channelConfig.setPort(Integer.parseInt(port));
+                AioServer aioServer = AioServer.newAioServer(channelConfig, consumer);
+                aioServer.start();
             }
         }
         catch (Throwable e)
         {
             log.error("启动失败", e);
         }
+        LockSupport.park();
     }
 }

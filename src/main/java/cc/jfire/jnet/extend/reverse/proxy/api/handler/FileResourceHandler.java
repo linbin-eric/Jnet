@@ -7,11 +7,14 @@ import cc.jfire.jnet.common.api.Pipeline;
 import cc.jfire.jnet.extend.http.dto.FullHttpResp;
 import cc.jfire.jnet.extend.http.dto.HttpRequestPartHead;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+@Slf4j
 public final class FileResourceHandler extends AbstractIOResourceHandler
 {
     private File dir;
@@ -42,25 +45,31 @@ public final class FileResourceHandler extends AbstractIOResourceHandler
     @Override
     protected void processHead(HttpRequestPartHead head, Pipeline pipeline, String requestUrl, String contentType)
     {
+        log.trace("[FileResourceHandler] 处理请求: {}, contentType: {}", requestUrl, contentType);
         File resourceFile = new File(dir, requestUrl);
+        log.trace("[FileResourceHandler] 尝试读取文件: {}", resourceFile.getAbsolutePath());
         if (resourceFile.exists())
         {
             try (InputStream inputStream = new FileInputStream(resourceFile))
             {
                 byte[] bytes = IoUtil.readAllBytes(inputStream);
+                log.trace("[FileResourceHandler] 文件读取成功, 大小: {} bytes", bytes.length);
                 head.close();
                 FullHttpResp response = new FullHttpResp();
                 response.getHead().addHeader("Content-Type", contentType);
                 response.getBody().setBodyBytes(bytes);
+                log.trace("[FileResourceHandler] 发送响应, Content-Type: {}", contentType);
                 pipeline.fireWrite(response);
             }
             catch (IOException e)
             {
+                log.error("[FileResourceHandler] 读取文件异常: {}", resourceFile.getAbsolutePath(), e);
                 throw new RuntimeException("读取文件地址:" + resourceFile.getAbsolutePath() + "出现异常", e);
             }
         }
         else
         {
+            log.warn("[FileResourceHandler] 文件不存在: {}", resourceFile.getAbsolutePath());
             head.close();
             FullHttpResp response = new FullHttpResp();
             response.getHead().addHeader("Content-Type", "text/html;charset=utf-8");

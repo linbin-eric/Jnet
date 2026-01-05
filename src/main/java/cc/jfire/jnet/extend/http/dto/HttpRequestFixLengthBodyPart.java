@@ -7,6 +7,18 @@ import lombok.Data;
 public class HttpRequestFixLengthBodyPart implements HttpRequestPart
 {
     protected IoBuffer part;
+    protected boolean  last = false;
+
+    @Override
+    public boolean isLast()
+    {
+        return last;
+    }
+
+    public void setLast(boolean last)
+    {
+        this.last = last;
+    }
 
     @Override
     public void close()

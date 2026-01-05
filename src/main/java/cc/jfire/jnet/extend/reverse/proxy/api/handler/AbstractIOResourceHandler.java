@@ -4,13 +4,15 @@ import cc.jfire.baseutil.StringUtil;
 import cc.jfire.jnet.common.api.Pipeline;
 import cc.jfire.jnet.common.util.HttpDecodeUtil;
 import cc.jfire.jnet.extend.http.dto.HttpRequestPart;
-import cc.jfire.jnet.extend.http.dto.HttpRequestPartEnd;
 import cc.jfire.jnet.extend.http.dto.HttpRequestPartHead;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceHandler;
+
+import lombok.extern.slf4j.Slf4j;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 
+@Slf4j
 public sealed abstract class AbstractIOResourceHandler implements ResourceHandler permits FileResourceHandler, ClassResourceHandler
 {
     protected String prefixMatch;
@@ -43,13 +45,17 @@ public sealed abstract class AbstractIOResourceHandler implements ResourceHandle
     {
         String requestUrl = URLDecoder.decode(head.getPath(), StandardCharsets.UTF_8);
         requestUrl = HttpDecodeUtil.pureUrl(requestUrl);
-        return requestUrl.startsWith(prefixMatch);
+        boolean matched = requestUrl.startsWith(prefixMatch);
+        log.trace("[AbstractIOResourceHandler] match检查: url={}, prefixMatch={}, 结果: {}",
+                  requestUrl, prefixMatch, matched);
+        return matched;
     }
 
     @Override
     public void process(HttpRequestPart part, Pipeline pipeline)
     {
-        // IO 资源处理器只处理 Head，忽略 Body 和 End
+        log.trace("[AbstractIOResourceHandler] process: {}", part.getClass().getSimpleName());
+        // IO 资源处理器只处理 Head，忽略 Body
         if (part instanceof HttpRequestPartHead head)
         {
             String requestUrl = URLDecoder.decode(head.getPath(), StandardCharsets.UTF_8);
@@ -58,20 +64,20 @@ public sealed abstract class AbstractIOResourceHandler implements ResourceHandle
             if (StringUtil.isBlank(requestUrl))
             {
                 requestUrl = "index.html";
+                log.trace("[AbstractIOResourceHandler] 空路径默认为 index.html");
             }
             else if (requestUrl.equals("/"))
             {
                 requestUrl = "/index.html";
+                log.trace("[AbstractIOResourceHandler] 根路径默认为 /index.html");
             }
+            log.trace("[AbstractIOResourceHandler] 处理Head, 资源路径: {}", requestUrl);
             processHead(head, pipeline, requestUrl, HttpDecodeUtil.findContentType(requestUrl));
-        }
-        else if (part instanceof HttpRequestPartEnd)
-        {
-            // End 不需要处理
         }
         else
         {
-            // Body 部分释放资源
+            // Body 部分释放资源（包括 last=true 的 body）
+            log.trace("[AbstractIOResourceHandler] IO资源处理器忽略Body, 释放资源");
             part.close();
         }
     }

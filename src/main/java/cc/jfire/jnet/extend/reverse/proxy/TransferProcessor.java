@@ -3,13 +3,20 @@ package cc.jfire.jnet.extend.reverse.proxy;
 import cc.jfire.jnet.common.api.ReadProcessor;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.extend.http.client.HttpConnection2Pool;
-import cc.jfire.jnet.extend.http.dto.*;
+import cc.jfire.jnet.extend.http.dto.FullHttpResp;
+import cc.jfire.jnet.extend.http.dto.HttpRequestChunkedBodyPart;
+import cc.jfire.jnet.extend.http.dto.HttpRequestFixLengthBodyPart;
+import cc.jfire.jnet.extend.http.dto.HttpRequestPart;
+import cc.jfire.jnet.extend.http.dto.HttpRequestPartHead;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceConfig;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceHandler;
+
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Comparator;
 import java.util.List;
 
+@Slf4j
 public class TransferProcessor implements ReadProcessor<HttpRequestPart>
 {
     private final ResourceHandler[] handlers;
@@ -26,18 +33,30 @@ public class TransferProcessor implements ReadProcessor<HttpRequestPart>
     @Override
     public void read(HttpRequestPart part, ReadProcessorNode next)
     {
+        log.trace("[TransferProcessor] 收到请求部分: {}, isLast: {}", part.getClass().getSimpleName(), part.isLast());
         if (part instanceof HttpRequestPartHead head)
         {
+            log.trace("[TransferProcessor] 处理请求头: {} {}", head.getMethod(), head.getPath());
             processHead(head, next);
+            // 如果是无 body 请求，清除 currentHandler
+            if (head.isLast())
+            {
+                log.trace("[TransferProcessor] 无body请求完成, 清除currentHandler");
+                currentHandler = null;
+            }
         }
         else if (part instanceof HttpRequestFixLengthBodyPart || part instanceof HttpRequestChunkedBodyPart)
         {
+            log.trace("[TransferProcessor] 处理请求体: {}", part.getClass().getSimpleName());
             processBody(part, next);
+            // 如果是最后一个 body，清除 currentHandler
+            if (part.isLast())
+            {
+                log.trace("[TransferProcessor] 请求体完成(last=true), 清除currentHandler");
+                currentHandler = null;
+            }
         }
-        else if (part instanceof HttpRequestPartEnd end)
-        {
-            processEnd(end, next);
-        }
+        next.fireRead(null);
     }
 
     private void processHead(HttpRequestPartHead head, ReadProcessorNode next)
@@ -46,6 +65,7 @@ public class TransferProcessor implements ReadProcessor<HttpRequestPart>
         {
             if (handler.match(head))
             {
+                log.trace("[TransferProcessor] 匹配到handler: {}", handler.getClass().getSimpleName());
                 currentHandler = handler;
                 handler.process(head, next.pipeline());
                 return;
@@ -53,6 +73,7 @@ public class TransferProcessor implements ReadProcessor<HttpRequestPart>
         }
         // 没有匹配的 handler
         String path = head.getPath();
+        log.warn("[TransferProcessor] 没有匹配的handler, 返回404: {}", path);
         head.close();
         FullHttpResp response = new FullHttpResp();
         response.getHead().setResponseCode(404);
@@ -64,30 +85,20 @@ public class TransferProcessor implements ReadProcessor<HttpRequestPart>
     {
         if (currentHandler != null)
         {
+            log.trace("[TransferProcessor] 转发请求体到handler: {}", currentHandler.getClass().getSimpleName());
             currentHandler.process(body, next.pipeline());
         }
         else
         {
+            log.warn("[TransferProcessor] 无currentHandler, 丢弃body");
             body.close();
-        }
-    }
-
-    private void processEnd(HttpRequestPartEnd end, ReadProcessorNode next)
-    {
-        if (currentHandler != null)
-        {
-            currentHandler.process(end, next.pipeline());
-            currentHandler = null;
-        }
-        else
-        {
-            end.close();
         }
     }
 
     @Override
     public void readFailed(Throwable e, ReadProcessorNode next)
     {
+        log.error("[TransferProcessor] 读取失败", e);
         try
         {
             for (ResourceHandler handler : handlers)

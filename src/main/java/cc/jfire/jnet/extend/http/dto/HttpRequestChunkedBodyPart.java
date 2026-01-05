@@ -18,6 +18,18 @@ public class HttpRequestChunkedBodyPart implements HttpRequestPart
      * 完整的内容，包含头部，内容，CRLF
      */
     private IoBuffer part;
+    private boolean  last = false;
+
+    @Override
+    public boolean isLast()
+    {
+        return last;
+    }
+
+    public void setLast(boolean last)
+    {
+        this.last = last;
+    }
 
     @Override
     public void close()
@@ -25,7 +37,7 @@ public class HttpRequestChunkedBodyPart implements HttpRequestPart
         if (part != null)
         {
             part.free();
-            part=null;
+            part = null;
         }
     }
 }

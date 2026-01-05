@@ -4,7 +4,11 @@ import cc.jfire.jnet.common.api.ReadProcessor;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 import cc.jfire.jnet.common.util.HttpDecodeUtil;
-import cc.jfire.jnet.extend.http.dto.*;
+import cc.jfire.jnet.extend.http.dto.HttpRequest;
+import cc.jfire.jnet.extend.http.dto.HttpRequestChunkedBodyPart;
+import cc.jfire.jnet.extend.http.dto.HttpRequestFixLengthBodyPart;
+import cc.jfire.jnet.extend.http.dto.HttpRequestPart;
+import cc.jfire.jnet.extend.http.dto.HttpRequestPartHead;
 
 public class HttpRequestAggregator implements ReadProcessor<HttpRequestPart>
 {
@@ -17,6 +21,11 @@ public class HttpRequestAggregator implements ReadProcessor<HttpRequestPart>
         if (data instanceof HttpRequestPartHead)
         {
             head = (HttpRequestPartHead) data;
+            // 如果是无 body 请求，直接聚合并发送
+            if (head.isLast())
+            {
+                fireAggregatedRequest(next);
+            }
         }
         else if (data instanceof HttpRequestFixLengthBodyPart)
         {
@@ -29,6 +38,11 @@ public class HttpRequestAggregator implements ReadProcessor<HttpRequestPart>
             {
                 body.put(part.getPart());
                 part.getPart().free();
+            }
+            // 如果是最后一个 body，聚合并发送
+            if (part.isLast())
+            {
+                fireAggregatedRequest(next);
             }
         }
         else if (data instanceof HttpRequestChunkedBodyPart)
@@ -48,28 +62,37 @@ public class HttpRequestAggregator implements ReadProcessor<HttpRequestPart>
                 body.put(dataBuffer);
                 dataBuffer.free();
             }
+            // 如果是最后一个 chunk，聚合并发送
+            if (chunkedPart.isLast())
+            {
+                fireAggregatedRequest(next);
+            }
         }
-        else if (data instanceof HttpRequestPartEnd)
+    }
+
+    /**
+     * 聚合请求并发送到下游
+     */
+    private void fireAggregatedRequest(ReadProcessorNode next)
+    {
+        HttpRequest request = new HttpRequest();
+        request.setMethod(head.getMethod());
+        request.setPath(head.getPath());
+        request.setVersion(head.getVersion());
+        request.setHeaders(head.getHeaders());
+        if (head.isChunked())
         {
-            HttpRequest request = new HttpRequest();
-            request.setMethod(head.getMethod());
-            request.setPath(head.getPath());
-            request.setVersion(head.getVersion());
-            request.setHeaders(head.getHeaders());
-            if (head.isChunked())
-            {
-                request.setContentLength(body == null ? 0 : body.remainRead());
-            }
-            else
-            {
-                request.setContentLength(head.getContentLength());
-            }
-            HttpDecodeUtil.findContentType(head.getHeaders(), request::setContentType);
-            request.setBody(body);
-            next.fireRead(request);
-            head = null;
-            body = null;
+            request.setContentLength(body == null ? 0 : body.remainRead());
         }
+        else
+        {
+            request.setContentLength(head.getContentLength());
+        }
+        HttpDecodeUtil.findContentType(head.getHeaders(), request::setContentType);
+        request.setBody(body);
+        next.fireRead(request);
+        head = null;
+        body = null;
     }
 
     @Override
