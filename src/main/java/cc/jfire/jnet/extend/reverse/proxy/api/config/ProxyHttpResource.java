@@ -1,5 +1,6 @@
 package cc.jfire.jnet.extend.reverse.proxy.api.config;
 
+import cc.jfire.jnet.extend.http.client.HttpConnection2Pool;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceConfig;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceHandler;
 import cc.jfire.jnet.extend.reverse.proxy.api.handler.FullMatchProxyHttpHandler;
@@ -22,12 +23,12 @@ public class ProxyHttpResource implements ResourceConfig
     }
 
     @Override
-    public ResourceHandler parse()
+    public ResourceHandler parse(HttpConnection2Pool pool)
     {
         return switch (matchType)
         {
-            case FULL -> new FullMatchProxyHttpHandler(match, proxy);
-            case PREFIX -> new PrefixMatchProxyHttpHandler(match, proxy);
+            case FULL -> new FullMatchProxyHttpHandler(match, proxy, pool);
+            case PREFIX -> new PrefixMatchProxyHttpHandler(match, proxy, pool);
         };
     }
 }

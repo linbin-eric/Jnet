@@ -215,7 +215,12 @@ public class HttpResponsePartDecoder extends AbstractDecoder
             {
                 return false;
             }
-            accumulation.addReadPosi(totalLength);
+            // 构造一个内容长度为0的 ChunkedBodyPart，包含 0\r\n\r\n
+            HttpResponseChunkedBodyPart part = new HttpResponseChunkedBodyPart();
+            part.setHeadLength(chunkSizeLineLength);
+            part.setChunkLength(totalLength);
+            part.setPart(accumulation.slice(totalLength));
+            next.fireRead(part);
             next.fireRead(new HttpResponsePartEnd());
             resetState();
             return accumulation != null && accumulation.remainRead() > 0;

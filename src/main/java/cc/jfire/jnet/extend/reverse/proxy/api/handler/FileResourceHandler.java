@@ -5,7 +5,7 @@ import cc.jfire.baseutil.RuntimeJVM;
 import cc.jfire.baseutil.STR;
 import cc.jfire.jnet.common.api.Pipeline;
 import cc.jfire.jnet.extend.http.dto.FullHttpResp;
-import cc.jfire.jnet.extend.http.dto.HttpRequest;
+import cc.jfire.jnet.extend.http.dto.HttpRequestPartHead;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -40,7 +40,7 @@ public final class FileResourceHandler extends AbstractIOResourceHandler
     }
 
     @Override
-    protected void process(HttpRequest httpRequest, Pipeline pipeline, String requestUrl, String contentType)
+    protected void processHead(HttpRequestPartHead head, Pipeline pipeline, String requestUrl, String contentType)
     {
         File resourceFile = new File(dir, requestUrl);
         if (resourceFile.exists())
@@ -48,7 +48,7 @@ public final class FileResourceHandler extends AbstractIOResourceHandler
             try (InputStream inputStream = new FileInputStream(resourceFile))
             {
                 byte[] bytes = IoUtil.readAllBytes(inputStream);
-                httpRequest.close();
+                head.close();
                 FullHttpResp response = new FullHttpResp();
                 response.getHead().addHeader("Content-Type", contentType);
                 response.getBody().setBodyBytes(bytes);
@@ -61,7 +61,7 @@ public final class FileResourceHandler extends AbstractIOResourceHandler
         }
         else
         {
-            httpRequest.close();
+            head.close();
             FullHttpResp response = new FullHttpResp();
             response.getHead().addHeader("Content-Type", "text/html;charset=utf-8");
             response.getBody().setBodyText(STR.format("not available path:{},not find in :{}", requestUrl, resourceFile.getAbsolutePath()));

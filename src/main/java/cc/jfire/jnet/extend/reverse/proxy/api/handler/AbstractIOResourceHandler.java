@@ -3,7 +3,9 @@ package cc.jfire.jnet.extend.reverse.proxy.api.handler;
 import cc.jfire.baseutil.StringUtil;
 import cc.jfire.jnet.common.api.Pipeline;
 import cc.jfire.jnet.common.util.HttpDecodeUtil;
-import cc.jfire.jnet.extend.http.dto.HttpRequest;
+import cc.jfire.jnet.extend.http.dto.HttpRequestPart;
+import cc.jfire.jnet.extend.http.dto.HttpRequestPartEnd;
+import cc.jfire.jnet.extend.http.dto.HttpRequestPartHead;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceHandler;
 
 import java.net.URLDecoder;
@@ -37,26 +39,42 @@ public sealed abstract class AbstractIOResourceHandler implements ResourceHandle
     }
 
     @Override
-    public boolean process(HttpRequest httpRequest, Pipeline pipeline)
+    public boolean match(HttpRequestPartHead head)
     {
-        String requestUrl = URLDecoder.decode(httpRequest.getPath(), StandardCharsets.UTF_8);
+        String requestUrl = URLDecoder.decode(head.getPath(), StandardCharsets.UTF_8);
         requestUrl = HttpDecodeUtil.pureUrl(requestUrl);
-        if (!requestUrl.startsWith(prefixMatch))
-        {
-            return false;
-        }
-        requestUrl = requestUrl.substring(len);
-        if (StringUtil.isBlank(requestUrl))
-        {
-            requestUrl = "index.html";
-        }
-        else if (requestUrl.equals("/"))
-        {
-            requestUrl = "/index.html";
-        }
-        process(httpRequest, pipeline, requestUrl, HttpDecodeUtil.findContentType(requestUrl));
-        return true;
+        return requestUrl.startsWith(prefixMatch);
     }
 
-    protected abstract void process(HttpRequest httpRequest, Pipeline pipeline, String requestUrl, String contentType);
+    @Override
+    public void process(HttpRequestPart part, Pipeline pipeline)
+    {
+        // IO 资源处理器只处理 Head，忽略 Body 和 End
+        if (part instanceof HttpRequestPartHead head)
+        {
+            String requestUrl = URLDecoder.decode(head.getPath(), StandardCharsets.UTF_8);
+            requestUrl = HttpDecodeUtil.pureUrl(requestUrl);
+            requestUrl = requestUrl.substring(len);
+            if (StringUtil.isBlank(requestUrl))
+            {
+                requestUrl = "index.html";
+            }
+            else if (requestUrl.equals("/"))
+            {
+                requestUrl = "/index.html";
+            }
+            processHead(head, pipeline, requestUrl, HttpDecodeUtil.findContentType(requestUrl));
+        }
+        else if (part instanceof HttpRequestPartEnd)
+        {
+            // End 不需要处理
+        }
+        else
+        {
+            // Body 部分释放资源
+            part.close();
+        }
+    }
+
+    protected abstract void processHead(HttpRequestPartHead head, Pipeline pipeline, String requestUrl, String contentType);
 }

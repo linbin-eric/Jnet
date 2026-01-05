@@ -13,6 +13,8 @@ public class HttpRequestPartHead implements HttpRequestPart
      * 完整的请求头部内容，包含结束的 CRLF
      */
     protected IoBuffer            headBuffer;
+    protected String              domain;
+    protected int                 port          = 80;
     protected String              method;
     protected String              path;
     protected String              version;
@@ -28,6 +30,39 @@ public class HttpRequestPartHead implements HttpRequestPart
     public void addHeader(String name, String value)
     {
         headers.put(name, value);
+    }
+
+    public HttpRequestPartHead setUrl(String url)
+    {
+        HttpUrl parsed = HttpUrl.parse(url);
+        setPath(parsed.path());
+        setDomain(parsed.domain());
+        setPort(parsed.port());
+
+        // Host header：大小写不敏感替换，避免产生重复 Host
+        String matchedKey = null;
+        for (String key : headers.keySet())
+        {
+            if (key.equalsIgnoreCase("Host"))
+            {
+                matchedKey = key;
+                break;
+            }
+        }
+        if (matchedKey != null)
+        {
+            headers.remove(matchedKey);
+        }
+        headers.put("Host", parsed.hostHeader());
+
+        // 关键：清空并释放 headBuffer，否则编码器会直接写出原始头部，同时避免内存泄漏
+        IoBuffer old = getHeadBuffer();
+        setHeadBuffer(null);
+        if (old != null)
+        {
+            old.free();
+        }
+        return this;
     }
 
     @Override

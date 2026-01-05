@@ -5,6 +5,7 @@ import cc.jfire.baseutil.RuntimeJVM;
 import cc.jfire.jnet.common.api.Pipeline;
 import cc.jfire.jnet.common.util.ChannelConfig;
 import cc.jfire.jnet.extend.http.coder.*;
+import cc.jfire.jnet.extend.http.client.HttpConnection2Pool;
 import cc.jfire.jnet.extend.reverse.app.SslInfo;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceConfig;
 import cc.jfire.jnet.server.AioServer;
@@ -24,6 +25,7 @@ public class ReverseProxyServer
     private int                  port;
     private  List<ResourceConfig> configs;
     private SslInfo              sslInfo;
+    private HttpConnection2Pool  pool = new HttpConnection2Pool();
 
     public ReverseProxyServer(int port, List<ResourceConfig> configs)
     {
@@ -97,8 +99,7 @@ public class ReverseProxyServer
                     SSLEncoder sslEncoder = new SSLEncoder(sslEngine, sslDecoder);
                     pipeline.addReadProcessor(sslDecoder);
                     pipeline.addReadProcessor(new HttpRequestPartDecoder());
-                    pipeline.addReadProcessor(new HttpRequestAggregator());
-                    pipeline.addReadProcessor(new TransferProcessor(configs));
+                    pipeline.addReadProcessor(new TransferProcessor(configs, pool));
                     pipeline.addWriteProcessor(new CorsEncoder());
                     pipeline.addWriteProcessor(new HttpRespEncoder(pipeline.allocator()));
                     pipeline.addWriteProcessor(sslEncoder);
@@ -115,8 +116,7 @@ public class ReverseProxyServer
         {
             Consumer<Pipeline> s = pipeline -> {
                 pipeline.addReadProcessor(new HttpRequestPartDecoder());
-                pipeline.addReadProcessor(new HttpRequestAggregator());
-                pipeline.addReadProcessor(new TransferProcessor(configs));
+                pipeline.addReadProcessor(new TransferProcessor(configs, pool));
                 pipeline.addWriteProcessor(new CorsEncoder());
                 pipeline.addWriteProcessor(new HttpRespEncoder(pipeline.allocator()));
             };

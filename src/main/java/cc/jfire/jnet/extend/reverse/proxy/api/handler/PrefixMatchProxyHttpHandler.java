@@ -1,8 +1,8 @@
 package cc.jfire.jnet.extend.reverse.proxy.api.handler;
 
 import cc.jfire.baseutil.STR;
-import cc.jfire.jnet.common.api.Pipeline;
-import cc.jfire.jnet.extend.http.dto.HttpRequest;
+import cc.jfire.jnet.extend.http.client.HttpConnection2Pool;
+import cc.jfire.jnet.extend.http.dto.HttpRequestPartHead;
 
 /**
  * 前缀匹配
@@ -13,12 +13,13 @@ import cc.jfire.jnet.extend.http.dto.HttpRequest;
  */
 public final class PrefixMatchProxyHttpHandler extends ProxyHttpHandler
 {
-    private String prefixMatch;
-    private int    len;
-    private String proxy;
+    private final String prefixMatch;
+    private final int    len;
+    private final String proxy;
 
-    public PrefixMatchProxyHttpHandler(String prefixMatch, String proxy)
+    public PrefixMatchProxyHttpHandler(String prefixMatch, String proxy, HttpConnection2Pool pool)
     {
+        super(pool);
         isValidPrefix(prefixMatch);
         this.prefixMatch = prefixMatch.substring(0, prefixMatch.length() - 1);
         len              = this.prefixMatch.length();
@@ -38,23 +39,30 @@ public final class PrefixMatchProxyHttpHandler extends ProxyHttpHandler
     }
 
     @Override
-    public boolean process(HttpRequest request, Pipeline pipeline)
+    public boolean match(HttpRequestPartHead head)
     {
-        String requestUrl = request.getPath();
+        String requestUrl = head.getPath();
         int    index      = requestUrl.indexOf("#");
         if (index != -1)
         {
             requestUrl = requestUrl.substring(0, index);
         }
-        if (requestUrl.startsWith(prefixMatch))
+        return requestUrl.startsWith(prefixMatch);
+    }
+
+    @Override
+    protected void computeBackendUrl(HttpRequestPartHead head)
+    {
+        String requestUrl = head.getPath();
+        int    index      = requestUrl.indexOf("#");
+        if (index != -1)
         {
-            String backendUrl = proxy + requestUrl.substring(len);
-            proxyBackendUrl(request, pipeline, backendUrl);
-            return true;
+            requestUrl = requestUrl.substring(0, index);
         }
-        else
-        {
-            return false;
-        }
+        String backendUrl = proxy + requestUrl.substring(len);
+
+        // 统一使用 HttpRequestPartHead#setUrl 解析并更新 path/Host，同时释放/清空 headBuffer（避免旧头被直接写出）
+        head.setUrl(backendUrl);
     }
 }
+

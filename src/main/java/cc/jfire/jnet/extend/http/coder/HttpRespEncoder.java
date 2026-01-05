@@ -9,6 +9,7 @@ import cc.jfire.jnet.common.util.DataIgnore;
 import cc.jfire.jnet.extend.http.dto.FullHttpResp;
 import cc.jfire.jnet.extend.http.dto.HttpRespBody;
 import cc.jfire.jnet.extend.http.dto.HttpRespHead;
+import cc.jfire.jnet.extend.http.dto.HttpResponsePartHead;
 import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.StandardCharsets;
@@ -45,6 +46,31 @@ public class HttpRespEncoder implements WriteProcessor<Object>
             IoBuffer buffer = allocator.allocate(1024);
             fullHttpResp.write(buffer);
             next.fireWrite(buffer);
+        }
+        else if (obj instanceof HttpResponsePartHead head)
+        {
+            // 如果 part 不为空，直接写出原始 buffer
+            IoBuffer part = head.getPart();
+            if (part != null)
+            {
+                next.fireWrite(part);
+            }
+            else
+            {
+                // part 为空，基于属性重新编码
+                IoBuffer buffer = allocator.allocate(1024);
+                // 编码响应行：HTTP/1.1 200 OK\r\n
+                String responseLine = head.getVersion() + " " + head.getStatusCode() + " " +
+                                      (head.getReasonPhrase() != null ? head.getReasonPhrase() : "") + "\r\n";
+                buffer.put(responseLine.getBytes(StandardCharsets.US_ASCII));
+                // 编码 headers
+                head.getHeaders().forEach((name, value) -> {
+                    buffer.put((name + ": " + value + "\r\n").getBytes(StandardCharsets.US_ASCII));
+                });
+                // 空行结束头部
+                buffer.put(NEWLINE);
+                next.fireWrite(buffer);
+            }
         }
         else if (obj instanceof IoBuffer || obj instanceof DataIgnore)
         {

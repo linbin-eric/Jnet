@@ -1,11 +1,12 @@
 package cc.jfire.jnet.extend.reverse.proxy.api;
 
+import cc.jfire.jnet.extend.http.client.HttpConnection2Pool;
 import cc.jfire.jnet.extend.reverse.proxy.api.config.IOResourceConfig;
 import cc.jfire.jnet.extend.reverse.proxy.api.config.ProxyHttpResource;
 
 public interface ResourceConfig
 {
-    ResourceHandler parse();
+    ResourceHandler parse(HttpConnection2Pool pool);
 
     /**
      * 配置的优先级，数字越小优先级越高

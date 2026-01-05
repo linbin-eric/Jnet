@@ -1,5 +1,6 @@
 package cc.jfire.jnet.extend.reverse.proxy.api.config;
 
+import cc.jfire.jnet.extend.http.client.HttpConnection2Pool;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceConfig;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceHandler;
 import cc.jfire.jnet.extend.reverse.proxy.api.handler.ClassResourceHandler;
@@ -23,7 +24,7 @@ public class IOResourceConfig implements ResourceConfig
     }
 
     @Override
-    public ResourceHandler parse()
+    public ResourceHandler parse(HttpConnection2Pool pool)
     {
         if (path.startsWith("classpath:"))
         {
