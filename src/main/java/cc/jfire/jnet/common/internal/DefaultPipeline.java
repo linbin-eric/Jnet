@@ -1,14 +1,17 @@
 package cc.jfire.jnet.common.internal;
 
+import cc.jfire.baseutil.TRACEID;
 import cc.jfire.jnet.common.api.*;
 import cc.jfire.jnet.common.buffer.allocator.BufferAllocator;
 import cc.jfire.jnet.common.util.ChannelConfig;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.function.Consumer;
 
+@Slf4j
 public class DefaultPipeline implements InternalPipeline
 {
     private final AsynchronousSocketChannel     socketChannel;
@@ -25,6 +28,8 @@ public class DefaultPipeline implements InternalPipeline
     @Setter
     @Getter
     private       Object                        attach;
+    @Getter
+    private String uid = TRACEID.newTraceId();
 
     public DefaultPipeline(AsynchronousSocketChannel socketChannel, ChannelConfig channelConfig)
     {
@@ -149,6 +154,7 @@ public class DefaultPipeline implements InternalPipeline
     @Override
     public void complete()
     {
+        log.debug("[Pipeline:{}]创建", uid);
         adaptiveReadCompletionHandler = new AdaptiveReadCompletionHandler(this);
         addReadProcessor(new TailReadProcessor(adaptiveReadCompletionHandler));
         writeCompleteHandler = new DefaultWriteCompleteHandler(this);

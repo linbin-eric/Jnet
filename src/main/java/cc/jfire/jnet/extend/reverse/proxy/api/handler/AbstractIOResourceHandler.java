@@ -46,15 +46,15 @@ public sealed abstract class AbstractIOResourceHandler implements ResourceHandle
         String requestUrl = URLDecoder.decode(head.getPath(), StandardCharsets.UTF_8);
         requestUrl = HttpDecodeUtil.pureUrl(requestUrl);
         boolean matched = requestUrl.startsWith(prefixMatch);
-        log.trace("[AbstractIOResourceHandler] match检查: url={}, prefixMatch={}, 结果: {}",
-                  requestUrl, prefixMatch, matched);
+//        log.trace("[AbstractIOResourceHandler] match检查: url={}, prefixMatch={}, 结果: {}",
+//                  requestUrl, prefixMatch, matched);
         return matched;
     }
 
     @Override
     public void process(HttpRequestPart part, Pipeline pipeline)
     {
-        log.trace("[AbstractIOResourceHandler] process: {}", part.getClass().getSimpleName());
+//        log.trace("[AbstractIOResourceHandler] process: {}", part.getClass().getSimpleName());
         // IO 资源处理器只处理 Head，忽略 Body
         if (part instanceof HttpRequestPartHead head)
         {
@@ -64,20 +64,20 @@ public sealed abstract class AbstractIOResourceHandler implements ResourceHandle
             if (StringUtil.isBlank(requestUrl))
             {
                 requestUrl = "index.html";
-                log.trace("[AbstractIOResourceHandler] 空路径默认为 index.html");
+//                log.trace("[AbstractIOResourceHandler] 空路径默认为 index.html");
             }
             else if (requestUrl.equals("/"))
             {
                 requestUrl = "/index.html";
-                log.trace("[AbstractIOResourceHandler] 根路径默认为 /index.html");
+//                log.trace("[AbstractIOResourceHandler] 根路径默认为 /index.html");
             }
-            log.trace("[AbstractIOResourceHandler] 处理Head, 资源路径: {}", requestUrl);
+//            log.trace("[AbstractIOResourceHandler] 处理Head, 资源路径: {}", requestUrl);
             processHead(head, pipeline, requestUrl, HttpDecodeUtil.findContentType(requestUrl));
         }
         else
         {
             // Body 部分释放资源（包括 last=true 的 body）
-            log.trace("[AbstractIOResourceHandler] IO资源处理器忽略Body, 释放资源");
+//            log.trace("[AbstractIOResourceHandler] IO资源处理器忽略Body, 释放资源");
             part.close();
         }
     }

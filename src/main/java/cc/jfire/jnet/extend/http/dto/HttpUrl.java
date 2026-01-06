@@ -40,7 +40,7 @@ public record HttpUrl(String domain, int port, String path, String hostHeader)
             String hostHeader = portStart == -1 ? domain : url.substring(domainStart, index);
             return new HttpUrl(domain, port, path, hostHeader);
         }catch (Throwable e){
-            log.error("出现未知异常，url 是:{}", url,e);
+//            log.error("出现未知异常，url 是:{}", url,e);
             ReflectUtil.throwException(e);
             return  null;
         }

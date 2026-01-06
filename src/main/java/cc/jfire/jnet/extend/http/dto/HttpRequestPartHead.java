@@ -24,7 +24,7 @@ public class HttpRequestPartHead implements HttpRequestPart
      * 如果是 0且 chunked 是 true，意味着是流式请求。
      * 如果是 0 且 chunked 是 false，意味着没有请求体。
      */
-    protected int                 contentLength = 0;
+    protected long                 contentLength = 0;
     protected boolean             chunked       = false;
     protected boolean             last          = false;
 

@@ -47,7 +47,7 @@ public class AdaptiveReadCompletionHandler implements CompletionHandler<Integer,
     private         int                       index;
     private         int                       decrCount;
     private         IoBuffer                  ioBuffer;
-
+private final  String uid = TRACEID.newTraceId();
     public AdaptiveReadCompletionHandler(InternalPipeline pipeline)
     {
         this.pipeline = pipeline;
@@ -95,7 +95,7 @@ public class AdaptiveReadCompletionHandler implements CompletionHandler<Integer,
         MDC.put("traceId", TRACEID.newTraceId());
         if (read == -1)
         {
-            log.error("关闭");
+            log.error("关闭,远端是:{}",((DefaultPipeline) pipeline).getUid());
             failed(new EndOfStreamException(), this);
             return;
         }

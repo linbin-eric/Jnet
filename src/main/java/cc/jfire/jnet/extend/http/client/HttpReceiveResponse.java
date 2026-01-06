@@ -36,7 +36,7 @@ public class HttpReceiveResponse implements AutoCloseable
      * 0：代表没有响应体。
      * 正数：代表响应的消息体的字节长度。
      */
-    private              int                           contentLength;
+    private              long                          contentLength;
     private              String                        contentType;
     private              BlockingQueue<Part>           body                            = new LinkedBlockingQueue<>();
     @Getter(AccessLevel.NONE)
@@ -123,7 +123,6 @@ public class HttpReceiveResponse implements AutoCloseable
             }
         }
     }
-
 
     /**
      * 客户端代码消费完毕响应后关闭该响应。该方法应该只能由客户端代码来调用。

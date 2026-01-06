@@ -32,11 +32,11 @@
     </Appenders>
 
     <Loggers>
-        <Root level="off">
+        <Root level="trace">
             <AppenderRef ref="AllFile"/>
             <AppenderRef ref="Console"/>
         </Root>
-        <Logger name="cc.jfire.jnet.extend" level="off" additivity="false">
+        <Logger name="cc.jfire.jnet.extend" level="trace" additivity="false">
             <AppenderRef ref="Console"/>
         </Logger>
     </Loggers>

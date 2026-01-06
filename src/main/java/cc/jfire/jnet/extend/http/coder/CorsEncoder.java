@@ -15,10 +15,10 @@ public class CorsEncoder implements WriteProcessor<Object>
     @Override
     public void write(Object data, WriteProcessorNode next)
     {
-        log.trace("[CorsEncoder] write: {}", data.getClass().getSimpleName());
+//        log.trace("[CorsEncoder] write: {}", data.getClass().getSimpleName());
         if (data instanceof FullHttpResp fullHttpResp)
         {
-            log.trace("[CorsEncoder] 处理FullHttpResp, 添加CORS头");
+//            log.trace("[CorsEncoder] 处理FullHttpResp, 添加CORS头");
             HttpRespHead head = fullHttpResp.getHead();
             head.addHeader("Access-Control-Allow-Origin", "*")
                 .addHeader("access-control-allow-methods", "GET,PUT,POST,HEAD")
@@ -44,7 +44,7 @@ public class CorsEncoder implements WriteProcessor<Object>
         }
         else
         {
-            log.trace("[CorsEncoder] 透传数据: {}", data.getClass().getSimpleName());
+//            log.trace("[CorsEncoder] 透传数据: {}", data.getClass().getSimpleName());
             next.fireWrite(data);
         }
     }

@@ -37,7 +37,7 @@ public class HttpConnectionPool
         {
             if (!connection.isConnectionClosed())
             {
-                log.debug("地址:{}:{}连接:{}被借出,当前剩余:{}", host, port, connection.getId(), pool.size());
+//                log.debug("地址:{}:{}连接:{}被借出,当前剩余:{}", host, port, connection.getId(), pool.size());
                 connection.setLastBorrowTime(System.currentTimeMillis());
                 return connection;
             }
@@ -62,7 +62,7 @@ public class HttpConnectionPool
                 {
                     connection = new HttpConnection(host, port, 60 * 30, idGen.getAndIncrement(), (pipeline, http) -> new HttpReceiveResponse(pipeline, http, callback));
                 }
-                log.debug("地址:{}:{}连接:{}被借出,当前创建:{}", host, port, connection.getId(), currentAvail);
+//                log.debug("地址:{}:{}连接:{}被借出,当前创建:{}", host, port, connection.getId(), currentAvail);
                 connection.setLastBorrowTime(System.currentTimeMillis());
                 return connection;
             }
@@ -74,13 +74,13 @@ public class HttpConnectionPool
             }
         }
         // 达到最大连接数，等待其他连接归还
-        log.debug("地址:{}:{},达到最大连接数限制 {}, 等待可用连接", host, port, MAX_CONNECTIONS_PER_HOST);
+//        log.debug("地址:{}:{},达到最大连接数限制 {}, 等待可用连接", host, port, MAX_CONNECTIONS_PER_HOST);
         connection = pool.poll(timeoutSeconds, TimeUnit.SECONDS);
         if (connection != null)
         {
             if (!connection.isConnectionClosed())
             {
-                log.debug("地址:{}:{}连接:{}被借出,当前队列:{}", host, port, connection.getId(), pool.size());
+//                log.debug("地址:{}:{}连接:{}被借出,当前队列:{}", host, port, connection.getId(), pool.size());
                 connection.setLastBorrowTime(System.currentTimeMillis());
                 return connection;
             }
@@ -107,7 +107,7 @@ public class HttpConnectionPool
                 if (count != null)
                 {
                     int left = count.decrementAndGet();
-                    log.debug("地址:{}:{},连接:{}被归还，已经失效，扣减有效数字,当前有效:{},当前队列:{}.花费时间:{}", host, port, connection.getId(), left, pools.get(key).size(), System.currentTimeMillis() - lastBorrowTime);
+//                    log.debug("地址:{}:{},连接:{}被归还，已经失效，扣减有效数字,当前有效:{},当前队列:{}.花费时间:{}", host, port, connection.getId(), left, pools.get(key).size(), System.currentTimeMillis() - lastBorrowTime);
                 }
             }
             return;
@@ -119,16 +119,16 @@ public class HttpConnectionPool
             boolean offer = pool.offer(connection);
             if (!offer)
             {
-                log.warn("地址:{}:{},连接:{}被归还，但无法加入队列，地址: {},花费时间:{}", host, port, connection.getId(), key, System.currentTimeMillis() - lastBorrowTime);
+//                log.warn("地址:{}:{},连接:{}被归还，但无法加入队列，地址: {},花费时间:{}", host, port, connection.getId(), key, System.currentTimeMillis() - lastBorrowTime);
             }
             else
             {
-                log.debug("地址:{}:{},连接:{}被归还，加入队列，当前队列:{},花费时间:{}", host, port, connection.getId(), pool.size(), System.currentTimeMillis() - lastBorrowTime);
+//                log.debug("地址:{}:{},连接:{}被归还，加入队列，当前队列:{},花费时间:{}", host, port, connection.getId(), pool.size(), System.currentTimeMillis() - lastBorrowTime);
             }
         }
         else
         {
-            log.error("异常");
+//            log.error("异常");
             System.exit(10);
             connection.close();
             AtomicInteger count = connectionCounts.get(key);
@@ -147,7 +147,7 @@ public class HttpConnectionPool
             String        key   = buildKey(host, port);
             AtomicInteger count = connectionCounts.get(key);
             count.decrementAndGet();
-            log.debug("连接:{}被移除，当前队列:{}", connection.getId(), pools.get(key).size());
+//            log.debug("连接:{}被移除，当前队列:{}", connection.getId(), pools.get(key).size());
         }
     }
 
@@ -172,7 +172,7 @@ public class HttpConnectionPool
                     int removedCount = initialSize - pool.size();
                     if (removedCount > 0)
                     {
-                        log.debug("清理了 {} 个无效连接，地址: {}", removedCount, key);
+//                        log.debug("清理了 {} 个无效连接，地址: {}", removedCount, key);
                     }
                 }
             }

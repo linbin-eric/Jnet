@@ -109,7 +109,7 @@ public abstract class AbstractResourceEncoder implements ReadProcessor<HttpReque
             StaticResource staticResource = map.computeIfAbsent(url, str -> {
                 String contentType           = HttpDecodeUtil.findContentType(str);
                 String realClassResourcePath = resourcePathPrefix + str;
-                log.trace("当前请求路径为:{}", realClassResourcePath);
+//                log.trace("当前请求路径为:{}", realClassResourcePath);
                 try (InputStream resourceAsStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(realClassResourcePath))
                 {
                     if (resourceAsStream != null)

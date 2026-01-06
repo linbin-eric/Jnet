@@ -33,26 +33,26 @@ public class TransferProcessor implements ReadProcessor<HttpRequestPart>
     @Override
     public void read(HttpRequestPart part, ReadProcessorNode next)
     {
-        log.trace("[TransferProcessor] 收到请求部分: {}, isLast: {}", part.getClass().getSimpleName(), part.isLast());
+//        log.trace("[TransferProcessor] 收到请求部分: {}, isLast: {}", part.getClass().getSimpleName(), part.isLast());
         if (part instanceof HttpRequestPartHead head)
         {
-            log.trace("[TransferProcessor] 处理请求头: {} {}", head.getMethod(), head.getPath());
+//            log.trace("[TransferProcessor] 处理请求头: {} {}", head.getMethod(), head.getPath());
             processHead(head, next);
             // 如果是无 body 请求，清除 currentHandler
             if (head.isLast())
             {
-                log.trace("[TransferProcessor] 无body请求完成, 清除currentHandler");
+//                log.trace("[TransferProcessor] 无body请求完成, 清除currentHandler");
                 currentHandler = null;
             }
         }
         else if (part instanceof HttpRequestFixLengthBodyPart || part instanceof HttpRequestChunkedBodyPart)
         {
-            log.trace("[TransferProcessor] 处理请求体: {}", part.getClass().getSimpleName());
+//            log.trace("[TransferProcessor] 处理请求体: {}", part.getClass().getSimpleName());
             processBody(part, next);
             // 如果是最后一个 body，清除 currentHandler
             if (part.isLast())
             {
-                log.trace("[TransferProcessor] 请求体完成(last=true), 清除currentHandler");
+//                log.trace("[TransferProcessor] 请求体完成(last=true), 清除currentHandler");
                 currentHandler = null;
             }
         }
@@ -64,7 +64,7 @@ public class TransferProcessor implements ReadProcessor<HttpRequestPart>
         {
             if (handler.match(head))
             {
-                log.trace("[TransferProcessor] 匹配到handler: {}", handler.getClass().getSimpleName());
+//                log.trace("[TransferProcessor] 匹配到handler: {}", handler.getClass().getSimpleName());
                 currentHandler = handler;
                 handler.process(head, next.pipeline());
                 return;
@@ -72,7 +72,7 @@ public class TransferProcessor implements ReadProcessor<HttpRequestPart>
         }
         // 没有匹配的 handler
         String path = head.getPath();
-        log.warn("[TransferProcessor] 没有匹配的handler, 返回404: {}", path);
+//        log.warn("[TransferProcessor] 没有匹配的handler, 返回404: {}", path);
         head.close();
         FullHttpResp response = new FullHttpResp();
         response.getHead().setResponseCode(404);
@@ -84,12 +84,12 @@ public class TransferProcessor implements ReadProcessor<HttpRequestPart>
     {
         if (currentHandler != null)
         {
-            log.trace("[TransferProcessor] 转发请求体到handler: {}", currentHandler.getClass().getSimpleName());
+//            log.trace("[TransferProcessor] 转发请求体到handler: {}", currentHandler.getClass().getSimpleName());
             currentHandler.process(body, next.pipeline());
         }
         else
         {
-            log.warn("[TransferProcessor] 无currentHandler, 丢弃body");
+//            log.warn("[TransferProcessor] 无currentHandler, 丢弃body");
             body.close();
         }
     }
@@ -97,7 +97,7 @@ public class TransferProcessor implements ReadProcessor<HttpRequestPart>
     @Override
     public void readFailed(Throwable e, ReadProcessorNode next)
     {
-        log.error("[TransferProcessor] 读取失败", e);
+//        log.error("[TransferProcessor] 读取失败", e);
         try
         {
             for (ResourceHandler handler : handlers)

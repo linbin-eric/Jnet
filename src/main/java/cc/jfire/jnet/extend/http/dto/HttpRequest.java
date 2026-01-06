@@ -13,12 +13,12 @@ public class HttpRequest implements AutoCloseable
 {
     protected String              url;
     protected String              domain;
-    protected int                 port    = 80;
+    protected int                 port          = 80;
     protected String              method;
     protected String              path;
     protected String              version;
     protected Map<String, String> headers       = new HashMap<>();
-    protected int                 contentLength = 0;
+    protected long                contentLength = 0;
     protected String              contentType;
     protected IoBuffer            body;
     protected String              strBody;
@@ -42,8 +42,8 @@ public class HttpRequest implements AutoCloseable
         this.url = url;
         HttpUrl parsed = HttpUrl.parse(url);
         this.domain = parsed.domain();
-        this.port = parsed.port();
-        this.path = parsed.path();
+        this.port   = parsed.port();
+        this.path   = parsed.path();
         this.headers.put("Host", parsed.hostHeader());
         return this;
     }

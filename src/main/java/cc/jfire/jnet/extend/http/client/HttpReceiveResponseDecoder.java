@@ -22,7 +22,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
     private              HttpReceiveResponse                                       receiveResponse;
     private              ParseState                                                state                      = ParseState.RESPONSE_LINE;
     private              int                                                       lastCheck                  = -1;
-    private              int                                                       bodyRead                   = 0;
+    private              long                                                      bodyRead                   = 0;
     private              int                                                       chunkSize                  = -1;
     private              int                                                       chunkHeaderLength;
     private final        HttpConnection                                            httpConnection;
@@ -106,7 +106,7 @@ public class HttpReceiveResponseDecoder extends AbstractDecoder
 
     private boolean decodeBodyWithFixLength()
     {
-        int left   = receiveResponse.getContentLength() - bodyRead;
+        long left   = receiveResponse.getContentLength() - bodyRead;
         int remain = accumulation.remainRead();
         bodyRead += remain;
         receiveResponse.addPartOfBody(new FixLengthPart(accumulation));

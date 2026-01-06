@@ -89,7 +89,7 @@ public class HttpConnection
     {
         if (isConnectionClosed())
         {
-            log.error("连接关闭,地址:{}", clientChannel.pipeline().getRemoteAddressWithoutException());
+//            log.error("连接关闭,地址:{}", clientChannel.pipeline().getRemoteAddressWithoutException());
             request.close();
             throw new ClosedChannelException();
         }
@@ -111,7 +111,7 @@ public class HttpConnection
                 waitingThread = null;
                 String msg = clientChannel.alive() ? "通道仍然alive" : "通道已经失效";
                 clientChannel.pipeline().shutdownInput();
-                log.error("连接关闭，地址:{}", clientChannel.pipeline().getRemoteAddressWithoutException());
+//                log.error("连接关闭，地址:{}", clientChannel.pipeline().getRemoteAddressWithoutException());
                 throw new SocketTimeoutException(msg);
             }
             LockSupport.parkNanos(remaining);
@@ -120,7 +120,7 @@ public class HttpConnection
             {
                 waitingThread = null;
                 clientChannel.pipeline().shutdownInput();
-                log.error("连接关闭，地址:{}", clientChannel.pipeline().getRemoteAddressWithoutException());
+//                log.error("连接关闭，地址:{}", clientChannel.pipeline().getRemoteAddressWithoutException());
                 throw new ClosedChannelException();
             }
         }
@@ -129,7 +129,7 @@ public class HttpConnection
         HttpReceiveResponse response = responseResult;
         if (result == WriteResult.CLOSE_OF_CONNECTION)
         {
-            log.debug("收到链接终止响应,连接关闭,地址:{}", clientChannel.pipeline().getRemoteAddressWithoutException());
+//            log.debug("收到链接终止响应,连接关闭,地址:{}", clientChannel.pipeline().getRemoteAddressWithoutException());
             clientChannel.pipeline().shutdownInput();
             throw new ClosedChannelException();
         }

@@ -70,10 +70,15 @@ public class AggregatorResponseFuture implements ResponseFuture
             this.headPart = head;
             // 聚合模式不需要保留 head 的原始字节，及时释放
             head.free();
-            int contentLength = head.getContentLength();
+            long contentLength = head.getContentLength();
+            if (contentLength > Integer.MAX_VALUE)
+            {
+                part.free();
+                throw new IllegalArgumentException("响应头 Content-Length 超过 Integer.MAX_VALUE");
+            }
             if (contentLength > 0)
             {
-                bodyBuffer = allocator.allocate(contentLength);
+                bodyBuffer = allocator.allocate((int) contentLength);
             }
             else if (head.isChunked())
             {

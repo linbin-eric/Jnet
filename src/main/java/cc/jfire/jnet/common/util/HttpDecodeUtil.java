@@ -106,9 +106,9 @@ public class HttpDecodeUtil
         headers.entrySet().stream().filter(entry -> entry.getKey().equalsIgnoreCase("Content-Type")).map(Map.Entry::getValue).findFirst().ifPresent(contentTypeConsumer);
     }
 
-    public static void findContentLength(Map<String, String> headers, Consumer<Integer> contentLengthConsumer)
+    public static void findContentLength(Map<String, String> headers, Consumer<Long> contentLengthConsumer)
     {
-        headers.entrySet().stream().filter(entry -> entry.getKey().equalsIgnoreCase("Content-Length")).map(entry -> Integer.valueOf(entry.getValue())).findFirst().ifPresent(contentLengthConsumer);
+        headers.entrySet().stream().filter(entry -> entry.getKey().equalsIgnoreCase("Content-Length")).map(entry -> Long.valueOf(entry.getValue())).findFirst().ifPresent(contentLengthConsumer);
     }
 
     public static String pureUrl(String url)

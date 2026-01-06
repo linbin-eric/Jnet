@@ -18,7 +18,7 @@ public class HttpResponsePartDecoder extends AbstractDecoder
     private              ParseState           state                      = ParseState.RESPONSE_LINE;
     private              HttpResponsePartHead respHead;
     private              int                  headStartPosi              = -1;
-    private              int                  bodyRead                   = 0;
+    private              long                 bodyRead                   = 0;
     private              int                  chunkSize                  = -1;
     private              int                  chunkSizeLineLength        = -1;
 
@@ -160,12 +160,12 @@ public class HttpResponsePartDecoder extends AbstractDecoder
         {
             return false;
         }
-        int left   = respHead.getContentLength() - bodyRead;
+        long left   = respHead.getContentLength() - bodyRead;
         int remain = accumulation.remainRead();
         if (remain > left)
         {
             HttpResponseFixLengthBodyPart part = new HttpResponseFixLengthBodyPart();
-            part.setPart(accumulation.slice(left));
+            part.setPart(accumulation.slice((int) left));
             part.setLast(true);
             next.fireRead(part);
             resetState();

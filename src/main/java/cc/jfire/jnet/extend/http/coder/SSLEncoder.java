@@ -36,7 +36,7 @@ public class SSLEncoder implements WriteProcessor<Object>
                 {
                     if (count++ > 10)
                     {
-                        log.error("严重循环错误");
+//                        log.error("严重循环错误");
                     }
                     IoBuffer dst = null;
                     try
@@ -63,7 +63,7 @@ public class SSLEncoder implements WriteProcessor<Object>
                             }
                             else
                             {
-                                log.warn("当前连接:{},当前步骤:{},发送协议消息,后续阶段为:{}", remote, count++, result.getHandshakeStatus());
+//                                log.warn("当前连接:{},当前步骤:{},发送协议消息,后续阶段为:{}", remote, count++, result.getHandshakeStatus());
                             }
                             return;
                         }
@@ -73,12 +73,12 @@ public class SSLEncoder implements WriteProcessor<Object>
                         }
                         else if (status == SSLEngineResult.Status.BUFFER_UNDERFLOW)
                         {
-                            log.error("不会出现这个结果");
+//                            log.error("不会出现这个结果");
                             System.exit(3);
                         }
                         else if (status == SSLEngineResult.Status.CLOSED)
                         {
-                            log.debug("当前连接:{}已经结束", remote);
+//                            log.debug("当前连接:{}已经结束", remote);
                             return;
                         }
                     }
@@ -88,7 +88,7 @@ public class SSLEncoder implements WriteProcessor<Object>
                         {
                             dst.free();
                         }
-                        log.error("当前握手出现错误", e);
+//                        log.error("当前握手出现错误", e);
                         sslDecoder.gracefulClose(next.pipeline());
                     }
                 }
@@ -135,16 +135,16 @@ public class SSLEncoder implements WriteProcessor<Object>
                     }
                     else if (status == SSLEngineResult.Status.BUFFER_OVERFLOW)
                     {
-                        log.debug("当前连接:{},生成加密数据失败，因为输出空间不足", remote);
+//                        log.debug("当前连接:{},生成加密数据失败，因为输出空间不足", remote);
                     }
                     else if (status == SSLEngineResult.Status.BUFFER_UNDERFLOW)
                     {
-                        log.error("不会出现这个结果");
+//                        log.error("不会出现这个结果");
                         System.exit(3);
                     }
                     else if (status == SSLEngineResult.Status.CLOSED)
                     {
-                        log.debug("当前连接:{},发送加密数据的后续是close", remote);
+//                        log.debug("当前连接:{},发送加密数据的后续是close", remote);
                         sslDecoder.gracefulClose(next.pipeline());
                     }
                 }
@@ -154,7 +154,7 @@ public class SSLEncoder implements WriteProcessor<Object>
                     {
                         dst.free();
                     }
-                    log.error("当前连接:{}数据加密阶段异常", remote, e);
+//                    log.error("当前连接:{}数据加密阶段异常", remote, e);
                     sslDecoder.gracefulClose(next.pipeline());
                     return;
                 }

@@ -49,12 +49,12 @@ public class HttpConnection2Pool
         {
             if (!connection.isConnectionClosed())
             {
-                log.debug("地址:{}从队列借出连接，当前队列剩余:{},当前许可总数:{}", key, bucket.queue.size(),bucket.semaphore.availablePermits());
+//                log.debug("地址:{}从队列借出连接，当前队列剩余:{},当前许可总数:{}", key, bucket.queue.size(),bucket.semaphore.availablePermits());
                 return connection;
             }
             // 连接已失效，释放许可并继续尝试下一个
             bucket.semaphore.release();
-            log.debug("地址:{}队列中的连接已失效，已清理", key);
+//            log.debug("地址:{}队列中的连接已失效，已清理", key);
         }
 
         // 队列为空，尝试获取信号量许可
@@ -65,7 +65,7 @@ public class HttpConnection2Pool
             try
             {
                 connection = new HttpConnection2(host, port, KEEP_ALIVE_SECONDS);
-                log.debug("地址:{}创建新连接，当前许可数量:{}", key,  bucket.semaphore.availablePermits());
+//                log.debug("地址:{}创建新连接，当前许可数量:{}", key,  bucket.semaphore.availablePermits());
                 return connection;
             }
             catch (Exception e)
@@ -94,7 +94,7 @@ public class HttpConnection2Pool
 
         if (bucket == null)
         {
-            log.warn("地址:{}的Bucket不存在，关闭连接", key);
+//            log.warn("地址:{}的Bucket不存在，关闭连接", key);
             connection.close();
             return;
         }
@@ -104,7 +104,7 @@ public class HttpConnection2Pool
         {
             // 连接已失效，释放许可
             bucket.semaphore.release();
-            log.debug("地址:{}归还的连接已失效，已释放许可，当前连接总数:{}", key, bucket.maxConnections - bucket.semaphore.availablePermits());
+//            log.debug("地址:{}归还的连接已失效，已释放许可，当前连接总数:{}", key, bucket.maxConnections - bucket.semaphore.availablePermits());
             return;
         }
 
@@ -114,7 +114,7 @@ public class HttpConnection2Pool
             // 连接状态不干净，不能复用，关闭并释放许可
             connection.close();
             bucket.semaphore.release();
-            log.warn("地址:{}归还的连接有未完成的响应，已关闭并释放许可，当前连接总数:{}", key, bucket.maxConnections - bucket.semaphore.availablePermits(),new IllegalStateException());
+//            log.warn("地址:{}归还的连接有未完成的响应，已关闭并释放许可，当前连接总数:{}", key, bucket.maxConnections - bucket.semaphore.availablePermits(),new IllegalStateException());
             return;
         }
 
@@ -122,14 +122,14 @@ public class HttpConnection2Pool
         boolean offered = bucket.queue.offer(connection);
         if (offered)
         {
-            log.debug("地址:{}归还连接到队列，当前队列大小:{}", key, bucket.queue.size());
+//            log.debug("地址:{}归还连接到队列，当前队列大小:{}", key, bucket.queue.size());
         }
         else
         {
             // 队列已满，关闭连接并释放许可
             connection.close();
             bucket.semaphore.release();
-            log.warn("地址:{}队列已满，关闭归还的连接，当前连接总数:{}", key, bucket.maxConnections - bucket.semaphore.availablePermits());
+//            log.warn("地址:{}队列已满，关闭归还的连接，当前连接总数:{}", key, bucket.maxConnections - bucket.semaphore.availablePermits());
         }
     }
 
