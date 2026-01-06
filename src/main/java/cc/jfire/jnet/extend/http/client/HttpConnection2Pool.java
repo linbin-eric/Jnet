@@ -8,8 +8,8 @@ import java.util.concurrent.*;
 @Slf4j
 public class HttpConnection2Pool
 {
-    private static final int DEFAULT_MAX_CONNECTIONS_PER_HOST = 10;
-    private static final int DEFAULT_TIMEOUT_SECONDS = 5;
+    private static final int DEFAULT_MAX_CONNECTIONS_PER_HOST = 50;
+    private static final int DEFAULT_TIMEOUT_SECONDS = 1;
     private static final int KEEP_ALIVE_SECONDS = 1800; // 30分钟
 
     private final ConcurrentHashMap<String, Bucket> buckets = new ConcurrentHashMap<>();
@@ -49,7 +49,7 @@ public class HttpConnection2Pool
         {
             if (!connection.isConnectionClosed())
             {
-//                log.debug("地址:{}从队列借出连接，当前队列剩余:{},当前许可总数:{}", key, bucket.queue.size(),bucket.semaphore.availablePermits());
+                log.debug("地址:{}从队列借出连接，当前队列剩余:{},当前许可总数:{}", key, bucket.queue.size(),bucket.semaphore.availablePermits());
                 return connection;
             }
             // 连接已失效，释放许可并继续尝试下一个
@@ -70,6 +70,7 @@ public class HttpConnection2Pool
             }
             catch (Exception e)
             {
+                log.error("地址:{}创建连接失败: " + e.getMessage(), key, e);
                 // 创建失败，释放许可
                 bucket.semaphore.release();
                 throw new RuntimeException("创建连接失败: " + e.getMessage(), e);
@@ -77,6 +78,7 @@ public class HttpConnection2Pool
         }
         else
         {
+            log.error("地址:{}无法在 " + timeoutSeconds + " 秒内获取到可用连接，已释放许可，当前连接总数:{}", key, bucket.maxConnections - bucket.semaphore.availablePermits());
             // 超时未获取到许可
             throw new TimeoutException("无法在 " + timeoutSeconds + " 秒内获取到可用连接，地址: " + key);
         }
