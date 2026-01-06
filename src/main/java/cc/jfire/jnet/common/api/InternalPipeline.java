@@ -4,6 +4,8 @@ public interface InternalPipeline extends Pipeline
 {
     void fireRead(Object data);
 
+    void fireReadCompleted();
+
     void complete();
 
     void fireReadFailed(Throwable e);

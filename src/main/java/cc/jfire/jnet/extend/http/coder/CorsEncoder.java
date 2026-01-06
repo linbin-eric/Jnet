@@ -2,11 +2,9 @@ package cc.jfire.jnet.extend.http.coder;
 
 import cc.jfire.jnet.common.api.WriteProcessor;
 import cc.jfire.jnet.common.api.WriteProcessorNode;
-import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 import cc.jfire.jnet.extend.http.dto.FullHttpResp;
 import cc.jfire.jnet.extend.http.dto.HttpRespHead;
 import cc.jfire.jnet.extend.http.dto.HttpResponsePartHead;
-
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
@@ -30,18 +28,18 @@ public class CorsEncoder implements WriteProcessor<Object>
         }
         else if (data instanceof HttpResponsePartHead head)
         {
-            log.trace("[CorsEncoder] 处理HttpResponsePartHead, statusCode: {}", head.getStatusCode());
-            // 释放并清空旧的 part，避免编码器写出原始字节
-            IoBuffer old = head.getPart();
-            head.setPart(null);
-            if (old != null)
-            {
-                log.trace("[CorsEncoder] 释放旧的part buffer");
-                old.free();
-            }
-            // 大小写不敏感地补充 CORS 头
-            addCorsHeadersIgnoreCase(head.getHeaders());
-            log.trace("[CorsEncoder] CORS头已添加, headers: {}", head.getHeaders());
+//            log.trace("[CorsEncoder] 处理HttpResponsePartHead, statusCode: {}", head.getStatusCode());
+//            // 释放并清空旧的 part，避免编码器写出原始字节
+//            IoBuffer old = head.getPart();
+//            head.setPart(null);
+//            if (old != null)
+//            {
+//                log.trace("[CorsEncoder] 释放旧的part buffer");
+//                old.free();
+//            }
+//            // 大小写不敏感地补充 CORS 头
+//            addCorsHeadersIgnoreCase(head.getHeaders());
+//            log.trace("[CorsEncoder] CORS头已添加, headers: {}", head.getHeaders());
             next.fireWrite(head);
         }
         else

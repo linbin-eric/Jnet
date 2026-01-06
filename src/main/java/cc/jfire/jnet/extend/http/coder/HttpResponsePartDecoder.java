@@ -1,11 +1,13 @@
 package cc.jfire.jnet.extend.http.coder;
 
+import cc.jfire.baseutil.TRACEID;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.common.coder.AbstractDecoder;
 import cc.jfire.jnet.common.util.HttpDecodeUtil;
 import cc.jfire.jnet.extend.http.dto.HttpResponseChunkedBodyPart;
 import cc.jfire.jnet.extend.http.dto.HttpResponseFixLengthBodyPart;
 import cc.jfire.jnet.extend.http.dto.HttpResponsePartHead;
+import org.slf4j.MDC;
 
 import java.nio.charset.StandardCharsets;
 
@@ -23,6 +25,7 @@ public class HttpResponsePartDecoder extends AbstractDecoder
     @Override
     protected void process0(ReadProcessorNode next)
     {
+        MDC.put("traceId", TRACEID.newTraceId());
         boolean goToNextState;
         do
         {

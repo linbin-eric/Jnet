@@ -1,15 +1,12 @@
 package cc.jfire.jnet.extend.http.coder;
 
-import cc.jfire.baseutil.TRACEID;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.common.coder.AbstractDecoder;
 import cc.jfire.jnet.common.util.HttpDecodeUtil;
 import cc.jfire.jnet.extend.http.dto.HttpRequestChunkedBodyPart;
 import cc.jfire.jnet.extend.http.dto.HttpRequestFixLengthBodyPart;
 import cc.jfire.jnet.extend.http.dto.HttpRequestPartHead;
-
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.MDC;
 
 import java.nio.charset.StandardCharsets;
 
@@ -28,7 +25,6 @@ public class HttpRequestPartDecoder extends AbstractDecoder
     @Override
     protected void process0(ReadProcessorNode next)
     {
-        MDC.put("traceId", TRACEID.newTraceId());
         log.trace("[HttpRequestPartDecoder] process0 开始, 当前状态: {}, accumulation剩余: {}",
                   state, accumulation != null ? accumulation.remainRead() : 0);
         boolean goToNextState;
@@ -183,10 +179,12 @@ public class HttpRequestPartDecoder extends AbstractDecoder
             part.setLast(true);
             if (remain > left)
             {
+                log.trace("当前 slice");
                 part.setPart(accumulation.slice(left));
             }
             else
             {
+                log.trace("当前直接采用 accumulation");
                 part.setPart(accumulation);
                 accumulation = null;
             }
@@ -283,13 +281,12 @@ public class HttpRequestPartDecoder extends AbstractDecoder
         chunkSize = -1;
         chunkSizeLineLength = -1; // 新增：重置chunk size行长度
         state     = ParseState.REQUEST_LINE;
-        if (accumulation != null && accumulation.remainRead() == 0)
+        if (accumulation != null)
         {
-            accumulation.free();
-            accumulation = null;
-        }
-        else{
-            log.error("异常");
+            if (accumulation.remainRead() != 0)
+            {
+                accumulation.compact();
+            }
         }
     }
 

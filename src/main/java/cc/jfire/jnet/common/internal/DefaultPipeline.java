@@ -133,6 +133,20 @@ public class DefaultPipeline implements InternalPipeline
     }
 
     @Override
+    public void fireReadCompleted()
+    {
+        try
+        {
+            readHead.fireReadCompleted();
+        }
+        catch (Throwable e)
+        {
+            jvmExistHandler.accept(e);
+            System.exit(127);
+        }
+    }
+
+    @Override
     public void complete()
     {
         adaptiveReadCompletionHandler = new AdaptiveReadCompletionHandler(this);

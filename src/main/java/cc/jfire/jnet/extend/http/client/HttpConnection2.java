@@ -14,14 +14,16 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.net.SocketTimeoutException;
 import java.nio.channels.ClosedChannelException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 @Slf4j
 public class HttpConnection2
 {
     @Getter
-    private final    ClientChannel  clientChannel;
     private volatile ResponseFuture responseFuture;
+    private final    ClientChannel  clientChannel;
+    private final    AtomicBoolean  isClosed = new AtomicBoolean(false);
 
     public HttpConnection2(String domain, int port, int secondsOfKeepAlive)
     {
@@ -41,22 +43,24 @@ public class HttpConnection2
                         next.fireRead(null);
                         return;
                     }
-                    future.onReceive(part);
+                    // 先清除 responseFuture，再调用 onReceive
+                    // 因为 onReceive 中可能会归还连接到连接池，必须确保归还前 responseFuture 已清空
                     if (part.isLast())
                     {
                         responseFuture = null;
                     }
-                    next.fireRead(null);
+                    future.onReceive(part);
                 }
 
                 @Override
                 public void readFailed(Throwable e, ReadProcessorNode next)
                 {
+                    close();
                     ResponseFuture future = responseFuture;
+                    responseFuture = null;
                     if (future != null)
                     {
                         future.onFail(e);
-                        responseFuture = null;
                     }
                 }
             });
@@ -71,7 +75,17 @@ public class HttpConnection2
 
     public boolean isConnectionClosed()
     {
-        return !clientChannel.alive();
+        return isClosed.get() || !clientChannel.alive();
+    }
+
+    /**
+     * 检查连接是否有未完成的响应
+     *
+     * @return true 表示有未完成的响应，连接不应被复用
+     */
+    public boolean hasUnfinishedResponse()
+    {
+        return responseFuture != null;
     }
 
     /**
@@ -136,8 +150,8 @@ public class HttpConnection2
         }
         if (this.responseFuture != null)
         {
+            log.error("上一个响应还没有收到完全，不应该发起新的 Http 请求。当前 request 是:{}", request);
             request.close();
-            log.error("上一个响应还没有收到完全，不应该发起新的 Http 请求");
             ReflectUtil.throwException(new IllegalStateException("上一个响应还没有收到完全，不应该发起新的 Http 响应"));
         }
         StreamableResponseFuture streamable = new StreamableResponseFuture(partConsumer, errorConsumer);
@@ -162,7 +176,10 @@ public class HttpConnection2
 
     public void close()
     {
-        clientChannel.pipeline().shutdownInput();
+        if (isClosed.compareAndExchange(false, true) == false)
+        {
+            clientChannel.pipeline().shutdownInput();
+        }
     }
 }
 

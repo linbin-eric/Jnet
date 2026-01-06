@@ -56,7 +56,6 @@ public class TransferProcessor implements ReadProcessor<HttpRequestPart>
                 currentHandler = null;
             }
         }
-        next.fireRead(null);
     }
 
     private void processHead(HttpRequestPartHead head, ReadProcessorNode next)

@@ -43,40 +43,29 @@ public class HttpConnection2Pool
         String key = buildKey(host, port);
         Bucket bucket = buckets.computeIfAbsent(key, k -> new Bucket(DEFAULT_MAX_CONNECTIONS_PER_HOST));
 
-        // 首先尝试从队列获取现有连接
-        HttpConnection2 connection = bucket.queue.poll();
-        if (connection != null)
+        // 尽可能从队列获取现有连接
+        HttpConnection2 connection;
+        while ((connection = bucket.queue.poll()) != null)
         {
             if (!connection.isConnectionClosed())
             {
-                log.debug("地址:{}从队列借出连接，当前队列剩余:{}", key, bucket.queue.size());
+                log.debug("地址:{}从队列借出连接，当前队列剩余:{},当前许可总数:{}", key, bucket.queue.size(),bucket.semaphore.availablePermits());
                 return connection;
             }
-            else
-            {
-                // 连接已失效，释放许可
-                bucket.semaphore.release();
-                log.debug("地址:{}队列中的连接已失效，已清理", key);
-            }
+            // 连接已失效，释放许可并继续尝试下一个
+            bucket.semaphore.release();
+            log.debug("地址:{}队列中的连接已失效，已清理", key);
         }
 
         // 队列为空，尝试获取信号量许可
         if (bucket.semaphore.tryAcquire(timeoutSeconds, TimeUnit.SECONDS))
         {
-            // 获取许可后再次尝试从队列获取（可能其他线程刚归还）
-            connection = bucket.queue.poll();
-            if (connection != null && !connection.isConnectionClosed())
-            {
-                bucket.semaphore.release(); // 释放许可，因为使用的是已有连接
-                log.debug("地址:{}从队列借出连接（二次尝试），当前队列剩余:{}", key, bucket.queue.size());
-                return connection;
-            }
 
             // 需要创建新连接
             try
             {
                 connection = new HttpConnection2(host, port, KEEP_ALIVE_SECONDS);
-                log.debug("地址:{}创建新连接，当前连接总数:{}", key, bucket.maxConnections - bucket.semaphore.availablePermits());
+                log.debug("地址:{}创建新连接，当前许可数量:{}", key,  bucket.semaphore.availablePermits());
                 return connection;
             }
             catch (Exception e)
@@ -116,6 +105,16 @@ public class HttpConnection2Pool
             // 连接已失效，释放许可
             bucket.semaphore.release();
             log.debug("地址:{}归还的连接已失效，已释放许可，当前连接总数:{}", key, bucket.maxConnections - bucket.semaphore.availablePermits());
+            return;
+        }
+
+        // 检查连接是否有未完成的响应
+        if (connection.hasUnfinishedResponse())
+        {
+            // 连接状态不干净，不能复用，关闭并释放许可
+            connection.close();
+            bucket.semaphore.release();
+            log.warn("地址:{}归还的连接有未完成的响应，已关闭并释放许可，当前连接总数:{}", key, bucket.maxConnections - bucket.semaphore.availablePermits(),new IllegalStateException());
             return;
         }
 

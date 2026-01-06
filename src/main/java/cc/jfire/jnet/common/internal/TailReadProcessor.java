@@ -13,10 +13,13 @@ public class TailReadProcessor implements ReadProcessor<Object>
     @Override
     public void read(Object data, ReadProcessorNode next)
     {
-        if (data != null)
-        {
-            throw new IllegalArgumentException();
-        }
+        // 如果数据传递到末端处理器，说明处理链存在问题，应立即抛出异常
+        throw new IllegalStateException("数据不应该传递到 TailReadProcessor，请检查处理链配置");
+    }
+
+    @Override
+    public void readCompleted(ReadProcessorNode next)
+    {
         completionHandler.registerRead();
     }
 

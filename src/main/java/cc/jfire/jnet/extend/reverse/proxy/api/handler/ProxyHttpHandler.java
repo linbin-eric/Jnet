@@ -68,14 +68,14 @@ public sealed abstract class ProxyHttpHandler implements ResourceHandler permits
         // DROP_SILENT: 丢弃且不回复，直接释放资源
         if (dropMode == DropMode.DROP_SILENT)
         {
-            log.trace("[ProxyHttpHandler] DROP_SILENT模式, 丢弃请求部分");
+            log.debug("[ProxyHttpHandler] DROP_SILENT模式, 丢弃请求部分");
             part.close();
             return;
         }
         // DROP_REPLY_503: 丢弃但需等请求结束后回复 503
         if (dropMode == DropMode.DROP_REPLY_503)
         {
-            log.trace("[ProxyHttpHandler] DROP_REPLY_503模式, 丢弃请求部分, isLast: {}", part.isLast());
+            log.debug("[ProxyHttpHandler] DROP_REPLY_503模式, 丢弃请求部分, isLast: {}", part.isLast());
             if (part.isLast())
             {
                 sendErrorResponse(pipeline, 503, "Service Unavailable - Connection Timeout");
@@ -105,7 +105,7 @@ public sealed abstract class ProxyHttpHandler implements ResourceHandler permits
         BackendConn ctx = backendConnRef.getAndSet(null);
         if (ctx == null)
         {
-            log.trace("[ProxyHttpHandler] closeAndReleaseBackendConn: 无后端连接需要释放");
+            log.warn("[ProxyHttpHandler] closeAndReleaseBackendConn: 无后端连接需要释放");
             return;
         }
         log.trace("[ProxyHttpHandler] 关闭并释放后端连接: {}:{}", ctx.host(), ctx.port());

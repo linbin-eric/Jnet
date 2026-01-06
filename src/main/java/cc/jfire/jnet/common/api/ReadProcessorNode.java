@@ -6,6 +6,8 @@ public interface ReadProcessorNode
 
     void fireReadFailed(Throwable e);
 
+    void fireReadCompleted();
+
     void firePipelineComplete(Pipeline pipeline);
 
     ReadProcessorNode getNext();
