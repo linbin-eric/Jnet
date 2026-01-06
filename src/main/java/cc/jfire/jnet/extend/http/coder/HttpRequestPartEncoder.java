@@ -3,6 +3,7 @@ package cc.jfire.jnet.extend.http.coder;
 import cc.jfire.jnet.common.api.WriteProcessor;
 import cc.jfire.jnet.common.api.WriteProcessorNode;
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
+import cc.jfire.jnet.common.util.HttpDecodeUtil;
 import cc.jfire.jnet.extend.http.dto.*;
 
 import java.nio.charset.StandardCharsets;
@@ -40,58 +41,31 @@ public class HttpRequestPartEncoder implements WriteProcessor<Object>
     }
 
     /**
-     * 大小写不敏感地检查 headers 中是否存在指定名称的 header
+     * 检查 headers 中是否存在指定名称的 header（header name 已标准化）
      */
-    private boolean containsHeaderIgnoreCase(Map<String, String> headers, String headerName)
+    private boolean containsHeader(Map<String, String> headers, String headerName)
     {
-        for (String key : headers.keySet())
-        {
-            if (key.equalsIgnoreCase(headerName))
-            {
-                return true;
-            }
-        }
-        return false;
+        return headers.containsKey(headerName);
     }
 
-    private void removeHeaderIgnoreCase(Map<String, String> headers, String headerName)
+    private void removeHeader(Map<String, String> headers, String headerName)
     {
-        String matchedKey = null;
-        for (String key : headers.keySet())
-        {
-            if (key.equalsIgnoreCase(headerName))
-            {
-                matchedKey = key;
-                break;
-            }
-        }
-        if (matchedKey != null)
-        {
-            headers.remove(matchedKey);
-        }
+        headers.remove(headerName);
     }
 
     private boolean isTransferEncodingChunked(Map<String, String> headers)
     {
-        for (Map.Entry<String, String> entry : headers.entrySet())
+        String value = headers.get(TRANSFER_ENCODING_HEADER);
+        if (value == null)
         {
-            if (!entry.getKey().equalsIgnoreCase(TRANSFER_ENCODING_HEADER))
-            {
-                continue;
-            }
-            String value = entry.getValue();
-            if (value == null)
-            {
-                return false;
-            }
-            for (String token : value.split(","))
-            {
-                if ("chunked".equalsIgnoreCase(token.trim()))
-                {
-                    return true;
-                }
-            }
             return false;
+        }
+        for (String token : value.split(","))
+        {
+            if ("chunked".equalsIgnoreCase(token.trim()))
+            {
+                return true;
+            }
         }
         return false;
     }
@@ -122,13 +96,13 @@ public class HttpRequestPartEncoder implements WriteProcessor<Object>
         if (chunked)
         {
             // 避免产生 CL+TE 的歧义（以及潜在的请求走私风险）
-            removeHeaderIgnoreCase(request.getHeaders(), CONTENT_LENGTH_HEADER);
+            removeHeader(request.getHeaders(), CONTENT_LENGTH_HEADER);
             request.getHeaders().put(TRANSFER_ENCODING_HEADER, "chunked");
         }
         else
         {
-            // 使用大小写不敏感的方式检查并补充 Content-Length
-            if (!containsHeaderIgnoreCase(request.getHeaders(), CONTENT_LENGTH_HEADER))
+            // 检查并补充 Content-Length（header name 已标准化）
+            if (!containsHeader(request.getHeaders(), CONTENT_LENGTH_HEADER))
             {
                 request.getHeaders().put(CONTENT_LENGTH_HEADER, String.valueOf(contentLength));
             }
@@ -137,7 +111,17 @@ public class HttpRequestPartEncoder implements WriteProcessor<Object>
         // 写入 headers
         for (Map.Entry<String, String> entry : request.getHeaders().entrySet())
         {
-            buffer.put((entry.getKey() + ": " + entry.getValue() + "\r\n").getBytes(StandardCharsets.US_ASCII));
+            byte[] keyBytes = HttpDecodeUtil.getHeaderKeyBytes(entry.getKey());
+            if (keyBytes != null)
+            {
+                buffer.put(keyBytes);
+            }
+            else
+            {
+                buffer.put((entry.getKey() + ": ").getBytes(StandardCharsets.US_ASCII));
+            }
+            buffer.put(entry.getValue().getBytes(StandardCharsets.US_ASCII));
+            buffer.put(NEW_LINE);
         }
 
         // 写入空行
@@ -198,7 +182,17 @@ public class HttpRequestPartEncoder implements WriteProcessor<Object>
 
             for (Map.Entry<String, String> entry : head.getHeaders().entrySet())
             {
-                buffer.put((entry.getKey() + ": " + entry.getValue() + "\r\n").getBytes(StandardCharsets.US_ASCII));
+                byte[] keyBytes = HttpDecodeUtil.getHeaderKeyBytes(entry.getKey());
+                if (keyBytes != null)
+                {
+                    buffer.put(keyBytes);
+                }
+                else
+                {
+                    buffer.put((entry.getKey() + ": ").getBytes(StandardCharsets.US_ASCII));
+                }
+                buffer.put(entry.getValue().getBytes(StandardCharsets.US_ASCII));
+                buffer.put(NEW_LINE);
             }
 
             buffer.put(NEW_LINE);

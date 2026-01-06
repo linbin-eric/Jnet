@@ -104,20 +104,7 @@ public class ProxyHttpHandler2 implements ResourceHandler
         head.setPath(backendPath);
         head.setDomain(backendHost);
         head.setPort(backendPort);
-        // 替换 Host header
-        String matchedKey = null;
-        for (String key : head.getHeaders().keySet())
-        {
-            if (key.equalsIgnoreCase("Host"))
-            {
-                matchedKey = key;
-                break;
-            }
-        }
-        if (matchedKey != null)
-        {
-            head.getHeaders().remove(matchedKey);
-        }
+        // 替换 Host header（header name 已标准化，直接覆盖）
         head.getHeaders().put("Host", backendHostHeader);
         // 清空并释放 headBuffer，让编码器重新构建请求头
         IoBuffer old = head.getHeadBuffer();

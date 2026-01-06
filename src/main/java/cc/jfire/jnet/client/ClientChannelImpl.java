@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.net.InetSocketAddress;
+import java.net.StandardSocketOptions;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.util.concurrent.CountDownLatch;
@@ -59,6 +60,7 @@ public class ClientChannelImpl implements ClientChannel
                     {
                         if (connectedResult.isSuccess())
                         {
+                            asynchronousSocketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
                             pipeline = new DefaultPipeline(asynchronousSocketChannel, channelConfig);
                             pipeline.addReadProcessor(new ReadProcessor<>()
                             {

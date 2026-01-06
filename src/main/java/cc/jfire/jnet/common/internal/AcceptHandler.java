@@ -4,6 +4,7 @@ import cc.jfire.jnet.common.api.PipelineInitializer;
 import cc.jfire.jnet.common.util.ChannelConfig;
 import lombok.extern.slf4j.Slf4j;
 
+import java.net.StandardSocketOptions;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
@@ -25,6 +26,14 @@ public class AcceptHandler implements CompletionHandler<AsynchronousSocketChanne
     {
         serverChannel.accept(serverChannel, this);
         Thread.startVirtualThread(() -> {
+            try
+            {
+                socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
+            }
+            catch (Exception e)
+            {
+                log.warn("设置 TCP_NODELAY 失败", e);
+            }
             DefaultPipeline pipeline = new DefaultPipeline(socketChannel, channelConfig);
             pipelineInitializer.onPipelineComplete(pipeline);
             pipeline.complete();

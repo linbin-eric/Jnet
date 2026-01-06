@@ -148,8 +148,8 @@ public class HttpRequestPartDecoder extends AbstractDecoder
         }
         else
         {
-            boolean hasTransferEncoding = reqHead.getHeaders().entrySet().stream().anyMatch(e -> e.getKey().equalsIgnoreCase("Transfer-Encoding") && e.getValue().equalsIgnoreCase("chunked"));
-            if (hasTransferEncoding)
+            String transferEncoding = reqHead.getHeaders().get("Transfer-Encoding");
+            if ("chunked".equalsIgnoreCase(transferEncoding))
             {
                 state = ParseState.BODY_CHUNKED;
                 reqHead.setChunked(true);
