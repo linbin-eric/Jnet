@@ -55,7 +55,7 @@ public sealed abstract class ProxyHttpHandler implements ResourceHandler permits
     }
 
     @Override
-    public void process(HttpRequestPart part, Pipeline pipeline)
+    public boolean process(HttpRequestPart part, Pipeline pipeline)
     {
 //        log.trace("[ProxyHttpHandler] process: {}, isLast: {}, dropMode: {}", part.getClass().getSimpleName(), part.isLast(), dropMode);
         // DROP_SILENT: 丢弃且不回复，直接释放资源
@@ -63,7 +63,7 @@ public sealed abstract class ProxyHttpHandler implements ResourceHandler permits
         {
 //            log.debug("[ProxyHttpHandler] DROP_SILENT模式, 丢弃请求部分");
             part.close();
-            return;
+            return true; // 已处理(虽然是丢弃)
         }
         // DROP_REPLY_503: 丢弃但需等请求结束后回复 503
         if (dropMode == DropMode.DROP_REPLY_503)
@@ -74,19 +74,26 @@ public sealed abstract class ProxyHttpHandler implements ResourceHandler permits
                 sendErrorResponse(pipeline, 503, "Service Unavailable - Connection Timeout");
             }
             part.close();
-            return;
+            return true; // 已处理
         }
         if (part instanceof HttpRequestPartHead head)
         {
 //            log.trace("[ProxyHttpHandler] 处理请求头: {} {}", head.getMethod(), head.getPath());
-            processHead(head, pipeline);
+            return processHead(head, pipeline);
         }
         else if (part instanceof HttpRequestFixLengthBodyPart || part instanceof HttpRequestChunkedBodyPart)
         {
 //            log.trace("[ProxyHttpHandler] 处理请求体");
             processBody(part, pipeline);
+            return true; // body部分始终返回true,因为已经在Head阶段匹配了
         }
+        return false; // 未知类型
     }
+
+    /**
+     * 子类实现，检查是否匹配当前 handler
+     */
+    protected abstract boolean matchRequest(HttpRequestPartHead head);
 
     /**
      * 子类实现，计算后端 URL 并设置到 head 中
@@ -118,9 +125,16 @@ public sealed abstract class ProxyHttpHandler implements ResourceHandler permits
         pool.returnConnection(ctx.host(), ctx.port(), ctx.conn());
     }
 
-    protected void processHead(HttpRequestPartHead head, Pipeline pipeline)
+    protected boolean processHead(HttpRequestPartHead head, Pipeline pipeline)
     {
 //        log.trace("[ProxyHttpHandler] processHead开始: {} {}", head.getMethod(), head.getPath());
+        // 先检查是否匹配
+        if (!matchRequest(head))
+        {
+//            log.trace("[ProxyHttpHandler] 请求不匹配");
+            return false; // 不处理
+        }
+//        log.trace("[ProxyHttpHandler] 请求匹配");
         // 不支持 HTTP pipelining：上一个后端响应未结束又收到新的请求
         if (backendConnRef.get() != null)
         {
@@ -128,7 +142,7 @@ public sealed abstract class ProxyHttpHandler implements ResourceHandler permits
             dropMode = DropMode.DROP_SILENT;
             head.close();
             pipeline.shutdownInput();
-            return;
+            return true; // 已处理(虽然是拒绝)
         }
         // 重置请求相关状态（dropMode 一旦非 NONE 就不重置，由 process() 入口统一处理）
         requestEndReceived = false;
@@ -214,6 +228,7 @@ public sealed abstract class ProxyHttpHandler implements ResourceHandler permits
                 }
             });
             // 无 body 请求：连接归还由响应回调中的 HttpResponsePartEnd 处理
+            return true; // 已处理
         }
         catch (TimeoutException e)
         {
@@ -226,6 +241,7 @@ public sealed abstract class ProxyHttpHandler implements ResourceHandler permits
             {
                 sendErrorResponse(pipeline, 503, "Service Unavailable - Connection Timeout");
             }
+            return true; // 已处理
         }
         catch (InterruptedException e)
         {
@@ -237,6 +253,7 @@ public sealed abstract class ProxyHttpHandler implements ResourceHandler permits
             {
                 sendErrorResponse(pipeline, 503, "Service Unavailable - Connection Interrupted");
             }
+            return true; // 已处理
         }
         catch (Exception e)
         {
@@ -249,6 +266,7 @@ public sealed abstract class ProxyHttpHandler implements ResourceHandler permits
             {
                 sendErrorResponse(pipeline, 503, "Service Unavailable - Connection Failed");
             }
+            return true; // 已处理
         }
     }
 

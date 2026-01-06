@@ -154,7 +154,7 @@ public class DefaultPipeline implements InternalPipeline
     @Override
     public void complete()
     {
-        log.debug("[Pipeline:{}]创建", uid);
+//        log.debug("[Pipeline:{}]创建", uid);
         adaptiveReadCompletionHandler = new AdaptiveReadCompletionHandler(this);
         addReadProcessor(new TailReadProcessor(adaptiveReadCompletionHandler));
         writeCompleteHandler = new DefaultWriteCompleteHandler(this);

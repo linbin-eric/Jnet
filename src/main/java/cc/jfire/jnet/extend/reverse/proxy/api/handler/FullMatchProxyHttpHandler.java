@@ -21,7 +21,7 @@ public final class FullMatchProxyHttpHandler extends ProxyHttpHandler
     }
 
     @Override
-    public boolean match(HttpRequestPartHead head)
+    protected boolean matchRequest(HttpRequestPartHead head)
     {
         String requestUrl = head.getPath();
         int    index      = requestUrl.indexOf("#");

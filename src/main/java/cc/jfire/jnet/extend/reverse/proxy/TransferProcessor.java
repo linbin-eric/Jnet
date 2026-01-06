@@ -62,11 +62,11 @@ public class TransferProcessor implements ReadProcessor<HttpRequestPart>
     {
         for (ResourceHandler handler : handlers)
         {
-            if (handler.match(head))
+            // process 方法返回 true 表示已处理，返回 false 表示不匹配
+            if (handler.process(head, next.pipeline()))
             {
 //                log.trace("[TransferProcessor] 匹配到handler: {}", handler.getClass().getSimpleName());
                 currentHandler = handler;
-                handler.process(head, next.pipeline());
                 return;
             }
         }

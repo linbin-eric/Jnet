@@ -28,11 +28,11 @@ public class ProxyHttpHandler2 implements ResourceHandler
 
     public ProxyHttpHandler2(String prefixMatch, String proxy)
     {
-        log.debug("[ProxyHttpHandler2] 初始化代理处理器, prefixMatch={}, proxy={}", prefixMatch, proxy);
+//        log.debug("[ProxyHttpHandler2] 初始化代理处理器, prefixMatch={}, proxy={}", prefixMatch, proxy);
         // 验证并处理前缀匹配规则
         if (!prefixMatch.endsWith("/*") || prefixMatch.chars().filter(c -> c == '*').count() != 1)
         {
-            log.error("[ProxyHttpHandler2] 前缀匹配规则不合规: {}", prefixMatch);
+//            log.error("[ProxyHttpHandler2] 前缀匹配规则不合规: {}", prefixMatch);
             throw new IllegalArgumentException(prefixMatch + "不是合规的前缀匹配地址");
         }
         this.prefixMatch = prefixMatch.substring(0, prefixMatch.length() - 1);
@@ -40,30 +40,16 @@ public class ProxyHttpHandler2 implements ResourceHandler
         this.proxy       = proxy;
         // 解析后端地址
         HttpUrl httpUrl = HttpUrl.parse(proxy);
-        this.backendHost = httpUrl.domain();
-        this.backendPort = httpUrl.port();
+        this.backendHost     = httpUrl.domain();
+        this.backendPort     = httpUrl.port();
         this.backendBasePath = httpUrl.path();
         // 构造 Host header
         this.backendHostHeader = (backendPort == 80 || backendPort == 443) ? backendHost : (backendHost + ":" + backendPort);
-        log.info("[ProxyHttpHandler2] 代理处理器初始化完成, prefixMatch={}, backendHost={}, backendPort={}", this.prefixMatch, this.backendHost, this.backendPort);
+//        log.info("[ProxyHttpHandler2] 代理处理器初始化完成, prefixMatch={}, backendHost={}, backendPort={}", this.prefixMatch, this.backendHost, this.backendPort);
     }
 
     @Override
-    public boolean match(HttpRequestPartHead head)
-    {
-        String requestUrl = head.getPath();
-        int    index      = requestUrl.indexOf("#");
-        if (index != -1)
-        {
-            requestUrl = requestUrl.substring(0, index);
-        }
-        boolean matched = requestUrl.startsWith(prefixMatch);
-        log.trace("[ProxyHttpHandler2] match() 路径匹配检查, requestUrl={}, prefixMatch={}, matched={}", requestUrl, prefixMatch, matched);
-        return matched;
-    }
-
-    @Override
-    public void process(HttpRequestPart part, Pipeline pipeline)
+    public boolean process(HttpRequestPart part, Pipeline pipeline)
     {
         if (pipelineUid == null)
         {
@@ -73,24 +59,26 @@ public class ProxyHttpHandler2 implements ResourceHandler
         {
             log.error("异常");
         }
-        log.debug("[ProxyHttpHandler2:{},pipeline:{}] process() 收到请求部分, partType={}, isLast={}", uid, pipelineUid, part.getClass().getSimpleName(), part.isLast());
+//        log.debug("[ProxyHttpHandler2:{},pipeline:{}] process() 收到请求部分, partType={}, isLast={}", uid, pipelineUid, part.getClass().getSimpleName(), part.isLast());
         if (part instanceof HttpRequestPartHead head)
         {
-            processHead(head, pipeline);
+            return processHead(head, pipeline);
         }
         else if (part instanceof HttpRequestFixLengthBodyPart || part instanceof HttpRequestChunkedBodyPart)
         {
             processBody(part);
+            return true; // body部分始终返回true,因为已经在Head阶段匹配了
         }
         else
         {
-            log.warn("[ProxyHttpHandler2] process() 收到未知类型的请求部分: {}", part.getClass().getName());
+//            log.warn("[ProxyHttpHandler2] process() 收到未知类型的请求部分: {}", part.getClass().getName());
+            return false;
         }
     }
 
-    private void processHead(HttpRequestPartHead head, Pipeline pipeline)
+    private boolean processHead(HttpRequestPartHead head, Pipeline pipeline)
     {
-        log.debug("[ProxyHttpHandler2] processHead() 开始处理请求头, method={}, path={}, isLast={}", head.getMethod(), head.getPath(), head.isLast());
+//        log.debug("[ProxyHttpHandler2] processHead() 开始处理请求头, method={}, path={}, isLast={}", head.getMethod(), head.getPath(), head.isLast());
         // 计算后端路径
         String requestUrl = head.getPath();
         int    index      = requestUrl.indexOf("#");
@@ -98,13 +86,18 @@ public class ProxyHttpHandler2 implements ResourceHandler
         {
             requestUrl = requestUrl.substring(0, index);
         }
+        // 检查前缀是否匹配
+        if (!requestUrl.startsWith(prefixMatch))
+        {
+//            log.trace("[ProxyHttpHandler2] processHead() 前缀不匹配, requestUrl={}, prefixMatch={}", requestUrl, prefixMatch);
+            return false; // 不处理
+        }
+//        log.trace("[ProxyHttpHandler2] processHead() 前缀匹配, requestUrl={}, prefixMatch={}", requestUrl, prefixMatch);
         String backendPath = backendBasePath + requestUrl.substring(prefixLen);
-
         // 直接设置属性，避免重复解析
         head.setPath(backendPath);
         head.setDomain(backendHost);
         head.setPort(backendPort);
-
         // 替换 Host header
         String matchedKey = null;
         for (String key : head.getHeaders().keySet())
@@ -120,7 +113,6 @@ public class ProxyHttpHandler2 implements ResourceHandler
             head.getHeaders().remove(matchedKey);
         }
         head.getHeaders().put("Host", backendHostHeader);
-
         // 清空并释放 headBuffer，让编码器重新构建请求头
         IoBuffer old = head.getHeadBuffer();
         head.setHeadBuffer(null);
@@ -128,95 +120,99 @@ public class ProxyHttpHandler2 implements ResourceHandler
         {
             old.free();
         }
-        log.debug("[ProxyHttpHandler2:{}] processHead() URL转换完成, originalPath={}, backendPath={}", uid, head.getPath(), backendPath);
+//        log.debug("[ProxyHttpHandler2:{}] processHead() URL转换完成, originalPath={}, backendPath={}", uid, head.getPath(), backendPath);
         // 首次请求时创建连接
         if (httpConnection2 == null)
         {
-            log.debug("[ProxyHttpHandler2:{}] processHead() 首次请求，创建后端连接, host={}, port={}", uid, backendHost, backendPort);
+//            log.debug("[ProxyHttpHandler2:{}] processHead() 首次请求，创建后端连接, host={}, port={}", uid, backendHost, backendPort);
             try
             {
                 httpConnection2 = new HttpConnection2(backendHost, backendPort, 1800);
-                log.info("[ProxyHttpHandler2:{}] processHead() 后端连接创建成功, host={}, port={},当前 httpConnection2:{}", uid, backendHost, backendPort, httpConnection2);
+//                log.info("[ProxyHttpHandler2:{}] processHead() 后端连接创建成功, host={}, port={},当前 httpConnection2:{}", uid, backendHost, backendPort, httpConnection2);
             }
             catch (Exception e)
             {
-                log.error("[ProxyHttpHandler2:{}] processHead() 创建后端连接失败, host={}, port={}, error={}", uid, backendHost, backendPort, e.getMessage(), e);
+//                log.error("[ProxyHttpHandler2:{}] processHead() 创建后端连接失败, host={}, port={}, error={}", uid, backendHost, backendPort, e.getMessage(), e);
                 head.close();
                 sendErrorResponse(pipeline, 502, "Bad Gateway - Cannot connect to backend");
-                return;
+                return true; // 已处理(返回错误响应)
             }
         }
         // 检查连接是否已关闭
         if (httpConnection2.isConnectionClosed())
         {
-            log.error("[ProxyHttpHandler2:{}] processHead() 后端连接已关闭，终止处理", uid);
+//            log.error("[ProxyHttpHandler2:{}] processHead() 后端连接已关闭，终止处理", uid);
             head.close();
             pipeline.shutdownInput();
-            return;
+            return true; // 已处理
         }
         try
         {
-            log.trace("[ProxyHttpHandler2:{}] processHead() 向后端发送请求头", uid);
+//            log.trace("[ProxyHttpHandler2:{}] processHead() 向后端发送请求头", uid);
             httpConnection2.write(head, responsePart -> {
-                log.trace("[ProxyHttpHandler2:{}] 收到后端响应部分, partType={}, isLast={}, pipelineOpen={}", uid, responsePart.getClass().getSimpleName(), responsePart.isLast(), pipeline.isOpen());
+//                log.trace("[ProxyHttpHandler2:{}] 收到后端响应部分, partType={}, isLast={}, pipelineOpen={}", uid, responsePart.getClass().getSimpleName(), responsePart.isLast(), pipeline.isOpen());
                 if (!pipeline.isOpen())
                 {
-                    log.warn("[ProxyHttpHandler2:{}] 前端Pipeline已关闭，丢弃响应部分并关闭后端连接", uid);
+//                    log.warn("[ProxyHttpHandler2:{}] 前端Pipeline已关闭，丢弃响应部分并关闭后端连接", uid);
                     responsePart.free();
                     closeHttpConnection2();
                     return;
                 }
                 if (responsePart instanceof HttpResponsePartHead respHead)
                 {
-                    log.debug("[ProxyHttpHandler2:{}] 转发响应头到前端, statusCode={}, isLast={}", uid, respHead.getStatusCode(), respHead.isLast());
+//                    log.debug("[ProxyHttpHandler2:{}] 转发响应头到前端, statusCode={}, isLast={}", uid, respHead.getStatusCode(), respHead.isLast());
                     pipeline.fireWrite(respHead);
                 }
                 else if (responsePart instanceof HttpResponseFixLengthBodyPart body)
                 {
-                    log.trace("[ProxyHttpHandler2] 转发FixLength响应体到前端, bodySize={}, isLast={}", body.getPart().remainRead(), body.isLast());
+//                    log.trace("[ProxyHttpHandler2] 转发FixLength响应体到前端, bodySize={}, isLast={}", body.getPart().remainRead(), body.isLast());
                     pipeline.fireWrite(body.getPart());
                 }
                 else if (responsePart instanceof HttpResponseChunkedBodyPart body)
                 {
-                    log.trace("[ProxyHttpHandler2] 转发Chunked响应体到前端, bodySize={}, isLast={}", body.getPart().remainRead(), body.isLast());
+//                    log.trace("[ProxyHttpHandler2] 转发Chunked响应体到前端, bodySize={}, isLast={}", body.getPart().remainRead(), body.isLast());
                     pipeline.fireWrite(body.getPart());
                 }
                 else
                 {
-                    log.warn("[ProxyHttpHandler2] 收到未知类型的响应部分: {}", responsePart.getClass().getName());
+//                    log.warn("[ProxyHttpHandler2] 收到未知类型的响应部分: {}", responsePart.getClass().getName());
                 }
             }, error -> {
                 // 后端连接失败，关闭前端连接
-                log.error("[{}] 后端连接发生错误, error={},当前链接是:[{}],",toString() , error.getMessage(), httpConnection2);
+//                log.error("[{}] 后端连接发生错误, error={},当前链接是:[{}],",toString() , error.getMessage(), httpConnection2);
                 closeHttpConnection2();
                 pipeline.shutdownInput();
             });
         }
         catch (Exception e)
         {
-            log.error("[ProxyHttpHandler2] processHead() 发送请求头异常, error={}", e.getMessage(), e);
+//            log.error("[ProxyHttpHandler2] processHead() 发送请求头异常, error={}", e.getMessage(), e);
             head.close();
             closeHttpConnection2();
             pipeline.shutdownInput();
+            return true; // 已处理
         }
+        return true; // 已处理
     }
 
     private void processBody(HttpRequestPart body)
     {
-        if( body instanceof HttpRequestFixLengthBodyPart){
-            log.trace("[{}] processBody() 处理请求体, bodyType=fix,长度:{}, isLast={}", toString(),((HttpRequestFixLengthBodyPart) body).getPart().remainRead(), body.isLast());
+        if (body instanceof HttpRequestFixLengthBodyPart)
+        {
+//            log.trace("[{}] processBody() 处理请求体, bodyType=fix,长度:{}, isLast={}", toString(),((HttpRequestFixLengthBodyPart) body).getPart().remainRead(), body.isLast());
         }
-        else if(body instanceof  HttpRequestChunkedBodyPart){
-            log.trace("[{}}] processBody() 处理请求体, bodyType=chunk,长度:{}, isLast={}",toString(), ((HttpRequestChunkedBodyPart) body).getPart().remainRead(), body.isLast());
+        else if (body instanceof HttpRequestChunkedBodyPart)
+        {
+//            log.trace("[{}}] processBody() 处理请求体, bodyType=chunk,长度:{}, isLast={}",toString(), ((HttpRequestChunkedBodyPart) body).getPart().remainRead(), body.isLast());
         }
         if (httpConnection2 != null && !httpConnection2.isConnectionClosed())
         {
-            log.trace("[{}] processBody() 向后端转发请求体",toString());
+//            log.trace("[{}] processBody() 向后端转发请求体",toString());
             httpConnection2.write(body);
         }
         else
         {
-            log.warn("[{}] processBody() 后端连接不可用，丢弃请求体, connectionNull={}, connectionClosed={}",toString(), httpConnection2 == null, httpConnection2 != null && httpConnection2.isConnectionClosed());
+//            log.warn("[{}] processBody() 后端连接不可用，丢弃请求体, connectionNull={}, connectionClosed={}",toString(), httpConnection2 == null, httpConnection2 != null && httpConnection2.isConnectionClosed());
             body.close();
         }
     }
@@ -225,19 +221,19 @@ public class ProxyHttpHandler2 implements ResourceHandler
     {
         if (httpConnection2 != null)
         {
-            log.debug("[{}] closeHttpConnection2() 关闭后端连接:[{}]", toString(), httpConnection2);
+//            log.debug("[{}] closeHttpConnection2() 关闭后端连接:[{}]", toString(), httpConnection2);
             httpConnection2.close();
             httpConnection2 = null;
         }
         else
         {
-            log.debug("[ProxyHttpHandler2:{}] closeHttpConnection2() 后端连接已关闭", uid);
+//            log.debug("[ProxyHttpHandler2:{}] closeHttpConnection2() 后端连接已关闭", uid);
         }
     }
 
     private void sendErrorResponse(Pipeline pipeline, int statusCode, String message)
     {
-        log.warn("[ProxyHttpHandler2] sendErrorResponse() 发送错误响应, statusCode={}, message={}", statusCode, message);
+//        log.warn("[ProxyHttpHandler2] sendErrorResponse() 发送错误响应, statusCode={}, message={}", statusCode, message);
         FullHttpResp response = new FullHttpResp();
         response.getHead().setResponseCode(statusCode);
         response.getBody().setBodyText(message);
@@ -248,13 +244,13 @@ public class ProxyHttpHandler2 implements ResourceHandler
     public void readFailed(Throwable e)
     {
         // 前端连接关闭，关闭后端连接
-        log.warn("[{}] readFailed() 前端读取失败，关闭后端连接, error={},远端是:{}", toString(), e != null ? e.getMessage() : "null", httpConnection2, e);
+//        log.warn("[{}] readFailed() 前端读取失败，关闭后端连接, error={},远端是:{}", toString(), e != null ? e.getMessage() : "null", httpConnection2, e);
         closeHttpConnection2();
     }
 
     @Override
     public String toString()
     {
-        return STR.format("[Proxyhandler2:{},pipeline:{}]",uid,pipelineUid);
+        return STR.format("[Proxyhandler2:{},pipeline:{}]", uid, pipelineUid);
     }
 }
