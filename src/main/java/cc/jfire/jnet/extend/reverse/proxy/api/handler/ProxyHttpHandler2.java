@@ -3,6 +3,7 @@ package cc.jfire.jnet.extend.reverse.proxy.api.handler;
 import cc.jfire.baseutil.STR;
 import cc.jfire.baseutil.TRACEID;
 import cc.jfire.jnet.common.api.Pipeline;
+import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 import cc.jfire.jnet.common.internal.DefaultPipeline;
 import cc.jfire.jnet.extend.http.client.HttpConnection2;
 import cc.jfire.jnet.extend.http.dto.*;
@@ -18,6 +19,8 @@ public class ProxyHttpHandler2 implements ResourceHandler
     private final String          proxy;
     private final String          backendHost;
     private final int             backendPort;
+    private final String          backendHostHeader;
+    private final String          backendBasePath;
     private       HttpConnection2 httpConnection2;
     @Getter
     private       String          uid = TRACEID.newTraceId();
@@ -39,6 +42,9 @@ public class ProxyHttpHandler2 implements ResourceHandler
         HttpUrl httpUrl = HttpUrl.parse(proxy);
         this.backendHost = httpUrl.domain();
         this.backendPort = httpUrl.port();
+        this.backendBasePath = httpUrl.path();
+        // 构造 Host header
+        this.backendHostHeader = (backendPort == 80 || backendPort == 443) ? backendHost : (backendHost + ":" + backendPort);
         log.info("[ProxyHttpHandler2] 代理处理器初始化完成, prefixMatch={}, backendHost={}, backendPort={}", this.prefixMatch, this.backendHost, this.backendPort);
     }
 
@@ -85,16 +91,44 @@ public class ProxyHttpHandler2 implements ResourceHandler
     private void processHead(HttpRequestPartHead head, Pipeline pipeline)
     {
         log.debug("[ProxyHttpHandler2] processHead() 开始处理请求头, method={}, path={}, isLast={}", head.getMethod(), head.getPath(), head.isLast());
-        // 计算后端 URL
+        // 计算后端路径
         String requestUrl = head.getPath();
         int    index      = requestUrl.indexOf("#");
         if (index != -1)
         {
             requestUrl = requestUrl.substring(0, index);
         }
-        String backendUrl = proxy + requestUrl.substring(prefixLen);
-        head.setUrl(backendUrl);
-        log.debug("[ProxyHttpHandler2:{}] processHead() URL转换完成, originalPath={}, backendUrl={}", uid, head.getPath(), backendUrl);
+        String backendPath = backendBasePath + requestUrl.substring(prefixLen);
+
+        // 直接设置属性，避免重复解析
+        head.setPath(backendPath);
+        head.setDomain(backendHost);
+        head.setPort(backendPort);
+
+        // 替换 Host header
+        String matchedKey = null;
+        for (String key : head.getHeaders().keySet())
+        {
+            if (key.equalsIgnoreCase("Host"))
+            {
+                matchedKey = key;
+                break;
+            }
+        }
+        if (matchedKey != null)
+        {
+            head.getHeaders().remove(matchedKey);
+        }
+        head.getHeaders().put("Host", backendHostHeader);
+
+        // 清空并释放 headBuffer，让编码器重新构建请求头
+        IoBuffer old = head.getHeadBuffer();
+        head.setHeadBuffer(null);
+        if (old != null)
+        {
+            old.free();
+        }
+        log.debug("[ProxyHttpHandler2:{}] processHead() URL转换完成, originalPath={}, backendPath={}", uid, head.getPath(), backendPath);
         // 首次请求时创建连接
         if (httpConnection2 == null)
         {
