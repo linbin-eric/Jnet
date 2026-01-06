@@ -2,10 +2,16 @@ package cc.jfire.jnet.extend.reverse.proxy.api.handler;
 
 import cc.jfire.baseutil.STR;
 import cc.jfire.baseutil.TRACEID;
+import cc.jfire.jnet.client.ClientChannel;
 import cc.jfire.jnet.common.api.Pipeline;
+import cc.jfire.jnet.common.api.ReadProcessor;
+import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
+import cc.jfire.jnet.common.coder.HeartBeat;
 import cc.jfire.jnet.common.internal.DefaultPipeline;
-import cc.jfire.jnet.extend.http.client.HttpConnection2;
+import cc.jfire.jnet.common.util.ChannelConfig;
+import cc.jfire.jnet.common.util.ReflectUtil;
+import cc.jfire.jnet.extend.http.coder.HttpRequestPartEncoder;
 import cc.jfire.jnet.extend.http.dto.*;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceHandler;
 import lombok.Getter;
@@ -20,8 +26,8 @@ public class ProxyHttpHandler2 implements ResourceHandler
     private final String          backendHost;
     private final int             backendPort;
     private final String          backendHostHeader;
-    private final String          backendBasePath;
-    private       HttpConnection2 httpConnection2;
+    private final String        backendBasePath;
+    private       ClientChannel clientChannel;
     @Getter
     private       String          uid = TRACEID.newTraceId();
     private       String          pipelineUid;
@@ -122,13 +128,44 @@ public class ProxyHttpHandler2 implements ResourceHandler
         }
 //        log.debug("[ProxyHttpHandler2:{}] processHead() URL转换完成, originalPath={}, backendPath={}", uid, head.getPath(), backendPath);
         // 首次请求时创建连接
-        if (httpConnection2 == null)
+        if (clientChannel == null)
         {
 //            log.debug("[ProxyHttpHandler2:{}] processHead() 首次请求，创建后端连接, host={}, port={}", uid, backendHost, backendPort);
             try
             {
-                httpConnection2 = new HttpConnection2(backendHost, backendPort, 1800);
-//                log.info("[ProxyHttpHandler2:{}] processHead() 后端连接创建成功, host={}, port={},当前 httpConnection2:{}", uid, backendHost, backendPort, httpConnection2);
+                ChannelConfig channelConfig = new ChannelConfig().setIp(backendHost).setPort(backendPort);
+                clientChannel = ClientChannel.newClient(channelConfig, backendPipeline -> {
+                    backendPipeline.addReadProcessor(new HeartBeat(1800, backendPipeline));
+                    backendPipeline.addReadProcessor(new ReadProcessor<IoBuffer>()
+                    {
+                        @Override
+                        public void read(IoBuffer buffer, ReadProcessorNode next)
+                        {
+                            if (!pipeline.isOpen())
+                            {
+                                buffer.free();
+                                closeClientChannel();
+                                return;
+                            }
+                            // 直接转发原始字节流到前端
+                            pipeline.fireWrite(buffer);
+                        }
+
+                        @Override
+                        public void readFailed(Throwable e, ReadProcessorNode next)
+                        {
+                            closeClientChannel();
+                            pipeline.shutdownInput();
+                        }
+                    });
+                    backendPipeline.addWriteProcessor(new HttpRequestPartEncoder());
+                    backendPipeline.addWriteProcessor(new HeartBeat(1800, backendPipeline));
+                });
+                if (!clientChannel.connect())
+                {
+                    ReflectUtil.throwException(new RuntimeException("无法连接 " + backendHost + ":" + backendPort, clientChannel.getConnectionException()));
+                }
+//                log.info("[ProxyHttpHandler2:{}] processHead() 后端连接创建成功, host={}, port={}", uid, backendHost, backendPort);
             }
             catch (Exception e)
             {
@@ -139,7 +176,7 @@ public class ProxyHttpHandler2 implements ResourceHandler
             }
         }
         // 检查连接是否已关闭
-        if (httpConnection2.isConnectionClosed())
+        if (!clientChannel.alive())
         {
 //            log.error("[ProxyHttpHandler2:{}] processHead() 后端连接已关闭，终止处理", uid);
             head.close();
@@ -149,46 +186,13 @@ public class ProxyHttpHandler2 implements ResourceHandler
         try
         {
 //            log.trace("[ProxyHttpHandler2:{}] processHead() 向后端发送请求头", uid);
-            httpConnection2.write(head, responsePart -> {
-//                log.trace("[ProxyHttpHandler2:{}] 收到后端响应部分, partType={}, isLast={}, pipelineOpen={}", uid, responsePart.getClass().getSimpleName(), responsePart.isLast(), pipeline.isOpen());
-                if (!pipeline.isOpen())
-                {
-//                    log.warn("[ProxyHttpHandler2:{}] 前端Pipeline已关闭，丢弃响应部分并关闭后端连接", uid);
-                    responsePart.free();
-                    closeHttpConnection2();
-                    return;
-                }
-                if (responsePart instanceof HttpResponsePartHead respHead)
-                {
-//                    log.debug("[ProxyHttpHandler2:{}] 转发响应头到前端, statusCode={}, isLast={}", uid, respHead.getStatusCode(), respHead.isLast());
-                    pipeline.fireWrite(respHead);
-                }
-                else if (responsePart instanceof HttpResponseFixLengthBodyPart body)
-                {
-//                    log.trace("[ProxyHttpHandler2] 转发FixLength响应体到前端, bodySize={}, isLast={}", body.getPart().remainRead(), body.isLast());
-                    pipeline.fireWrite(body.getPart());
-                }
-                else if (responsePart instanceof HttpResponseChunkedBodyPart body)
-                {
-//                    log.trace("[ProxyHttpHandler2] 转发Chunked响应体到前端, bodySize={}, isLast={}", body.getPart().remainRead(), body.isLast());
-                    pipeline.fireWrite(body.getPart());
-                }
-                else
-                {
-//                    log.warn("[ProxyHttpHandler2] 收到未知类型的响应部分: {}", responsePart.getClass().getName());
-                }
-            }, error -> {
-                // 后端连接失败，关闭前端连接
-//                log.error("[{}] 后端连接发生错误, error={},当前链接是:[{}],",toString() , error.getMessage(), httpConnection2);
-                closeHttpConnection2();
-                pipeline.shutdownInput();
-            });
+            clientChannel.pipeline().fireWrite(head);
         }
         catch (Exception e)
         {
 //            log.error("[ProxyHttpHandler2] processHead() 发送请求头异常, error={}", e.getMessage(), e);
             head.close();
-            closeHttpConnection2();
+            closeClientChannel();
             pipeline.shutdownInput();
             return true; // 已处理
         }
@@ -205,29 +209,25 @@ public class ProxyHttpHandler2 implements ResourceHandler
         {
 //            log.trace("[{}}] processBody() 处理请求体, bodyType=chunk,长度:{}, isLast={}",toString(), ((HttpRequestChunkedBodyPart) body).getPart().remainRead(), body.isLast());
         }
-        if (httpConnection2 != null && !httpConnection2.isConnectionClosed())
+        if (clientChannel != null && clientChannel.alive())
         {
 //            log.trace("[{}] processBody() 向后端转发请求体",toString());
-            httpConnection2.write(body);
+            clientChannel.pipeline().fireWrite(body);
         }
         else
         {
-//            log.warn("[{}] processBody() 后端连接不可用，丢弃请求体, connectionNull={}, connectionClosed={}",toString(), httpConnection2 == null, httpConnection2 != null && httpConnection2.isConnectionClosed());
+//            log.warn("[{}] processBody() 后端连接不可用，丢弃请求体, connectionNull={}, connectionClosed={}",toString(), clientChannel == null, clientChannel != null && !clientChannel.alive());
             body.close();
         }
     }
 
-    private void closeHttpConnection2()
+    private void closeClientChannel()
     {
-        if (httpConnection2 != null)
+        if (clientChannel != null)
         {
-//            log.debug("[{}] closeHttpConnection2() 关闭后端连接:[{}]", toString(), httpConnection2);
-            httpConnection2.close();
-            httpConnection2 = null;
-        }
-        else
-        {
-//            log.debug("[ProxyHttpHandler2:{}] closeHttpConnection2() 后端连接已关闭", uid);
+//            log.debug("[{}] closeClientChannel() 关闭后端连接", toString());
+            clientChannel.pipeline().shutdownInput();
+            clientChannel = null;
         }
     }
 
@@ -244,8 +244,8 @@ public class ProxyHttpHandler2 implements ResourceHandler
     public void readFailed(Throwable e)
     {
         // 前端连接关闭，关闭后端连接
-//        log.warn("[{}] readFailed() 前端读取失败，关闭后端连接, error={},远端是:{}", toString(), e != null ? e.getMessage() : "null", httpConnection2, e);
-        closeHttpConnection2();
+//        log.warn("[{}] readFailed() 前端读取失败，关闭后端连接, error={}", toString(), e != null ? e.getMessage() : "null", e);
+        closeClientChannel();
     }
 
     @Override
