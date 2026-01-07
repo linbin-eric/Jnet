@@ -270,7 +270,7 @@ public class ProxyHttpHandler2 implements ResourceHandler
     private void sendErrorResponse(Pipeline pipeline, int statusCode, String message)
     {
 //        log.warn("[ProxyHttpHandler2] sendErrorResponse() 发送错误响应, statusCode={}, message={}", statusCode, message);
-        FullHttpResponse response = new FullHttpResponse();
+        HttpResponse response = new HttpResponse();
         response.getHead().setStatusCode(statusCode);
         response.setBodyText(message);
         pipeline.fireWrite(response);

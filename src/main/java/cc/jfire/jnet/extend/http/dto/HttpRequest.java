@@ -28,8 +28,57 @@ public class HttpRequest implements AutoCloseable
         return this;
     }
 
-    public void setContentType(String contentType)
+    public HttpRequest setContentType(String contentType)
     {
         head.addHeader("Content-Type", contentType);
+        return this;
+    }
+
+    public HttpRequest addHeader(String name, String value)
+    {
+        head.addHeader(name, value);
+        return this;
+    }
+
+    public HttpRequest setMethod(String method)
+    {
+        head.setMethod(method);
+        return this;
+    }
+
+    public HttpRequest get()
+    {
+        head.setMethod("GET");
+        return this;
+    }
+
+    public HttpRequest post()
+    {
+        head.setMethod("POST");
+        return this;
+    }
+
+    public HttpRequest delete()
+    {
+        head.setMethod("DELETE");
+        return this;
+    }
+
+    public HttpRequest put()
+    {
+        head.setMethod("PUT");
+        return this;
+    }
+
+    public HttpRequest setBody(String body)
+    {
+        this.strBody = body;
+        return this;
+    }
+
+    public HttpRequest setBody(IoBuffer body)
+    {
+        this.body = body;
+        return this;
     }
 }

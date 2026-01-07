@@ -4,7 +4,7 @@ import cc.jfire.jnet.common.api.ReadProcessor;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.common.util.ChannelConfig;
 import cc.jfire.jnet.extend.http.coder.*;
-import cc.jfire.jnet.extend.http.dto.FullHttpResponse;
+import cc.jfire.jnet.extend.http.dto.HttpResponse;
 import cc.jfire.jnet.extend.http.dto.HttpRequest;
 import cc.jfire.jnet.server.AioServer;
 import lombok.SneakyThrows;
@@ -59,7 +59,7 @@ public class SampleHttpServer
                     public void read(HttpRequest data, ReadProcessorNode next)
                     {
                         data.close();
-                        FullHttpResponse resp = new FullHttpResponse();
+                        HttpResponse resp = new HttpResponse();
                         resp.addHeader("Content-Type", "text/html");
                         resp.setBodyText("hello y");
                         next.pipeline().fireWrite(resp);

@@ -9,11 +9,10 @@ public interface HttpClient
 {
     HttpConnectionPool CONNECTION_POOL = new HttpConnectionPool();
 
-    static HttpResponse newCall(HttpSendRequest request) throws Exception
+    static HttpResponse newCall(HttpRequest request) throws Exception
     {
-        perfect(request);
-        String         host           = request.getDoMain();
-        int            port           = request.getPort();
+        String         host           = request.getHead().getDomain();
+        int            port           = request.getHead().getPort();
         HttpConnection httpConnection = null;
         try
         {
@@ -38,7 +37,7 @@ public interface HttpClient
 
     static StreamableResponseFuture newStreamCall(HttpRequest request, Consumer<HttpResponsePart> partConsumer, Consumer<Throwable> errorConsumer) throws Exception
     {
-        String          host           = request.getHead().getDomain();
+        String         host           = request.getHead().getDomain();
         int            port           = request.getHead().getPort();
         HttpConnection httpConnection = null;
         try
@@ -81,31 +80,5 @@ public interface HttpClient
             }
             throw e;
         }
-    }
-
-    private static void perfect(HttpSendRequest request)
-    {
-        String url         = request.getUrl();
-        int    index       = 0;
-        int    domainStart = 0;
-        if (url.startsWith("http://"))
-        {
-            index       = url.indexOf("/", 8);
-            domainStart = 7;
-        }
-        else if (url.startsWith("https://"))
-        {
-            index       = url.indexOf("/", 9);
-            domainStart = 8;
-        }
-        if (index == -1)
-        {
-            index = url.length();
-        }
-        int portStart = url.indexOf(':', domainStart);
-        request.setPath(index == url.length() ? "/" : url.substring(index));
-        request.setPort(portStart == -1 ? 80 : Integer.parseInt(url.substring(portStart + 1, index)));
-        request.setDoMain(portStart == -1 ? url.substring(domainStart, index) : url.substring(domainStart, portStart));
-        request.putHeader("Host", url.substring(domainStart, index));
     }
 }

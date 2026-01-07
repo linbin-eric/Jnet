@@ -104,7 +104,7 @@ public class HttpConnection
     /**
      * 带超时的 write 方法，返回完整的 HttpResponse
      */
-    public HttpResponse write(HttpSendRequest request, int secondsOfTimeout) throws ClosedChannelException, SocketTimeoutException
+    public HttpResponse write(HttpRequest request, int secondsOfTimeout) throws ClosedChannelException, SocketTimeoutException
     {
         if (isConnectionClosed())
         {

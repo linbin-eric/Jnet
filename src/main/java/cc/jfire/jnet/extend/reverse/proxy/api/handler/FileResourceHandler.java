@@ -4,7 +4,7 @@ import cc.jfire.baseutil.IoUtil;
 import cc.jfire.baseutil.RuntimeJVM;
 import cc.jfire.baseutil.STR;
 import cc.jfire.jnet.common.api.Pipeline;
-import cc.jfire.jnet.extend.http.dto.FullHttpResponse;
+import cc.jfire.jnet.extend.http.dto.HttpResponse;
 import cc.jfire.jnet.extend.http.dto.HttpRequestPartHead;
 import lombok.extern.slf4j.Slf4j;
 
@@ -51,7 +51,7 @@ public final class FileResourceHandler extends AbstractIOResourceHandler
             {
                 byte[] bytes = IoUtil.readAllBytes(inputStream);
                 head.close();
-                FullHttpResponse response = new FullHttpResponse();
+                HttpResponse response = new HttpResponse();
                 response.addHeader("Content-Type", contentType);
                 response.setBodyBytes(bytes);
                 pipeline.fireWrite(response);
@@ -64,7 +64,7 @@ public final class FileResourceHandler extends AbstractIOResourceHandler
         else
         {
             head.close();
-            FullHttpResponse response = new FullHttpResponse();
+            HttpResponse response = new HttpResponse();
             response.addHeader("Content-Type", "text/html;charset=utf-8");
             response.setBodyText(STR.format("not available path:{},not find in :{}", requestUrl, resourceFile.getAbsolutePath()));
             pipeline.fireWrite(response);

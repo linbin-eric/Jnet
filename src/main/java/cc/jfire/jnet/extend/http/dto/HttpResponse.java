@@ -9,7 +9,7 @@ import java.nio.charset.StandardCharsets;
 
 @Data
 @Accessors(chain = true)
-public class FullHttpResponse implements HttpResponsePart
+public class HttpResponse
 {
     private HttpResponsePartHead head             = new HttpResponsePartHead();
     // 响应体，两种形式，优先级：bodyBuffer > bodyBytes
@@ -25,7 +25,7 @@ public class FullHttpResponse implements HttpResponsePart
         head.setReasonPhrase("OK");
     }
 
-    public FullHttpResponse addHeader(String name, String value)
+    public HttpResponse addHeader(String name, String value)
     {
         // 使用 HttpDecodeUtil 进行标准化
         String standardName = HttpDecodeUtil.normalizeHeaderName(name);
@@ -69,7 +69,7 @@ public class FullHttpResponse implements HttpResponsePart
         }
     }
 
-    public FullHttpResponse setBodyText(String bodyText)
+    public void setBodyText(String bodyText)
     {
         if (bodyText != null)
         {
@@ -79,7 +79,6 @@ public class FullHttpResponse implements HttpResponsePart
         {
             this.bodyBytes = null;
         }
-        return this;
     }
 
     public void writeBody(IoBuffer buffer)
@@ -96,7 +95,6 @@ public class FullHttpResponse implements HttpResponsePart
         }
     }
 
-    @Override
     public void free()
     {
         head.free();
@@ -105,11 +103,5 @@ public class FullHttpResponse implements HttpResponsePart
             bodyBuffer.free();
             bodyBuffer = null;
         }
-    }
-
-    @Override
-    public boolean isLast()
-    {
-        return true; // 完整响应总是最后一个部分
     }
 }
