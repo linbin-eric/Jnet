@@ -139,7 +139,7 @@ public class HttpConnection2
     /**
      * 流式 write 方法，返回 StreamableResponseFuture
      */
-    public StreamableResponseFuture write(HttpSendRequest request, Consumer<HttpResponsePart> partConsumer, Consumer<Throwable> errorConsumer) throws ClosedChannelException
+    public StreamableResponseFuture write(HttpRequest request, Consumer<HttpResponsePart> partConsumer, Consumer<Throwable> errorConsumer) throws ClosedChannelException
     {
         if (isConnectionClosed())
         {
@@ -157,13 +157,11 @@ public class HttpConnection2
     {
         if (isConnectionClosed())
         {
-//            log.error("连接已关闭，地址：{}", clientChannel.pipeline().getRemoteAddressWithoutException());
             request.close();
             throw new ClosedChannelException();
         }
         if (this.responseFuture != null)
         {
-//            log.error("上一个响应还没有收到完全，不应该发起新的 Http 请求。当前 request 是:{}", request);
             request.close();
             ReflectUtil.throwException(new IllegalStateException("上一个响应还没有收到完全，不应该发起新的 Http 响应"));
         }
