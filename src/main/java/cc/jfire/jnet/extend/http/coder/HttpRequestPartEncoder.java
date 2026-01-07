@@ -57,23 +57,6 @@ public class HttpRequestPartEncoder implements WriteProcessor<Object>
         headers.remove(headerName);
     }
 
-    private boolean isTransferEncodingChunked(Map<String, String> headers)
-    {
-        String value = headers.get(TRANSFER_ENCODING_HEADER);
-        if (value == null)
-        {
-            return false;
-        }
-        for (String token : value.split(","))
-        {
-            if ("chunked".equalsIgnoreCase(token.trim()))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private void encodeHttpRequest(HttpRequest request, WriteProcessorNode next)
     {
         IoBuffer            buffer = next.pipeline().allocator().allocate(1024);
@@ -93,11 +76,11 @@ public class HttpRequestPartEncoder implements WriteProcessor<Object>
             strBodyBytes  = request.getStrBody().getBytes(StandardCharsets.UTF_8);
             contentLength = strBodyBytes.length;
         }
-        boolean chunked = isTransferEncodingChunked(head.getHeaders());
+        boolean chunked = head.isChunked();
         if (chunked)
         {
             // 避免产生 CL+TE 的歧义（以及潜在的请求走私风险）
-            removeHeader(head.getHeaders(), CONTENT_LENGTH_HEADER);
+            head.getHeaders().remove(CONTENT_LENGTH_HEADER);
             head.getHeaders().put(TRANSFER_ENCODING_HEADER, "chunked");
         }
         else
