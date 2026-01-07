@@ -6,7 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.concurrent.*;
 
 @Slf4j
-public class HttpConnection2Pool
+public class HttpConnectionPool
 {
     private static final int DEFAULT_MAX_CONNECTIONS_PER_HOST = 50;
     private static final int DEFAULT_TIMEOUT_SECONDS = 1;
@@ -16,9 +16,9 @@ public class HttpConnection2Pool
 
     private static class Bucket
     {
-        private final Semaphore semaphore;
-        private final MpmcArrayQueue<HttpConnection2> queue;
-        private final int maxConnections;
+        private final Semaphore                      semaphore;
+        private final MpmcArrayQueue<HttpConnection> queue;
+        private final int                            maxConnections;
 
         public Bucket(int maxConnections)
         {
@@ -33,18 +33,18 @@ public class HttpConnection2Pool
         return host + ":" + port;
     }
 
-    public HttpConnection2 borrowConnection(String host, int port) throws TimeoutException, InterruptedException
+    public HttpConnection borrowConnection(String host, int port) throws TimeoutException, InterruptedException
     {
         return borrowConnection(host, port, DEFAULT_TIMEOUT_SECONDS);
     }
 
-    public HttpConnection2 borrowConnection(String host, int port, int timeoutSeconds) throws TimeoutException, InterruptedException
+    public HttpConnection borrowConnection(String host, int port, int timeoutSeconds) throws TimeoutException, InterruptedException
     {
         String key = buildKey(host, port);
         Bucket bucket = buckets.computeIfAbsent(key, k -> new Bucket(DEFAULT_MAX_CONNECTIONS_PER_HOST));
 
         // 尽可能从队列获取现有连接
-        HttpConnection2 connection;
+        HttpConnection connection;
         while ((connection = bucket.queue.poll()) != null)
         {
             if (!connection.isConnectionClosed())
@@ -64,7 +64,7 @@ public class HttpConnection2Pool
             // 需要创建新连接
             try
             {
-                connection = new HttpConnection2(host, port, KEEP_ALIVE_SECONDS);
+                connection = new HttpConnection(host, port, KEEP_ALIVE_SECONDS);
 //                log.debug("地址:{}创建新连接，当前许可数量:{}", key,  bucket.semaphore.availablePermits());
                 return connection;
             }
@@ -84,7 +84,7 @@ public class HttpConnection2Pool
         }
     }
 
-    public void returnConnection(String host, int port, HttpConnection2 connection)
+    public void returnConnection(String host, int port, HttpConnection connection)
     {
         if (connection == null)
         {

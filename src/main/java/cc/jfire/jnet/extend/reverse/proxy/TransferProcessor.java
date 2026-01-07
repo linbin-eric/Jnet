@@ -2,7 +2,7 @@ package cc.jfire.jnet.extend.reverse.proxy;
 
 import cc.jfire.jnet.common.api.ReadProcessor;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
-import cc.jfire.jnet.extend.http.client.HttpConnection2Pool;
+import cc.jfire.jnet.extend.http.client.HttpConnectionPool;
 import cc.jfire.jnet.extend.http.dto.FullHttpResp;
 import cc.jfire.jnet.extend.http.dto.HttpRequestChunkedBodyPart;
 import cc.jfire.jnet.extend.http.dto.HttpRequestFixLengthBodyPart;
@@ -22,7 +22,7 @@ public class TransferProcessor implements ReadProcessor<HttpRequestPart>
     private final ResourceHandler[] handlers;
     private ResourceHandler currentHandler;
 
-    public TransferProcessor(List<ResourceConfig> configs, HttpConnection2Pool pool)
+    public TransferProcessor(List<ResourceConfig> configs, HttpConnectionPool pool)
     {
         handlers = configs.stream()
                          .sorted(Comparator.comparingInt(ResourceConfig::getOrder))

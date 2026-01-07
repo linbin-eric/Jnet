@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 @Slf4j
-public class HttpConnection2
+public class HttpConnection
 {
     @Getter
     private volatile ResponseFuture responseFuture;
@@ -29,7 +29,7 @@ public class HttpConnection2
     private final    AtomicBoolean  isClosed = new AtomicBoolean(false);
     private          String         uid      = TRACEID.newTraceId();
 
-    public HttpConnection2(String domain, int port, int secondsOfKeepAlive)
+    public HttpConnection(String domain, int port, int secondsOfKeepAlive)
     {
         ChannelConfig channelConfig = new ChannelConfig().setIp(domain).setPort(port);
         clientChannel = ClientChannel.newClient(channelConfig, pipeline -> {
@@ -53,7 +53,7 @@ public class HttpConnection2
                         // 因为 onReceive 中可能会归还连接到连接池，必须确保归还前 responseFuture 已清空
                         if (part.isLast())
                         {
-//                            log.debug("[HttpConnection2:{},pipeline:{}] 收到最后一个响应体，清除当前 future", uid, ((DefaultPipeline) next.pipeline()).getUid());
+//                            log.debug("[HttpConnection:{},pipeline:{}] 收到最后一个响应体，清除当前 future", uid, ((DefaultPipeline) next.pipeline()).getUid());
                             responseFuture = null;
                         }
                         future.onReceive(part);
@@ -83,7 +83,7 @@ public class HttpConnection2
         {
             ReflectUtil.throwException(new RuntimeException("无法连接 " + domain + ":" + port, clientChannel.getConnectionException()));
         }
-//        log.debug("[HttpConnection2:{},pipeline:{}]创建", uid, ((DefaultPipeline) clientChannel.pipeline()).getUid());
+//        log.debug("[HttpConnection:{},pipeline:{}]创建", uid, ((DefaultPipeline) clientChannel.pipeline()).getUid());
     }
 
     public boolean isConnectionClosed()

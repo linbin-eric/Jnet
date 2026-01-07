@@ -7,14 +7,14 @@ import java.util.function.Consumer;
 
 public interface HttpClient
 {
-    HttpConnection2Pool CONNECTION_POOL = new HttpConnection2Pool();
+    HttpConnectionPool CONNECTION_POOL = new HttpConnectionPool();
 
     static HttpResponse newCall(HttpSendRequest request) throws Exception
     {
         perfect(request);
         String         host           = request.getDoMain();
         int            port           = request.getPort();
-        HttpConnection2 httpConnection = null;
+        HttpConnection httpConnection = null;
         try
         {
             // 从连接池借用连接（自动创建或复用）
@@ -39,12 +39,12 @@ public interface HttpClient
     static StreamableResponseFuture newStreamCall(HttpRequest request, Consumer<HttpResponsePart> partConsumer, Consumer<Throwable> errorConsumer) throws Exception
     {
         String          host           = request.getDomain();
-        int             port           = request.getPort();
-        HttpConnection2 httpConnection = null;
+        int            port           = request.getPort();
+        HttpConnection httpConnection = null;
         try
         {
             httpConnection = CONNECTION_POOL.borrowConnection(host, port, 60);
-            final HttpConnection2 finalConnection = httpConnection;
+            final HttpConnection finalConnection = httpConnection;
             // 包装 partConsumer，在响应完成时归还连接
             Consumer<HttpResponsePart> wrappedPartConsumer = part -> {
                 try
