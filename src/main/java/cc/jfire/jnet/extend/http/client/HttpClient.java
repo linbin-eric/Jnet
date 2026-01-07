@@ -38,8 +38,8 @@ public interface HttpClient
 
     static StreamableResponseFuture newStreamCall(HttpRequest request, Consumer<HttpResponsePart> partConsumer, Consumer<Throwable> errorConsumer) throws Exception
     {
-        String          host           = request.getDomain();
-        int            port           = request.getPort();
+        String          host           = request.getHead().getDomain();
+        int            port           = request.getHead().getPort();
         HttpConnection httpConnection = null;
         try
         {

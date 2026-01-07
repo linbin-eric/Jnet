@@ -3,7 +3,6 @@ package cc.jfire.jnet.extend.http.coder;
 import cc.jfire.jnet.common.api.ReadProcessor;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
-import cc.jfire.jnet.common.util.HttpDecodeUtil;
 import cc.jfire.jnet.extend.http.dto.HttpRequest;
 import cc.jfire.jnet.extend.http.dto.HttpRequestChunkedBodyPart;
 import cc.jfire.jnet.extend.http.dto.HttpRequestFixLengthBodyPart;
@@ -76,19 +75,11 @@ public class HttpRequestAggregator implements ReadProcessor<HttpRequestPart>
     private void fireAggregatedRequest(ReadProcessorNode next)
     {
         HttpRequest request = new HttpRequest();
-        request.setMethod(head.getMethod());
-        request.setPath(head.getPath());
-        request.setVersion(head.getVersion());
-        request.setHeaders(head.getHeaders());
+        request.setHead(head);
         if (head.isChunked())
         {
-            request.setContentLength(body == null ? 0 : body.remainRead());
+            head.setContentLength(body == null ? 0 : body.remainRead());
         }
-        else
-        {
-            request.setContentLength(head.getContentLength());
-        }
-        HttpDecodeUtil.findContentType(head.getHeaders(), request::setContentType);
         request.setBody(body);
         next.fireRead(request);
         head = null;

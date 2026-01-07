@@ -10,14 +10,14 @@ public class OptionsProcessor implements ReadProcessor<HttpRequest>
     @Override
     public void read(HttpRequest request, ReadProcessorNode next)
     {
-        if (request.getMethod().equalsIgnoreCase("options"))
+        if (request.getHead().getMethod().equalsIgnoreCase("options"))
         {
             FullHttpResp response = new FullHttpResp();
             next.pipeline().fireWrite(response);
         }
         else
         {
-            String url = request.getPath();
+            String url = request.getHead().getPath();
             if (url.equals("/favicon.ico") || url.equals("/robots.txt"))
             {
                 FullHttpResp response = new FullHttpResp();

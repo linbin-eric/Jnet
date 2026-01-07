@@ -40,8 +40,8 @@ public class ResourceProcessor implements ReadProcessor<HttpRequest>
     @Override
     public void read(HttpRequest httpRequest, ReadProcessorNode next)
     {
-        String url = httpRequest.getPath();
-        if (!httpRequest.getMethod().equalsIgnoreCase("get"))
+        String url = httpRequest.getHead().getPath();
+        if (!httpRequest.getHead().getMethod().equalsIgnoreCase("get"))
         {
             next.fireRead(httpRequest);
         }

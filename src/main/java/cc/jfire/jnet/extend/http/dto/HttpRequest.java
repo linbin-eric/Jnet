@@ -4,27 +4,17 @@ import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 import lombok.Data;
 import lombok.ToString;
 
-import java.util.HashMap;
-import java.util.Map;
-
 @Data
 @ToString(exclude = "body")
 public class HttpRequest implements AutoCloseable
 {
-    protected String              url;
-    protected String              domain;
-    protected int                 port          = 80;
-    protected String              method;
-    protected String              path;
-    protected String              version;
-    protected Map<String, String> headers       = new HashMap<>();
-    protected long                contentLength = 0;
-    protected String              contentType;
+    protected HttpRequestPartHead head = new HttpRequestPartHead();
     protected IoBuffer            body;
     protected String              strBody;
 
     public void close()
     {
+        head.close();
         if (body != null)
         {
             body.free();
@@ -32,19 +22,14 @@ public class HttpRequest implements AutoCloseable
         }
     }
 
-    public void addHeader(String name, String value)
-    {
-        headers.put(name, value);
-    }
-
     public HttpRequest setUrl(String url)
     {
-        this.url = url;
-        HttpUrl parsed = HttpUrl.parse(url);
-        this.domain = parsed.domain();
-        this.port   = parsed.port();
-        this.path   = parsed.path();
-        this.headers.put("Host", parsed.hostHeader());
+        head.setUrl(url);
         return this;
+    }
+
+    public void setContentType(String contentType)
+    {
+        head.addHeader("Content-Type", contentType);
     }
 }

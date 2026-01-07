@@ -76,9 +76,10 @@ public class HttpRequestPartEncoder implements WriteProcessor<Object>
 
     private void encodeHttpRequest(HttpRequest request, WriteProcessorNode next)
     {
-        IoBuffer buffer = next.pipeline().allocator().allocate(1024);
+        IoBuffer            buffer = next.pipeline().allocator().allocate(1024);
+        HttpRequestPartHead head   = request.getHead();
         // 写入请求行
-        String requestLine = STR.format("{} {} {}\r\n", request.getMethod(), request.getPath(), request.getVersion() != null ? request.getVersion() : "HTTP/1.1");
+        String requestLine = STR.format("{} {} {}\r\n", head.getMethod(), head.getPath(), head.getVersion() != null ? head.getVersion() : "HTTP/1.1");
         buffer.put(requestLine.getBytes(StandardCharsets.US_ASCII));
         // 计算 body 长度
         int    contentLength = 0;
@@ -92,23 +93,23 @@ public class HttpRequestPartEncoder implements WriteProcessor<Object>
             strBodyBytes  = request.getStrBody().getBytes(StandardCharsets.UTF_8);
             contentLength = strBodyBytes.length;
         }
-        boolean chunked = isTransferEncodingChunked(request.getHeaders());
+        boolean chunked = isTransferEncodingChunked(head.getHeaders());
         if (chunked)
         {
             // 避免产生 CL+TE 的歧义（以及潜在的请求走私风险）
-            removeHeader(request.getHeaders(), CONTENT_LENGTH_HEADER);
-            request.getHeaders().put(TRANSFER_ENCODING_HEADER, "chunked");
+            removeHeader(head.getHeaders(), CONTENT_LENGTH_HEADER);
+            head.getHeaders().put(TRANSFER_ENCODING_HEADER, "chunked");
         }
         else
         {
             // 检查并补充 Content-Length（header name 已标准化）
-            if (!containsHeader(request.getHeaders(), CONTENT_LENGTH_HEADER))
+            if (!containsHeader(head.getHeaders(), CONTENT_LENGTH_HEADER))
             {
-                request.getHeaders().put(CONTENT_LENGTH_HEADER, String.valueOf(contentLength));
+                head.getHeaders().put(CONTENT_LENGTH_HEADER, String.valueOf(contentLength));
             }
         }
         // 写入 headers
-        writeHeaderValue(request.getHeaders(), buffer);
+        writeHeaderValue(head.getHeaders(), buffer);
         if (chunked)
         {
             // 以单个 chunk + 终止 chunk 的形式写出，保证协议正确

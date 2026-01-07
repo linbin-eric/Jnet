@@ -10,17 +10,6 @@ public class HttpRequestFixLengthBodyPart implements HttpRequestPart
     protected boolean  last = false;
 
     @Override
-    public boolean isLast()
-    {
-        return last;
-    }
-
-    public void setLast(boolean last)
-    {
-        this.last = last;
-    }
-
-    @Override
     public void close()
     {
         if (part != null)
