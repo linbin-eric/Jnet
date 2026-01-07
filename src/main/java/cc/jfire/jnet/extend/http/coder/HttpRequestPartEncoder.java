@@ -1,19 +1,23 @@
 package cc.jfire.jnet.extend.http.coder;
 
+import cc.jfire.baseutil.STR;
 import cc.jfire.jnet.common.api.WriteProcessor;
 import cc.jfire.jnet.common.api.WriteProcessorNode;
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 import cc.jfire.jnet.common.util.HttpDecodeUtil;
-import cc.jfire.jnet.extend.http.dto.*;
+import cc.jfire.jnet.extend.http.dto.HttpRequest;
+import cc.jfire.jnet.extend.http.dto.HttpRequestChunkedBodyPart;
+import cc.jfire.jnet.extend.http.dto.HttpRequestFixLengthBodyPart;
+import cc.jfire.jnet.extend.http.dto.HttpRequestPartHead;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 public class HttpRequestPartEncoder implements WriteProcessor<Object>
 {
-    private static final byte[]  NEW_LINE              = "\r\n".getBytes(StandardCharsets.US_ASCII);
-    private static final String  CONTENT_LENGTH_HEADER = "Content-Length";
-    private static final String  TRANSFER_ENCODING_HEADER = "Transfer-Encoding";
+    private static final byte[] NEW_LINE                 = "\r\n".getBytes(StandardCharsets.US_ASCII);
+    private static final String CONTENT_LENGTH_HEADER    = "Content-Length";
+    private static final String TRANSFER_ENCODING_HEADER = "Transfer-Encoding";
 
     @Override
     public void write(Object data, WriteProcessorNode next)
@@ -73,25 +77,21 @@ public class HttpRequestPartEncoder implements WriteProcessor<Object>
     private void encodeHttpRequest(HttpRequest request, WriteProcessorNode next)
     {
         IoBuffer buffer = next.pipeline().allocator().allocate(1024);
-
         // 写入请求行
-        String requestLine = request.getMethod() + " " + request.getPath() + " " +
-                             (request.getVersion() != null ? request.getVersion() : "HTTP/1.1") + "\r\n";
+        String requestLine = STR.format("{} {} {}\r\n", request.getMethod(), request.getPath(), request.getVersion() != null ? request.getVersion() : "HTTP/1.1");
         buffer.put(requestLine.getBytes(StandardCharsets.US_ASCII));
-
         // 计算 body 长度
-        int contentLength = 0;
-        byte[] strBodyBytes = null;
+        int    contentLength = 0;
+        byte[] strBodyBytes  = null;
         if (request.getBody() != null)
         {
             contentLength = request.getBody().remainRead();
         }
         else if (request.getStrBody() != null)
         {
-            strBodyBytes = request.getStrBody().getBytes(StandardCharsets.UTF_8);
+            strBodyBytes  = request.getStrBody().getBytes(StandardCharsets.UTF_8);
             contentLength = strBodyBytes.length;
         }
-
         boolean chunked = isTransferEncodingChunked(request.getHeaders());
         if (chunked)
         {
@@ -107,26 +107,8 @@ public class HttpRequestPartEncoder implements WriteProcessor<Object>
                 request.getHeaders().put(CONTENT_LENGTH_HEADER, String.valueOf(contentLength));
             }
         }
-
         // 写入 headers
-        for (Map.Entry<String, String> entry : request.getHeaders().entrySet())
-        {
-            byte[] keyBytes = HttpDecodeUtil.getHeaderKeyBytes(entry.getKey());
-            if (keyBytes != null)
-            {
-                buffer.put(keyBytes);
-            }
-            else
-            {
-                buffer.put((entry.getKey() + ": ").getBytes(StandardCharsets.US_ASCII));
-            }
-            buffer.put(entry.getValue().getBytes(StandardCharsets.US_ASCII));
-            buffer.put(NEW_LINE);
-        }
-
-        // 写入空行
-        buffer.put(NEW_LINE);
-
+        writeHeaderValue(request.getHeaders(), buffer);
         if (chunked)
         {
             // 以单个 chunk + 终止 chunk 的形式写出，保证协议正确
@@ -158,10 +140,8 @@ public class HttpRequestPartEncoder implements WriteProcessor<Object>
                 buffer.put(strBodyBytes);
             }
         }
-
         // 避免 body 被二次 free（HttpRequest.close() 也会释放）
         request.close();
-
         next.fireWrite(buffer);
     }
 
@@ -175,29 +155,31 @@ public class HttpRequestPartEncoder implements WriteProcessor<Object>
         else
         {
             // 按标准格式编码
-            IoBuffer buffer = next.pipeline().allocator().allocate(1024);
-            String requestLine = head.getMethod() + " " + head.getPath() + " " +
-                                 (head.getVersion() != null ? head.getVersion() : "HTTP/1.1") + "\r\n";
+            IoBuffer buffer      = next.pipeline().allocator().allocate(1024);
+            String   requestLine = STR.format("{} {} {}\r\n", head.getMethod(), head.getPath(), head.getVersion() != null ? head.getVersion() : "HTTP/1.1");
             buffer.put(requestLine.getBytes(StandardCharsets.US_ASCII));
-
-            for (Map.Entry<String, String> entry : head.getHeaders().entrySet())
-            {
-                byte[] keyBytes = HttpDecodeUtil.getHeaderKeyBytes(entry.getKey());
-                if (keyBytes != null)
-                {
-                    buffer.put(keyBytes);
-                }
-                else
-                {
-                    buffer.put((entry.getKey() + ": ").getBytes(StandardCharsets.US_ASCII));
-                }
-                buffer.put(entry.getValue().getBytes(StandardCharsets.US_ASCII));
-                buffer.put(NEW_LINE);
-            }
-
-            buffer.put(NEW_LINE);
+            writeHeaderValue(head.getHeaders(), buffer);
             next.fireWrite(buffer);
         }
+    }
+
+    private static void writeHeaderValue(Map<String, String> map, IoBuffer buffer)
+    {
+        for (Map.Entry<String, String> entry : map.entrySet())
+        {
+            byte[] keyBytes = HttpDecodeUtil.getHeaderKeyBytes(entry.getKey());
+            if (keyBytes != null)
+            {
+                buffer.put(keyBytes);
+            }
+            else
+            {
+                buffer.put((entry.getKey() + ": ").getBytes(StandardCharsets.US_ASCII));
+            }
+            buffer.put(entry.getValue().getBytes(StandardCharsets.US_ASCII));
+            buffer.put(NEW_LINE);
+        }
+        buffer.put(NEW_LINE);
     }
 
     private void encodeFixLengthBody(HttpRequestFixLengthBodyPart body, WriteProcessorNode next)
