@@ -87,7 +87,7 @@ public class TestReverseApp
                     {
                         if (url.endsWith("*"))
                         {
-                            list.add(ResourceConfig.prefixMatch2(url, path, Integer.parseInt(order)));
+                            list.add(ResourceConfig.prefixMatch(url, path, Integer.parseInt(order)));
                         }
                         else
                         {

@@ -3,7 +3,6 @@ package cc.jfire.jnet.extend.reverse.proxy.api;
 import cc.jfire.jnet.extend.http.client.HttpConnectionPool;
 import cc.jfire.jnet.extend.reverse.proxy.api.config.IOResourceConfig;
 import cc.jfire.jnet.extend.reverse.proxy.api.config.ProxyHttpResource;
-import cc.jfire.jnet.extend.reverse.proxy.api.config.ProxyHttpResource2;
 
 public interface ResourceConfig
 {
@@ -27,10 +26,5 @@ public interface ResourceConfig
     static ResourceConfig prefixMatch(String prefix, String proxy, int order)
     {
         return new ProxyHttpResource(ProxyHttpResource.MatchType.PREFIX, prefix, proxy, order);
-    }
-
-    static ResourceConfig prefixMatch2(String prefix, String proxy, int order)
-    {
-        return new ProxyHttpResource2(prefix, proxy, order);
     }
 }
