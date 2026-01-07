@@ -20,6 +20,14 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ProxyHttpHandler2 implements ResourceHandler
 {
+    public enum MatchMode
+    {
+        PREFIX,  // 前缀匹配
+        EXACT    // 完全匹配
+    }
+
+    private final MatchMode       matchMode;
+    private final String          match;        // 完全匹配时使用
     private final String          prefixMatch;
     private final int             prefixLen;
     private final String          proxy;
@@ -32,26 +40,46 @@ public class ProxyHttpHandler2 implements ResourceHandler
     private       String          uid = TRACEID.newTraceId();
     private       String          pipelineUid;
 
-    public ProxyHttpHandler2(String prefixMatch, String proxy)
+    public ProxyHttpHandler2(String match, String proxy, MatchMode matchMode)
     {
-//        log.debug("[ProxyHttpHandler2] 初始化代理处理器, prefixMatch={}, proxy={}", prefixMatch, proxy);
-        // 验证并处理前缀匹配规则
-        if (!prefixMatch.endsWith("/*") || prefixMatch.chars().filter(c -> c == '*').count() != 1)
-        {
-//            log.error("[ProxyHttpHandler2] 前缀匹配规则不合规: {}", prefixMatch);
-            throw new IllegalArgumentException(prefixMatch + "不是合规的前缀匹配地址");
-        }
-        this.prefixMatch = prefixMatch.substring(0, prefixMatch.length() - 1);
-        this.prefixLen   = this.prefixMatch.length();
-        this.proxy       = proxy;
+//        log.debug("[ProxyHttpHandler2] 初始化代理处理器, match={}, proxy={}, matchMode={}", match, proxy, matchMode);
+        this.matchMode = matchMode;
+        this.proxy = proxy;
+
         // 解析后端地址
         HttpUrl httpUrl = HttpUrl.parse(proxy);
-        this.backendHost     = httpUrl.domain();
-        this.backendPort     = httpUrl.port();
+        this.backendHost = httpUrl.domain();
+        this.backendPort = httpUrl.port();
         this.backendBasePath = httpUrl.path();
         // 构造 Host header
         this.backendHostHeader = (backendPort == 80 || backendPort == 443) ? backendHost : (backendHost + ":" + backendPort);
-//        log.info("[ProxyHttpHandler2] 代理处理器初始化完成, prefixMatch={}, backendHost={}, backendPort={}", this.prefixMatch, this.backendHost, this.backendPort);
+
+        if (matchMode == MatchMode.PREFIX)
+        {
+            // 前缀匹配：验证并处理前缀规则
+            if (!match.endsWith("/*") || match.chars().filter(c -> c == '*').count() != 1)
+            {
+//                log.error("[ProxyHttpHandler2] 前缀匹配规则不合规: {}", match);
+                throw new IllegalArgumentException(match + "不是合规的前缀匹配地址");
+            }
+            this.prefixMatch = match.substring(0, match.length() - 1);
+            this.prefixLen = this.prefixMatch.length();
+            this.match = null;
+//            log.info("[ProxyHttpHandler2] 代理处理器初始化完成(前缀匹配), prefixMatch={}, backendHost={}, backendPort={}", this.prefixMatch, this.backendHost, this.backendPort);
+        }
+        else
+        {
+            // 完全匹配：直接使用 match
+            this.match = match;
+            this.prefixMatch = null;
+            this.prefixLen = 0;
+//            log.info("[ProxyHttpHandler2] 代理处理器初始化完成(完全匹配), match={}, backendHost={}, backendPort={}", this.match, this.backendHost, this.backendPort);
+        }
+    }
+
+    public ProxyHttpHandler2(String prefixMatch, String proxy)
+    {
+        this(prefixMatch, proxy, MatchMode.PREFIX);
     }
 
     @Override
@@ -85,21 +113,42 @@ public class ProxyHttpHandler2 implements ResourceHandler
     private boolean processHead(HttpRequestPartHead head, Pipeline pipeline)
     {
 //        log.debug("[ProxyHttpHandler2] processHead() 开始处理请求头, method={}, path={}, isLast={}", head.getMethod(), head.getPath(), head.isLast());
-        // 计算后端路径
+        // 获取请求URL并去除 fragment
         String requestUrl = head.getPath();
-        int    index      = requestUrl.indexOf("#");
+        int index = requestUrl.indexOf("#");
         if (index != -1)
         {
             requestUrl = requestUrl.substring(0, index);
         }
-        // 检查前缀是否匹配
-        if (!requestUrl.startsWith(prefixMatch))
+
+        String backendPath;
+
+        if (matchMode == MatchMode.PREFIX)
         {
-//            log.trace("[ProxyHttpHandler2] processHead() 前缀不匹配, requestUrl={}, prefixMatch={}", requestUrl, prefixMatch);
-            return false; // 不处理
+            // 前缀匹配
+            if (!requestUrl.startsWith(prefixMatch))
+            {
+//                log.trace("[ProxyHttpHandler2] processHead() 前缀不匹配, requestUrl={}, prefixMatch={}", requestUrl, prefixMatch);
+                return false; // 不处理
+            }
+//            log.trace("[ProxyHttpHandler2] processHead() 前缀匹配, requestUrl={}, prefixMatch={}", requestUrl, prefixMatch);
+            backendPath = backendBasePath + requestUrl.substring(prefixLen);
         }
-//        log.trace("[ProxyHttpHandler2] processHead() 前缀匹配, requestUrl={}, prefixMatch={}", requestUrl, prefixMatch);
-        String backendPath = backendBasePath + requestUrl.substring(prefixLen);
+        else
+        {
+            // 完全匹配：提取路径部分（不含 query string）进行比较
+            int queryIndex = requestUrl.indexOf("?");
+            String pathPart = queryIndex == -1 ? requestUrl : requestUrl.substring(0, queryIndex);
+            if (!pathPart.equals(match))
+            {
+//                log.trace("[ProxyHttpHandler2] processHead() 路径不匹配, pathPart={}, match={}", pathPart, match);
+                return false; // 不处理
+            }
+//            log.trace("[ProxyHttpHandler2] processHead() 路径匹配, pathPart={}, match={}", pathPart, match);
+            // 后端路径 = backendBasePath + 原始 query string
+            backendPath = queryIndex == -1 ? backendBasePath : backendBasePath + requestUrl.substring(queryIndex);
+        }
+
         // 直接设置属性，避免重复解析
         head.setPath(backendPath);
         head.setDomain(backendHost);
