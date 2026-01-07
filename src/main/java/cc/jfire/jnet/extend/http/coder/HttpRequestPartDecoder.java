@@ -124,6 +124,7 @@ public class HttpRequestPartDecoder extends AbstractDecoder
                     reqHead.setLast(true);
                 }
                 next.fireRead(reqHead);
+                reqHead = null;
                 // 如果没有 body，直接重置状态，不再发送 End
                 if (state == ParseState.NO_BODY)
                 {
@@ -272,6 +273,17 @@ public class HttpRequestPartDecoder extends AbstractDecoder
                 accumulation.compact();
             }
         }
+    }
+
+    @Override
+    public void readFailed(Throwable e, ReadProcessorNode next)
+    {
+        if (reqHead != null)
+        {
+            reqHead.close();
+            reqHead = null;
+        }
+        super.readFailed(e, next);
     }
 
     enum ParseState

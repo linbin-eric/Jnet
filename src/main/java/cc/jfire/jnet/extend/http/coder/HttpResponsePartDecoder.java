@@ -265,6 +265,17 @@ public class HttpResponsePartDecoder extends AbstractDecoder
         }
     }
 
+    @Override
+    public void readFailed(Throwable e, ReadProcessorNode next)
+    {
+        if (respHead != null)
+        {
+            respHead.free();
+            respHead = null;
+        }
+        super.readFailed(e, next);
+    }
+
     enum ParseState
     {
         RESPONSE_LINE, RESPONSE_HEADER, NO_BODY, BODY_FIX_LENGTH, BODY_CHUNKED

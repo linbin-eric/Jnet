@@ -26,9 +26,8 @@ public class HttpRequestAggregator implements ReadProcessor<HttpRequestPart>
                 fireAggregatedRequest(next);
             }
         }
-        else if (data instanceof HttpRequestFixLengthBodyPart)
+        else if (data instanceof HttpRequestFixLengthBodyPart part)
         {
-            HttpRequestFixLengthBodyPart part = (HttpRequestFixLengthBodyPart) data;
             if (body == null)
             {
                 body = part.getPart();
@@ -44,9 +43,8 @@ public class HttpRequestAggregator implements ReadProcessor<HttpRequestPart>
                 fireAggregatedRequest(next);
             }
         }
-        else if (data instanceof HttpRequestChunkedBodyPart)
+        else if (data instanceof HttpRequestChunkedBodyPart chunkedPart)
         {
-            HttpRequestChunkedBodyPart chunkedPart = (HttpRequestChunkedBodyPart) data;
             IoBuffer                   chunkBuffer = chunkedPart.getPart();
             int                        dataLength  = chunkedPart.getChunkLength() - chunkedPart.getHeadLength() - 2;
             chunkBuffer.setReadPosi(chunkedPart.getHeadLength());
@@ -94,7 +92,11 @@ public class HttpRequestAggregator implements ReadProcessor<HttpRequestPart>
             body.free();
             body = null;
         }
-        head = null;
+        if (head != null)
+        {
+            head.close();
+            head = null;
+        }
         next.fireReadFailed(e);
     }
 }

@@ -3,7 +3,7 @@ package cc.jfire.jnet.extend.reverse.proxy.api.config;
 import cc.jfire.jnet.extend.http.client.HttpConnectionPool;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceConfig;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceHandler;
-import cc.jfire.jnet.extend.reverse.proxy.api.handler.ProxyHttpHandler2;
+import cc.jfire.jnet.extend.reverse.proxy.api.handler.ProxyHttpHandler;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -26,8 +26,8 @@ public class ProxyHttpResource implements ResourceConfig
     {
         return switch (matchType)
         {
-            case FULL -> new ProxyHttpHandler2(match, proxy, ProxyHttpHandler2.MatchMode.EXACT);
-            case PREFIX -> new ProxyHttpHandler2(match, proxy, ProxyHttpHandler2.MatchMode.PREFIX);
+            case FULL -> new ProxyHttpHandler(match, proxy, ProxyHttpHandler.MatchMode.EXACT);
+            case PREFIX -> new ProxyHttpHandler(match, proxy, ProxyHttpHandler.MatchMode.PREFIX);
         };
     }
 }

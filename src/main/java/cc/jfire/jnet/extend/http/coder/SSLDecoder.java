@@ -283,6 +283,11 @@ public class SSLDecoder extends AbstractDecoder
         {
 //            log.debug("当前连接:{},当前步骤:{},数据处理阶段unwrap失败，因为ssl异常，握手结束。", remote, count);
             //出现致命错误，不需要优雅关闭
+            if (accumulation != null)
+            {
+                accumulation.free();
+                accumulation = null;
+            }
             next.pipeline().shutdownInput();
         }
     }
