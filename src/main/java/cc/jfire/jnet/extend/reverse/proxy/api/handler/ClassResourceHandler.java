@@ -3,7 +3,7 @@ package cc.jfire.jnet.extend.reverse.proxy.api.handler;
 import cc.jfire.baseutil.IoUtil;
 import cc.jfire.baseutil.STR;
 import cc.jfire.jnet.common.api.Pipeline;
-import cc.jfire.jnet.extend.http.dto.FullHttpResp;
+import cc.jfire.jnet.extend.http.dto.FullHttpResponse;
 import cc.jfire.jnet.extend.http.dto.HttpRequestPartHead;
 
 import java.io.IOException;
@@ -47,9 +47,9 @@ public final class ClassResourceHandler extends AbstractIOResourceHandler
             }
         });
         head.close();
-        FullHttpResp response = new FullHttpResp();
-        response.getHead().addHeader("Content-Type",contentType);
-        response.getBody().setBodyBytes(tuper.bytes());
+        FullHttpResponse response = new FullHttpResponse();
+        response.addHeader("Content-Type", contentType);
+        response.setBodyBytes(tuper.bytes());
         pipeline.fireWrite(response);
     }
 }

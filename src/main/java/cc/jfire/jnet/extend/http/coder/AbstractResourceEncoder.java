@@ -7,7 +7,7 @@ import cc.jfire.baseutil.StringUtil;
 import cc.jfire.jnet.common.api.ReadProcessor;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.common.util.HttpDecodeUtil;
-import cc.jfire.jnet.extend.http.dto.FullHttpResp;
+import cc.jfire.jnet.extend.http.dto.FullHttpResponse;
 import cc.jfire.jnet.extend.http.dto.HttpRequest;
 import lombok.extern.slf4j.Slf4j;
 
@@ -133,10 +133,10 @@ public abstract class AbstractResourceEncoder implements ReadProcessor<HttpReque
             else
             {
                 request.close();
-                FullHttpResp response = new FullHttpResp();
-                response.getHead().addHeader("Content-Type", staticResource.contentType());
-                response.getBody().setBodyBytes(staticResource.content());
-                response.getHead().addHeader("Cache-Control", "max-age=3600");
+                FullHttpResponse response = new FullHttpResponse();
+                response.addHeader("Content-Type", staticResource.contentType());
+                response.setBodyBytes(staticResource.content());
+                response.addHeader("Cache-Control", "max-age=3600");
                 next.pipeline().fireWrite(response);
             }
         }
@@ -171,16 +171,16 @@ public abstract class AbstractResourceEncoder implements ReadProcessor<HttpReque
                 String contentType = HttpDecodeUtil.findContentType(url);
                 try (FileInputStream inputStream = new FileInputStream(target))
                 {
-                    FullHttpResp response = new FullHttpResp();
-                    response.getHead().addHeader("Content-Type", contentType);
-                    response.getBody().setBodyBytes(IoUtil.readAllBytes(inputStream));
+                    FullHttpResponse response = new FullHttpResponse();
+                    response.addHeader("Content-Type", contentType);
+                    response.setBodyBytes(IoUtil.readAllBytes(inputStream));
                     next.pipeline().fireWrite(response);
                 }
                 catch (IOException e)
                 {
-                    FullHttpResp response = new FullHttpResp();
-                    response.getHead().addHeader("Content-Type", "text");
-                    response.getBody().setBodyText("error:" + e.getMessage());
+                    FullHttpResponse response = new FullHttpResponse();
+                    response.addHeader("Content-Type", "text");
+                    response.setBodyText("error:" + e.getMessage());
                     next.pipeline().fireWrite(response);
                 }
             }

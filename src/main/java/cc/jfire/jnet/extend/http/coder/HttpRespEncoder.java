@@ -6,9 +6,7 @@ import cc.jfire.jnet.common.api.WriteProcessorNode;
 import cc.jfire.jnet.common.buffer.allocator.BufferAllocator;
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 import cc.jfire.jnet.common.util.DataIgnore;
-import cc.jfire.jnet.extend.http.dto.FullHttpResp;
-import cc.jfire.jnet.extend.http.dto.HttpRespBody;
-import cc.jfire.jnet.extend.http.dto.HttpRespHead;
+import cc.jfire.jnet.extend.http.dto.FullHttpResponse;
 import cc.jfire.jnet.extend.http.dto.HttpResponsePartHead;
 import lombok.extern.slf4j.Slf4j;
 
@@ -28,30 +26,10 @@ public class HttpRespEncoder implements WriteProcessor<Object>
     @Override
     public void write(Object obj, WriteProcessorNode next)
     {
-//        log.trace("[HttpRespEncoder] write: {}", obj.getClass().getSimpleName());
-        if (obj instanceof HttpRespHead head)
+        if (obj instanceof FullHttpResponse fullHttpResponse)
         {
-//            log.trace("[HttpRespEncoder] 编码HttpRespHead");
             IoBuffer buffer = allocator.allocate(1024);
-            head.write(buffer);
-            buffer.put(NEWLINE);
-//            log.trace("[HttpRespEncoder] HttpRespHead编码完成, buffer大小: {}", buffer.remainRead());
-            next.fireWrite(buffer);
-        }
-        else if (obj instanceof HttpRespBody body)
-        {
-//            log.trace("[HttpRespEncoder] 编码HttpRespBody");
-            IoBuffer buffer = allocator.allocate(1024);
-            body.write(buffer);
-//            log.trace("[HttpRespEncoder] HttpRespBody编码完成, buffer大小: {}", buffer.remainRead());
-            next.fireWrite(buffer);
-        }
-        else if (obj instanceof FullHttpResp fullHttpResp)
-        {
-//            log.trace("[HttpRespEncoder] 编码FullHttpResp, statusCode: {}", fullHttpResp.getHead().getResponseCode());
-            IoBuffer buffer = allocator.allocate(1024);
-            fullHttpResp.write(buffer);
-//            log.trace("[HttpRespEncoder] FullHttpResp编码完成, buffer大小: {}", buffer.remainRead());
+            fullHttpResponse.write(buffer);
             next.fireWrite(buffer);
         }
         else if (obj instanceof HttpResponsePartHead head)

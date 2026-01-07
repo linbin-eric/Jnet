@@ -141,9 +141,9 @@ public class HttpsServer
                 public void read(HttpRequest request, ReadProcessorNode next)
                 {
                     request.close();
-                    FullHttpResp resp = new FullHttpResp();
-                    resp.getHead().addHeader("content-type", "text/html");
-                    resp.getBody().setBodyText("Hello, HTTPS!");
+                    FullHttpResponse resp = new FullHttpResponse();
+                    resp.addHeader("Content-Type", "text/html");
+                    resp.setBodyText("Hello, HTTPS!");
                     next.pipeline().fireWrite(resp);
                 }
             });

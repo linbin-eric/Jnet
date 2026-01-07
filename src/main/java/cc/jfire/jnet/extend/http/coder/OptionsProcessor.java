@@ -2,7 +2,7 @@ package cc.jfire.jnet.extend.http.coder;
 
 import cc.jfire.jnet.common.api.ReadProcessor;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
-import cc.jfire.jnet.extend.http.dto.FullHttpResp;
+import cc.jfire.jnet.extend.http.dto.FullHttpResponse;
 import cc.jfire.jnet.extend.http.dto.HttpRequest;
 
 public class OptionsProcessor implements ReadProcessor<HttpRequest>
@@ -12,7 +12,7 @@ public class OptionsProcessor implements ReadProcessor<HttpRequest>
     {
         if (request.getHead().getMethod().equalsIgnoreCase("options"))
         {
-            FullHttpResp response = new FullHttpResp();
+            FullHttpResponse response = new FullHttpResponse();
             next.pipeline().fireWrite(response);
         }
         else
@@ -20,8 +20,8 @@ public class OptionsProcessor implements ReadProcessor<HttpRequest>
             String url = request.getHead().getPath();
             if (url.equals("/favicon.ico") || url.equals("/robots.txt"))
             {
-                FullHttpResp response = new FullHttpResp();
-                response.getHead().setResponseCode(404);
+                FullHttpResponse response = new FullHttpResponse();
+                response.setStatusCode(404).setReasonPhrase("Not Found");
                 next.pipeline().fireWrite(response);
             }
             else

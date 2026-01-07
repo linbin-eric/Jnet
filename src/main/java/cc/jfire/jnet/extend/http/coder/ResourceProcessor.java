@@ -3,7 +3,7 @@ package cc.jfire.jnet.extend.http.coder;
 import cc.jfire.baseutil.IoUtil;
 import cc.jfire.jnet.common.api.ReadProcessor;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
-import cc.jfire.jnet.extend.http.dto.FullHttpResp;
+import cc.jfire.jnet.extend.http.dto.FullHttpResponse;
 import cc.jfire.jnet.extend.http.dto.HttpRequest;
 import cc.jfire.jnet.extend.reverse.proxy.ContentTypeDist;
 import lombok.extern.slf4j.Slf4j;
@@ -91,11 +91,11 @@ public class ResourceProcessor implements ReadProcessor<HttpRequest>
                 else
                 {
                     httpRequest.close();
-                    FullHttpResp response = new FullHttpResp();
-                    response.getHead().addHeader("Content-Type", staticResource.contentType);
-                    response.getBody().setBodyBytes(staticResource.content);
-                    response.getHead().addHeader("Cache-Control", "no-cache");
-                    response.getHead().addHeader("Connection", "keep-alive");
+                    FullHttpResponse response = new FullHttpResponse();
+                    response.addHeader("Content-Type", staticResource.contentType);
+                    response.setBodyBytes(staticResource.content);
+                    response.addHeader("Cache-Control", "no-cache");
+                    response.addHeader("Connection", "keep-alive");
                     next.pipeline().fireWrite(response);
                 }
             }
@@ -139,10 +139,10 @@ public class ResourceProcessor implements ReadProcessor<HttpRequest>
                 else
                 {
                     httpRequest.close();
-                    FullHttpResp response = new FullHttpResp();
-                    response.getHead().addHeader("Content-Type", staticResource.contentType);
-                    response.getBody().setBodyBytes(staticResource.content);
-                    response.getHead().addHeader("Cache-Control", "max-age=3600");
+                    FullHttpResponse response = new FullHttpResponse();
+                    response.addHeader("Content-Type", staticResource.contentType);
+                    response.setBodyBytes(staticResource.content);
+                    response.addHeader("Cache-Control", "max-age=3600");
                     next.pipeline().fireWrite(response);
                 }
             }

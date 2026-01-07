@@ -2,8 +2,7 @@ package cc.jfire.jnet.extend.http.coder;
 
 import cc.jfire.jnet.common.api.WriteProcessor;
 import cc.jfire.jnet.common.api.WriteProcessorNode;
-import cc.jfire.jnet.extend.http.dto.FullHttpResp;
-import cc.jfire.jnet.extend.http.dto.HttpRespHead;
+import cc.jfire.jnet.extend.http.dto.FullHttpResponse;
 import cc.jfire.jnet.extend.http.dto.HttpResponsePartHead;
 import lombok.extern.slf4j.Slf4j;
 
@@ -15,16 +14,13 @@ public class CorsEncoder implements WriteProcessor<Object>
     @Override
     public void write(Object data, WriteProcessorNode next)
     {
-//        log.trace("[CorsEncoder] write: {}", data.getClass().getSimpleName());
-        if (data instanceof FullHttpResp fullHttpResp)
+        if (data instanceof FullHttpResponse fullHttpResponse)
         {
-//            log.trace("[CorsEncoder] 处理FullHttpResp, 添加CORS头");
-            HttpRespHead head = fullHttpResp.getHead();
-            head.addHeader("Access-Control-Allow-Origin", "*")
-                .addHeader("access-control-allow-methods", "GET,PUT,POST,HEAD")
+            fullHttpResponse.addHeader("Access-Control-Allow-Origin", "*")
+                .addHeader("Access-Control-Allow-Methods", "GET,PUT,POST,HEAD")
                 .addHeader("Access-Control-Max-Age", "86400")
                 .addHeader("Access-Control-Allow-Headers", "*");
-            next.fireWrite(fullHttpResp);
+            next.fireWrite(fullHttpResponse);
         }
         else if (data instanceof HttpResponsePartHead head)
         {

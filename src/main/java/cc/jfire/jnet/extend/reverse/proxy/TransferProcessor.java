@@ -3,7 +3,7 @@ package cc.jfire.jnet.extend.reverse.proxy;
 import cc.jfire.jnet.common.api.ReadProcessor;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.extend.http.client.HttpConnectionPool;
-import cc.jfire.jnet.extend.http.dto.FullHttpResp;
+import cc.jfire.jnet.extend.http.dto.FullHttpResponse;
 import cc.jfire.jnet.extend.http.dto.HttpRequestChunkedBodyPart;
 import cc.jfire.jnet.extend.http.dto.HttpRequestFixLengthBodyPart;
 import cc.jfire.jnet.extend.http.dto.HttpRequestPart;
@@ -74,9 +74,9 @@ public class TransferProcessor implements ReadProcessor<HttpRequestPart>
         String path = head.getPath();
 //        log.warn("[TransferProcessor] 没有匹配的handler, 返回404: {}", path);
         head.close();
-        FullHttpResp response = new FullHttpResp();
-        response.getHead().setResponseCode(404);
-        response.getBody().setBodyText("not found address:" + path);
+        FullHttpResponse response = new FullHttpResponse();
+        response.setStatusCode(404).setReasonPhrase("Not Found");
+        response.setBodyText("not found address:" + path);
         next.pipeline().fireWrite(response);
     }
 

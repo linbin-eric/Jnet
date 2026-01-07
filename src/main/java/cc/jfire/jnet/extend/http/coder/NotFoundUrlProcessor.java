@@ -2,7 +2,7 @@ package cc.jfire.jnet.extend.http.coder;
 
 import cc.jfire.jnet.common.api.ReadProcessor;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
-import cc.jfire.jnet.extend.http.dto.FullHttpResp;
+import cc.jfire.jnet.extend.http.dto.FullHttpResponse;
 import cc.jfire.jnet.extend.http.dto.HttpRequest;
 import lombok.Data;
 
@@ -20,9 +20,9 @@ public class NotFoundUrlProcessor implements ReadProcessor<HttpRequest>
         String url      = data.getHead().getPath();
         String purePath = url.contains("?") ? url.substring(0, url.indexOf("?")) : url;
         barrier.notAvailablePaths.add(purePath);
-        FullHttpResp response = new FullHttpResp();
-        response.getHead().setResponseCode(404);
-        response.getBody().setBodyText("notAvailable path:" + purePath);
+        FullHttpResponse response = new FullHttpResponse();
+        response.setStatusCode(404).setReasonPhrase("Not Found");
+        response.setBodyText("notAvailable path:" + purePath);
         next.pipeline().fireWrite(response);
     }
 
@@ -37,9 +37,9 @@ public class NotFoundUrlProcessor implements ReadProcessor<HttpRequest>
             String purePath = url.contains("?") ? url.substring(0, url.indexOf("?")) : url;
             if (notAvailablePaths.contains(purePath))
             {
-                FullHttpResp response = new FullHttpResp();
-                response.getHead().setResponseCode(404);
-                response.getBody().setBodyText("notAvailable path:" + purePath);
+                FullHttpResponse response = new FullHttpResponse();
+                response.setStatusCode(404).setReasonPhrase("Not Found");
+                response.setBodyText("notAvailable path:" + purePath);
                 next.pipeline().fireWrite(response);
             }
             else
