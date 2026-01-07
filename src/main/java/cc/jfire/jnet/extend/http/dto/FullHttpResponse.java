@@ -1,62 +1,48 @@
 package cc.jfire.jnet.extend.http.dto;
 
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
+import cc.jfire.jnet.common.util.HttpDecodeUtil;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
 
 @Data
 @Accessors(chain = true)
 public class FullHttpResponse implements HttpResponsePart
 {
-    private static final byte[] NEWLINE = "\r\n".getBytes(StandardCharsets.US_ASCII);
+    private HttpResponsePartHead head             = new HttpResponsePartHead();
+    // 响应体，两种形式，优先级：bodyBuffer > bodyBytes
+    private IoBuffer             bodyBuffer;
+    private byte[]               bodyBytes;
+    private boolean              hasContentLength = false;
+    private boolean              hasContentType   = false;
 
-    private String              version      = "HTTP/1.1";
-    private int                 statusCode   = 200;
-    private String              reasonPhrase = "OK";
-    private Map<String, String> headers      = new HashMap<>();
-
-    // 响应体，三种形式，优先级：bodyBuffer > bodyBytes > bodyText
-    private IoBuffer bodyBuffer;
-    private byte[]   bodyBytes;
-    private String   bodyText;
-
-    private boolean hasContentLength = false;
-    private boolean hasContentType   = false;
+    // 初始化 head 的默认值
+    {
+        head.setVersion("HTTP/1.1");
+        head.setStatusCode(200);
+        head.setReasonPhrase("OK");
+    }
 
     public FullHttpResponse addHeader(String name, String value)
     {
-        String lowerName = name.toLowerCase();
+        // 使用 HttpDecodeUtil 进行标准化
+        String standardName = HttpDecodeUtil.normalizeHeaderName(name);
+        String lowerName    = name.toLowerCase();
         if (lowerName.equals("content-length"))
         {
             hasContentLength = true;
         }
-        if (lowerName.equals("content-type"))
+        else if (lowerName.equals("content-type"))
         {
             hasContentType = true;
         }
-        headers.put(name, value);
+        head.addHeader(standardName, value);
         return this;
     }
 
-    public void write(IoBuffer buffer)
-    {
-        helpSetContentLengthIfNeed();
-        helpSetContentTypeIfNeed();
-        // 编码响应行
-        buffer.put((version + " " + statusCode + " " + reasonPhrase + "\r\n").getBytes(StandardCharsets.US_ASCII));
-        // 编码 headers
-        headers.forEach((name, value) -> buffer.put((name + ": " + value + "\r\n").getBytes(StandardCharsets.US_ASCII)));
-        // 空行结束头部
-        buffer.put(NEWLINE);
-        // 编码 body
-        writeBody(buffer);
-    }
-
-    private void helpSetContentLengthIfNeed()
+    public void helpSetContentLengthIfNeed()
     {
         if (!hasContentLength)
         {
@@ -68,10 +54,6 @@ public class FullHttpResponse implements HttpResponsePart
             {
                 addHeader("Content-Length", String.valueOf(bodyBytes.length));
             }
-            else if (bodyText != null)
-            {
-                addHeader("Content-Length", String.valueOf(bodyText.getBytes(StandardCharsets.UTF_8).length));
-            }
             else
             {
                 addHeader("Content-Length", "0");
@@ -79,7 +61,7 @@ public class FullHttpResponse implements HttpResponsePart
         }
     }
 
-    private void helpSetContentTypeIfNeed()
+    public void helpSetContentTypeIfNeed()
     {
         if (!hasContentType)
         {
@@ -87,7 +69,20 @@ public class FullHttpResponse implements HttpResponsePart
         }
     }
 
-    private void writeBody(IoBuffer buffer)
+    public FullHttpResponse setBodyText(String bodyText)
+    {
+        if (bodyText != null)
+        {
+            this.bodyBytes = bodyText.getBytes(StandardCharsets.UTF_8);
+        }
+        else
+        {
+            this.bodyBytes = null;
+        }
+        return this;
+    }
+
+    public void writeBody(IoBuffer buffer)
     {
         if (bodyBuffer != null)
         {
@@ -99,15 +94,12 @@ public class FullHttpResponse implements HttpResponsePart
         {
             buffer.put(bodyBytes);
         }
-        else if (bodyText != null)
-        {
-            buffer.put(bodyText.getBytes(StandardCharsets.UTF_8));
-        }
     }
 
     @Override
     public void free()
     {
+        head.free();
         if (bodyBuffer != null)
         {
             bodyBuffer.free();

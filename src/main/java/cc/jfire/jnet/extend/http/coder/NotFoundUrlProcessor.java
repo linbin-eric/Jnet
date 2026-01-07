@@ -21,7 +21,8 @@ public class NotFoundUrlProcessor implements ReadProcessor<HttpRequest>
         String purePath = url.contains("?") ? url.substring(0, url.indexOf("?")) : url;
         barrier.notAvailablePaths.add(purePath);
         FullHttpResponse response = new FullHttpResponse();
-        response.setStatusCode(404).setReasonPhrase("Not Found");
+        response.getHead().setStatusCode(404);
+        response.getHead().setReasonPhrase("Not Found");
         response.setBodyText("notAvailable path:" + purePath);
         next.pipeline().fireWrite(response);
     }
@@ -38,7 +39,8 @@ public class NotFoundUrlProcessor implements ReadProcessor<HttpRequest>
             if (notAvailablePaths.contains(purePath))
             {
                 FullHttpResponse response = new FullHttpResponse();
-                response.setStatusCode(404).setReasonPhrase("Not Found");
+                response.getHead().setStatusCode(404);
+                response.getHead().setReasonPhrase("Not Found");
                 response.setBodyText("notAvailable path:" + purePath);
                 next.pipeline().fireWrite(response);
             }

@@ -21,7 +21,8 @@ public class OptionsProcessor implements ReadProcessor<HttpRequest>
             if (url.equals("/favicon.ico") || url.equals("/robots.txt"))
             {
                 FullHttpResponse response = new FullHttpResponse();
-                response.setStatusCode(404).setReasonPhrase("Not Found");
+                response.getHead().setStatusCode(404);
+                response.getHead().setReasonPhrase("Not Found");
                 next.pipeline().fireWrite(response);
             }
             else

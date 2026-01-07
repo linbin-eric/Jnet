@@ -16,11 +16,24 @@ import java.nio.charset.StandardCharsets;
 public class HttpRespEncoder implements WriteProcessor<Object>
 {
     private final       BufferAllocator allocator;
-    public static final byte[]          NEWLINE          = "\r\n".getBytes(StandardCharsets.US_ASCII);
+    public static final byte[]          NEWLINE = "\r\n".getBytes(StandardCharsets.US_ASCII);
 
     public HttpRespEncoder(BufferAllocator allocator)
     {
         this.allocator = allocator;
+    }
+
+    /**
+     * 编码 HttpResponsePartHead 到 IoBuffer
+     */
+    private IoBuffer encodeHead(HttpResponsePartHead head)
+    {
+        IoBuffer buffer       = allocator.allocate(1024);
+        String   responseLine = STR.format("{} {} {}\r\n", head.getVersion(), head.getStatusCode(), head.getReasonPhrase() != null ? head.getReasonPhrase() : "");
+        buffer.put(responseLine.getBytes(StandardCharsets.US_ASCII));
+        head.getHeaders().forEach((name, value) -> buffer.put((name + ": " + value + "\r\n").getBytes(StandardCharsets.US_ASCII)));
+        buffer.put(NEWLINE);
+        return buffer;
     }
 
     @Override
@@ -28,9 +41,16 @@ public class HttpRespEncoder implements WriteProcessor<Object>
     {
         if (obj instanceof FullHttpResponse fullHttpResponse)
         {
-            IoBuffer buffer = allocator.allocate(1024);
-            fullHttpResponse.write(buffer);
-            next.fireWrite(buffer);
+            // 先设置必要的头部信息
+            fullHttpResponse.helpSetContentLengthIfNeed();
+            fullHttpResponse.helpSetContentTypeIfNeed();
+            // 编码 head 部分
+            IoBuffer headBuffer = encodeHead(fullHttpResponse.getHead());
+            next.fireWrite(headBuffer);
+            // 再编码 body 部分
+            IoBuffer bodyBuffer = allocator.allocate(1024);
+            fullHttpResponse.writeBody(bodyBuffer);
+            next.fireWrite(bodyBuffer);
         }
         else if (obj instanceof HttpResponsePartHead head)
         {
@@ -45,19 +65,7 @@ public class HttpRespEncoder implements WriteProcessor<Object>
             else
             {
                 // part 为空，基于属性重新编码
-//                log.trace("[HttpRespEncoder] 重新编码响应头");
-                IoBuffer buffer = allocator.allocate(1024);
-                // 编码响应行：HTTP/1.1 200 OK\r\n
-                String responseLine = head.getVersion() + " " + head.getStatusCode() + " " +
-                                      (head.getReasonPhrase() != null ? head.getReasonPhrase() : "") + "\r\n";
-                buffer.put(responseLine.getBytes(StandardCharsets.US_ASCII));
-                // 编码 headers
-                head.getHeaders().forEach((name, value) -> {
-                    buffer.put((name + ": " + value + "\r\n").getBytes(StandardCharsets.US_ASCII));
-                });
-                // 空行结束头部
-                buffer.put(NEWLINE);
-//                log.trace("[HttpRespEncoder] 响应头编码完成, buffer大小: {}", buffer.remainRead());
+                IoBuffer buffer = encodeHead(head);
                 next.fireWrite(buffer);
             }
         }

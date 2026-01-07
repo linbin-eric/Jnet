@@ -75,7 +75,8 @@ public class TransferProcessor implements ReadProcessor<HttpRequestPart>
 //        log.warn("[TransferProcessor] 没有匹配的handler, 返回404: {}", path);
         head.close();
         FullHttpResponse response = new FullHttpResponse();
-        response.setStatusCode(404).setReasonPhrase("Not Found");
+        response.getHead().setStatusCode(404);
+        response.getHead().setReasonPhrase("Not Found");
         response.setBodyText("not found address:" + path);
         next.pipeline().fireWrite(response);
     }
