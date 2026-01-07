@@ -75,7 +75,6 @@ public class HttpDecodeUtil
         STANDARD_HEADERS.put("x-forwarded-proto", "X-Forwarded-Proto");
         STANDARD_HEADERS.put("x-real-ip", "X-Real-IP");
         STANDARD_HEADERS.put("x-requested-with", "X-Requested-With");
-
         // 构建 header key 字节数组缓存
         HEADER_KEY_BYTES_CACHE = new HashMap<>();
         for (String standardName : STANDARD_HEADERS.values())
@@ -93,69 +92,6 @@ public class HttpDecodeUtil
     public static byte[] getHeaderKeyBytes(String headerName)
     {
         return HEADER_KEY_BYTES_CACHE.get(headerName);
-    }
-
-    public static int findSubArray(IoBuffer buffer, byte[] B, int[] prefix)
-    {
-        int j   = 0;
-        int end = buffer.getWritePosi();
-        for (int i = buffer.getReadPosi(); i < end; i++)
-        {
-            while (j > 0 && B[j] != buffer.get(i))
-            {
-                j = prefix[j - 1];
-            }
-            if (B[j] == buffer.get(i))
-            {
-                j++;
-            }
-            if (j == B.length)
-            {
-                return i - j + 1;
-            }
-        }
-        return -1;
-    }
-
-    public static int findSubarray(byte[] A, byte[] B)
-    {
-        int[] prefix = computePrefix(B);
-        int   j      = 0;
-        for (int i = 0; i < A.length; i++)
-        {
-            while (j > 0 && B[j] != A[i])
-            {
-                j = prefix[j - 1];
-            }
-            if (B[j] == A[i])
-            {
-                j++;
-            }
-            if (j == B.length)
-            {
-                return i - j + 1;
-            }
-        }
-        return -1;
-    }
-
-    public static int[] computePrefix(byte[] B)
-    {
-        int[] prefix = new int[B.length];
-        int   j      = 0;
-        for (int i = 1; i < B.length; i++)
-        {
-            while (j > 0 && B[j] != B[i])
-            {
-                j = prefix[j - 1];
-            }
-            if (B[j] == B[i])
-            {
-                j++;
-            }
-            prefix[i] = j;
-        }
-        return prefix;
     }
 
     public static void findAllHeaders(IoBuffer ioBuffer, BiConsumer<String, String> consumer)
@@ -184,15 +120,6 @@ public class HttpDecodeUtil
             consumer.accept(headerName, headerValue);
         }
         ioBuffer.addReadPosi(2);
-    }
-
-    public static void findContentType(Map<String, String> headers, Consumer<String> contentTypeConsumer)
-    {
-        String value = headers.get("Content-Type");
-        if (value != null)
-        {
-            contentTypeConsumer.accept(value);
-        }
     }
 
     public static void findContentLength(Map<String, String> headers, Consumer<Long> contentLengthConsumer)

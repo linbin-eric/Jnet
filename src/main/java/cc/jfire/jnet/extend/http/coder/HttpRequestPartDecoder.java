@@ -25,8 +25,6 @@ public class HttpRequestPartDecoder extends AbstractDecoder
     @Override
     protected void process0(ReadProcessorNode next)
     {
-//        log.trace("[HttpRequestPartDecoder] process0 开始, 当前状态: {}, accumulation剩余: {}",
-//                  state, accumulation != null ? accumulation.remainRead() : 0);
         boolean goToNextState;
         do
         {
@@ -36,12 +34,7 @@ public class HttpRequestPartDecoder extends AbstractDecoder
                 case REQUEST_HEADER -> parseRequestHeader(next);
                 case BODY_FIX_LENGTH -> parseBodyFixLength(next);
                 case BODY_CHUNKED -> parseBodyChunked(next);
-                case NO_BODY ->
-                {
-                    // NO_BODY 状态已在 parseRequestHeader 中处理并重置，此分支不应被执行
-                    resetState();
-                    yield accumulation != null && accumulation.remainRead() > 0;
-                }
+                case NO_BODY -> throw new IllegalStateException();
             };
         } while (goToNextState);
     }
@@ -51,7 +44,7 @@ public class HttpRequestPartDecoder extends AbstractDecoder
 //        log.trace("[HttpRequestPartDecoder] parseRequestLine");
         if (lastCheck == -1)
         {
-            lastCheck = accumulation.getReadPosi();
+            lastCheck     = accumulation.getReadPosi();
             headStartPosi = lastCheck;
         }
         for (; lastCheck + 1 < accumulation.getWritePosi(); lastCheck++)
@@ -67,8 +60,6 @@ public class HttpRequestPartDecoder extends AbstractDecoder
         {
             reqHead = new HttpRequestPartHead();
             decodeRequestLine();
-//            log.trace("[HttpRequestPartDecoder] 解析请求行完成: {} {} {}",
-//                      reqHead.getMethod(), reqHead.getPath(), reqHead.getVersion());
             return true;
         }
         return false;
@@ -117,24 +108,36 @@ public class HttpRequestPartDecoder extends AbstractDecoder
                 HttpDecodeUtil.findAllHeaders(accumulation, reqHead::addHeader);
                 HttpDecodeUtil.findContentLength(reqHead.getHeaders(), reqHead::setContentLength);
                 accumulation.setReadPosi(headStartPosi);
-                reqHead.setHeadBuffer(accumulation.slice(headLength));
+                if (accumulation.remainRead() == headLength)
+                {
+                    reqHead.setHeadBuffer(accumulation);
+                    accumulation = null;
+                }
+                else
+                {
+                    reqHead.setHeadBuffer(accumulation.slice(headLength));
+                }
                 parseBodyType();
-//                log.trace("[HttpRequestPartDecoder] 解析请求头完成, Content-Length: {}, 是否chunked: {}, 状态: {}",
-//                          reqHead.getContentLength(), reqHead.isChunked(), state);
                 // 如果没有 body，设置 last = true
                 if (state == ParseState.NO_BODY)
                 {
                     reqHead.setLast(true);
-//                    log.trace("[HttpRequestPartDecoder] 无请求体, 设置 last=true");
                 }
-//                log.trace("[HttpRequestPartDecoder] 发送 HttpRequestPartHead: {} {}", reqHead.getMethod(), reqHead.getPath());
                 next.fireRead(reqHead);
                 // 如果没有 body，直接重置状态，不再发送 End
                 if (state == ParseState.NO_BODY)
                 {
                     resetState();
                 }
-                return accumulation != null && accumulation.remainRead() > 0;
+                if (accumulation == null)
+                {
+                    return false;
+                }
+                else
+                {
+                    accumulation.compact();
+                    return true;
+                }
             }
         }
         return false;
@@ -163,32 +166,25 @@ public class HttpRequestPartDecoder extends AbstractDecoder
 
     private boolean parseBodyFixLength(ReadProcessorNode next)
     {
-//        log.trace("[HttpRequestPartDecoder] parseBodyFixLength 开始, bodyRead: {}, contentLength: {}",
-//                  bodyRead, reqHead.getContentLength());
         if (accumulation == null || accumulation.remainRead() == 0)
         {
-//            log.trace("[HttpRequestPartDecoder] parseBodyFixLength 无数据可读");
             return false;
         }
         long left   = reqHead.getContentLength() - bodyRead;
-        int remain = accumulation.remainRead();
-//        log.trace("[HttpRequestPartDecoder] parseBodyFixLength: 剩余需读: {}, 当前可读: {}", left, remain);
+        int  remain = accumulation.remainRead();
         if (remain >= left)
         {
             HttpRequestFixLengthBodyPart part = new HttpRequestFixLengthBodyPart();
             part.setLast(true);
             if (remain > left)
             {
-//                log.trace("当前 slice");
                 part.setPart(accumulation.slice((int) left));
             }
             else
             {
-//                log.trace("当前直接采用 accumulation");
                 part.setPart(accumulation);
                 accumulation = null;
             }
-//            log.trace("[HttpRequestPartDecoder] 发送 FixLengthBodyPart, last=true, 大小: {}", left);
             next.fireRead(part);
             resetState();
             return accumulation != null && accumulation.remainRead() > 0;
@@ -200,7 +196,6 @@ public class HttpRequestPartDecoder extends AbstractDecoder
             part.setLast(false);
             part.setPart(accumulation);
             accumulation = null;
-//            log.trace("[HttpRequestPartDecoder] 发送 FixLengthBodyPart, last=false, 大小: {}, 已读总计: {}", remain, bodyRead);
             next.fireRead(part);
             return false;
         }
@@ -208,7 +203,6 @@ public class HttpRequestPartDecoder extends AbstractDecoder
 
     private boolean parseBodyChunked(ReadProcessorNode next)
     {
-//        log.trace("[HttpRequestPartDecoder] parseBodyChunked 开始, chunkSize: {}", chunkSize);
         if (chunkSize == -1)
         {
             int startPosi = accumulation.getReadPosi();
@@ -222,23 +216,19 @@ public class HttpRequestPartDecoder extends AbstractDecoder
                 {
                     chunkSize           = Integer.parseInt(StandardCharsets.US_ASCII.decode(accumulation.readableByteBuffer(i)).toString().trim(), 16);
                     chunkSizeLineLength = i + 2 - startPosi;
-//                    log.trace("[HttpRequestPartDecoder] 解析chunk大小: {}, 头部长度: {}", chunkSize, chunkSizeLineLength);
                     break;
                 }
             }
         }
         if (chunkSize == -1)
         {
-//            log.trace("[HttpRequestPartDecoder] chunk大小未解析完成");
             return false;
         }
-        // 处理 chunk size 为 0 的情况（结束标志）
         if (chunkSize == 0)
         {
             int totalLength = chunkSizeLineLength + 2;
             if (accumulation.remainRead() < totalLength)
             {
-//                log.trace("[HttpRequestPartDecoder] 等待最后chunk的CRLF");
                 return false;
             }
             HttpRequestChunkedBodyPart part = new HttpRequestChunkedBodyPart();
@@ -246,26 +236,21 @@ public class HttpRequestPartDecoder extends AbstractDecoder
             part.setChunkLength(totalLength);
             part.setPart(accumulation.slice(totalLength));
             part.setLast(true);
-//            log.trace("[HttpRequestPartDecoder] 发送 ChunkedBodyPart, last=true (结束chunk)");
             next.fireRead(part);
             resetState();
             return accumulation != null && accumulation.remainRead() > 0;
         }
-
         // 检查是否已接收完整的 chunk（chunk size 行 + chunk 数据 + 结尾 CRLF）
         int totalChunkLength = chunkSizeLineLength + chunkSize + 2;
         if (accumulation.remainRead() < totalChunkLength)
         {
-//            log.trace("[HttpRequestPartDecoder] 等待完整chunk, 需要: {}, 可用: {}", totalChunkLength, accumulation.remainRead());
             return false;
         }
-
         HttpRequestChunkedBodyPart part = new HttpRequestChunkedBodyPart();
         part.setHeadLength(chunkSizeLineLength);
         part.setChunkLength(totalChunkLength);
         part.setPart(accumulation.slice(totalChunkLength));
         part.setLast(false);
-//        log.trace("[HttpRequestPartDecoder] 发送 ChunkedBodyPart, last=false, chunkSize: {}", chunkSize);
         next.fireRead(part);
         chunkSize           = -1;
         chunkSizeLineLength = -1;
@@ -274,13 +259,12 @@ public class HttpRequestPartDecoder extends AbstractDecoder
 
     private void resetState()
     {
-//        log.trace("[HttpRequestPartDecoder] resetState, 重置解析器状态");
-        reqHead       = null;
-        headStartPosi = -1;
-        bodyRead      = 0;
-        chunkSize = -1;
+        reqHead             = null;
+        headStartPosi       = -1;
+        bodyRead            = 0;
+        chunkSize           = -1;
         chunkSizeLineLength = -1; // 新增：重置chunk size行长度
-        state     = ParseState.REQUEST_LINE;
+        state               = ParseState.REQUEST_LINE;
         if (accumulation != null)
         {
             if (accumulation.remainRead() != 0)
