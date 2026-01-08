@@ -1,17 +1,11 @@
 package cc.jfire.jnet.extend.reverse.proxy;
 
-import cc.jfire.jnet.common.api.Pipeline;
 import cc.jfire.jnet.common.api.ReadProcessor;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.extend.http.client.HttpConnectionPool;
-import cc.jfire.jnet.extend.http.dto.HttpResponse;
-import cc.jfire.jnet.extend.http.dto.HttpRequestChunkedBodyPart;
-import cc.jfire.jnet.extend.http.dto.HttpRequestFixLengthBodyPart;
-import cc.jfire.jnet.extend.http.dto.HttpRequestPart;
-import cc.jfire.jnet.extend.http.dto.HttpRequestPartHead;
+import cc.jfire.jnet.extend.http.dto.*;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceConfig;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceHandler;
-
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Comparator;
@@ -21,14 +15,11 @@ import java.util.List;
 public class TransferProcessor implements ReadProcessor<HttpRequestPart>
 {
     private final ResourceHandler[] handlers;
-    private ResourceHandler currentHandler;
+    private       ResourceHandler   currentHandler;
 
     public TransferProcessor(List<ResourceConfig> configs, HttpConnectionPool pool)
     {
-        handlers = configs.stream()
-                         .sorted(Comparator.comparingInt(ResourceConfig::getOrder))
-                         .map(config -> config.parse(pool))
-                         .toArray(ResourceHandler[]::new);
+        handlers = configs.stream().sorted(Comparator.comparingInt(ResourceConfig::getOrder)).map(config -> config.parse(pool)).toArray(ResourceHandler[]::new);
     }
 
     @Override
@@ -111,16 +102,6 @@ public class TransferProcessor implements ReadProcessor<HttpRequestPart>
             currentHandler = null;
         }
         next.fireReadFailed(e);
-    }
-
-    @Override
-    public void pipelineComplete(Pipeline pipeline, ReadProcessorNode next)
-    {
-        for (ResourceHandler handler : handlers)
-        {
-            handler.pipelineComplete( pipeline);
-        }
-        next.firePipelineComplete(pipeline);
     }
 }
 

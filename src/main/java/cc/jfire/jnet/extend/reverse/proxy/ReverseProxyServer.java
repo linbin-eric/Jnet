@@ -26,8 +26,8 @@ public class ReverseProxyServer
 {
     private int                  port;
     private List<ResourceConfig> configs;
-    private SslInfo            sslInfo;
-    private HttpConnectionPool pool = new HttpConnectionPool();
+    private SslInfo              sslInfo;
+    private HttpConnectionPool   pool = new HttpConnectionPool();
 
     public ReverseProxyServer(int port, List<ResourceConfig> configs)
     {
@@ -52,9 +52,8 @@ public class ReverseProxyServer
         }
         ChannelConfig channelConfig = new ChannelConfig();
         channelConfig.setPort(port);
-        BackPresure             inBackPresure       = BackPresure.noticeWaterLevel(1024 * 1024 * 100);
+        BackPresure inBackPresure       = BackPresure.noticeWaterLevel(1024 * 1024 * 100);
         BackPresure upstreamBackPresure = BackPresure.noticeWaterLevel(1024 * 1024 * 100);
-
         if (sslInfo.isEnable())
         {
             // 1. 加载 JKS 文件
