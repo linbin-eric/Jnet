@@ -13,19 +13,22 @@ import java.util.function.Consumer;
 @Slf4j
 public class DefaultPipeline implements InternalPipeline
 {
-    private final AsynchronousSocketChannel socketChannel;
-    private final ChannelConfig             channelConfig;
-    private final Consumer<Throwable>       jvmExistHandler;
-    private final BufferAllocator           allocator;
-    private       ReadProcessorNode         readHead;
-    private       WriteProcessorNode        writeHead;
-    private       WriteCompletionHandler    writeCompleteHandler;
+    private final AsynchronousSocketChannel     socketChannel;
+    private final ChannelConfig                 channelConfig;
+    private final Consumer<Throwable>           jvmExistHandler;
+    private final BufferAllocator               allocator;
+    private       ReadProcessorNode             readHead;
+    private       WriteProcessorNode            writeHead;
+    @Getter
+    private       AdaptiveReadCompletionHandler adaptiveReadCompletionHandler;
+    private       WriteCompletionHandler        writeCompleteHandler;
     @Setter
     @Getter
-    private       WriteListener             writeListener = WriteListener.INSTANCE;
+    private       WriteListener                 writeListener = WriteListener.INSTANCE;
+    private       ReadProcessor<?>              tailReadProcessor;
     @Setter
     @Getter
-    private       Object                    attach;
+    private       Object                        attach;
 
     public DefaultPipeline(AsynchronousSocketChannel socketChannel, ChannelConfig channelConfig)
     {
@@ -106,6 +109,12 @@ public class DefaultPipeline implements InternalPipeline
     }
 
     @Override
+    public void setTailReadprocessor(ReadProcessor<?> readprocessor)
+    {
+        this.tailReadProcessor = readprocessor;
+    }
+
+    @Override
     public void fireWrite(Object data)
     {
         try
@@ -150,7 +159,7 @@ public class DefaultPipeline implements InternalPipeline
     @Override
     public void complete()
     {
-        AdaptiveReadCompletionHandler adaptiveReadCompletionHandler = new AdaptiveReadCompletionHandler(this);
+        adaptiveReadCompletionHandler = new AdaptiveReadCompletionHandler(this);
         addReadProcessor(new TailReadProcessor(adaptiveReadCompletionHandler));
         writeCompleteHandler = new DefaultWriteCompleteHandler(this);
         addWriteProcessor(new TailWriteProcessor(writeCompleteHandler));

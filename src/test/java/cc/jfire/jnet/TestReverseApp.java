@@ -12,6 +12,7 @@ import cc.jfire.jnet.extend.reverse.app.SslInfo;
 import cc.jfire.jnet.extend.reverse.proxy.TransferProcessor;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceConfig;
 import cc.jfire.jnet.extend.watercheck.NoticeReadLimiter;
+import cc.jfire.jnet.extend.watercheck.NoticeWriteLimiter;
 import cc.jfire.jnet.server.AioServer;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -101,10 +102,13 @@ public class TestReverseApp
                 PipelineInitializer consumer = pipeline -> {
                     pipeline.addReadProcessor(new HttpRequestPartDecoder());
                     pipeline.addReadProcessor(new TransferProcessor(list, pool));
-                    AtomicInteger atomicInteger = new AtomicInteger();
-                    pipeline.addReadProcessor(new NoticeReadLimiter(atomicInteger,));
+                    AtomicInteger      counter            = new AtomicInteger();
+                    NoticeReadLimiter  noticeReadLimiter  = new NoticeReadLimiter(counter, 1024 * 1024 * 100);
+                    NoticeWriteLimiter noticeWriteLimiter = new NoticeWriteLimiter(counter, noticeReadLimiter, 1024 * 1024 * 100);
+                    pipeline.addReadProcessor(noticeReadLimiter);
                     pipeline.addWriteProcessor(new CorsEncoder());
                     pipeline.addWriteProcessor(new HttpRespEncoder(pipeline.allocator()));
+                    pipeline.setWriteListener(noticeWriteLimiter);
                 };
                 ChannelConfig channelConfig = new ChannelConfig();
                 channelConfig.setPort(Integer.parseInt(port));

@@ -25,6 +25,8 @@ public interface Pipeline
 
     void setWriteListener(WriteListener writeListener);
 
+    void setTailReadprocessor(ReadProcessor<?> readprocessor);
+
     boolean isOpen();
 
     default String getRemoteAddressWithoutException()
