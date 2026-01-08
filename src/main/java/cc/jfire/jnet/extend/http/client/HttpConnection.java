@@ -1,12 +1,10 @@
 package cc.jfire.jnet.extend.http.client;
 
-import cc.jfire.baseutil.STR;
 import cc.jfire.baseutil.TRACEID;
 import cc.jfire.jnet.client.ClientChannel;
 import cc.jfire.jnet.common.api.ReadProcessor;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.common.coder.HeartBeat;
-import cc.jfire.jnet.common.internal.DefaultPipeline;
 import cc.jfire.jnet.common.util.ChannelConfig;
 import cc.jfire.jnet.common.util.ReflectUtil;
 import cc.jfire.jnet.extend.http.coder.HttpRequestPartEncoder;
@@ -191,12 +189,6 @@ public class HttpConnection
         {
             clientChannel.pipeline().shutdownInput();
         }
-    }
-
-    @Override
-    public String toString()
-    {
-        return STR.format("[http2connection:{},pipeline:{}]",uid, ((DefaultPipeline) clientChannel.pipeline()).getUid());
     }
 }
 

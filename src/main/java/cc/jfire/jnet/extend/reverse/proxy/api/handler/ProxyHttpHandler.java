@@ -1,20 +1,16 @@
 package cc.jfire.jnet.extend.reverse.proxy.api.handler;
 
-import cc.jfire.baseutil.STR;
-import cc.jfire.baseutil.TRACEID;
 import cc.jfire.jnet.client.ClientChannel;
 import cc.jfire.jnet.common.api.Pipeline;
 import cc.jfire.jnet.common.api.ReadProcessor;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 import cc.jfire.jnet.common.coder.HeartBeat;
-import cc.jfire.jnet.common.internal.DefaultPipeline;
 import cc.jfire.jnet.common.util.ChannelConfig;
 import cc.jfire.jnet.common.util.ReflectUtil;
 import cc.jfire.jnet.extend.http.coder.HttpRequestPartEncoder;
 import cc.jfire.jnet.extend.http.dto.*;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceHandler;
-import lombok.Getter;
 
 public class ProxyHttpHandler implements ResourceHandler
 {
@@ -24,33 +20,26 @@ public class ProxyHttpHandler implements ResourceHandler
         EXACT    // 完全匹配
     }
 
-    private final MatchMode       matchMode;
-    private final String          match;        // 完全匹配时使用
-    private final String          prefixMatch;
-    private final int             prefixLen;
-    private final String          proxy;
-    private final String          backendHost;
-    private final int             backendPort;
-    private final String          backendHostHeader;
+    private final MatchMode     matchMode;
+    private final String        match;        // 完全匹配时使用
+    private final String        prefixMatch;
+    private final int           prefixLen;
+    private final String        backendHost;
+    private final int           backendPort;
+    private final String        backendHostHeader;
     private final String        backendBasePath;
     private       ClientChannel clientChannel;
-    @Getter
-    private       String          uid = TRACEID.newTraceId();
-    private       String          pipelineUid;
 
     public ProxyHttpHandler(String match, String proxy, MatchMode matchMode)
     {
         this.matchMode = matchMode;
-        this.proxy = proxy;
-
         // 解析后端地址
         HttpUrl httpUrl = HttpUrl.parse(proxy);
-        this.backendHost = httpUrl.domain();
-        this.backendPort = httpUrl.port();
+        this.backendHost     = httpUrl.domain();
+        this.backendPort     = httpUrl.port();
         this.backendBasePath = httpUrl.path();
         // 构造 Host header
         this.backendHostHeader = (backendPort == 80 || backendPort == 443) ? backendHost : (backendHost + ":" + backendPort);
-
         if (matchMode == MatchMode.PREFIX)
         {
             // 前缀匹配：验证并处理前缀规则
@@ -59,15 +48,15 @@ public class ProxyHttpHandler implements ResourceHandler
                 throw new IllegalArgumentException(match + "不是合规的前缀匹配地址");
             }
             this.prefixMatch = match.substring(0, match.length() - 1);
-            this.prefixLen = this.prefixMatch.length();
-            this.match = null;
+            this.prefixLen   = this.prefixMatch.length();
+            this.match       = null;
         }
         else
         {
             // 完全匹配：直接使用 match
-            this.match = match;
+            this.match       = match;
             this.prefixMatch = null;
-            this.prefixLen = 0;
+            this.prefixLen   = 0;
         }
     }
 
@@ -79,10 +68,6 @@ public class ProxyHttpHandler implements ResourceHandler
     @Override
     public boolean process(HttpRequestPart part, Pipeline pipeline)
     {
-        if (pipelineUid == null)
-        {
-            pipelineUid = ((DefaultPipeline) pipeline).getUid();
-        }
         if (part instanceof HttpRequestPartHead head)
         {
             return processHead(head, pipeline);
@@ -102,14 +87,12 @@ public class ProxyHttpHandler implements ResourceHandler
     {
         // 获取请求URL并去除 fragment
         String requestUrl = head.getPath();
-        int index = requestUrl.indexOf("#");
+        int    index      = requestUrl.indexOf("#");
         if (index != -1)
         {
             requestUrl = requestUrl.substring(0, index);
         }
-
         String backendPath;
-
         if (matchMode == MatchMode.PREFIX)
         {
             // 前缀匹配
@@ -122,8 +105,8 @@ public class ProxyHttpHandler implements ResourceHandler
         else
         {
             // 完全匹配：提取路径部分（不含 query string）进行比较
-            int queryIndex = requestUrl.indexOf("?");
-            String pathPart = queryIndex == -1 ? requestUrl : requestUrl.substring(0, queryIndex);
+            int    queryIndex = requestUrl.indexOf("?");
+            String pathPart   = queryIndex == -1 ? requestUrl : requestUrl.substring(0, queryIndex);
             if (!pathPart.equals(match))
             {
                 return false; // 不处理
@@ -131,7 +114,6 @@ public class ProxyHttpHandler implements ResourceHandler
             // 后端路径 = backendBasePath + 原始 query string
             backendPath = queryIndex == -1 ? backendBasePath : backendBasePath + requestUrl.substring(queryIndex);
         }
-
         // 直接设置属性，避免重复解析
         head.setPath(backendPath);
         head.setDomain(backendHost);
@@ -251,11 +233,5 @@ public class ProxyHttpHandler implements ResourceHandler
     {
         // 前端连接关闭，关闭后端连接
         closeClientChannel();
-    }
-
-    @Override
-    public String toString()
-    {
-        return STR.format("[Proxyhandler2:{},pipeline:{}]", uid, pipelineUid);
     }
 }

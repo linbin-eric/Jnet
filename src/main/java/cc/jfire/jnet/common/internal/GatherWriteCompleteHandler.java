@@ -62,7 +62,7 @@ public class GatherWriteCompleteHandler extends AbstractWriteCompleteHandler imp
             {
                 gatherByteBuffers[i] = null;
             }
-            long currentSend = 0;
+            int currentSend = 0;
             for (int i = 0; i < writeCount; i++)
             {
                 currentSend += gatherBuffers[i].getWritePosi();

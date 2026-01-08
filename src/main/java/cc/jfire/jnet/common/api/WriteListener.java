@@ -5,12 +5,12 @@ public interface WriteListener
     WriteListener INSTANCE = new WriteListener()
     {
         @Override
-        public void partWriteFinish(long currentSend)
+        public void partWriteFinish(int currentSend)
         {
         }
 
         @Override
-        public void queuedWrite(long size)
+        public void queuedWrite(int size)
         {
         }
 
@@ -23,14 +23,14 @@ public interface WriteListener
     /**
      * @param currentSend 本次已经写出的容量
      */
-     void partWriteFinish(long currentSend) ;
+     void partWriteFinish(int currentSend) ;
 
     /**
      * 当前入队的待写出大小
      *
      * @param size
      */
-     void queuedWrite(long size) ;
+     void queuedWrite(int size) ;
 
      void writeFailed(Throwable e);
 }

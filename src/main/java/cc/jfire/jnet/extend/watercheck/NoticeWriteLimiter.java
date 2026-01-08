@@ -13,9 +13,9 @@ public class NoticeWriteLimiter implements WriteListener
     private final int               limit;
 
     @Override
-    public void partWriteFinish(long currentSend)
+    public void partWriteFinish(int currentSend)
     {
-        int left = counter.addAndGet((int) (0 - currentSend));
+        int left = counter.addAndGet(0 - currentSend);
         if (left < limit)
         {
             noticeReadLimiter.notifyRead();
@@ -23,9 +23,9 @@ public class NoticeWriteLimiter implements WriteListener
     }
 
     @Override
-    public void queuedWrite(long size)
+    public void queuedWrite(int size)
     {
-        counter.addAndGet((int) size);
+        counter.addAndGet(size);
     }
 
     @Override

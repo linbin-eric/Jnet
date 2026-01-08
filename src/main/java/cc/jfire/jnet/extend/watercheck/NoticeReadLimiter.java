@@ -10,9 +10,9 @@ public class NoticeReadLimiter extends AtomicInteger implements ReadProcessor<Vo
 {
     private static final int                           WORK = 1;
     private static final int                           IDLE = 0;
-    private final AtomicInteger                 counter;
-    private final AdaptiveReadCompletionHandler adaptiveReadCompletionHandler;
-    private final int                           limit;
+    private final        AtomicInteger                 counter;
+    private final        AdaptiveReadCompletionHandler adaptiveReadCompletionHandler;
+    private final        int                           limit;
 
     public NoticeReadLimiter(AtomicInteger counter, AdaptiveReadCompletionHandler adaptiveReadCompletionHandler, int limit)
     {
@@ -25,31 +25,52 @@ public class NoticeReadLimiter extends AtomicInteger implements ReadProcessor<Vo
     @Override
     public void read(Void data, ReadProcessorNode next)
     {
+        set(WORK);
         if (counter.get() < limit)
         {
             adaptiveReadCompletionHandler.registerRead();
         }
         else
         {
-            set(IDLE);
+            setIdle();
             if (counter.get() < limit)
             {
                 if (compareAndSet(IDLE, WORK))
                 {
                     adaptiveReadCompletionHandler.registerRead();
                 }
-                else
+            }
+        }
+    }
+
+    @Override
+    public void readCompleted(ReadProcessorNode next)
+    {
+        if (counter.get() < limit)
+        {
+            adaptiveReadCompletionHandler.registerRead();
+        }
+        else
+        {
+            setIdle();
+            if (counter.get() < limit)
+            {
+                if (compareAndExchange(IDLE, WORK) == IDLE)
                 {
-                    ;
+                    adaptiveReadCompletionHandler.registerRead();
                 }
             }
         }
     }
 
+    private void setIdle()
+    {
+        set(IDLE);
+    }
+
     public void notifyRead()
     {
-        int state = get();
-        if (state == IDLE && counter.compareAndSet(IDLE, WORK))
+        if (compareAndExchange(IDLE, WORK) == IDLE)
         {
             adaptiveReadCompletionHandler.registerRead();
         }

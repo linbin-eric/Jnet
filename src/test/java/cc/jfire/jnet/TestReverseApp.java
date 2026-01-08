@@ -11,6 +11,7 @@ import cc.jfire.jnet.extend.http.coder.HttpRespEncoder;
 import cc.jfire.jnet.extend.reverse.app.SslInfo;
 import cc.jfire.jnet.extend.reverse.proxy.TransferProcessor;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceConfig;
+import cc.jfire.jnet.extend.watercheck.NoticeReadLimiter;
 import cc.jfire.jnet.server.AioServer;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -24,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
 @Slf4j
@@ -99,6 +101,8 @@ public class TestReverseApp
                 PipelineInitializer consumer = pipeline -> {
                     pipeline.addReadProcessor(new HttpRequestPartDecoder());
                     pipeline.addReadProcessor(new TransferProcessor(list, pool));
+                    AtomicInteger atomicInteger = new AtomicInteger();
+                    pipeline.addReadProcessor(new NoticeReadLimiter(atomicInteger,));
                     pipeline.addWriteProcessor(new CorsEncoder());
                     pipeline.addWriteProcessor(new HttpRespEncoder(pipeline.allocator()));
                 };

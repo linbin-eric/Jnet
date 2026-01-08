@@ -11,15 +11,15 @@ public class BusyWaitWriteLimiter implements WriteListener
     private final AtomicInteger counter;
 
     @Override
-    public void partWriteFinish(long currentSend)
+    public void partWriteFinish(int currentSend)
     {
-        counter.addAndGet((int) (0 - currentSend));
+        counter.addAndGet(0 - currentSend);
     }
 
     @Override
-    public void queuedWrite(long size)
+    public void queuedWrite(int size)
     {
-        counter.addAndGet((int) size);
+        counter.addAndGet(size);
     }
 
     @Override

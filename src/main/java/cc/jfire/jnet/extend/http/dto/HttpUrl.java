@@ -39,10 +39,12 @@ public record HttpUrl(String domain, int port, String path, String hostHeader)
             String domain     = portStart == -1 ? url.substring(domainStart, index) : url.substring(domainStart, portStart);
             String hostHeader = portStart == -1 ? domain : url.substring(domainStart, index);
             return new HttpUrl(domain, port, path, hostHeader);
-        }catch (Throwable e){
+        }
+        catch (Throwable e)
+        {
 //            log.error("出现未知异常，url 是:{}", url,e);
             ReflectUtil.throwException(e);
-            return  null;
+            return null;
         }
     }
 }

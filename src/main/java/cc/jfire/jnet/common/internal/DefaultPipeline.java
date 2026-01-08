@@ -1,6 +1,5 @@
 package cc.jfire.jnet.common.internal;
 
-import cc.jfire.baseutil.TRACEID;
 import cc.jfire.jnet.common.api.*;
 import cc.jfire.jnet.common.buffer.allocator.BufferAllocator;
 import cc.jfire.jnet.common.util.ChannelConfig;
@@ -14,22 +13,19 @@ import java.util.function.Consumer;
 @Slf4j
 public class DefaultPipeline implements InternalPipeline
 {
-    private final AsynchronousSocketChannel     socketChannel;
-    private final ChannelConfig                 channelConfig;
-    private final Consumer<Throwable>           jvmExistHandler;
-    private final BufferAllocator               allocator;
-    private       ReadProcessorNode             readHead;
-    private       WriteProcessorNode            writeHead;
-    private       AdaptiveReadCompletionHandler adaptiveReadCompletionHandler;
-    private       WriteCompletionHandler        writeCompleteHandler;
+    private final AsynchronousSocketChannel socketChannel;
+    private final ChannelConfig             channelConfig;
+    private final Consumer<Throwable>       jvmExistHandler;
+    private final BufferAllocator           allocator;
+    private       ReadProcessorNode         readHead;
+    private       WriteProcessorNode        writeHead;
+    private       WriteCompletionHandler    writeCompleteHandler;
     @Setter
     @Getter
-    private       WriteListener                 writeListener = WriteListener.INSTANCE;
+    private       WriteListener             writeListener = WriteListener.INSTANCE;
     @Setter
     @Getter
-    private       Object                        attach;
-    @Getter
-    private String uid = TRACEID.newTraceId();
+    private       Object                    attach;
 
     public DefaultPipeline(AsynchronousSocketChannel socketChannel, ChannelConfig channelConfig)
     {
@@ -154,8 +150,7 @@ public class DefaultPipeline implements InternalPipeline
     @Override
     public void complete()
     {
-//        log.debug("[Pipeline:{}]创建", uid);
-        adaptiveReadCompletionHandler = new AdaptiveReadCompletionHandler(this);
+        AdaptiveReadCompletionHandler adaptiveReadCompletionHandler = new AdaptiveReadCompletionHandler(this);
         addReadProcessor(new TailReadProcessor(adaptiveReadCompletionHandler));
         writeCompleteHandler = new DefaultWriteCompleteHandler(this);
         addWriteProcessor(new TailWriteProcessor(writeCompleteHandler));

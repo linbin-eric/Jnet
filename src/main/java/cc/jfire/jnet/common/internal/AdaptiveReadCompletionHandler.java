@@ -95,7 +95,6 @@ private final  String uid = TRACEID.newTraceId();
         MDC.put("traceId", TRACEID.newTraceId());
         if (read == -1)
         {
-            log.error("关闭,远端是:{}",((DefaultPipeline) pipeline).getUid());
             failed(new EndOfStreamException(), this);
             return;
         }
