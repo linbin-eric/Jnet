@@ -15,7 +15,7 @@ public class NoticeWriteLimiter implements WriteListener
     @Override
     public void partWriteFinish(int currentSend)
     {
-        int left = counter.addAndGet(0 - currentSend);
+        int left = counter.addAndGet(-currentSend);
         if (left < limit)
         {
             noticeReadLimiter.notifyRead();

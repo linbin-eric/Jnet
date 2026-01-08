@@ -8,6 +8,8 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.nio.channels.AsynchronousSocketChannel;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Consumer;
 
 @Slf4j
@@ -25,10 +27,10 @@ public class DefaultPipeline implements InternalPipeline
     @Setter
     @Getter
     private       WriteListener                 writeListener = WriteListener.INSTANCE;
-    private       ReadProcessor<?>              tailReadProcessor;
     @Setter
     @Getter
     private       Object                        attach;
+    private       Map<String, Object>           persistenceStore;
 
     public DefaultPipeline(AsynchronousSocketChannel socketChannel, ChannelConfig channelConfig)
     {
@@ -106,12 +108,6 @@ public class DefaultPipeline implements InternalPipeline
     public ChannelConfig channelConfig()
     {
         return channelConfig;
-    }
-
-    @Override
-    public void setTailReadprocessor(ReadProcessor<?> readprocessor)
-    {
-        this.tailReadProcessor = readprocessor;
     }
 
     @Override
@@ -202,5 +198,23 @@ public class DefaultPipeline implements InternalPipeline
             jvmExistHandler.accept(e1);
             System.exit(127);
         }
+    }
+
+    public void putPersistenceStore(String key, Object value)
+    {
+        if (persistenceStore == null)
+        {
+            persistenceStore = new HashMap<>();
+        }
+        persistenceStore.put(key, value);
+    }
+
+    public Object getPersistenceStore(String key)
+    {
+        if (persistenceStore == null)
+        {
+            return null;
+        }
+        return persistenceStore.get(key);
     }
 }

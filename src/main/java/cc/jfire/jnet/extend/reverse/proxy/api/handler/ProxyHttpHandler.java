@@ -6,11 +6,13 @@ import cc.jfire.jnet.common.api.ReadProcessor;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 import cc.jfire.jnet.common.coder.HeartBeat;
+import cc.jfire.jnet.common.internal.DefaultPipeline;
 import cc.jfire.jnet.common.util.ChannelConfig;
 import cc.jfire.jnet.common.util.ReflectUtil;
 import cc.jfire.jnet.extend.http.coder.HttpRequestPartEncoder;
 import cc.jfire.jnet.extend.http.dto.*;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceHandler;
+import cc.jfire.jnet.extend.watercheck.BackPresure;
 
 public class ProxyHttpHandler implements ResourceHandler
 {
@@ -58,11 +60,6 @@ public class ProxyHttpHandler implements ResourceHandler
             this.prefixMatch = null;
             this.prefixLen   = 0;
         }
-    }
-
-    public ProxyHttpHandler(String prefixMatch, String proxy)
-    {
-        this(prefixMatch, proxy, MatchMode.PREFIX);
     }
 
     @Override
@@ -127,6 +124,8 @@ public class ProxyHttpHandler implements ResourceHandler
         {
             old.free();
         }
+        BackPresure upStreamBackpresure = (BackPresure) ((DefaultPipeline) pipeline).getPersistenceStore(BackPresure.UP_STREAM_BACKPRESURE);
+        BackPresure inBackpresure       = (BackPresure) ((DefaultPipeline) pipeline).getPersistenceStore(BackPresure.IN_BACKPRESURE);
         // 首次请求时创建连接
         if (clientChannel == null)
         {
@@ -157,8 +156,10 @@ public class ProxyHttpHandler implements ResourceHandler
                             pipeline.shutdownInput();
                         }
                     });
+                    backendPipeline.addReadProcessor(upStreamBackpresure.readLimiter());
                     backendPipeline.addWriteProcessor(new HttpRequestPartEncoder());
                     backendPipeline.addWriteProcessor(new HeartBeat(1800, backendPipeline));
+                    backendPipeline.setWriteListener(inBackpresure.writeLimiter());
                 });
                 if (!clientChannel.connect())
                 {

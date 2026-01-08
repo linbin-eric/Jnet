@@ -28,8 +28,7 @@ public class DefaultWriteCompleteHandler extends AbstractWriteCompleteHandler im
                 socketChannel.write(byteBuffer, byteBuffer, this);
                 return;
             }
-            int currentSend = sendingData.getWritePosi();
-            writeListener.partWriteFinish(currentSend);
+            writeListener.partWriteFinish(sendingData.remainRead());
             sendingData.clear();
             if (!queue.isEmpty())
             {

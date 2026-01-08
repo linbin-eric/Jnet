@@ -5,9 +5,11 @@ import cc.jfire.jnet.common.api.ReadProcessor;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.common.internal.AdaptiveReadCompletionHandler;
 import cc.jfire.jnet.common.internal.DefaultPipeline;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+@Slf4j
 public class NoticeReadLimiter extends AtomicInteger implements ReadProcessor<Void>
 {
     private static final int                           WORK = 1;

@@ -3,6 +3,7 @@ package cc.jfire.jnet;
 import cc.jfire.baseutil.IoUtil;
 import cc.jfire.baseutil.YamlReader;
 import cc.jfire.jnet.common.api.PipelineInitializer;
+import cc.jfire.jnet.common.internal.DefaultPipeline;
 import cc.jfire.jnet.common.util.ChannelConfig;
 import cc.jfire.jnet.extend.http.client.HttpConnectionPool;
 import cc.jfire.jnet.extend.http.coder.CorsEncoder;
@@ -11,8 +12,7 @@ import cc.jfire.jnet.extend.http.coder.HttpRespEncoder;
 import cc.jfire.jnet.extend.reverse.app.SslInfo;
 import cc.jfire.jnet.extend.reverse.proxy.TransferProcessor;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceConfig;
-import cc.jfire.jnet.extend.watercheck.NoticeReadLimiter;
-import cc.jfire.jnet.extend.watercheck.NoticeWriteLimiter;
+import cc.jfire.jnet.extend.watercheck.BackPresure;
 import cc.jfire.jnet.server.AioServer;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -26,7 +26,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
 @Slf4j
@@ -102,13 +101,14 @@ public class TestReverseApp
                 PipelineInitializer consumer = pipeline -> {
                     pipeline.addReadProcessor(new HttpRequestPartDecoder());
                     pipeline.addReadProcessor(new TransferProcessor(list, pool));
-                    AtomicInteger      counter            = new AtomicInteger();
-                    NoticeReadLimiter  noticeReadLimiter  = new NoticeReadLimiter(counter, 1024 * 1024 * 100);
-                    NoticeWriteLimiter noticeWriteLimiter = new NoticeWriteLimiter(counter, noticeReadLimiter, 1024 * 1024 * 100);
-                    pipeline.addReadProcessor(noticeReadLimiter);
+                    BackPresure inBackPresure       = BackPresure.noticeWaterLevel(1024 * 1024 * 100);
+                    BackPresure upstreamBackPresure = BackPresure.noticeWaterLevel(1024 * 1024 * 100);
+                    ((DefaultPipeline) pipeline).putPersistenceStore(BackPresure.UP_STREAM_BACKPRESURE, upstreamBackPresure);
+                    ((DefaultPipeline) pipeline).putPersistenceStore(BackPresure.IN_BACKPRESURE, inBackPresure);
+                    pipeline.addReadProcessor(inBackPresure.readLimiter());
                     pipeline.addWriteProcessor(new CorsEncoder());
                     pipeline.addWriteProcessor(new HttpRespEncoder(pipeline.allocator()));
-                    pipeline.setWriteListener(noticeWriteLimiter);
+                    pipeline.setWriteListener(upstreamBackPresure.writeLimiter());
                 };
                 ChannelConfig channelConfig = new ChannelConfig();
                 channelConfig.setPort(Integer.parseInt(port));

@@ -3,11 +3,13 @@ package cc.jfire.jnet.extend.reverse.proxy;
 import cc.jfire.baseutil.IoUtil;
 import cc.jfire.baseutil.RuntimeJVM;
 import cc.jfire.jnet.common.api.Pipeline;
+import cc.jfire.jnet.common.internal.DefaultPipeline;
 import cc.jfire.jnet.common.util.ChannelConfig;
 import cc.jfire.jnet.extend.http.client.HttpConnectionPool;
 import cc.jfire.jnet.extend.http.coder.*;
 import cc.jfire.jnet.extend.reverse.app.SslInfo;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceConfig;
+import cc.jfire.jnet.extend.watercheck.BackPresure;
 import cc.jfire.jnet.server.AioServer;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -50,6 +52,9 @@ public class ReverseProxyServer
         }
         ChannelConfig channelConfig = new ChannelConfig();
         channelConfig.setPort(port);
+        BackPresure             inBackPresure       = BackPresure.noticeWaterLevel(1024 * 1024 * 100);
+        BackPresure upstreamBackPresure = BackPresure.noticeWaterLevel(1024 * 1024 * 100);
+
         if (sslInfo.isEnable())
         {
             // 1. 加载 JKS 文件
@@ -57,6 +62,8 @@ public class ReverseProxyServer
             Consumer<Pipeline> s = pipeline -> {
                 try
                 {
+                    ((DefaultPipeline) pipeline).putPersistenceStore(BackPresure.UP_STREAM_BACKPRESURE, upstreamBackPresure);
+                    ((DefaultPipeline) pipeline).putPersistenceStore(BackPresure.IN_BACKPRESURE, inBackPresure);
                     KeyStore keyStore = KeyStore.getInstance("JKS");
                     String   filePath = sslInfo.getCert();
                     if (IoUtil.isFilePathAbsolute(filePath))
@@ -100,9 +107,11 @@ public class ReverseProxyServer
                     pipeline.addReadProcessor(sslDecoder);
                     pipeline.addReadProcessor(new HttpRequestPartDecoder());
                     pipeline.addReadProcessor(new TransferProcessor(configs, pool));
+                    pipeline.addReadProcessor(inBackPresure.readLimiter());
                     pipeline.addWriteProcessor(new CorsEncoder());
                     pipeline.addWriteProcessor(new HttpRespEncoder(pipeline.allocator()));
                     pipeline.addWriteProcessor(sslEncoder);
+                    pipeline.setWriteListener(upstreamBackPresure.writeLimiter());
                 }
                 catch (Throwable e)
                 {
@@ -115,10 +124,14 @@ public class ReverseProxyServer
         else
         {
             Consumer<Pipeline> s = pipeline -> {
+                ((DefaultPipeline) pipeline).putPersistenceStore(BackPresure.UP_STREAM_BACKPRESURE, upstreamBackPresure);
+                ((DefaultPipeline) pipeline).putPersistenceStore(BackPresure.IN_BACKPRESURE, inBackPresure);
                 pipeline.addReadProcessor(new HttpRequestPartDecoder());
                 pipeline.addReadProcessor(new TransferProcessor(configs, pool));
+                pipeline.addReadProcessor(inBackPresure.readLimiter());
                 pipeline.addWriteProcessor(new CorsEncoder());
                 pipeline.addWriteProcessor(new HttpRespEncoder(pipeline.allocator()));
+                pipeline.setWriteListener(upstreamBackPresure.writeLimiter());
             };
             AioServer aioServer = AioServer.newAioServer(channelConfig, s::accept);
             aioServer.start();

@@ -1,5 +1,6 @@
 package cc.jfire.jnet.extend.reverse.proxy;
 
+import cc.jfire.jnet.common.api.Pipeline;
 import cc.jfire.jnet.common.api.ReadProcessor;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.extend.http.client.HttpConnectionPool;
@@ -98,7 +99,6 @@ public class TransferProcessor implements ReadProcessor<HttpRequestPart>
     @Override
     public void readFailed(Throwable e, ReadProcessorNode next)
     {
-//        log.error("[TransferProcessor] 读取失败", e);
         try
         {
             for (ResourceHandler handler : handlers)
@@ -111,6 +111,16 @@ public class TransferProcessor implements ReadProcessor<HttpRequestPart>
             currentHandler = null;
         }
         next.fireReadFailed(e);
+    }
+
+    @Override
+    public void pipelineComplete(Pipeline pipeline, ReadProcessorNode next)
+    {
+        for (ResourceHandler handler : handlers)
+        {
+            handler.pipelineComplete( pipeline);
+        }
+        next.firePipelineComplete(pipeline);
     }
 }
 

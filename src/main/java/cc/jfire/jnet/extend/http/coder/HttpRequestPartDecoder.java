@@ -124,7 +124,6 @@ public class HttpRequestPartDecoder extends AbstractDecoder
                     reqHead.setLast(true);
                 }
                 next.fireRead(reqHead);
-                reqHead = null;
                 // 如果没有 body，直接重置状态，不再发送 End
                 if (state == ParseState.NO_BODY)
                 {
