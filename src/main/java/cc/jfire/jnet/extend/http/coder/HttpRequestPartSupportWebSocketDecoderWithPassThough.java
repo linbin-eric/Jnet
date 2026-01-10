@@ -29,7 +29,7 @@ public class HttpRequestPartSupportWebSocketDecoderWithPassThough extends HttpRe
     }
 
     @Override
-    protected void beforeRequestHeadFired(ReadProcessorNode next, HttpRequestPartHead head)
+    protected boolean doProcessRequestHead(ReadProcessorNode next, HttpRequestPartHead head)
     {
         // 检查是否是 WebSocket 握手请求（header name 已规范化为 Upgrade）
         String upgrade = head.getHeaders().get("Upgrade");
@@ -38,5 +38,6 @@ public class HttpRequestPartSupportWebSocketDecoderWithPassThough extends HttpRe
             head.setWebSocketUpgrade(true);
             webSocketMode = true;
         }
+        return super.doProcessRequestHead(next, head);
     }
 }

@@ -123,22 +123,8 @@ public class HttpRequestPartDecoder extends AbstractDecoder
                 {
                     reqHead.setLast(true);
                 }
-                beforeRequestHeadFired(next, reqHead);
-                next.fireRead(reqHead);
-                // 如果没有 body，直接重置状态，不再发送 End
-                if (state == ParseState.NO_BODY)
-                {
-                    resetState();
-                }
-                if (accumulation == null)
-                {
-                    return false;
-                }
-                else
-                {
-                    accumulation.compact();
-                    return true;
-                }
+                // 调用可重写的处理方法
+                return doProcessRequestHead(next, reqHead);
             }
         }
         return false;
@@ -258,7 +244,32 @@ public class HttpRequestPartDecoder extends AbstractDecoder
         return true;
     }
 
-    protected void beforeRequestHeadFired(ReadProcessorNode next, HttpRequestPartHead head) {}
+    /**
+     * 处理解析完成的请求头。
+     * 子类可重写此方法来自定义请求头的处理逻辑（如 WebSocket 升级）。
+     *
+     * @param next 下一个处理节点
+     * @param head 解析完成的请求头
+     * @return true 表示需要继续处理（accumulation 中还有数据），false 表示处理完成
+     */
+    protected boolean doProcessRequestHead(ReadProcessorNode next, HttpRequestPartHead head)
+    {
+        next.fireRead(head);
+        // 如果没有 body，直接重置状态
+        if (state == ParseState.NO_BODY)
+        {
+            resetState();
+        }
+        if (accumulation == null)
+        {
+            return false;
+        }
+        else
+        {
+            accumulation.compact();
+            return true;
+        }
+    }
 
     private void resetState()
     {
