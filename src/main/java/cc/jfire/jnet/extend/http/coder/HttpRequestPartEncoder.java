@@ -4,7 +4,6 @@ import cc.jfire.baseutil.STR;
 import cc.jfire.jnet.common.api.WriteProcessor;
 import cc.jfire.jnet.common.api.WriteProcessorNode;
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
-import cc.jfire.jnet.common.util.HttpDecodeUtil;
 import cc.jfire.jnet.extend.http.dto.HttpRequest;
 import cc.jfire.jnet.extend.http.dto.HttpRequestChunkedBodyPart;
 import cc.jfire.jnet.extend.http.dto.HttpRequestFixLengthBodyPart;
@@ -12,6 +11,8 @@ import cc.jfire.jnet.extend.http.dto.HttpRequestPartHead;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+
+import static cc.jfire.jnet.common.util.HttpCoderUtil.writeHeaderValue;
 
 public class HttpRequestPartEncoder implements WriteProcessor<Object>
 {
@@ -145,25 +146,6 @@ public class HttpRequestPartEncoder implements WriteProcessor<Object>
             writeHeaderValue(head.getHeaders(), buffer);
             next.fireWrite(buffer);
         }
-    }
-
-    private static void writeHeaderValue(Map<String, String> map, IoBuffer buffer)
-    {
-        for (Map.Entry<String, String> entry : map.entrySet())
-        {
-            byte[] keyBytes = HttpDecodeUtil.getHeaderKeyBytes(entry.getKey());
-            if (keyBytes != null)
-            {
-                buffer.put(keyBytes);
-            }
-            else
-            {
-                buffer.put((entry.getKey() + ": ").getBytes(StandardCharsets.US_ASCII));
-            }
-            buffer.put(entry.getValue().getBytes(StandardCharsets.US_ASCII));
-            buffer.put(NEW_LINE);
-        }
-        buffer.put(NEW_LINE);
     }
 
     private void encodeFixLengthBody(HttpRequestFixLengthBodyPart body, WriteProcessorNode next)

@@ -3,7 +3,7 @@ package cc.jfire.jnet.extend.http.coder;
 import cc.jfire.baseutil.TRACEID;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.common.coder.AbstractDecoder;
-import cc.jfire.jnet.common.util.HttpDecodeUtil;
+import cc.jfire.jnet.common.util.HttpCoderUtil;
 import cc.jfire.jnet.extend.http.dto.HttpResponseChunkedBodyPart;
 import cc.jfire.jnet.extend.http.dto.HttpResponseFixLengthBodyPart;
 import cc.jfire.jnet.extend.http.dto.HttpResponsePartHead;
@@ -112,8 +112,8 @@ public class HttpResponsePartDecoder extends AbstractDecoder
             if (accumulation.get(lastCheck) == '\r' && accumulation.get(lastCheck + 1) == '\n' && accumulation.get(lastCheck + 2) == '\r' && accumulation.get(lastCheck + 3) == '\n')
             {
                 lastCheck = -1;
-                HttpDecodeUtil.findAllHeaders(accumulation, respHead::addHeader);
-                HttpDecodeUtil.findContentLength(respHead.getHeaders(), respHead::setContentLength);
+                HttpCoderUtil.findAllHeaders(accumulation, respHead::addHeader);
+                HttpCoderUtil.findContentLength(respHead.getHeaders(), respHead::setContentLength);
                 int bodyStartPosi = accumulation.getReadPosi();
                 int headLength = bodyStartPosi - headStartPosi;
                 if (headLength > 0)

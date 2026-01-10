@@ -1,7 +1,7 @@
 package cc.jfire.jnet.extend.http.dto;
 
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
-import cc.jfire.jnet.common.util.HttpDecodeUtil;
+import cc.jfire.jnet.common.util.HttpCoderUtil;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -27,8 +27,8 @@ public class HttpResponse implements  AutoCloseable
 
     public HttpResponse addHeader(String name, String value)
     {
-        // 使用 HttpDecodeUtil 进行标准化
-        String standardName = HttpDecodeUtil.normalizeHeaderName(name);
+        // 使用 HttpCoderUtil 进行标准化
+        String standardName = HttpCoderUtil.normalizeHeaderName(name);
         String lowerName    = name.toLowerCase();
         if (lowerName.equals("content-length"))
         {

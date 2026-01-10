@@ -6,7 +6,7 @@ import cc.jfire.baseutil.STR;
 import cc.jfire.baseutil.StringUtil;
 import cc.jfire.jnet.common.api.ReadProcessor;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
-import cc.jfire.jnet.common.util.HttpDecodeUtil;
+import cc.jfire.jnet.common.util.HttpCoderUtil;
 import cc.jfire.jnet.extend.http.dto.HttpResponse;
 import cc.jfire.jnet.extend.http.dto.HttpRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -75,7 +75,7 @@ public abstract class AbstractResourceEncoder implements ReadProcessor<HttpReque
                     url = url.substring(urlPrefixLength);
                 }
             }
-            url = HttpDecodeUtil.pureUrl(url);
+            url = HttpCoderUtil.pureUrl(url);
             if (StringUtil.isBlank(url))
             {
                 url = "index.html";
@@ -107,7 +107,7 @@ public abstract class AbstractResourceEncoder implements ReadProcessor<HttpReque
         protected void process(HttpRequest request, String url, ReadProcessorNode next)
         {
             StaticResource staticResource = map.computeIfAbsent(url, str -> {
-                String contentType           = HttpDecodeUtil.findContentType(str);
+                String contentType           = HttpCoderUtil.findContentType(str);
                 String realClassResourcePath = resourcePathPrefix + str;
 //                log.trace("当前请求路径为:{}", realClassResourcePath);
                 try (InputStream resourceAsStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(realClassResourcePath))
@@ -168,7 +168,7 @@ public abstract class AbstractResourceEncoder implements ReadProcessor<HttpReque
             else
             {
                 request.close();
-                String contentType = HttpDecodeUtil.findContentType(url);
+                String contentType = HttpCoderUtil.findContentType(url);
                 try (FileInputStream inputStream = new FileInputStream(target))
                 {
                     HttpResponse response = new HttpResponse();

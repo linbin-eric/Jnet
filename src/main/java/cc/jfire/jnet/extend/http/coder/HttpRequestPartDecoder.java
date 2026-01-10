@@ -2,7 +2,7 @@ package cc.jfire.jnet.extend.http.coder;
 
 import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.common.coder.AbstractDecoder;
-import cc.jfire.jnet.common.util.HttpDecodeUtil;
+import cc.jfire.jnet.common.util.HttpCoderUtil;
 import cc.jfire.jnet.extend.http.dto.HttpRequestChunkedBodyPart;
 import cc.jfire.jnet.extend.http.dto.HttpRequestFixLengthBodyPart;
 import cc.jfire.jnet.extend.http.dto.HttpRequestPartHead;
@@ -105,8 +105,8 @@ public class HttpRequestPartDecoder extends AbstractDecoder
                 int headEndPosi = lastCheck + 4;
                 int headLength  = headEndPosi - headStartPosi;
                 lastCheck = -1;
-                HttpDecodeUtil.findAllHeaders(accumulation, reqHead::addHeader);
-                HttpDecodeUtil.findContentLength(reqHead.getHeaders(), reqHead::setContentLength);
+                HttpCoderUtil.findAllHeaders(accumulation, reqHead::addHeader);
+                HttpCoderUtil.findContentLength(reqHead.getHeaders(), reqHead::setContentLength);
                 accumulation.setReadPosi(headStartPosi);
                 if (accumulation.remainRead() == headLength)
                 {

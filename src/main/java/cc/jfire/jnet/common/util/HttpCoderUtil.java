@@ -9,8 +9,9 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-public class HttpDecodeUtil
+public class HttpCoderUtil
 {
+    private static final byte[] NEW_LINE                 = "\r\n".getBytes(StandardCharsets.US_ASCII);
     private static final Map<String, String> STANDARD_HEADERS;
     private static final Map<String, byte[]> HEADER_KEY_BYTES_CACHE;
 
@@ -92,6 +93,25 @@ public class HttpDecodeUtil
     public static byte[] getHeaderKeyBytes(String headerName)
     {
         return HEADER_KEY_BYTES_CACHE.get(headerName);
+    }
+
+    public static void writeHeaderValue(Map<String, String> map, IoBuffer buffer)
+    {
+        for (Map.Entry<String, String> entry : map.entrySet())
+        {
+            byte[] keyBytes = HttpCoderUtil.getHeaderKeyBytes(entry.getKey());
+            if (keyBytes != null)
+            {
+                buffer.put(keyBytes);
+            }
+            else
+            {
+                buffer.put((entry.getKey() + ": ").getBytes(StandardCharsets.US_ASCII));
+            }
+            buffer.put(entry.getValue().getBytes(StandardCharsets.US_ASCII));
+            buffer.put(NEW_LINE);
+        }
+        buffer.put(NEW_LINE);
     }
 
     public static void findAllHeaders(IoBuffer ioBuffer, BiConsumer<String, String> consumer)

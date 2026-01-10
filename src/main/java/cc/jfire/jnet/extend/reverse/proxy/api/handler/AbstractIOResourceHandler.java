@@ -2,7 +2,7 @@ package cc.jfire.jnet.extend.reverse.proxy.api.handler;
 
 import cc.jfire.baseutil.StringUtil;
 import cc.jfire.jnet.common.api.Pipeline;
-import cc.jfire.jnet.common.util.HttpDecodeUtil;
+import cc.jfire.jnet.common.util.HttpCoderUtil;
 import cc.jfire.jnet.extend.http.dto.HttpRequestPart;
 import cc.jfire.jnet.extend.http.dto.HttpRequestPartHead;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceHandler;
@@ -45,7 +45,7 @@ public sealed abstract class AbstractIOResourceHandler implements ResourceHandle
         if (part instanceof HttpRequestPartHead head)
         {
             String requestUrl = URLDecoder.decode(head.getPath(), StandardCharsets.UTF_8);
-            requestUrl = HttpDecodeUtil.pureUrl(requestUrl);
+            requestUrl = HttpCoderUtil.pureUrl(requestUrl);
             // 检查是否匹配前缀
             if (!requestUrl.startsWith(prefixMatch))
             {
@@ -60,7 +60,7 @@ public sealed abstract class AbstractIOResourceHandler implements ResourceHandle
             {
                 requestUrl = "/index.html";
             }
-            processHead(head, pipeline, requestUrl, HttpDecodeUtil.findContentType(requestUrl));
+            processHead(head, pipeline, requestUrl, HttpCoderUtil.findContentType(requestUrl));
         }
         else
         {

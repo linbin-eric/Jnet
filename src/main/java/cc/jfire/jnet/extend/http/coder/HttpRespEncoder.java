@@ -6,13 +6,14 @@ import cc.jfire.jnet.common.api.WriteProcessorNode;
 import cc.jfire.jnet.common.buffer.allocator.BufferAllocator;
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 import cc.jfire.jnet.common.util.DataIgnore;
+import cc.jfire.jnet.common.util.HttpCoderUtil;
 import cc.jfire.jnet.extend.http.dto.HttpResponse;
+import cc.jfire.jnet.extend.http.dto.HttpResponseChunkedBodyPart;
+import cc.jfire.jnet.extend.http.dto.HttpResponseFixLengthBodyPart;
 import cc.jfire.jnet.extend.http.dto.HttpResponsePartHead;
-import cc.jfire.jnet.common.util.HttpDecodeUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
 
 @Slf4j
 public class HttpRespEncoder implements WriteProcessor<Object>
@@ -33,27 +34,9 @@ public class HttpRespEncoder implements WriteProcessor<Object>
         IoBuffer buffer       = allocator.allocate(1024);
         String   responseLine = STR.format("{} {} {}\r\n", head.getVersion(), head.getStatusCode(), head.getReasonPhrase() != null ? head.getReasonPhrase() : "");
         buffer.put(responseLine.getBytes(StandardCharsets.US_ASCII));
-        writeHeaders(head.getHeaders(), buffer);
+        HttpCoderUtil.writeHeaderValue(head.getHeaders(), buffer);
         buffer.put(NEWLINE);
         return buffer;
-    }
-
-    private static void writeHeaders(Map<String, String> headers, IoBuffer buffer)
-    {
-        for (Map.Entry<String, String> entry : headers.entrySet())
-        {
-            byte[] keyBytes = HttpDecodeUtil.getHeaderKeyBytes(entry.getKey());
-            if (keyBytes != null)
-            {
-                buffer.put(keyBytes);
-            }
-            else
-            {
-                buffer.put((entry.getKey() + ": ").getBytes(StandardCharsets.US_ASCII));
-            }
-            buffer.put(entry.getValue().getBytes(StandardCharsets.US_ASCII));
-            buffer.put(NEWLINE);
-        }
     }
 
     @Override
@@ -90,6 +73,22 @@ public class HttpRespEncoder implements WriteProcessor<Object>
                 }
             }
             case IoBuffer ignored -> next.fireWrite(obj);
+            case HttpResponseChunkedBodyPart chunkedBodyPart ->
+            {
+                IoBuffer part = chunkedBodyPart.getPart();
+                if (part != null)
+                {
+                    next.fireWrite(part);
+                }
+            }
+            case HttpResponseFixLengthBodyPart fixLengthBodyPart ->
+            {
+                IoBuffer part = fixLengthBodyPart.getPart();
+                if (part != null)
+                {
+                    next.fireWrite(part);
+                }
+            }
             case DataIgnore ignored -> next.fireWrite(obj);
             default -> throw new IllegalArgumentException(STR.format("HttpRespPartEncoder不支持入参类型:{}", obj.getClass()));
         }
