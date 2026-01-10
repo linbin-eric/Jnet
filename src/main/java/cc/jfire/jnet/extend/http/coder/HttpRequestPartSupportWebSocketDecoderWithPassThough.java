@@ -6,7 +6,7 @@ import cc.jfire.jnet.extend.http.dto.HttpRequestPartHead;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class HttpRequestPartSupportWebSocketDecoder extends HttpRequestPartDecoder
+public class HttpRequestPartSupportWebSocketDecoderWithPassThough extends HttpRequestPartDecoder
 {
     private boolean webSocketMode = false;
 
