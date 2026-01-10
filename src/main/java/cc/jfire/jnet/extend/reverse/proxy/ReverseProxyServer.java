@@ -104,7 +104,7 @@ public class ReverseProxyServer
                     SSLDecoder sslDecoder = new SSLDecoder(sslEngine);
                     SSLEncoder sslEncoder = new SSLEncoder(sslEngine, sslDecoder);
                     pipeline.addReadProcessor(sslDecoder);
-                    pipeline.addReadProcessor(new HttpRequestPartDecoder());
+                    pipeline.addReadProcessor(new HttpRequestPartSupportWebSocketDecoder());
                     pipeline.addReadProcessor(new TransferProcessor(configs, pool));
                     pipeline.addReadProcessor(inBackPresure.readLimiter());
                     pipeline.addWriteProcessor(new CorsEncoder());

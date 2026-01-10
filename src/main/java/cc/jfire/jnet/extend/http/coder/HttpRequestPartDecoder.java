@@ -123,6 +123,7 @@ public class HttpRequestPartDecoder extends AbstractDecoder
                 {
                     reqHead.setLast(true);
                 }
+                beforeRequestHeadFired(next, reqHead);
                 next.fireRead(reqHead);
                 // 如果没有 body，直接重置状态，不再发送 End
                 if (state == ParseState.NO_BODY)
@@ -256,6 +257,8 @@ public class HttpRequestPartDecoder extends AbstractDecoder
         chunkSizeLineLength = -1;
         return true;
     }
+
+    protected void beforeRequestHeadFired(ReadProcessorNode next, HttpRequestPartHead head) {}
 
     private void resetState()
     {

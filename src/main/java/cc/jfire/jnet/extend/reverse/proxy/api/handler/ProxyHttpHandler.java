@@ -13,7 +13,9 @@ import cc.jfire.jnet.extend.http.coder.HttpRequestPartEncoder;
 import cc.jfire.jnet.extend.http.dto.*;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceHandler;
 import cc.jfire.jnet.extend.watercheck.BackPresure;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class ProxyHttpHandler implements ResourceHandler
 {
     public enum MatchMode
@@ -234,5 +236,18 @@ public class ProxyHttpHandler implements ResourceHandler
     {
         // 前端连接关闭，关闭后端连接
         closeClientChannel();
+    }
+
+    @Override
+    public void processWebSocket(IoBuffer buffer, Pipeline pipeline)
+    {
+        if (clientChannel != null && clientChannel.alive())
+        {
+            clientChannel.pipeline().fireWrite(buffer);
+        }
+        else
+        {
+            buffer.free();
+        }
     }
 }

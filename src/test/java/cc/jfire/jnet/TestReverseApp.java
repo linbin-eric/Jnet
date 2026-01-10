@@ -7,7 +7,7 @@ import cc.jfire.jnet.common.internal.DefaultPipeline;
 import cc.jfire.jnet.common.util.ChannelConfig;
 import cc.jfire.jnet.extend.http.client.HttpConnectionPool;
 import cc.jfire.jnet.extend.http.coder.CorsEncoder;
-import cc.jfire.jnet.extend.http.coder.HttpRequestPartDecoder;
+import cc.jfire.jnet.extend.http.coder.HttpRequestPartSupportWebSocketDecoder;
 import cc.jfire.jnet.extend.http.coder.HttpRespEncoder;
 import cc.jfire.jnet.extend.reverse.app.SslInfo;
 import cc.jfire.jnet.extend.reverse.proxy.TransferProcessor;
@@ -99,7 +99,7 @@ public class TestReverseApp
                 }
                 HttpConnectionPool pool = new HttpConnectionPool();
                 PipelineInitializer consumer = pipeline -> {
-                    pipeline.addReadProcessor(new HttpRequestPartDecoder());
+                    pipeline.addReadProcessor(new HttpRequestPartSupportWebSocketDecoder());
                     pipeline.addReadProcessor(new TransferProcessor(list, pool));
                     BackPresure inBackPresure       = BackPresure.noticeWaterLevel(1024 * 1024 * 100);
                     BackPresure upstreamBackPresure = BackPresure.noticeWaterLevel(1024 * 1024 * 100);

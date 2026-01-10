@@ -27,6 +27,10 @@ public class HttpRequestPartHead implements HttpRequestPart
     protected long                contentLength = 0;
     protected boolean             chunked       = false;
     protected boolean             last          = false;
+    /**
+     * 扩展字段，用于子类使用。
+     */
+    protected boolean             webSocketUpgrade = false;
 
     public void addHeader(String name, String value)
     {
