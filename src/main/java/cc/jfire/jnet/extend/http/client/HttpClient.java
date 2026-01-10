@@ -9,7 +9,7 @@ public interface HttpClient
 {
     HttpConnectionPool CONNECTION_POOL = new HttpConnectionPool();
 
-    static HttpResponse newCall(HttpRequest request) throws Exception
+    static cc.jfire.jnet.extend.http.dto.HttpResponse newCall(HttpRequest request) throws Exception
     {
         String         host           = request.getHead().getDomain();
         int            port           = request.getHead().getPort();
@@ -19,7 +19,7 @@ public interface HttpClient
             // 从连接池借用连接（自动创建或复用）
             httpConnection = CONNECTION_POOL.borrowConnection(host, port, 60);
             // 执行请求
-            HttpResponse response = httpConnection.write(request, 60);
+            cc.jfire.jnet.extend.http.dto.HttpResponse response = httpConnection.write(request, 60);
             CONNECTION_POOL.returnConnection(host, port, httpConnection);
             return response;
         }

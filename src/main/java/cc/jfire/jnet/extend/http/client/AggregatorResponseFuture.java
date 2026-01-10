@@ -3,6 +3,7 @@ package cc.jfire.jnet.extend.http.client;
 import cc.jfire.jnet.common.buffer.allocator.BufferAllocator;
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 import cc.jfire.jnet.common.util.UNSAFE;
+import cc.jfire.jnet.extend.http.dto.HttpResponse;
 import cc.jfire.jnet.extend.http.dto.HttpResponseChunkedBodyPart;
 import cc.jfire.jnet.extend.http.dto.HttpResponseFixLengthBodyPart;
 import cc.jfire.jnet.extend.http.dto.HttpResponsePart;
@@ -205,12 +206,12 @@ public class AggregatorResponseFuture implements ResponseFuture
         HttpResponse response = new HttpResponse();
         if (headPart != null)
         {
-            response.setVersion(headPart.getVersion());
-            response.setStatusCode(headPart.getStatusCode());
-            response.setReasonPhrase(headPart.getReasonPhrase());
-            response.setHeaders(headPart.getHeaders());
+            response.getHead().setVersion(headPart.getVersion());
+            response.getHead().setStatusCode(headPart.getStatusCode());
+            response.getHead().setReasonPhrase(headPart.getReasonPhrase());
+            response.getHead().setHeaders(headPart.getHeaders());
         }
-        response.setBody(bodyBuffer);
+        response.setBodyBuffer(bodyBuffer);
         bodyBuffer = null;
         return response;
     }
