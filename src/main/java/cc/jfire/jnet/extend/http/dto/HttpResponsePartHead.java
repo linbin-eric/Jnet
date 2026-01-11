@@ -18,7 +18,7 @@ public class HttpResponsePartHead implements HttpResponsePart
      * 如果是 0 且 chunked 是 true，意味着是流式响应。
      * 如果是 0 且 chunked 是 false，意味着没有响应体。
      */
-    protected long                 contentLength = 0;
+    protected long                contentLength = 0;
     protected boolean             chunked       = false;
     protected boolean             last          = false;
     /**
