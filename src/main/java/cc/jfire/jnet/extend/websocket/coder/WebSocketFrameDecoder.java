@@ -1,8 +1,8 @@
 package cc.jfire.jnet.extend.websocket.coder;
 
+import cc.jfire.jnet.common.api.ReadProcessor;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
-import cc.jfire.jnet.common.coder.AbstractDecoder;
 import cc.jfire.jnet.extend.websocket.dto.WebSocketFrame;
 import lombok.extern.slf4j.Slf4j;
 
@@ -11,8 +11,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
-public class WebSocketFrameDecoder extends AbstractDecoder
+public class WebSocketFrameDecoder implements ReadProcessor<Object>
 {
+    private IoBuffer accumulation;
     /**
      * true=服务端模式（要求MASK=1），false=客户端模式（要求MASK=0）
      */
@@ -35,7 +36,40 @@ public class WebSocketFrameDecoder extends AbstractDecoder
     }
 
     @Override
-    protected void process0(ReadProcessorNode next)
+    public void read(Object data, ReadProcessorNode next)
+    {
+        // 只处理 IoBuffer 类型，其他类型直接透传
+        if (!(data instanceof IoBuffer ioBuffer))
+        {
+            next.fireRead(data);
+            return;
+        }
+        try
+        {
+            if (accumulation == null)
+            {
+                accumulation = ioBuffer;
+            }
+            else
+            {
+                accumulation.put(ioBuffer);
+                ioBuffer.free();
+            }
+            process0(next);
+        }
+        catch (Throwable e)
+        {
+            log.error("WebSocket帧解码过程中发生异常", e);
+            if (accumulation != null)
+            {
+                accumulation.free();
+                accumulation = null;
+            }
+            next.pipeline().shutdownInput();
+        }
+    }
+
+    private void process0(ReadProcessorNode next)
     {
         boolean continueProcessing;
         do
@@ -293,13 +327,19 @@ public class WebSocketFrameDecoder extends AbstractDecoder
     @Override
     public void readFailed(Throwable e, ReadProcessorNode next)
     {
+        // 清理累积缓冲区
+        if (accumulation != null)
+        {
+            accumulation.free();
+            accumulation = null;
+        }
         // 清理分片缓存
         for (IoBuffer buf : fragmentBuffers)
         {
             buf.free();
         }
         fragmentBuffers.clear();
-        super.readFailed(e, next);
+        next.fireReadFailed(e);
     }
 
     enum DecodeState
