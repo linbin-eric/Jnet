@@ -34,14 +34,9 @@ public class WebSocketFrameEncoder implements WriteProcessor<Object>
             IoBuffer buffer = encodeFrame(frame);
             next.fireWrite(buffer);
         }
-        else if (obj instanceof IoBuffer)
-        {
-            // 允许直接透传IoBuffer，便于与pipeline其他组件协作
-            next.fireWrite(obj);
-        }
         else
         {
-            throw new IllegalArgumentException("WebSocketFrameEncoder不支持类型: " + obj.getClass());
+            next.fireWrite(obj);
         }
     }
 
