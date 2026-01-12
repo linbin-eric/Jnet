@@ -1,13 +1,24 @@
 package cc.jfire.jnet.common.api;
 
 import cc.jfire.jnet.common.buffer.allocator.BufferAllocator;
+import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 import cc.jfire.jnet.common.util.ChannelConfig;
 
 import java.nio.channels.AsynchronousSocketChannel;
 
 public interface Pipeline
 {
+    /**
+     * 走完整的写出责任链
+     * @param data
+     */
     void fireWrite(Object data);
+
+    /**
+     * 直接提交数据到写出通道，不走责任链
+     * @param buffer
+     */
+    void directWrite(IoBuffer buffer);
 
     void addReadProcessor(ReadProcessor<?> processor);
 

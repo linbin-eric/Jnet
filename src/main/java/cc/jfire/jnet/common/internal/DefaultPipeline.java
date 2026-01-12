@@ -2,6 +2,7 @@ package cc.jfire.jnet.common.internal;
 
 import cc.jfire.jnet.common.api.*;
 import cc.jfire.jnet.common.buffer.allocator.BufferAllocator;
+import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 import cc.jfire.jnet.common.util.ChannelConfig;
 import lombok.Getter;
 import lombok.Setter;
@@ -122,6 +123,12 @@ public class DefaultPipeline implements InternalPipeline
             jvmExistHandler.accept(e);
             System.exit(127);
         }
+    }
+
+    @Override
+    public void directWrite(IoBuffer buffer)
+    {
+        writeCompleteHandler.write(buffer);
     }
 
     @Override
