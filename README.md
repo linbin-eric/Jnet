@@ -11,6 +11,7 @@ JNet 是一个基于 Java AIO (异步 I/O) 构建的高性能、异步网络通�
 - **SSL/TLS 支持**: 内置 SSL 编解码器，轻松构建安全通信
 - **HTTP 支持**: 提供 HTTP 请求解码和响应编码器
 - **反向代理**: 内置可配置的反向代理应用
+- **背压控制**: 内置流量控制机制，防止生产者速度过快导致内存溢出
 
 ## 环境要求
 
@@ -236,6 +237,201 @@ ChannelConfig config = new ChannelConfig()
 |------|------|
 | `HeartBeat` | 心跳检测处理器 |
 | `IoBuffer` | 高性能缓冲区接口 |
+
+### 背压控制
+
+| 类名 | 说明 |
+|------|------|
+| `BackPresure` | 背压控制器工厂，创建读写限流器组合 |
+| `NoticeReadLimiter` | 通知式读限流器，水位下降时恢复读取 |
+| `NoticeWriteLimiter` | 通知式写限流器，监控写入量并触发恢复 |
+| `BusyWaitReadLimiter` | 忙等待式读限流器，自旋等待水位下降 |
+| `BusyWaitWriteLimiter` | 忙等待式写限流器，跟踪待写入数据量 |
+
+## 背压控制
+
+背压（Back Pressure）是一种流量控制机制，用于防止生产者发送数据的速度超过消费者处理数据的速度，从而避免内存溢出。JNet 提供了两种背压策略：
+
+### 核心组件
+
+背压控制由以下组件协同工作：
+
+| 组件 | 类型 | 作用 |
+|------|------|------|
+| `BackPresure` | Record | 背压控制器容器，封装计数器、读限流器、写限流器和阈值 |
+| `ReadLimiter` | ReadProcessor | 读处理器，在 `readCompleted()` 时检查水位，决定是否继续读取 |
+| `WriteLimiter` | WriteListener | 写监听器，跟踪数据入队和写出完成，维护水位计数器 |
+
+### 工作原理
+
+```
+数据入站 → 业务处理 → 数据入队写出
+                         ↓
+              WriteLimiter.queuedWrite()
+              counter += 数据大小
+                         ↓
+              检查 counter >= limit ?
+              ├─ 是 → ReadLimiter 暂停读取
+              └─ 否 → 继续读取
+                         ↓
+              数据写出到网络完成
+                         ↓
+              WriteLimiter.partWriteFinish()
+              counter -= 已写出大小
+                         ↓
+              检查 counter < limit ?
+              └─ 是 → ReadLimiter 恢复读取
+```
+
+### 通知式背压（推荐）
+
+通知式背压使用事件驱动机制，当水位下降时主动通知恢复读取，CPU 占用低：
+
+```java
+import cc.jfire.jnet.extend.watercheck.BackPresure;
+import cc.jfire.jnet.common.api.*;
+import cc.jfire.jnet.common.util.ChannelConfig;
+import cc.jfire.jnet.server.AioServer;
+
+public class BackPressureServer {
+    public static void main(String[] args) {
+        ChannelConfig config = new ChannelConfig().setPort(8080);
+
+        AioServer server = AioServer.newAioServer(config, pipeline -> {
+            // 1. 创建背压控制器，设置水位阈值（如 1MB）
+            BackPresure backPresure = BackPresure.noticeWaterLevel(1024 * 1024);
+
+            // 2. 添加业务处理器
+            pipeline.addReadProcessor(new ReadProcessor<Object>() {
+                @Override
+                public void read(Object data, ReadProcessorNode next) {
+                    // 处理数据并写出响应
+                    pipeline.fireWrite(processData(data));
+                    next.fireRead(data);
+                }
+            });
+
+            // 3. 添加读限流器（放在处理器链末尾）
+            pipeline.addReadProcessor(backPresure.readLimiter());
+
+            // 4. 设置写监听器
+            pipeline.setWriteListener(backPresure.writeLimiter());
+        });
+
+        server.start();
+    }
+}
+```
+
+**关键点：**
+- `readLimiter()` 返回的是 `ReadProcessor<Void>`，它在 `readCompleted()` 方法中检查水位
+- `writeLimiter()` 返回的是 `WriteListener`，它监听数据入队和写出完成事件
+- 两者共享同一个 `AtomicInteger` 计数器
+
+### 忙等待式背压
+
+忙等待式背压使用自旋等待机制，当水位超限时阻塞当前线程直到水位下降。适用于对延迟敏感的场景：
+
+```java
+import cc.jfire.jnet.extend.watercheck.BusyWaitReadLimiter;
+import cc.jfire.jnet.extend.watercheck.BusyWaitWriteLimiter;
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class BusyWaitBackPressureServer {
+    public static void main(String[] args) {
+        ChannelConfig config = new ChannelConfig().setPort(8080);
+
+        AioServer server = AioServer.newAioServer(config, pipeline -> {
+            // 1. 创建共享计数器和阈值
+            AtomicInteger counter = new AtomicInteger();
+            int limit = 1024 * 1024; // 1MB 水位阈值
+
+            // 2. 添加业务处理器
+            pipeline.addReadProcessor(new ReadProcessor<Object>() {
+                @Override
+                public void read(Object data, ReadProcessorNode next) {
+                    pipeline.fireWrite(processData(data));
+                    next.fireRead(data);
+                }
+            });
+
+            // 3. 添加忙等待读限流器
+            pipeline.addReadProcessor(new BusyWaitReadLimiter(counter, limit));
+
+            // 4. 设置忙等待写限流器
+            pipeline.setWriteListener(new BusyWaitWriteLimiter(counter));
+        });
+
+        server.start();
+    }
+}
+```
+
+**忙等待策略：**
+- 先进行 16 次 CPU 自旋（`Thread.onSpinWait()`）
+- 然后进行 `LockSupport.park()` 等待，时间逐步增加：50ms → 100ms → 1s
+
+### 反向代理中的双向背压
+
+在反向代理场景中，需要同时控制前端和后端的数据流。JNet 使用双向背压机制：
+
+```java
+import cc.jfire.jnet.extend.watercheck.BackPresure;
+
+public class ProxyWithBackPressure {
+    public static void main(String[] args) {
+        // 创建两个背压控制器
+        BackPresure inBackPresure = BackPresure.noticeWaterLevel(100 * 1024 * 1024);       // 入站背压
+        BackPresure upstreamBackPresure = BackPresure.noticeWaterLevel(100 * 1024 * 1024); // 上游背压
+
+        // 前端连接配置
+        AioServer server = AioServer.newAioServer(config, frontendPipeline -> {
+            // 前端读处理器链
+            frontendPipeline.addReadProcessor(new HttpRequestPartDecoder());
+            frontendPipeline.addReadProcessor(new ProxyHandler(backendPipeline -> {
+                // 后端连接配置
+                // 后端读限流器使用前端的上游背压（控制后端响应速度）
+                backendPipeline.addReadProcessor(upstreamBackPresure.readLimiter());
+                // 后端写监听器使用前端的入站背压（控制向后端发送速度）
+                backendPipeline.setWriteListener(inBackPresure.writeLimiter());
+            }));
+            // 前端读限流器使用入站背压
+            frontendPipeline.addReadProcessor(inBackPresure.readLimiter());
+            // 前端写监听器使用上游背压
+            frontendPipeline.setWriteListener(upstreamBackPresure.writeLimiter());
+        });
+    }
+}
+```
+
+**双向背压流程：**
+```
+客户端 ←→ [前端连接] ←→ [后端连接] ←→ 后端服务器
+
+入站背压 (inBackPresure):
+  - 前端 readLimiter: 控制从客户端读取的速度
+  - 后端 writeLimiter: 监控向后端写入的数据量
+
+上游背压 (upstreamBackPresure):
+  - 后端 readLimiter: 控制从后端读取响应的速度
+  - 前端 writeLimiter: 监控向客户端写入的数据量
+```
+
+### 背压策略对比
+
+| 策略 | 优点 | 缺点 | 适用场景 |
+|------|------|------|----------|
+| 通知式 | CPU 占用低，事件驱动，无阻塞 | 恢复有微小延迟 | 一般场景（推荐） |
+| 忙等待式 | 恢复延迟极低，响应迅速 | CPU 占用较高，会阻塞线程 | 低延迟敏感场景 |
+
+### 阈值设置建议
+
+| 场景 | 建议阈值 | 说明 |
+|------|----------|------|
+| 普通 TCP 服务 | 64KB - 1MB | 平衡内存和吞吐量 |
+| HTTP 服务 | 1MB - 10MB | 考虑请求/响应体大小 |
+| 反向代理 | 10MB - 100MB | 需要缓冲大量转发数据 |
+| 文件传输 | 100MB+ | 大文件需要更大缓冲区 |
 
 ## 反向代理应用
 

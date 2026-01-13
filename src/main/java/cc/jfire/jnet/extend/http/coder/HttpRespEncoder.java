@@ -33,7 +33,6 @@ public class HttpRespEncoder implements WriteProcessor<Object>
         String   responseLine = STR.format("{} {} {}\r\n", head.getVersion(), head.getStatusCode(), head.getReasonPhrase() != null ? head.getReasonPhrase() : "");
         buffer.put(responseLine.getBytes(StandardCharsets.US_ASCII));
         HttpCoderUtil.writeHeaderValue(head.getHeaders(), buffer);
-        buffer.put(NEWLINE);
         return buffer;
     }
 
