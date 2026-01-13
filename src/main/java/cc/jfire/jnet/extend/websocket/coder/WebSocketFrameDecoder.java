@@ -4,30 +4,28 @@ import cc.jfire.jnet.common.api.ReadProcessor;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 import cc.jfire.jnet.extend.websocket.dto.WebSocketFrame;
-import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
-@Slf4j
 public class WebSocketFrameDecoder implements ReadProcessor<Object>
 {
-    private IoBuffer accumulation;
     /**
      * true=服务端模式（要求MASK=1），false=客户端模式（要求MASK=0）
      */
     private final boolean        serverMode;
+    private       IoBuffer       accumulation;
     private       DecodeState    state           = DecodeState.FRAME_HEADER;
     // 当前帧解析状态
     private       boolean        fin;
     private       int            opcode;
     private       boolean        masked;
-    private       long           payloadLength;
-    private       byte[]         maskingKey      = new byte[4];
-    private       int            extendedLengthBytes; // 0, 2, 或 8
+    private       long   payloadLength;
+    private final byte[] maskingKey = new byte[4];
+    private       int    extendedLengthBytes; // 0, 2, 或 8
     // 分片消息缓存
-    private       List<IoBuffer> fragmentBuffers = new ArrayList<>();
+    private final List<IoBuffer> fragmentBuffers = new ArrayList<>();
     private       int            fragmentOpcode  = -1;
 
     public WebSocketFrameDecoder(boolean serverMode)
@@ -59,7 +57,6 @@ public class WebSocketFrameDecoder implements ReadProcessor<Object>
         }
         catch (Throwable e)
         {
-            log.error("WebSocket帧解码过程中发生异常", e);
             if (accumulation != null)
             {
                 accumulation.free();

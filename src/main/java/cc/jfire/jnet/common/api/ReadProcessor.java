@@ -13,7 +13,9 @@ public interface ReadProcessor<T>
     default void readFailed(Throwable e, ReadProcessorNode next) {next.fireReadFailed(e);}
 
     /**
-     * 本轮读取处理完成时触发，用于通知处理器本轮数据已全部处理完毕
+     * 单次读取完毕后触发的方法。
+     * Pipeline默认提供的 tailReadProcessor，对该方法的实现是注册下一次的读取。
+     * 因此如果没有特别的需要，不要重写该方法。
      */
     default void readCompleted(ReadProcessorNode next)
     {

@@ -3,11 +3,7 @@ package cc.jfire.jnet.extend.http.client;
 import cc.jfire.jnet.common.buffer.allocator.BufferAllocator;
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 import cc.jfire.jnet.common.util.UNSAFE;
-import cc.jfire.jnet.extend.http.dto.HttpResponse;
-import cc.jfire.jnet.extend.http.dto.HttpResponseChunkedBodyPart;
-import cc.jfire.jnet.extend.http.dto.HttpResponseFixLengthBodyPart;
-import cc.jfire.jnet.extend.http.dto.HttpResponsePart;
-import cc.jfire.jnet.extend.http.dto.HttpResponsePartHead;
+import cc.jfire.jnet.extend.http.dto.*;
 
 import java.net.SocketTimeoutException;
 import java.nio.channels.ClosedChannelException;
@@ -16,7 +12,7 @@ import java.util.concurrent.locks.LockSupport;
 
 /**
  * 聚合模式的 ResponseFuture 实现。
- *
+ * <p>
  * 状态机说明：
  * - onReceive 和 onFail 由 IO 线程调用，且互斥（error 后通道关闭，不会再有 onReceive）
  * - waitForEnd 由业务线程调用
@@ -25,23 +21,20 @@ import java.util.concurrent.locks.LockSupport;
 public class AggregatorResponseFuture implements ResponseFuture
 {
     // 状态常量：bit0=结束, bit1=超时, bit2=错误
-    private static final int  NO_ERROR_NO_TIMEOUT_NO_END = 0b000; // 初始状态
-    private static final int  NO_ERROR_NO_TIMEOUT_END    = 0b001; // 正常完成
-    private static final int  NO_ERROR_TIMEOUT_NO_END    = 0b010; // 超时但未结束
-    private static final int  NO_ERROR_TIMEOUT_END       = 0b011; // 超时后结束
-    private static final int  ERROR_NO_TIMEOUT_NO_END    = 0b100; // 错误未超时未结束
-    private static final int  ERROR_TIMEOUT_NO_END       = 0b110; // 错误且超时未结束
-    private static final long STATUS_OFFSET              = UNSAFE.getFieldOffset("status", AggregatorResponseFuture.class);
-
-    private volatile int          status = NO_ERROR_NO_TIMEOUT_NO_END;
-    private volatile Throwable    error;
-    private volatile HttpResponse httpResponse;
-    private volatile Thread       waitingThread;
-
-    private final BufferAllocator allocator;
-
-    private HttpResponsePartHead headPart;
-    private IoBuffer             bodyBuffer;
+    private static final int                  NO_ERROR_NO_TIMEOUT_NO_END = 0b000; // 初始状态
+    private static final int                  NO_ERROR_NO_TIMEOUT_END    = 0b001; // 正常完成
+    private static final int                  NO_ERROR_TIMEOUT_NO_END    = 0b010; // 超时但未结束
+    private static final int                  NO_ERROR_TIMEOUT_END       = 0b011; // 超时后结束
+    private static final int                  ERROR_NO_TIMEOUT_NO_END    = 0b100; // 错误未超时未结束
+    private static final int                  ERROR_TIMEOUT_NO_END       = 0b110; // 错误且超时未结束
+    private static final long                 STATUS_OFFSET              = UNSAFE.getFieldOffset("status", AggregatorResponseFuture.class);
+    private final    BufferAllocator allocator;
+    private final    int             status = NO_ERROR_NO_TIMEOUT_NO_END;
+    private volatile Throwable       error;
+    private volatile     HttpResponse         httpResponse;
+    private volatile     Thread               waitingThread;
+    private              HttpResponsePartHead headPart;
+    private              IoBuffer             bodyBuffer;
 
     public AggregatorResponseFuture(BufferAllocator allocator)
     {
@@ -180,8 +173,8 @@ public class AggregatorResponseFuture implements ResponseFuture
             {
                 return;
             }
-            int headLength = chunkedPart.getHeadLength();
-            int chunkLength = chunkedPart.getChunkLength();
+            int headLength      = chunkedPart.getHeadLength();
+            int chunkLength     = chunkedPart.getChunkLength();
             int effectiveLength = chunkLength - headLength - 2;
             if (effectiveLength > 0)
             {
@@ -270,8 +263,7 @@ public class AggregatorResponseFuture implements ResponseFuture
     {
         waitingThread = Thread.currentThread();
         long timeoutNanos = TimeUnit.SECONDS.toNanos(timeoutSeconds);
-        long startTime = System.nanoTime();
-
+        long startTime    = System.nanoTime();
         while (true)
         {
             int currentStatus = status;
@@ -294,8 +286,7 @@ public class AggregatorResponseFuture implements ResponseFuture
                 }
                 throw new RuntimeException(err);
             }
-
-            long elapsed = System.nanoTime() - startTime;
+            long elapsed   = System.nanoTime() - startTime;
             long remaining = timeoutNanos - elapsed;
             if (remaining <= 0)
             {
@@ -306,9 +297,7 @@ public class AggregatorResponseFuture implements ResponseFuture
                 }
                 continue;
             }
-
             LockSupport.parkNanos(remaining);
-
             if (Thread.interrupted())
             {
                 waitingThread = null;

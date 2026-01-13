@@ -1,21 +1,17 @@
 package cc.jfire.jnet.common.internal;
 
-import cc.jfire.baseutil.TRACEID;
 import cc.jfire.jnet.common.api.InternalPipeline;
 import cc.jfire.jnet.common.buffer.allocator.BufferAllocator;
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 import cc.jfire.jnet.common.exception.EndOfStreamException;
 import cc.jfire.jnet.common.util.ChannelConfig;
 import cc.jfire.jnet.common.util.MathUtil;
-import lombok.extern.slf4j.Slf4j;
-import org.slf4j.MDC;
 
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.util.ArrayList;
 import java.util.List;
 
-@Slf4j
 public class AdaptiveReadCompletionHandler implements CompletionHandler<Integer, AdaptiveReadCompletionHandler>
 {
     public static final int[] sizeTable;
@@ -47,7 +43,7 @@ public class AdaptiveReadCompletionHandler implements CompletionHandler<Integer,
     private         int                       index;
     private         int                       decrCount;
     private         IoBuffer                  ioBuffer;
-private final  String uid = TRACEID.newTraceId();
+
     public AdaptiveReadCompletionHandler(InternalPipeline pipeline)
     {
         this.pipeline = pipeline;
@@ -92,7 +88,6 @@ private final  String uid = TRACEID.newTraceId();
     @Override
     public void completed(Integer read, AdaptiveReadCompletionHandler handler)
     {
-        MDC.put("traceId", TRACEID.newTraceId());
         if (read == -1)
         {
             failed(new EndOfStreamException(), this);
@@ -110,7 +105,6 @@ private final  String uid = TRACEID.newTraceId();
         else
         {
             thisRound.free();
-            System.err.println("读取到了0");
             pipeline.fireReadCompleted();
         }
     }

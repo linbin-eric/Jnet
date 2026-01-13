@@ -3,8 +3,8 @@ package cc.jfire.jnet.extend.reverse.proxy.api.handler;
 import cc.jfire.baseutil.IoUtil;
 import cc.jfire.baseutil.STR;
 import cc.jfire.jnet.common.api.Pipeline;
-import cc.jfire.jnet.extend.http.dto.HttpResponse;
 import cc.jfire.jnet.extend.http.dto.HttpRequestPartHead;
+import cc.jfire.jnet.extend.http.dto.HttpResponse;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -13,16 +13,12 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class ClassResourceHandler extends AbstractIOResourceHandler
 {
-    record Tuper(String contentType, byte[] bytes)
-    {
-    }
+    private final ConcurrentHashMap<String, Tuper> map = new ConcurrentHashMap<>();
 
     public ClassResourceHandler(String matchUrl, String originPath)
     {
         super(matchUrl, originPath);
     }
-
-    private ConcurrentHashMap<String, Tuper> map = new ConcurrentHashMap<>();
 
     @Override
     protected void processHead(HttpRequestPartHead head, Pipeline pipeline, String requestUrl, String contentType)
@@ -51,5 +47,9 @@ public final class ClassResourceHandler extends AbstractIOResourceHandler
         response.addHeader("Content-Type", contentType);
         response.setBodyBytes(tuper.bytes());
         pipeline.fireWrite(response);
+    }
+
+    record Tuper(String contentType, byte[] bytes)
+    {
     }
 }

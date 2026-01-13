@@ -13,17 +13,9 @@ import cc.jfire.jnet.extend.http.coder.HttpRequestPartEncoder;
 import cc.jfire.jnet.extend.http.dto.*;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceHandler;
 import cc.jfire.jnet.extend.watercheck.BackPresure;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 public class ProxyHttpHandler implements ResourceHandler
 {
-    public enum MatchMode
-    {
-        PREFIX,  // 前缀匹配
-        EXACT    // 完全匹配
-    }
-
     private final MatchMode     matchMode;
     private final String        match;        // 完全匹配时使用
     private final String        prefixMatch;
@@ -33,7 +25,6 @@ public class ProxyHttpHandler implements ResourceHandler
     private final String        backendHostHeader;
     private final String        backendBasePath;
     private       ClientChannel clientChannel;
-
     public ProxyHttpHandler(String match, String proxy, MatchMode matchMode)
     {
         this.matchMode = matchMode;
@@ -249,5 +240,11 @@ public class ProxyHttpHandler implements ResourceHandler
         {
             buffer.free();
         }
+    }
+
+    public enum MatchMode
+    {
+        PREFIX,  // 前缀匹配
+        EXACT    // 完全匹配
     }
 }

@@ -3,10 +3,9 @@ package cc.jfire.jnet.extend.http.coder;
 import cc.jfire.baseutil.IoUtil;
 import cc.jfire.jnet.common.api.ReadProcessor;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
-import cc.jfire.jnet.extend.http.dto.HttpResponse;
 import cc.jfire.jnet.extend.http.dto.HttpRequest;
+import cc.jfire.jnet.extend.http.dto.HttpResponse;
 import cc.jfire.jnet.extend.reverse.proxy.ContentTypeDist;
-import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -14,17 +13,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-@Slf4j
-public class ResourceProcessor implements ReadProcessor<HttpRequest>
+public class ResourceProcessor implements ReadProcessor<Object>
 {
-    record StaticResource(byte[] content, String contentType)
-    {
-    }
-
-    private       ConcurrentMap<String, StaticResource> map = new ConcurrentHashMap<>();
     private final String                                prefixPath;
     private final boolean                               runInIDE;
-
+    private final ConcurrentMap<String, StaticResource> map = new ConcurrentHashMap<>();
     public ResourceProcessor(String prefixPath, boolean runInIDE)
     {
         this.prefixPath = prefixPath;
@@ -38,7 +31,18 @@ public class ResourceProcessor implements ReadProcessor<HttpRequest>
     }
 
     @Override
-    public void read(HttpRequest httpRequest, ReadProcessorNode next)
+    public void read(Object data, ReadProcessorNode next)
+    {
+        // 只处理 HttpRequest 类型，其他类型直接透传
+        if (!(data instanceof HttpRequest httpRequest))
+        {
+            next.fireRead(data);
+            return;
+        }
+        handleHttpRequest(httpRequest, next);
+    }
+
+    private void handleHttpRequest(HttpRequest httpRequest, ReadProcessorNode next)
     {
         String url = httpRequest.getHead().getPath();
         if (!httpRequest.getHead().getMethod().equalsIgnoreCase("get"))
@@ -147,5 +151,9 @@ public class ResourceProcessor implements ReadProcessor<HttpRequest>
                 }
             }
         }
+    }
+
+    record StaticResource(byte[] content, String contentType)
+    {
     }
 }

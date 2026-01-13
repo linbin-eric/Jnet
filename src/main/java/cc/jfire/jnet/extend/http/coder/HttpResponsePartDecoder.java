@@ -1,13 +1,11 @@
 package cc.jfire.jnet.extend.http.coder;
 
-import cc.jfire.baseutil.TRACEID;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.common.coder.AbstractDecoder;
 import cc.jfire.jnet.common.util.HttpCoderUtil;
 import cc.jfire.jnet.extend.http.dto.HttpResponseChunkedBodyPart;
 import cc.jfire.jnet.extend.http.dto.HttpResponseFixLengthBodyPart;
 import cc.jfire.jnet.extend.http.dto.HttpResponsePartHead;
-import org.slf4j.MDC;
 
 import java.nio.charset.StandardCharsets;
 
@@ -25,7 +23,6 @@ public class HttpResponsePartDecoder extends AbstractDecoder
     @Override
     protected void process0(ReadProcessorNode next)
     {
-        MDC.put("traceId", TRACEID.newTraceId());
         boolean goToNextState;
         do
         {
@@ -50,7 +47,7 @@ public class HttpResponsePartDecoder extends AbstractDecoder
     {
         if (lastCheck == -1)
         {
-            lastCheck = accumulation.getReadPosi();
+            lastCheck     = accumulation.getReadPosi();
             headStartPosi = lastCheck;
         }
         for (; lastCheck + 1 < accumulation.getWritePosi(); lastCheck++)
@@ -115,7 +112,7 @@ public class HttpResponsePartDecoder extends AbstractDecoder
                 HttpCoderUtil.findAllHeaders(accumulation, respHead::addHeader);
                 HttpCoderUtil.findContentLength(respHead.getHeaders(), respHead::setContentLength);
                 int bodyStartPosi = accumulation.getReadPosi();
-                int headLength = bodyStartPosi - headStartPosi;
+                int headLength    = bodyStartPosi - headStartPosi;
                 if (headLength > 0)
                 {
                     accumulation.setReadPosi(headStartPosi);
@@ -161,7 +158,7 @@ public class HttpResponsePartDecoder extends AbstractDecoder
             return false;
         }
         long left   = respHead.getContentLength() - bodyRead;
-        int remain = accumulation.remainRead();
+        int  remain = accumulation.remainRead();
         if (remain > left)
         {
             HttpResponseFixLengthBodyPart part = new HttpResponseFixLengthBodyPart();
@@ -205,7 +202,7 @@ public class HttpResponsePartDecoder extends AbstractDecoder
                 }
                 if (accumulation.get(i) == '\r' && accumulation.get(i + 1) == '\n')
                 {
-                    chunkSize = Integer.parseInt(StandardCharsets.US_ASCII.decode(accumulation.readableByteBuffer(i)).toString().trim(), 16);
+                    chunkSize           = Integer.parseInt(StandardCharsets.US_ASCII.decode(accumulation.readableByteBuffer(i)).toString().trim(), 16);
                     chunkSizeLineLength = i + 2 - startPosi;
                     break;
                 }
@@ -232,20 +229,17 @@ public class HttpResponsePartDecoder extends AbstractDecoder
             resetState();
             return accumulation != null && accumulation.remainRead() > 0;
         }
-
         int totalChunkLength = chunkSizeLineLength + chunkSize + 2;
         if (accumulation.remainRead() < totalChunkLength)
         {
             return false;
         }
-
         HttpResponseChunkedBodyPart part = new HttpResponseChunkedBodyPart();
         part.setHeadLength(chunkSizeLineLength);
         part.setChunkLength(totalChunkLength);
         part.setPart(accumulation.slice(totalChunkLength));
-
         next.fireRead(part);
-        chunkSize = -1;
+        chunkSize           = -1;
         chunkSizeLineLength = -1;
         return true;
     }

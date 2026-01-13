@@ -3,9 +3,7 @@ package cc.jfire.jnet.extend.http.coder;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 import cc.jfire.jnet.extend.http.dto.HttpRequestPartHead;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 public class HttpRequestPartSupportWebSocketDecoderWithPassThough extends HttpRequestPartDecoder
 {
     private boolean webSocketMode = false;

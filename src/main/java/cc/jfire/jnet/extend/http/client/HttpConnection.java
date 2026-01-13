@@ -11,21 +11,19 @@ import cc.jfire.jnet.extend.http.coder.HttpRequestPartEncoder;
 import cc.jfire.jnet.extend.http.coder.HttpResponsePartDecoder;
 import cc.jfire.jnet.extend.http.dto.*;
 import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 
 import java.net.SocketTimeoutException;
 import java.nio.channels.ClosedChannelException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
-@Slf4j
 public class HttpConnection
 {
-    @Getter
-    private volatile ResponseFuture responseFuture;
     private final    ClientChannel  clientChannel;
     private final    AtomicBoolean  isClosed = new AtomicBoolean(false);
-    private          String         uid      = TRACEID.newTraceId();
+    @Getter
+    private volatile ResponseFuture responseFuture;
+    private final    String         uid = TRACEID.newTraceId();
 
     public HttpConnection(String domain, int port, int secondsOfKeepAlive)
     {
@@ -185,7 +183,7 @@ public class HttpConnection
 
     public void close()
     {
-        if (isClosed.compareAndExchange(false, true) == false)
+        if (!isClosed.compareAndExchange(false, true))
         {
             clientChannel.pipeline().shutdownInput();
         }

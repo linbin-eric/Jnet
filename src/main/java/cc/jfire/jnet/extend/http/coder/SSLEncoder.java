@@ -5,7 +5,6 @@ import cc.jfire.jnet.common.api.WriteProcessorNode;
 import cc.jfire.jnet.common.buffer.allocator.BufferAllocator;
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
 
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
@@ -13,7 +12,6 @@ import javax.net.ssl.SSLException;
 import java.nio.ByteBuffer;
 
 @Data
-@Slf4j
 public class SSLEncoder implements WriteProcessor<Object>
 {
     private final SSLEngine  sslEngine;

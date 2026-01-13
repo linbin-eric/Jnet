@@ -12,7 +12,7 @@ public class StreamableResponseFuture implements ResponseFuture
     public StreamableResponseFuture(Consumer<HttpResponsePart> httpResponsePartConsumer, Consumer<Throwable> errorConsumer)
     {
         this.httpResponsePartConsumer = httpResponsePartConsumer;
-        this.errorConsumer = errorConsumer;
+        this.errorConsumer            = errorConsumer;
     }
 
     @Override

@@ -5,18 +5,16 @@ import cc.jfire.jnet.common.api.ReadProcessor;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.common.internal.AdaptiveReadCompletionHandler;
 import cc.jfire.jnet.common.internal.DefaultPipeline;
-import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-@Slf4j
 public class NoticeReadLimiter extends AtomicInteger implements ReadProcessor<Void>
 {
     private static final int                           WORK = 1;
     private static final int                           IDLE = 0;
     private final        AtomicInteger                 counter;
-    private              AdaptiveReadCompletionHandler adaptiveReadCompletionHandler;
     private final        int                           limit;
+    private              AdaptiveReadCompletionHandler adaptiveReadCompletionHandler;
 
     public NoticeReadLimiter(AtomicInteger counter, int limit)
     {

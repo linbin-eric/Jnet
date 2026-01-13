@@ -1,9 +1,7 @@
 package cc.jfire.jnet.extend.http.dto;
 
 import cc.jfire.jnet.common.util.ReflectUtil;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 public record HttpUrl(String domain, int port, String path, String hostHeader)
 {
     public static HttpUrl parse(String url)

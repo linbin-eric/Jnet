@@ -10,12 +10,14 @@ public interface Pipeline
 {
     /**
      * 走完整的写出责任链
+     *
      * @param data
      */
     void fireWrite(Object data);
 
     /**
      * 直接提交数据到写出通道，不走责任链
+     *
      * @param buffer
      */
     void directWrite(IoBuffer buffer);
@@ -51,4 +53,6 @@ public interface Pipeline
     }
 
     BufferAllocator allocator();
+
+    String pipelineId();
 }

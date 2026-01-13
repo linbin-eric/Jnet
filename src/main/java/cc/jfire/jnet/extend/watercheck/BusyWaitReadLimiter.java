@@ -2,18 +2,13 @@ package cc.jfire.jnet.extend.watercheck;
 
 import cc.jfire.jnet.common.api.ReadProcessor;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
-import lombok.Data;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
-@Data
-public class BusyWaitReadLimiter implements ReadProcessor<Object>
+public record BusyWaitReadLimiter(AtomicInteger count, int limit) implements ReadProcessor<Object>
 {
-    private final AtomicInteger count;
-    private final int           limit;
-
     @Override
     public void read(Object data, ReadProcessorNode next)
     {

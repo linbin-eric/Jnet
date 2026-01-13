@@ -6,7 +6,6 @@ import cc.jfire.baseutil.YamlReader;
 import cc.jfire.jnet.extend.reverse.proxy.ReverseProxyServer;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceConfig;
 import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -15,7 +14,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-@Slf4j
 public class ReverseApp
 {
     @SneakyThrows
@@ -83,7 +81,6 @@ public class ReverseApp
         }
         catch (Throwable e)
         {
-            log.error("启动失败", e);
         }
     }
 }

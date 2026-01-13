@@ -6,13 +6,6 @@ import cc.jfire.jnet.extend.reverse.proxy.api.config.ProxyHttpResource;
 
 public interface ResourceConfig
 {
-    ResourceHandler parse(HttpConnectionPool pool);
-
-    /**
-     * 配置的优先级，数字越小优先级越高
-     */
-    int getOrder();
-
     static ResourceConfig io(String prefixMatch, String path, int order)
     {
         return new IOResourceConfig(prefixMatch, path, order);
@@ -27,4 +20,11 @@ public interface ResourceConfig
     {
         return new ProxyHttpResource(ProxyHttpResource.MatchType.PREFIX, prefix, proxy, order);
     }
+
+    ResourceHandler parse(HttpConnectionPool pool);
+
+    /**
+     * 配置的优先级，数字越小优先级越高
+     */
+    int order();
 }

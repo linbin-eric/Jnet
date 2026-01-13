@@ -1,17 +1,11 @@
 package cc.jfire.jnet.extend.watercheck;
 
 import cc.jfire.jnet.common.api.WriteListener;
-import lombok.Data;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-@Data
-public class NoticeWriteLimiter implements WriteListener
+public record NoticeWriteLimiter(AtomicInteger counter, NoticeReadLimiter noticeReadLimiter, int limit) implements WriteListener
 {
-    private final AtomicInteger     counter;
-    private final NoticeReadLimiter noticeReadLimiter;
-    private final int               limit;
-
     @Override
     public void partWriteFinish(int currentSend)
     {

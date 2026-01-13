@@ -9,13 +9,13 @@ import java.util.concurrent.locks.ReentrantLock;
 @Getter
 public class SubPage
 {
-    final         int           pageSize;
-    final         int           handle;
-    final         int           offset;
-    final         int           index;
-    final         long[]        bitMap;
-    final Lock lock;
-    private final Chunk chunk;
+    final         int    pageSize;
+    final         int    handle;
+    final         int    offset;
+    final         int    index;
+    final         long[] bitMap;
+    final         Lock   lock;
+    private final Chunk  chunk;
     int     elementSize;
     int     bitMapLength;
     int     nextAvail;

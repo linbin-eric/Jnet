@@ -10,10 +10,10 @@ import java.util.concurrent.TimeUnit;
 
 public class GatherWriteCompleteHandler extends AbstractWriteCompleteHandler implements CompletionHandler<Long, Void>
 {
-    private int          gatherSize        = 2048;
-    private IoBuffer[]   gatherBuffers     = new IoBuffer[gatherSize];
-    private ByteBuffer[] gatherByteBuffers = new ByteBuffer[gatherSize];
-    private int          completedStart    = 0;
+    private final int        gatherSize    = 2048;
+    private final IoBuffer[] gatherBuffers = new IoBuffer[gatherSize];
+    private final ByteBuffer[] gatherByteBuffers = new ByteBuffer[gatherSize];
+    private       int          completedStart    = 0;
     private int          writeCount        = 0;
 
     public GatherWriteCompleteHandler(Pipeline pipeline)
@@ -53,7 +53,7 @@ public class GatherWriteCompleteHandler extends AbstractWriteCompleteHandler imp
             {
                 if (gatherByteBuffers[i].hasRemaining())
                 {
-                    completedStart=i;
+                    completedStart = i;
                     socketChannel.write(gatherByteBuffers, i, writeCount - i, Long.MAX_VALUE, TimeUnit.SECONDS, null, this);
                     return;
                 }
@@ -69,7 +69,7 @@ public class GatherWriteCompleteHandler extends AbstractWriteCompleteHandler imp
                 gatherBuffers[i].free();
                 gatherBuffers[i] = null;
             }
-            writeCount=completedStart=0;
+            writeCount = completedStart = 0;
             writeListener.partWriteFinish(currentSend);
             if (!queue.isEmpty())
             {
@@ -104,7 +104,6 @@ public class GatherWriteCompleteHandler extends AbstractWriteCompleteHandler imp
         }
         catch (Throwable e)
         {
-            e.printStackTrace();
             failed(e, null);
         }
     }

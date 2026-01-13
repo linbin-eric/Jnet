@@ -1,19 +1,15 @@
 package cc.jfire.jnet.extend.watercheck;
 
 import cc.jfire.jnet.common.api.WriteListener;
-import lombok.Data;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-@Data
-public class BusyWaitWriteLimiter implements WriteListener
+public record BusyWaitWriteLimiter(AtomicInteger counter) implements WriteListener
 {
-    private final AtomicInteger counter;
-
     @Override
     public void partWriteFinish(int currentSend)
     {
-        counter.addAndGet(0 - currentSend);
+        counter.addAndGet(-currentSend);
     }
 
     @Override

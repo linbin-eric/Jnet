@@ -12,7 +12,6 @@ import cc.jfire.jnet.extend.reverse.proxy.api.ResourceConfig;
 import cc.jfire.jnet.extend.watercheck.BackPresure;
 import cc.jfire.jnet.server.AioServer;
 import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
 
 import javax.net.ssl.*;
 import java.io.File;
@@ -21,13 +20,12 @@ import java.security.KeyStore;
 import java.util.List;
 import java.util.function.Consumer;
 
-@Slf4j
 public class ReverseProxyServer
 {
-    private int                  port;
-    private List<ResourceConfig> configs;
-    private SslInfo              sslInfo;
-    private HttpConnectionPool   pool = new HttpConnectionPool();
+    private final int                  port;
+    private final List<ResourceConfig> configs;
+    private final SslInfo              sslInfo;
+    private final HttpConnectionPool   pool = new HttpConnectionPool();
 
     public ReverseProxyServer(int port, List<ResourceConfig> configs)
     {
@@ -114,7 +112,6 @@ public class ReverseProxyServer
                 }
                 catch (Throwable e)
                 {
-                    e.printStackTrace();
                 }
             };
             AioServer aioServer = AioServer.newAioServer(channelConfig, s::accept);

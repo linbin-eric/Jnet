@@ -25,8 +25,6 @@ public class Chunk
     protected final Object           memory;
     protected final long             directBufferAddress;
     protected final BufferType       bufferType;
-    @Getter
-    protected       int              freeBytes;
     /**
      * 非池化，意味着这个chunk整块来完整使用，也就是分配超大内存的时候存在的情况。
      * 此时这个chunk不在整个池子里，就不会有chunkList的相关属性和操作。
@@ -35,6 +33,8 @@ public class Chunk
     // Chunk list specific fields
     private final   SubPage[]        subPages;
     private final   int              subPageIdxMask;
+    @Getter
+    protected       int              freeBytes;
     @Setter
     private         ChunkList        parent;
     private         Chunk            prev;

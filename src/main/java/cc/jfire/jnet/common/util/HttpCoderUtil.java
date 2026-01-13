@@ -11,7 +11,7 @@ import java.util.function.Consumer;
 
 public class HttpCoderUtil
 {
-    private static final byte[] NEW_LINE                 = "\r\n".getBytes(StandardCharsets.US_ASCII);
+    private static final byte[]              NEW_LINE = "\r\n".getBytes(StandardCharsets.US_ASCII);
     private static final Map<String, String> STANDARD_HEADERS;
     private static final Map<String, byte[]> HEADER_KEY_BYTES_CACHE;
 

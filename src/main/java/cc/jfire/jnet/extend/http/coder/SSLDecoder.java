@@ -7,14 +7,12 @@ import cc.jfire.jnet.common.coder.AbstractDecoder;
 import cc.jfire.jnet.common.util.DataIgnore;
 import lombok.Data;
 import lombok.experimental.Accessors;
-import lombok.extern.slf4j.Slf4j;
 
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLException;
 import java.nio.ByteBuffer;
 
-@Slf4j
 @Data
 public class SSLDecoder extends AbstractDecoder
 {

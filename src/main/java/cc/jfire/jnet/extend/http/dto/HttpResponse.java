@@ -9,7 +9,7 @@ import java.nio.charset.StandardCharsets;
 
 @Data
 @Accessors(chain = true)
-public class HttpResponse implements  AutoCloseable
+public class HttpResponse implements AutoCloseable
 {
     private HttpResponsePartHead head             = new HttpResponsePartHead();
     // 响应体，两种形式，优先级：bodyBuffer > bodyBytes

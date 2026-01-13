@@ -6,11 +6,9 @@ import cc.jfire.jnet.common.util.HttpCoderUtil;
 import cc.jfire.jnet.extend.http.dto.HttpRequestChunkedBodyPart;
 import cc.jfire.jnet.extend.http.dto.HttpRequestFixLengthBodyPart;
 import cc.jfire.jnet.extend.http.dto.HttpRequestPartHead;
-import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.StandardCharsets;
 
-@Slf4j
 public class HttpRequestPartDecoder extends AbstractDecoder
 {
     private static final int                 MAX_CHUNK_SIZE_LINE_LENGTH = 32;

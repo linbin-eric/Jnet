@@ -5,12 +5,10 @@ import cc.jfire.jnet.common.api.WriteProcessorNode;
 import cc.jfire.jnet.common.buffer.allocator.BufferAllocator;
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 import cc.jfire.jnet.extend.websocket.dto.WebSocketFrame;
-import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 
-@Slf4j
 public class WebSocketFrameEncoder implements WriteProcessor<Object>
 {
     private final BufferAllocator allocator;

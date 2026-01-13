@@ -20,6 +20,9 @@ public class PooledBufferAllocator implements BufferAllocator
     public static final int     MAXLEVEL;
     public static final int     NUM_OF_ARENA;
     public static final boolean PREFER_DIRECT;
+    private static final Arena[]                        HEAP_ARENAS;
+    private static final Arena[]                        UNSAFE_ARENAS;
+    private static final AtomicInteger                  ARENA_COUNT         = new AtomicInteger();
 
     static
     {
@@ -29,15 +32,6 @@ public class PooledBufferAllocator implements BufferAllocator
         NUM_OF_ARENA   = SystemPropertyUtil.getInt("io.jnet.PooledBufferAllocator.numOfArena", Math.min(Runtime.getRuntime().availableProcessors(), 8));
         PREFER_DIRECT  = SystemPropertyUtil.getBoolean("io.jnet.PooledBufferAllocator.preferDirect", true);
     }
-
-    private       BitmapObjectPool<PooledBuffer> bufferPool;
-    private final boolean                        preferDirect;
-    @Getter
-    private final        Arena                           arena;
-    private static final Arena[]                         HEAP_ARENAS;
-    private static final Arena[]                         UNSAFE_ARENAS;
-    private static final AtomicInteger                   ARENA_COUNT         = new AtomicInteger();
-    private              boolean                         reUseBufferInstance = false;
 
     static
     {
@@ -53,6 +47,12 @@ public class PooledBufferAllocator implements BufferAllocator
         }
     }
 
+    private final        boolean                        preferDirect;
+    @Getter
+    private final Arena                          arena;
+    private final BitmapObjectPool<PooledBuffer> bufferPool;
+    private final boolean                        reUseBufferInstance = false;
+
     public PooledBufferAllocator(int cachedNum, boolean preferDirect, Arena arena)
     {
         this.preferDirect = preferDirect;
@@ -60,6 +60,11 @@ public class PooledBufferAllocator implements BufferAllocator
         cachedNum         = MathUtil.normalizeSize(cachedNum);
         bufferPool        = preferDirect ? new BitmapObjectPool<>(i -> new PooledBuffer(BufferType.UNSAFE, this, i), cachedNum)//
                 : new BitmapObjectPool<>(i -> new PooledBuffer(BufferType.HEAP, this, i), cachedNum);
+    }
+
+    public static Arena getArena(boolean preferDirect)
+    {
+        return preferDirect ? UNSAFE_ARENAS[ARENA_COUNT.getAndIncrement() % UNSAFE_ARENAS.length] : HEAP_ARENAS[ARENA_COUNT.getAndIncrement() % HEAP_ARENAS.length];
     }
 
     @Override
@@ -101,7 +106,6 @@ public class PooledBufferAllocator implements BufferAllocator
         }
     }
 
-
     @Override
     public void cycleBufferInstance(IoBuffer buffer)
     {
@@ -117,14 +121,8 @@ public class PooledBufferAllocator implements BufferAllocator
         }
     }
 
-
     public void capacityStat(CapacityStat stat)
     {
         arena.capacityStat(stat);
-    }
-
-    public static Arena getArena(boolean preferDirect)
-    {
-        return preferDirect ? UNSAFE_ARENAS[ARENA_COUNT.getAndIncrement() % UNSAFE_ARENAS.length] : HEAP_ARENAS[ARENA_COUNT.getAndIncrement() % HEAP_ARENAS.length];
     }
 }

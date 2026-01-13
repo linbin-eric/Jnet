@@ -4,11 +4,9 @@ import cc.jfire.jnet.common.api.WriteProcessor;
 import cc.jfire.jnet.common.api.WriteProcessorNode;
 import cc.jfire.jnet.extend.http.dto.HttpResponse;
 import cc.jfire.jnet.extend.http.dto.HttpResponsePartHead;
-import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
 
-@Slf4j
 public class CorsEncoder implements WriteProcessor<Object>
 {
     @Override
@@ -16,10 +14,7 @@ public class CorsEncoder implements WriteProcessor<Object>
     {
         if (data instanceof HttpResponse httpResponse)
         {
-            httpResponse.addHeader("Access-Control-Allow-Origin", "*")
-                        .addHeader("Access-Control-Allow-Methods", "GET,PUT,POST,HEAD")
-                        .addHeader("Access-Control-Max-Age", "86400")
-                        .addHeader("Access-Control-Allow-Headers", "*");
+            httpResponse.addHeader("Access-Control-Allow-Origin", "*").addHeader("Access-Control-Allow-Methods", "GET,PUT,POST,HEAD").addHeader("Access-Control-Max-Age", "86400").addHeader("Access-Control-Allow-Headers", "*");
             next.fireWrite(httpResponse);
         }
         else if (data instanceof HttpResponsePartHead head)

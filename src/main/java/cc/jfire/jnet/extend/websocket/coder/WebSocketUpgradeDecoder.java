@@ -1,11 +1,11 @@
 package cc.jfire.jnet.extend.websocket.coder;
 
+import cc.jfire.baseutil.TRACEID;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 import cc.jfire.jnet.extend.http.coder.HttpRequestPartDecoder;
 import cc.jfire.jnet.extend.http.dto.HttpRequestPartHead;
 import cc.jfire.jnet.extend.websocket.util.WebSocketHandshakeUtil;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * 支持 WebSocket 升级的 HTTP 请求解码器。
@@ -14,10 +14,10 @@ import lombok.extern.slf4j.Slf4j;
  * 2. 不向后传递 HTTP 请求头
  * 3. 切换到透传模式，后续数据作为 IoBuffer 直接传递给下一个处理器（WebSocketFrameDecoder）
  */
-@Slf4j
 public class WebSocketUpgradeDecoder extends HttpRequestPartDecoder
 {
-    private boolean webSocketMode = false;
+    private       boolean webSocketMode = false;
+    private final String  uid           = TRACEID.newTraceId();
 
     @Override
     protected void process0(ReadProcessorNode next)
@@ -50,7 +50,6 @@ public class WebSocketUpgradeDecoder extends HttpRequestPartDecoder
             head.close();
             // 进入 WebSocket 透传模式
             webSocketMode = true;
-            log.debug("WebSocket upgrade completed, switching to passthrough mode");
             // 返回是否需要继续处理
             if (accumulation == null)
             {

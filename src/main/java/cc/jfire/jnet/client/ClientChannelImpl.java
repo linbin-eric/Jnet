@@ -15,10 +15,10 @@ import java.util.concurrent.TimeUnit;
 
 public class ClientChannelImpl implements ClientChannel
 {
-    private volatile ConnectedState      state = ConnectedState.NOT_INIT;
-    private          InternalPipeline    pipeline;
     private final    ChannelConfig       channelConfig;
     private final    PipelineInitializer initializer;
+    private volatile ConnectedState      state = ConnectedState.NOT_INIT;
+    private          InternalPipeline    pipeline;
     @Getter
     private          Throwable           connectionException;
 
@@ -74,10 +74,6 @@ public class ClientChannelImpl implements ClientChannel
                                 @Override
                                 public void read(Object data, ReadProcessorNode next)
                                 {
-                                    if (data == null)
-                                    {
-                                        System.err.println("数据为空");
-                                    }
                                     next.fireRead(data);
                                 }
                             });

@@ -11,15 +11,13 @@ import cc.jfire.jnet.extend.http.dto.HttpResponse;
 import cc.jfire.jnet.extend.http.dto.HttpResponseChunkedBodyPart;
 import cc.jfire.jnet.extend.http.dto.HttpResponseFixLengthBodyPart;
 import cc.jfire.jnet.extend.http.dto.HttpResponsePartHead;
-import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.StandardCharsets;
 
-@Slf4j
 public class HttpRespEncoder implements WriteProcessor<Object>
 {
-    private final       BufferAllocator allocator;
     public static final byte[]          NEWLINE = "\r\n".getBytes(StandardCharsets.US_ASCII);
+    private final       BufferAllocator allocator;
 
     public HttpRespEncoder(BufferAllocator allocator)
     {

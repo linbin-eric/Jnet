@@ -3,9 +3,7 @@ package cc.jfire.jnet.common.coder;
 import cc.jfire.jnet.common.api.ReadProcessor;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 public abstract class AbstractDecoder implements ReadProcessor<IoBuffer>
 {
     protected IoBuffer accumulation;
@@ -27,7 +25,6 @@ public abstract class AbstractDecoder implements ReadProcessor<IoBuffer>
         }
         catch (Throwable e)
         {
-            log.error("解码过程中发生未知异常", e);
             if (accumulation != null)
             {
                 accumulation.free();

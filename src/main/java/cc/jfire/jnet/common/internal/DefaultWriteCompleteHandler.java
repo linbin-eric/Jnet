@@ -3,12 +3,10 @@ package cc.jfire.jnet.common.internal;
 import cc.jfire.jnet.common.api.Pipeline;
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 import cc.jfire.jnet.common.exception.EndOfStreamException;
-import lombok.extern.slf4j.Slf4j;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.CompletionHandler;
 
-@Slf4j
 public class DefaultWriteCompleteHandler extends AbstractWriteCompleteHandler implements CompletionHandler<Integer, ByteBuffer>
 {
     private IoBuffer sendingData;

@@ -6,12 +6,10 @@ import cc.jfire.jnet.common.util.HttpCoderUtil;
 import cc.jfire.jnet.extend.http.dto.HttpRequestPart;
 import cc.jfire.jnet.extend.http.dto.HttpRequestPartHead;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceHandler;
-import lombok.extern.slf4j.Slf4j;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 
-@Slf4j
 public sealed abstract class AbstractIOResourceHandler implements ResourceHandler permits FileResourceHandler, ClassResourceHandler
 {
     protected String prefixMatch;

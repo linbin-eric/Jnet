@@ -10,7 +10,6 @@ import cc.jfire.jnet.common.exception.EndOfStreamException;
 import cc.jfire.jnet.common.util.ChannelConfig;
 import cc.jfire.jnet.common.util.UNSAFE;
 import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
 import org.jctools.queues.MpscLinkedQueue;
 
 import java.io.IOException;
@@ -18,17 +17,16 @@ import java.nio.channels.AsynchronousSocketChannel;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
 
-@Slf4j
 public abstract class AbstractWriteCompleteHandler extends AtomicInteger implements WriteCompletionHandler
 {
+    public static final    int                       OPEN           = 1;
+    public static final    int                       CLOSED         = 0;
     protected static final long                      STATE_OFFSET   = UNSAFE.getFieldOffset("state", AbstractWriteCompleteHandler.class);
     protected static final int                       SPIN_THRESHOLD = 16;
     protected static final int                       OPEN_IDLE      = 0b00;
     protected static final int                       OPEN_WORK      = 0b01;
     protected static final int                       NOTICE_IDLE    = 0b10;
     protected static final int                       NOTICE_WORK    = 0b11;
-    public static final    int                       OPEN           = 1;
-    public static final    int                       CLOSED         = 0;
     protected final        AsynchronousSocketChannel socketChannel;
     protected final        InternalPipeline          pipeline;
     protected final        BufferAllocator           allocator;
@@ -68,7 +66,6 @@ public abstract class AbstractWriteCompleteHandler extends AtomicInteger impleme
         }
         catch (Throwable e)
         {
-            log.error("发生未预料异常", e);
             System.exit(108);
         }
     }
@@ -199,7 +196,6 @@ public abstract class AbstractWriteCompleteHandler extends AtomicInteger impleme
                     now = state;
                     if (now != NOTICE_WORK)
                     {
-                        log.error("系统状态故障");
                         System.exit(108);
                     }
                     if (queue.isEmpty())
@@ -229,7 +225,6 @@ public abstract class AbstractWriteCompleteHandler extends AtomicInteger impleme
             }
             default ->
             {
-                log.error("系统状态故障");
                 System.exit(109);
             }
         }

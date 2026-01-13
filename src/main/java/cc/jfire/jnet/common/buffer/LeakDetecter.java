@@ -2,7 +2,6 @@ package cc.jfire.jnet.common.buffer;
 
 import lombok.Getter;
 import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
 
 import java.lang.ref.PhantomReference;
 import java.lang.ref.ReferenceQueue;
@@ -14,19 +13,17 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
-@Slf4j
 public class LeakDetecter
 {
     final         Object                                 dummy     = new Object();
     private final WatchLevel                             watchLevel;
     //Refence对象如果自身被GC了，就不会被放入到队列中。因此需要有一个地方持有他们的强引用。
     private final ConcurrentHashMap<LeakTracker, Object> map       = new ConcurrentHashMap<>();
-    final         LeakTracker            leakDummy = new LeakTracker(null, null, map, false);
-    private final ReferenceQueue<Object> queue     = new ReferenceQueue<>();
+    final         LeakTracker                            leakDummy = new LeakTracker(null, null, map, false);
+    private final ReferenceQueue<Object>                 queue     = new ReferenceQueue<>();
 
     public LeakDetecter(WatchLevel watchLevel)
     {
-        System.out.println("资源泄露监控级别：" + watchLevel);
         this.watchLevel = watchLevel;
         new Thread(() -> {
             while (true)
@@ -41,24 +38,11 @@ public class LeakDetecter
                     }
                     else
                     {
-                        if (reference.getSource() != null)
-                        {
-                            log.error("""
-                                              发现资源泄露，泄露资源的创建栈如下:
-                                              {}
-                                              代码轨迹路径为:
-                                              {}""", reference.getSource(), reference.getTraceQueue().stream().collect(Collectors.joining("\r\n**********\r\n")));
-                        }
-                        else
-                        {
-                            log.error("发现资源泄露");
-                        }
                     }
                     reference.clear();
                 }
                 catch (Throwable e)
                 {
-                    log.error("资源泄露监测发生异常", e);
                 }
             }
         }).start();

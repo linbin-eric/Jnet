@@ -14,16 +14,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 @ToString
 public class PooledBuffer extends UnPooledBuffer implements ArenaAccepter
 {
-    protected       Arena         arena;
-    @Getter
-    protected       Chunk chunk;
-    @Getter
-    protected       long          handle;
     /**
      * -1代表这个对象本身不是池化的。
      */
     @Getter
-    protected final int           bitmapIndex;
+    protected final int   bitmapIndex;
+    protected       Arena arena;
+    @Getter
+    protected       Chunk chunk;
+    @Getter
+    protected       long  handle;
 
     public PooledBuffer(BufferType bufferType, BufferAllocator allocator, int bitmapIndex)
     {
@@ -44,16 +44,16 @@ public class PooledBuffer extends UnPooledBuffer implements ArenaAccepter
     protected void freeMemory0()
     {
         arena.free(chunk, handle, memoryCapacity);
-        arena = null;
-        chunk = null;
-        handle        = 0;
+        arena  = null;
+        chunk  = null;
+        handle = 0;
     }
 
     @Override
     protected void expansionCapacity(int newCapacity)
     {
         Arena         oldArena          = arena;
-        Chunk oldChunk = chunk;
+        Chunk         oldChunk          = chunk;
         long          oldHandle         = handle;
         int           oldMemoryCapacity = memoryCapacity;
         AtomicInteger oldRefCnt         = refCnt;
@@ -69,19 +69,18 @@ public class PooledBuffer extends UnPooledBuffer implements ArenaAccepter
     public IoBuffer slice(int length)
     {
         PooledBuffer slice = (PooledBuffer) super.slice(length);
-        slice.arena = arena;
-        slice.chunk = chunk;
+        slice.arena  = arena;
+        slice.chunk  = chunk;
         slice.handle = handle;
         return slice;
-
     }
 
     @Override
     protected void compactByNewSpace(int length)
     {
-        Arena         oldArena         = arena;
-        Chunk oldChunk = chunk;
-        long          oldHandle        = handle;
+        Arena         oldArena          = arena;
+        Chunk         oldChunk          = chunk;
+        long          oldHandle         = handle;
         int           oldMemoryCapacity = memoryCapacity;
         AtomicInteger oldRefCnt         = refCnt;
         super.compactByNewSpace(length);
@@ -94,6 +93,6 @@ public class PooledBuffer extends UnPooledBuffer implements ArenaAccepter
     @Override
     public String toString()
     {
-        return "PooledBuffer{" + ", bitmapIndex=" + bitmapIndex + ", refCnt=" + refCnt+ ",capacity=" + bufferCapacity + ", readPosi=" + readPosi + ", writePosi=" + writePosi + ", refCount=" + refCnt.get() + '}';
+        return "PooledBuffer{" + ", bitmapIndex=" + bitmapIndex + ", refCnt=" + refCnt + ",capacity=" + bufferCapacity + ", readPosi=" + readPosi + ", writePosi=" + writePosi + ", refCount=" + refCnt.get() + '}';
     }
 }

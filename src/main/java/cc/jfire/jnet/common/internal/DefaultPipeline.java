@@ -1,25 +1,25 @@
 package cc.jfire.jnet.common.internal;
 
+import cc.jfire.baseutil.TRACEID;
 import cc.jfire.jnet.common.api.*;
 import cc.jfire.jnet.common.buffer.allocator.BufferAllocator;
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 import cc.jfire.jnet.common.util.ChannelConfig;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
 
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
-@Slf4j
 public class DefaultPipeline implements InternalPipeline
 {
     private final AsynchronousSocketChannel     socketChannel;
     private final ChannelConfig                 channelConfig;
     private final Consumer<Throwable>           jvmExistHandler;
     private final BufferAllocator               allocator;
+    private final String                        pipelineId    = TRACEID.newTraceId();
     private       ReadProcessorNode             readHead;
     private       WriteProcessorNode            writeHead;
     @Getter
@@ -97,6 +97,12 @@ public class DefaultPipeline implements InternalPipeline
     public BufferAllocator allocator()
     {
         return allocator;
+    }
+
+    @Override
+    public String pipelineId()
+    {
+        return pipelineId;
     }
 
     @Override

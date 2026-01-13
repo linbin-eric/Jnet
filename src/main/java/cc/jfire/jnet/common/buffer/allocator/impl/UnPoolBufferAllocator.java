@@ -10,8 +10,8 @@ import java.nio.ByteBuffer;
 
 public class UnPoolBufferAllocator implements BufferAllocator
 {
-    private final       boolean               preferDirect;
     public static final UnPoolBufferAllocator DEFAULT = new UnPoolBufferAllocator(false);
+    private final       boolean               preferDirect;
 
     public UnPoolBufferAllocator()
     {
@@ -73,11 +73,9 @@ public class UnPoolBufferAllocator implements BufferAllocator
         }
     }
 
-
     @Override
     public void cycleBufferInstance(IoBuffer buffer)
     {
         ;
     }
-
 }

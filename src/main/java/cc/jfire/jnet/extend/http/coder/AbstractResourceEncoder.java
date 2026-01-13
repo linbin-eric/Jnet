@@ -7,9 +7,8 @@ import cc.jfire.baseutil.StringUtil;
 import cc.jfire.jnet.common.api.ReadProcessor;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.common.util.HttpCoderUtil;
-import cc.jfire.jnet.extend.http.dto.HttpResponse;
 import cc.jfire.jnet.extend.http.dto.HttpRequest;
-import lombok.extern.slf4j.Slf4j;
+import cc.jfire.jnet.extend.http.dto.HttpResponse;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -18,8 +17,7 @@ import java.io.InputStream;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-@Slf4j
-public abstract class AbstractResourceEncoder implements ReadProcessor<HttpRequest>
+public abstract class AbstractResourceEncoder implements ReadProcessor
 {
     //资源地址的文件夹路径
     protected final String resourcePathPrefix;
@@ -54,8 +52,13 @@ public abstract class AbstractResourceEncoder implements ReadProcessor<HttpReque
     }
 
     @Override
-    public void read(HttpRequest request, ReadProcessorNode next)
+    public void read(Object data, ReadProcessorNode next)
     {
+        if (!(data instanceof HttpRequest request))
+        {
+            next.fireRead(data);
+            return;
+        }
         String url = request.getHead().getPath();
         if (!request.getHead().getMethod().equalsIgnoreCase("get"))
         {
@@ -92,11 +95,7 @@ public abstract class AbstractResourceEncoder implements ReadProcessor<HttpReque
 
     public static class ClassResourceEncoder extends AbstractResourceEncoder
     {
-        record StaticResource(byte[] content, String contentType)
-        {
-        }
-
-        private ConcurrentMap<String, StaticResource> map = new ConcurrentHashMap<>();
+        private final ConcurrentMap<String, StaticResource> map = new ConcurrentHashMap<>();
 
         public ClassResourceEncoder(String resourcePathPrefix, String urlPrefix)
         {
@@ -140,6 +139,10 @@ public abstract class AbstractResourceEncoder implements ReadProcessor<HttpReque
                 next.pipeline().fireWrite(response);
             }
         }
+
+        record StaticResource(byte[] content, String contentType)
+        {
+        }
     }
 
     public static class FileResourceEncoder extends AbstractResourceEncoder
@@ -151,7 +154,7 @@ public abstract class AbstractResourceEncoder implements ReadProcessor<HttpReque
             super(resourcePathPrefix, urlPrefix);
             File dirOfMainClass = RuntimeJVM.getDirOfMainClass();
             dir = new File(dirOfMainClass, resourcePathPrefix);
-            if (dir.exists() == false || dir.isDirectory() == false)
+            if (!dir.exists() || !dir.isDirectory())
             {
                 throw new IllegalArgumentException(STR.format("配置的路径:{}不存在或不是文件夹", dir.getAbsolutePath()));
             }

@@ -5,7 +5,7 @@ import java.util.Map;
 
 public class ContentTypeDist
 {
-    private static Map<String, String> dist = new HashMap<>();
+    private static final Map<String, String> dist = new HashMap<>();
 
     static
     {

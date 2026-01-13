@@ -15,7 +15,6 @@ public class PlatFormFunction
 
     public static long bytebufferOffsetAddress(ByteBuffer buffer)
     {
-//        System.out.println("调用");
         return UNSAFE.unsafe.getLong(buffer, address);
     }
 }

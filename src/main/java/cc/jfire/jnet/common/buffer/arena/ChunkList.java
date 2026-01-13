@@ -8,9 +8,9 @@ public class ChunkList
     final int   minUsage;
     final int   maxReqCapacity;
     final Arena arena;
-    ChunkList     prevList;
-    ChunkList     nextList;
-    Chunk head;
+    ChunkList prevList;
+    ChunkList nextList;
+    Chunk     head;
 
     /**
      * 两个边界都是闭区间。也就是大于等于最小使用率，小于等于最大使用率都在这个List中

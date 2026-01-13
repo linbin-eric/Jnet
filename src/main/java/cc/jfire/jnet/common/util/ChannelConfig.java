@@ -40,10 +40,8 @@ public class ChannelConfig
     private int                       port              = -1;
     private int                       backLog           = 50;
     private Consumer<Throwable>       jvmExistHandler   = e -> {
-        System.err.println("Some RunnableImpl run in Jnet not handle Exception well,Check all ReadProcessor and WriteProcessor");
-        e.printStackTrace();
     };
-    private Supplier<BufferAllocator> allocatorSupplier = () ->new PooledBufferAllocator(5000, true, PooledBufferAllocator.getArena(true));
-//    private Supplier<BufferAllocator> allocatorSupplier = () ->new UnPoolBufferAllocator(true);
+    private Supplier<BufferAllocator> allocatorSupplier = () -> new PooledBufferAllocator(5000, true, PooledBufferAllocator.getArena(true));
+    //    private Supplier<BufferAllocator> allocatorSupplier = () ->new UnPoolBufferAllocator(true);
     private AsynchronousChannelGroup  channelGroup      = DEFAULT_CHANNEL_GROUP;
 }

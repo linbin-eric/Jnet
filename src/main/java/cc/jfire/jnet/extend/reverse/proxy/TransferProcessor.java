@@ -7,12 +7,10 @@ import cc.jfire.jnet.extend.http.client.HttpConnectionPool;
 import cc.jfire.jnet.extend.http.dto.*;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceConfig;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceHandler;
-import lombok.extern.slf4j.Slf4j;
 
 import java.util.Comparator;
 import java.util.List;
 
-@Slf4j
 public class TransferProcessor implements ReadProcessor<Object>
 {
     private final ResourceHandler[] handlers;
@@ -21,7 +19,7 @@ public class TransferProcessor implements ReadProcessor<Object>
 
     public TransferProcessor(List<ResourceConfig> configs, HttpConnectionPool pool)
     {
-        handlers = configs.stream().sorted(Comparator.comparingInt(ResourceConfig::getOrder)).map(config -> config.parse(pool)).toArray(ResourceHandler[]::new);
+        handlers = configs.stream().sorted(Comparator.comparingInt(ResourceConfig::order)).map(config -> config.parse(pool)).toArray(ResourceHandler[]::new);
     }
 
     @Override
@@ -121,7 +119,7 @@ public class TransferProcessor implements ReadProcessor<Object>
         finally
         {
             currentHandler = null;
-            webSocketMode = false;
+            webSocketMode  = false;
         }
         next.fireReadFailed(e);
     }

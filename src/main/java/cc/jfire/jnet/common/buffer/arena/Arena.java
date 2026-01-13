@@ -29,6 +29,7 @@ public class Arena
     final           ChunkList  cInt;
     final           BufferType bufferType;
     final           SubPage[]  subPageHeads;
+    private final Lock lock = new ReentrantLock();
     /**
      * 统计相关
      **/
@@ -36,7 +37,6 @@ public class Arena
     AtomicInteger hugeChunkCount = new AtomicInteger();
     AtomicInteger usedAllocate   = new AtomicInteger();
     String        name;
-    private final Lock lock = new ReentrantLock();
 
     public Arena(String name, BufferType bufferType)
     {
