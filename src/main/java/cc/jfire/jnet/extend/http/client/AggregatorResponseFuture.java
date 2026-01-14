@@ -28,9 +28,9 @@ public class AggregatorResponseFuture implements ResponseFuture
     private static final int                  ERROR_NO_TIMEOUT_NO_END    = 0b100; // 错误未超时未结束
     private static final int                  ERROR_TIMEOUT_NO_END       = 0b110; // 错误且超时未结束
     private static final long                 STATUS_OFFSET              = UNSAFE.getFieldOffset("status", AggregatorResponseFuture.class);
-    private final    BufferAllocator allocator;
-    private final    int             status = NO_ERROR_NO_TIMEOUT_NO_END;
-    private volatile Throwable       error;
+    private final        BufferAllocator      allocator;
+    private volatile     int                  status                     = NO_ERROR_NO_TIMEOUT_NO_END;
+    private volatile     Throwable            error;
     private volatile     HttpResponse         httpResponse;
     private volatile     Thread               waitingThread;
     private              HttpResponsePartHead headPart;
@@ -62,7 +62,6 @@ public class AggregatorResponseFuture implements ResponseFuture
                 return;
             }
             this.headPart = head;
-            // 聚合模式不需要保留 head 的原始字节，及时释放
             head.free();
             long contentLength = head.getContentLength();
             if (contentLength > Integer.MAX_VALUE)
@@ -78,7 +77,6 @@ public class AggregatorResponseFuture implements ResponseFuture
             {
                 bodyBuffer = allocator.allocate(1024);
             }
-            // 无body响应，head就是最后一个part
             if (head.isLast())
             {
                 handleEnd();
