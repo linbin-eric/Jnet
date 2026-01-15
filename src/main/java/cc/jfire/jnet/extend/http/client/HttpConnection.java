@@ -15,15 +15,11 @@ import lombok.Getter;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 import java.net.SocketTimeoutException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.charset.StandardCharsets;
-import java.security.cert.X509Certificate;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 public class HttpConnection
@@ -36,237 +32,103 @@ public class HttpConnection
 
     public HttpConnection(String domain, int port, int secondsOfKeepAlive)
     {
-        ChannelConfig channelConfig = new ChannelConfig().setIp(domain).setPort(port);
-        clientChannel = ClientChannel.newClient(channelConfig, pipeline -> {
-            pipeline.addReadProcessor(new HeartBeat(secondsOfKeepAlive, pipeline));
-            pipeline.addReadProcessor(new HttpResponsePartDecoder());
-            pipeline.addReadProcessor(new ReadProcessor<HttpResponsePart>()
-            {
-                @Override
-                public void read(HttpResponsePart part, ReadProcessorNode next)
-                {
-                    try
-                    {
-                        ResponseFuture future = responseFuture;
-                        if (future == null)
-                        {
-                            part.free();
-                            next.fireRead(null);
-                            return;
-                        }
-                        // 先清除 responseFuture，再调用 onReceive
-                        // 因为 onReceive 中可能会归还连接到连接池，必须确保归还前 responseFuture 已清空
-                        if (part.isLast())
-                        {
-//                            log.debug("[HttpConnection:{},pipeline:{}] 收到最后一个响应体，清除当前 future", uid, ((DefaultPipeline) next.pipeline()).getUid());
-                            responseFuture = null;
-                        }
-                        future.onReceive(part);
-                    }
-                    catch (Throwable e)
-                    {
-                        pipeline.shutdownInput();
-                    }
-                }
-
-                @Override
-                public void readFailed(Throwable e, ReadProcessorNode next)
-                {
-                    close();
-                    ResponseFuture future = responseFuture;
-                    responseFuture = null;
-                    if (future != null)
-                    {
-                        future.onFail(e);
-                    }
-                }
-            });
-            pipeline.addWriteProcessor(new HttpRequestPartEncoder());
-            pipeline.addWriteProcessor(new HeartBeat(secondsOfKeepAlive, pipeline));
-        });
-        if (!clientChannel.connect())
-        {
-            ReflectUtil.throwException(new RuntimeException("无法连接 " + domain + ":" + port, clientChannel.getConnectionException()));
-        }
-//        log.debug("[HttpConnection:{},pipeline:{}]创建", uid, ((DefaultPipeline) clientChannel.pipeline()).getUid());
+        this(domain, port, new HttpClientConfig().setKeepAliveSeconds(secondsOfKeepAlive), null, 0, false);
     }
 
     public HttpConnection(String domain, int port, int secondsOfKeepAlive, boolean ssl)
     {
-        ChannelConfig      channelConfig    = new ChannelConfig().setIp(domain).setPort(port);
-        ClientSSLDecoder[] sslDecoderHolder = new ClientSSLDecoder[1];
-        clientChannel = ClientChannel.newClient(channelConfig, pipeline -> {
-            if (ssl)
-            {
-                try
-                {
-                    TrustManager[] trustAllCerts = new TrustManager[]{new X509TrustManager()
-                    {
-                        public X509Certificate[] getAcceptedIssuers()                            {return new X509Certificate[0];}
-
-                        public void checkClientTrusted(X509Certificate[] certs, String authType) {}
-
-                        public void checkServerTrusted(X509Certificate[] certs, String authType) {}
-                    }};
-                    SSLContext sslContext = SSLContext.getInstance("TLS");
-                    sslContext.init(null, trustAllCerts, null);
-                    SSLEngine sslEngine = sslContext.createSSLEngine(domain, port);
-                    sslEngine.setUseClientMode(true);
-                    ClientSSLDecoder sslDecoder = new ClientSSLDecoder(sslEngine);
-                    SSLEncoder       sslEncoder = new SSLEncoder(sslEngine);
-                    sslDecoderHolder[0] = sslDecoder;
-                    sslEngine.beginHandshake();
-                    pipeline.addReadProcessor(sslDecoder);
-                    pipeline.addReadProcessor(new HeartBeat(secondsOfKeepAlive, pipeline));
-                    pipeline.addReadProcessor(new HttpResponsePartDecoder());
-                    pipeline.addReadProcessor(new ReadProcessor<HttpResponsePart>()
-                    {
-                        @Override
-                        public void read(HttpResponsePart part, ReadProcessorNode next)
-                        {
-                            try
-                            {
-                                ResponseFuture future = responseFuture;
-                                if (future == null)
-                                {
-                                    part.free();
-                                    next.fireRead(null);
-                                    return;
-                                }
-                                if (part.isLast())
-                                {
-                                    responseFuture = null;
-                                }
-                                future.onReceive(part);
-                            }
-                            catch (Throwable e)
-                            {
-                                pipeline.shutdownInput();
-                            }
-                        }
-
-                        @Override
-                        public void readFailed(Throwable e, ReadProcessorNode next)
-                        {
-                            close();
-                            ResponseFuture future = responseFuture;
-                            responseFuture = null;
-                            if (future != null)
-                            {
-                                future.onFail(e);
-                            }
-                        }
-                    });
-                    pipeline.addWriteProcessor(new HttpRequestPartEncoder());
-                    pipeline.addWriteProcessor(new HeartBeat(secondsOfKeepAlive, pipeline));
-                    pipeline.addWriteProcessor(sslEncoder);
-                }
-                catch (Exception e)
-                {
-                    ReflectUtil.throwException(new RuntimeException("SSL 初始化失败", e));
-                }
-            }
-            else
-            {
-                pipeline.addReadProcessor(new HeartBeat(secondsOfKeepAlive, pipeline));
-                pipeline.addReadProcessor(new HttpResponsePartDecoder());
-                pipeline.addReadProcessor(new ReadProcessor<HttpResponsePart>()
-                {
-                    @Override
-                    public void read(HttpResponsePart part, ReadProcessorNode next)
-                    {
-                        try
-                        {
-                            ResponseFuture future = responseFuture;
-                            if (future == null)
-                            {
-                                part.free();
-                                next.fireRead(null);
-                                return;
-                            }
-                            if (part.isLast())
-                            {
-                                responseFuture = null;
-                            }
-                            future.onReceive(part);
-                        }
-                        catch (Throwable e)
-                        {
-                            pipeline.shutdownInput();
-                        }
-                    }
-
-                    @Override
-                    public void readFailed(Throwable e, ReadProcessorNode next)
-                    {
-                        close();
-                        ResponseFuture future = responseFuture;
-                        responseFuture = null;
-                        if (future != null)
-                        {
-                            future.onFail(e);
-                        }
-                    }
-                });
-                pipeline.addWriteProcessor(new HttpRequestPartEncoder());
-                pipeline.addWriteProcessor(new HeartBeat(secondsOfKeepAlive, pipeline));
-            }
-        });
-        if (!clientChannel.connect())
-        {
-            ReflectUtil.throwException(new RuntimeException("无法连接 " + domain + ":" + port, clientChannel.getConnectionException()));
-        }
-        if (ssl && sslDecoderHolder[0] != null)
-        {
-            sslDecoderHolder[0].startHandshake(clientChannel.pipeline());
-            try
-            {
-                if (!sslDecoderHolder[0].waitHandshake(30, TimeUnit.SECONDS))
-                {
-                    clientChannel.pipeline().shutdownInput();
-                    ReflectUtil.throwException(new RuntimeException("SSL 握手超时"));
-                }
-            }
-            catch (InterruptedException e)
-            {
-                clientChannel.pipeline().shutdownInput();
-                ReflectUtil.throwException(new RuntimeException("SSL 握手被中断", e));
-            }
-        }
+        this(domain, port, new HttpClientConfig().setKeepAliveSeconds(secondsOfKeepAlive), null, 0, ssl);
     }
 
     public HttpConnection(String domain, int port, HttpClientConfig config, boolean ssl)
     {
-        ChannelConfig      channelConfig    = new ChannelConfig().setIp(domain).setPort(port);
-        ClientSSLDecoder[] sslDecoderHolder = new ClientSSLDecoder[1];
-        int                keepAliveSeconds = config.getKeepAliveSeconds();
-        clientChannel = ClientChannel.newClient(channelConfig, pipeline -> {
-            if (ssl)
-            {
-                try
+        this(domain, port, config, null, 0, ssl);
+    }
+
+    /**
+     * 通过 HTTP 代理创建连接（支持 HTTP/HTTPS 两种模式）
+     *
+     * @param domain    目标服务器域名
+     * @param port      目标服务器端口
+     * @param config    客户端配置
+     * @param proxyHost 代理服务器主机名
+     * @param proxyPort 代理服务器端口
+     * @param ssl       是否使用 SSL（true 为 HTTPS 代理隧道模式，false 为 HTTP 直接代理模式）
+     */
+    public HttpConnection(String domain, int port, HttpClientConfig config, String proxyHost, int proxyPort, boolean ssl)
+    {
+        if (proxyHost == null)
+        {
+            // 直接连接模式(不使用代理)
+            ChannelConfig      channelConfig    = new ChannelConfig().setIp(domain).setPort(port);
+            ClientSSLDecoder[] sslDecoderHolder = new ClientSSLDecoder[1];
+            int                keepAliveSeconds = config.getKeepAliveSeconds();
+            clientChannel = ClientChannel.newClient(channelConfig, pipeline -> {
+                if (ssl)
                 {
-                    TrustManager[] trustManagers = config.getTrustManagers();
-                    if (trustManagers == null)
+                    try
                     {
-                        // 默认信任所有证书
-                        trustManagers = new TrustManager[]{new X509TrustManager()
+                        TrustManager[] trustManagers = config.getTrustManagers();
+                        SSLContext     sslContext    = SSLContext.getInstance("TLS");
+                        sslContext.init(null, trustManagers, null);
+                        SSLEngine sslEngine = sslContext.createSSLEngine(domain, port);
+                        sslEngine.setUseClientMode(true);
+                        ClientSSLDecoder sslDecoder = new ClientSSLDecoder(sslEngine);
+                        SSLEncoder       sslEncoder = new SSLEncoder(sslEngine);
+                        sslDecoderHolder[0] = sslDecoder;
+                        sslEngine.beginHandshake();
+                        pipeline.addReadProcessor(sslDecoder);
+                        pipeline.addReadProcessor(new HeartBeat(keepAliveSeconds, pipeline));
+                        pipeline.addReadProcessor(new HttpResponsePartDecoder());
+                        pipeline.addReadProcessor(new ReadProcessor<HttpResponsePart>()
                         {
-                            public X509Certificate[] getAcceptedIssuers()                            {return new X509Certificate[0];}
+                            @Override
+                            public void read(HttpResponsePart part, ReadProcessorNode next)
+                            {
+                                try
+                                {
+                                    ResponseFuture future = responseFuture;
+                                    if (future == null)
+                                    {
+                                        part.free();
+                                        next.fireRead(null);
+                                        return;
+                                    }
+                                    if (part.isLast())
+                                    {
+                                        responseFuture = null;
+                                    }
+                                    future.onReceive(part);
+                                }
+                                catch (Throwable e)
+                                {
+                                    pipeline.shutdownInput();
+                                }
+                            }
 
-                            public void checkClientTrusted(X509Certificate[] certs, String authType) {}
-
-                            public void checkServerTrusted(X509Certificate[] certs, String authType) {}
-                        }};
+                            @Override
+                            public void readFailed(Throwable e, ReadProcessorNode next)
+                            {
+                                close();
+                                ResponseFuture future = responseFuture;
+                                responseFuture = null;
+                                if (future != null)
+                                {
+                                    future.onFail(e);
+                                }
+                            }
+                        });
+                        pipeline.addWriteProcessor(new HttpRequestPartEncoder());
+                        pipeline.addWriteProcessor(new HeartBeat(keepAliveSeconds, pipeline));
+                        pipeline.addWriteProcessor(sslEncoder);
                     }
-                    SSLContext sslContext = SSLContext.getInstance("TLS");
-                    sslContext.init(null, trustManagers, null);
-                    SSLEngine sslEngine = sslContext.createSSLEngine(domain, port);
-                    sslEngine.setUseClientMode(true);
-                    ClientSSLDecoder sslDecoder = new ClientSSLDecoder(sslEngine);
-                    SSLEncoder       sslEncoder = new SSLEncoder(sslEngine);
-                    sslDecoderHolder[0] = sslDecoder;
-                    sslEngine.beginHandshake();
-                    pipeline.addReadProcessor(sslDecoder);
+                    catch (Exception e)
+                    {
+                        ReflectUtil.throwException(new RuntimeException("SSL 初始化失败", e));
+                    }
+                }
+                else
+                {
                     pipeline.addReadProcessor(new HeartBeat(keepAliveSeconds, pipeline));
                     pipeline.addReadProcessor(new HttpResponsePartDecoder());
                     pipeline.addReadProcessor(new ReadProcessor<HttpResponsePart>()
@@ -309,118 +171,44 @@ public class HttpConnection
                     });
                     pipeline.addWriteProcessor(new HttpRequestPartEncoder());
                     pipeline.addWriteProcessor(new HeartBeat(keepAliveSeconds, pipeline));
-                    pipeline.addWriteProcessor(sslEncoder);
                 }
-                catch (Exception e)
+            });
+            if (!clientChannel.connect())
+            {
+                ReflectUtil.throwException(new RuntimeException("无法连接 " + domain + ":" + port, clientChannel.getConnectionException()));
+            }
+            if (ssl && sslDecoderHolder[0] != null)
+            {
+                sslDecoderHolder[0].startHandshake(clientChannel.pipeline());
+                try
                 {
-                    ReflectUtil.throwException(new RuntimeException("SSL 初始化失败", e));
+                    if (!sslDecoderHolder[0].waitHandshake(config.getSslHandshakeTimeoutSeconds(), TimeUnit.SECONDS))
+                    {
+                        clientChannel.pipeline().shutdownInput();
+                        ReflectUtil.throwException(new RuntimeException("SSL 握手超时"));
+                    }
                 }
-            }
-            else
-            {
-                pipeline.addReadProcessor(new HeartBeat(keepAliveSeconds, pipeline));
-                pipeline.addReadProcessor(new HttpResponsePartDecoder());
-                pipeline.addReadProcessor(new ReadProcessor<HttpResponsePart>()
-                {
-                    @Override
-                    public void read(HttpResponsePart part, ReadProcessorNode next)
-                    {
-                        try
-                        {
-                            ResponseFuture future = responseFuture;
-                            if (future == null)
-                            {
-                                part.free();
-                                next.fireRead(null);
-                                return;
-                            }
-                            if (part.isLast())
-                            {
-                                responseFuture = null;
-                            }
-                            future.onReceive(part);
-                        }
-                        catch (Throwable e)
-                        {
-                            pipeline.shutdownInput();
-                        }
-                    }
-
-                    @Override
-                    public void readFailed(Throwable e, ReadProcessorNode next)
-                    {
-                        close();
-                        ResponseFuture future = responseFuture;
-                        responseFuture = null;
-                        if (future != null)
-                        {
-                            future.onFail(e);
-                        }
-                    }
-                });
-                pipeline.addWriteProcessor(new HttpRequestPartEncoder());
-                pipeline.addWriteProcessor(new HeartBeat(keepAliveSeconds, pipeline));
-            }
-        });
-        if (!clientChannel.connect())
-        {
-            ReflectUtil.throwException(new RuntimeException("无法连接 " + domain + ":" + port, clientChannel.getConnectionException()));
-        }
-        if (ssl && sslDecoderHolder[0] != null)
-        {
-            sslDecoderHolder[0].startHandshake(clientChannel.pipeline());
-            try
-            {
-                if (!sslDecoderHolder[0].waitHandshake(config.getSslHandshakeTimeoutSeconds(), TimeUnit.SECONDS))
+                catch (InterruptedException e)
                 {
                     clientChannel.pipeline().shutdownInput();
-                    ReflectUtil.throwException(new RuntimeException("SSL 握手超时"));
+                    ReflectUtil.throwException(new RuntimeException("SSL 握手被中断", e));
                 }
             }
-            catch (InterruptedException e)
-            {
-                clientChannel.pipeline().shutdownInput();
-                ReflectUtil.throwException(new RuntimeException("SSL 握手被中断", e));
-            }
         }
-    }
-
-    /**
-     * 通过 HTTP 代理创建连接（支持 HTTP/HTTPS 两种模式）
-     *
-     * @param domain    目标服务器域名
-     * @param port      目标服务器端口
-     * @param config    客户端配置
-     * @param proxyHost 代理服务器主机名
-     * @param proxyPort 代理服务器端口
-     * @param ssl       是否使用 SSL（true 为 HTTPS 代理隧道模式，false 为 HTTP 直接代理模式）
-     */
-    public HttpConnection(String domain, int port, HttpClientConfig config, String proxyHost, int proxyPort, boolean ssl)
-    {
-        if (ssl)
+        else if (ssl)
         {
             // HTTPS 代理（CONNECT 隧道模式）
-            ChannelConfig              channelConfig      = new ChannelConfig().setIp(proxyHost).setPort(proxyPort);
-            ClientSSLDecoder[]         sslDecoderHolder   = new ClientSSLDecoder[1];
-            CountDownLatch             tunnelLatch        = new CountDownLatch(1);
-            AtomicBoolean              tunnelEstablished  = new AtomicBoolean(false);
-            AtomicReference<Throwable> tunnelErrorRef     = new AtomicReference<>();
-            int                        secondsOfKeepAlive = config.getKeepAliveSeconds();
+            ChannelConfig      channelConfig      = new ChannelConfig().setIp(proxyHost).setPort(proxyPort);
+            ClientSSLDecoder[] sslDecoderHolder   = new ClientSSLDecoder[1];
+            int                secondsOfKeepAlive = config.getKeepAliveSeconds();
             // 创建隧道读处理器
-            ProxyTunnelReadHandler tunnelReadHandler = new ProxyTunnelReadHandler(tunnelLatch, tunnelEstablished, tunnelErrorRef);
+            ProxyTunnelReadHandler tunnelReadHandler = new ProxyTunnelReadHandler();
             clientChannel = ClientChannel.newClient(channelConfig, pipeline -> {
                 try
                 {
                     // 初始化 SSL 引擎
-                    TrustManager[] trustAllCerts = new TrustManager[]{new X509TrustManager()
-                    {
-                        public X509Certificate[] getAcceptedIssuers()                            {return new X509Certificate[0];}
-
-                        public void checkClientTrusted(X509Certificate[] certs, String authType) {}
-
-                        public void checkServerTrusted(X509Certificate[] certs, String authType) {}
-                    }};
-                    SSLContext sslContext = SSLContext.getInstance("TLS");
+                    TrustManager[] trustAllCerts = config.getTrustManagers();
+                    SSLContext     sslContext    = SSLContext.getInstance("TLS");
                     sslContext.init(null, trustAllCerts, null);
                     SSLEngine sslEngine = sslContext.createSSLEngine(domain, port);
                     sslEngine.setUseClientMode(true);
@@ -478,8 +266,7 @@ public class HttpConnection
                 }
                 catch (Exception e)
                 {
-                    tunnelErrorRef.set(e);
-                    tunnelLatch.countDown();
+                    tunnelReadHandler.setTunnelError(e);
                 }
             });
             if (!clientChannel.connect())
@@ -494,7 +281,7 @@ public class HttpConnection
             // 等待隧道建立
             try
             {
-                if (!tunnelLatch.await(30, TimeUnit.SECONDS))
+                if (!tunnelReadHandler.awaitTunnelEstablished(30, TimeUnit.SECONDS))
                 {
                     clientChannel.pipeline().shutdownInput();
                     ReflectUtil.throwException(new RuntimeException("代理隧道建立超时"));
@@ -505,12 +292,12 @@ public class HttpConnection
                 clientChannel.pipeline().shutdownInput();
                 ReflectUtil.throwException(new RuntimeException("代理连接被中断", e));
             }
-            if (tunnelErrorRef.get() != null)
+            if (tunnelReadHandler.getTunnelError() != null)
             {
                 clientChannel.pipeline().shutdownInput();
-                ReflectUtil.throwException(new RuntimeException("代理隧道建立失败", tunnelErrorRef.get()));
+                ReflectUtil.throwException(new RuntimeException("代理隧道建立失败", tunnelReadHandler.getTunnelError()));
             }
-            if (!tunnelEstablished.get())
+            if (!tunnelReadHandler.isTunnelEstablished())
             {
                 clientChannel.pipeline().shutdownInput();
                 ReflectUtil.throwException(new RuntimeException("代理服务器拒绝 CONNECT 请求"));

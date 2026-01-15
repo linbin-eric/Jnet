@@ -6,8 +6,7 @@ import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 代理隧道读处理器
@@ -15,21 +14,12 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class ProxyTunnelReadHandler implements ReadProcessor<IoBuffer>
 {
-    private final CountDownLatch             tunnelLatch;
-    private final AtomicBoolean              tunnelEstablished;
-    private final AtomicReference<Throwable> errorRef;
+    private final CountDownLatch tunnelLatch       = new CountDownLatch(1);
+    private volatile boolean     tunnelEstablished = false;
+    private volatile Throwable   tunnelError       = null;
 
     private volatile boolean  tunnelReady = false;
     private          IoBuffer accumulation;
-
-    public ProxyTunnelReadHandler(CountDownLatch tunnelLatch,
-                                  AtomicBoolean tunnelEstablished,
-                                  AtomicReference<Throwable> errorRef)
-    {
-        this.tunnelLatch       = tunnelLatch;
-        this.tunnelEstablished = tunnelEstablished;
-        this.errorRef          = errorRef;
-    }
 
     @Override
     public void read(IoBuffer data, ReadProcessorNode next)
@@ -55,8 +45,8 @@ public class ProxyTunnelReadHandler implements ReadProcessor<IoBuffer>
         // 尝试解析 CONNECT 响应
         if (parseConnectResponse())
         {
-            tunnelReady = true;
-            tunnelEstablished.set(true);
+            tunnelReady       = true;
+            tunnelEstablished = true;
             tunnelLatch.countDown();
 
             // 如果有剩余数据，传递给 SSL 解码器
@@ -118,7 +108,7 @@ public class ProxyTunnelReadHandler implements ReadProcessor<IoBuffer>
                 {
                     // 代理拒绝连接
                     String statusLine = headerStr.split("\r\n")[0];
-                    errorRef.set(new RuntimeException("代理服务器返回非 200 响应: " + statusLine));
+                    tunnelError = new RuntimeException("代理服务器返回非 200 响应: " + statusLine);
                     tunnelLatch.countDown();
                     return false;
                 }
@@ -133,7 +123,7 @@ public class ProxyTunnelReadHandler implements ReadProcessor<IoBuffer>
     {
         if (!tunnelReady)
         {
-            errorRef.set(e);
+            tunnelError = e;
             tunnelLatch.countDown();
         }
         if (accumulation != null)
@@ -142,5 +132,50 @@ public class ProxyTunnelReadHandler implements ReadProcessor<IoBuffer>
             accumulation = null;
         }
         next.fireReadFailed(e);
+    }
+
+    /**
+     * 等待隧道建立完成
+     *
+     * @param timeout 超时时间
+     * @param unit    时间单位
+     * @return true 表示在超时前隧道建立完成，false 表示超时
+     * @throws InterruptedException 如果等待被中断
+     */
+    public boolean awaitTunnelEstablished(long timeout, TimeUnit unit) throws InterruptedException
+    {
+        return tunnelLatch.await(timeout, unit);
+    }
+
+    /**
+     * 检查隧道是否成功建立
+     *
+     * @return true 表示隧道已成功建立
+     */
+    public boolean isTunnelEstablished()
+    {
+        return tunnelEstablished;
+    }
+
+    /**
+     * 获取隧道建立过程中的错误
+     *
+     * @return 错误信息，如果没有错误则返回 null
+     */
+    public Throwable getTunnelError()
+    {
+        return tunnelError;
+    }
+
+    /**
+     * 设置隧道建立过程中的错误并通知等待线程
+     * 用于外部在初始化过程中发生异常时调用
+     *
+     * @param error 错误信息
+     */
+    public void setTunnelError(Throwable error)
+    {
+        this.tunnelError = error;
+        tunnelLatch.countDown();
     }
 }
