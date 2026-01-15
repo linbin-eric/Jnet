@@ -17,7 +17,8 @@ import java.util.concurrent.TimeUnit;
 @EqualsAndHashCode(callSuper = true)
 public class ClientSSLDecoder extends AbstractSSLDecoder
 {
-    private final CountDownLatch handshakeLatch = new CountDownLatch(1);
+    public static final String         KEY            = "SSL_HANDSHAKE_LATCH";
+    private final       CountDownLatch handshakeLatch = new CountDownLatch(1);
 
     public ClientSSLDecoder(SSLEngine sslEngine)
     {
@@ -43,8 +44,8 @@ public class ClientSSLDecoder extends AbstractSSLDecoder
             IoBuffer dst = pipeline.allocator().allocate(sslEngine.getSession().getPacketBufferSize());
             try
             {
-                SSLEngineResult result = sslEngine.wrap(ByteBuffer.allocate(0), dst.writableByteBuffer());
-                int bytesProduced = result.bytesProduced();
+                SSLEngineResult result        = sslEngine.wrap(ByteBuffer.allocate(0), dst.writableByteBuffer());
+                int             bytesProduced = result.bytesProduced();
                 dst.addWritePosi(bytesProduced);
                 if (bytesProduced > 0)
                 {

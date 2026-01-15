@@ -4,8 +4,8 @@ import cc.jfire.baseutil.TRACEID;
 import cc.jfire.jnet.client.ClientChannel;
 import cc.jfire.jnet.common.api.ReadProcessor;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
-import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 import cc.jfire.jnet.common.coder.HeartBeat;
+import cc.jfire.jnet.common.internal.DefaultPipeline;
 import cc.jfire.jnet.common.util.ChannelConfig;
 import cc.jfire.jnet.common.util.ReflectUtil;
 import cc.jfire.jnet.extend.http.coder.*;
@@ -17,7 +17,6 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.TrustManager;
 import java.net.SocketTimeoutException;
 import java.nio.channels.ClosedChannelException;
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -60,9 +59,8 @@ public class HttpConnection
         if (proxyHost == null)
         {
             // 直接连接模式(不使用代理)
-            ChannelConfig      channelConfig    = new ChannelConfig().setIp(domain).setPort(port);
-            ClientSSLDecoder[] sslDecoderHolder = new ClientSSLDecoder[1];
-            int                keepAliveSeconds = config.getKeepAliveSeconds();
+            ChannelConfig channelConfig    = new ChannelConfig().setIp(domain).setPort(port);
+            int           keepAliveSeconds = config.getKeepAliveSeconds();
             clientChannel = ClientChannel.newClient(channelConfig, pipeline -> {
                 if (ssl)
                 {
@@ -75,7 +73,6 @@ public class HttpConnection
                         sslEngine.setUseClientMode(true);
                         ClientSSLDecoder sslDecoder = new ClientSSLDecoder(sslEngine);
                         SSLEncoder       sslEncoder = new SSLEncoder(sslEngine);
-                        sslDecoderHolder[0] = sslDecoder;
                         sslEngine.beginHandshake();
                         pipeline.addReadProcessor(sslDecoder);
                         pipeline.addReadProcessor(new HeartBeat(keepAliveSeconds, pipeline));
@@ -121,6 +118,7 @@ public class HttpConnection
                         pipeline.addWriteProcessor(new HttpRequestPartEncoder());
                         pipeline.addWriteProcessor(new HeartBeat(keepAliveSeconds, pipeline));
                         pipeline.addWriteProcessor(sslEncoder);
+                        ((DefaultPipeline) pipeline).putPersistenceStore(ClientSSLDecoder.KEY, sslDecoder);
                     }
                     catch (Exception e)
                     {
@@ -177,12 +175,13 @@ public class HttpConnection
             {
                 ReflectUtil.throwException(new RuntimeException("无法连接 " + domain + ":" + port, clientChannel.getConnectionException()));
             }
-            if (ssl && sslDecoderHolder[0] != null)
+            if (ssl)
             {
-                sslDecoderHolder[0].startHandshake(clientChannel.pipeline());
+                ClientSSLDecoder sslDecoder = (ClientSSLDecoder) ((DefaultPipeline) clientChannel.pipeline()).getPersistenceStore(ClientSSLDecoder.KEY);
+                sslDecoder.startHandshake(clientChannel.pipeline());
                 try
                 {
-                    if (!sslDecoderHolder[0].waitHandshake(config.getSslHandshakeTimeoutSeconds(), TimeUnit.SECONDS))
+                    if (!sslDecoder.waitHandshake(config.getSslHandshakeTimeoutSeconds(), TimeUnit.SECONDS))
                     {
                         clientChannel.pipeline().shutdownInput();
                         ReflectUtil.throwException(new RuntimeException("SSL 握手超时"));
@@ -198,9 +197,8 @@ public class HttpConnection
         else if (ssl)
         {
             // HTTPS 代理（CONNECT 隧道模式）
-            ChannelConfig      channelConfig      = new ChannelConfig().setIp(proxyHost).setPort(proxyPort);
-            ClientSSLDecoder[] sslDecoderHolder   = new ClientSSLDecoder[1];
-            int                secondsOfKeepAlive = config.getKeepAliveSeconds();
+            ChannelConfig channelConfig      = new ChannelConfig().setIp(proxyHost).setPort(proxyPort);
+            int           secondsOfKeepAlive = config.getKeepAliveSeconds();
             // 创建隧道读处理器
             ProxyTunnelReadHandler tunnelReadHandler = new ProxyTunnelReadHandler(domain, port);
             clientChannel = ClientChannel.newClient(channelConfig, pipeline -> {
@@ -214,7 +212,6 @@ public class HttpConnection
                     sslEngine.setUseClientMode(true);
                     ClientSSLDecoder sslDecoder = new ClientSSLDecoder(sslEngine);
                     SSLEncoder       sslEncoder = new SSLEncoder(sslEngine);
-                    sslDecoderHolder[0] = sslDecoder;
                     sslEngine.beginHandshake();
                     // 配置读取链: ProxyTunnelReadHandler -> ClientSSLDecoder -> HeartBeat -> HttpResponsePartDecoder -> 业务处理器
                     pipeline.addReadProcessor(tunnelReadHandler);
@@ -263,6 +260,8 @@ public class HttpConnection
                     pipeline.addWriteProcessor(new HttpRequestPartEncoder());
                     pipeline.addWriteProcessor(new HeartBeat(secondsOfKeepAlive, pipeline));
                     pipeline.addWriteProcessor(sslEncoder);
+                    ((DefaultPipeline) pipeline).putPersistenceStore(ClientSSLDecoder.KEY, sslDecoder);
+                    ((DefaultPipeline) pipeline).putPersistenceStore(ProxyTunnelReadHandler.KEY, tunnelReadHandler);
                 }
                 catch (Exception e)
                 {
@@ -297,12 +296,13 @@ public class HttpConnection
                 clientChannel.pipeline().shutdownInput();
                 ReflectUtil.throwException(new RuntimeException("代理服务器拒绝 CONNECT 请求"));
             }
+            ClientSSLDecoder sslDecoder = (ClientSSLDecoder) ((DefaultPipeline) clientChannel.pipeline()).getPersistenceStore(ClientSSLDecoder.KEY);
             // 等待 SSL 握手完成
-            if (sslDecoderHolder[0] != null)
+            if (sslDecoder != null)
             {
                 try
                 {
-                    if (!sslDecoderHolder[0].waitHandshake(30, TimeUnit.SECONDS))
+                    if (!sslDecoder.waitHandshake(30, TimeUnit.SECONDS))
                     {
                         clientChannel.pipeline().shutdownInput();
                         ReflectUtil.throwException(new RuntimeException("SSL 握手超时"));
@@ -391,7 +391,7 @@ public class HttpConnection
     /**
      * 带超时的 write 方法，返回完整的 HttpResponse
      */
-    public cc.jfire.jnet.extend.http.dto.HttpResponse write(HttpRequest request, int secondsOfTimeout) throws ClosedChannelException, SocketTimeoutException
+    public HttpResponse write(HttpRequest request, int secondsOfTimeout) throws ClosedChannelException, SocketTimeoutException
     {
         if (isConnectionClosed())
         {

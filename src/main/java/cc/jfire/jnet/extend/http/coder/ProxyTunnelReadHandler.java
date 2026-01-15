@@ -15,13 +15,14 @@ import java.util.concurrent.TimeUnit;
  */
 public class ProxyTunnelReadHandler implements ReadProcessor<IoBuffer>
 {
-    private final    String            domain;
-    private final    int               port;
-    private final    CountDownLatch    tunnelLatch       = new CountDownLatch(1);
-    private volatile boolean           tunnelEstablished = false;
-    private volatile Throwable         tunnelError       = null;
-    private volatile boolean           tunnelReady       = false;
-    private          IoBuffer          accumulation;
+    public static final String         KEY               = "proxyTunnelReadHandler";
+    private final       String         domain;
+    private final       int            port;
+    private final       CountDownLatch tunnelLatch       = new CountDownLatch(1);
+    private volatile    boolean        tunnelEstablished = false;
+    private volatile    Throwable      tunnelError       = null;
+    private volatile    boolean        tunnelReady       = false;
+    private             IoBuffer       accumulation;
 
     public ProxyTunnelReadHandler(String domain, int port)
     {
