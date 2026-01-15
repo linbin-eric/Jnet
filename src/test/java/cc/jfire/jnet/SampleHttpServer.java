@@ -47,7 +47,7 @@ public class SampleHttpServer
                 sslEngine.setNeedClientAuth(false); // 不要求客户端认证
                 sslEngine.setEnabledProtocols(new String[]{"TLSv1.2", "TLSv1.3"});
                 SSLDecoder sslRequestDecoder = new SSLDecoder(sslEngine);
-                SSLEncoder sslEncoder        = new SSLEncoder(sslEngine, sslRequestDecoder);
+                SSLEncoder sslEncoder        = new SSLEncoder(sslEngine);
                 sslEngine.beginHandshake();
                 pipeline.addReadProcessor(sslRequestDecoder);
                 pipeline.addReadProcessor(new HttpRequestPartDecoder());

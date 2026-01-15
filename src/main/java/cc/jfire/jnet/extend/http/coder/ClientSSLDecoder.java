@@ -57,11 +57,87 @@ public class ClientSSLDecoder extends AbstractDecoder
         }
         catch (SSLException e)
         {
-            // ignore
         }
         sslEngine.closeOutbound();
-        pipeline.fireWrite(new ClientSSLProtocol().setCloseNotify(true));
+        while (true)
+        {
+            IoBuffer dst = pipeline.allocator().allocate(sslEngine.getSession().getPacketBufferSize());
+            try
+            {
+                SSLEngineResult result = sslEngine.wrap(ByteBuffer.allocate(0), dst.writableByteBuffer());
+                int bytesProduced = result.bytesProduced();
+                dst.addWritePosi(bytesProduced);
+                if (bytesProduced > 0)
+                {
+                    pipeline.directWrite(dst);
+                }
+                else
+                {
+                    dst.free();
+                }
+                dst = null;
+                SSLEngineResult.Status status = result.getStatus();
+                if (status == SSLEngineResult.Status.OK)
+                {
+                    if (result.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NEED_WRAP)
+                    {
+                        continue;
+                    }
+                    break;
+                }
+                else if (status == SSLEngineResult.Status.CLOSED)
+                {
+                    break;
+                }
+            }
+            catch (SSLException e)
+            {
+                if (dst != null)
+                {
+                    dst.free();
+                }
+                break;
+            }
+        }
         pipeline.shutdownInput();
+    }
+
+    public void startHandshake(Pipeline pipeline)
+    {
+        while (true)
+        {
+            IoBuffer dst = pipeline.allocator().allocate(sslEngine.getSession().getPacketBufferSize());
+            try
+            {
+                SSLEngineResult result = sslEngine.wrap(ByteBuffer.allocate(0), dst.writableByteBuffer());
+                int bytesProduced = result.bytesProduced();
+                dst.addWritePosi(bytesProduced);
+                if (bytesProduced > 0)
+                {
+                    pipeline.directWrite(dst);
+                }
+                else
+                {
+                    dst.free();
+                }
+                dst = null;
+                SSLEngineResult.HandshakeStatus hs = result.getHandshakeStatus();
+                if (hs == SSLEngineResult.HandshakeStatus.NEED_WRAP)
+                {
+                    continue;
+                }
+                return;
+            }
+            catch (SSLException e)
+            {
+                if (dst != null)
+                {
+                    dst.free();
+                }
+                gracefulClose(pipeline);
+                return;
+            }
+        }
     }
 
     private void handshake(ReadProcessorNode next, SSLEngineResult.HandshakeStatus hs)
@@ -122,7 +198,7 @@ public class ClientSSLDecoder extends AbstractDecoder
                     dst.addWritePosi(bytesProduced);
                     if (bytesProduced > 0)
                     {
-                        next.pipeline().fireWrite(new ClientSSLProtocol().setData(dst));
+                        next.pipeline().directWrite(dst);
                     }
                     else
                     {

@@ -113,7 +113,7 @@ public class HttpConnection
                     SSLEngine sslEngine = sslContext.createSSLEngine(domain, port);
                     sslEngine.setUseClientMode(true);
                     ClientSSLDecoder sslDecoder = new ClientSSLDecoder(sslEngine);
-                    ClientSSLEncoder sslEncoder = new ClientSSLEncoder(sslEngine, sslDecoder);
+                    ClientSSLEncoder sslEncoder = new ClientSSLEncoder(sslEngine);
                     sslDecoderHolder[0] = sslDecoder;
                     sslEngine.beginHandshake();
                     pipeline.addReadProcessor(sslDecoder);
@@ -218,7 +218,7 @@ public class HttpConnection
         }
         if (ssl && sslDecoderHolder[0] != null)
         {
-            clientChannel.pipeline().fireWrite(new ClientSSLProtocol().setStartHandshake(true));
+            sslDecoderHolder[0].startHandshake(clientChannel.pipeline());
             try
             {
                 if (!sslDecoderHolder[0].waitHandshake(30, TimeUnit.SECONDS))
@@ -263,7 +263,7 @@ public class HttpConnection
                     SSLEngine sslEngine = sslContext.createSSLEngine(domain, port);
                     sslEngine.setUseClientMode(true);
                     ClientSSLDecoder sslDecoder = new ClientSSLDecoder(sslEngine);
-                    ClientSSLEncoder sslEncoder = new ClientSSLEncoder(sslEngine, sslDecoder);
+                    ClientSSLEncoder sslEncoder = new ClientSSLEncoder(sslEngine);
                     sslDecoderHolder[0] = sslDecoder;
                     sslEngine.beginHandshake();
                     pipeline.addReadProcessor(sslDecoder);
@@ -368,7 +368,7 @@ public class HttpConnection
         }
         if (ssl && sslDecoderHolder[0] != null)
         {
-            clientChannel.pipeline().fireWrite(new ClientSSLProtocol().setStartHandshake(true));
+            sslDecoderHolder[0].startHandshake(clientChannel.pipeline());
             try
             {
                 if (!sslDecoderHolder[0].waitHandshake(config.getSslHandshakeTimeoutSeconds(), TimeUnit.SECONDS))
@@ -425,7 +425,7 @@ public class HttpConnection
                     SSLEngine sslEngine = sslContext.createSSLEngine(domain, port);
                     sslEngine.setUseClientMode(true);
                     ClientSSLDecoder sslDecoder = new ClientSSLDecoder(sslEngine);
-                    ClientSSLEncoder sslEncoder = new ClientSSLEncoder(sslEngine, sslDecoder);
+                    ClientSSLEncoder sslEncoder = new ClientSSLEncoder(sslEngine);
                     sslDecoderHolder[0] = sslDecoder;
                     sslEngine.beginHandshake();
 
@@ -528,7 +528,7 @@ public class HttpConnection
             // 启动 SSL 握手
             if (sslDecoderHolder[0] != null)
             {
-                clientChannel.pipeline().fireWrite(new ClientSSLProtocol().setStartHandshake(true));
+                sslDecoderHolder[0].startHandshake(clientChannel.pipeline());
                 try
                 {
                     if (!sslDecoderHolder[0].waitHandshake(30, TimeUnit.SECONDS))

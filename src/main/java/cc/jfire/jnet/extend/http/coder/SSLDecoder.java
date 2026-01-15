@@ -4,9 +4,7 @@ import cc.jfire.jnet.common.api.Pipeline;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 import cc.jfire.jnet.common.coder.AbstractDecoder;
-import cc.jfire.jnet.common.util.DataIgnore;
 import lombok.Data;
-import lombok.experimental.Accessors;
 
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
@@ -52,10 +50,48 @@ public class SSLDecoder extends AbstractDecoder
         }
         catch (SSLException e)
         {
-//            log.error("当前连接:{}已经结束", remote, e);
         }
         sslEngine.closeOutbound();
-        pipeline.fireWrite(new SSLProtocol().setCloseNotify(true));
+        while (true)
+        {
+            IoBuffer dst = pipeline.allocator().allocate(sslEngine.getSession().getPacketBufferSize());
+            try
+            {
+                SSLEngineResult result = sslEngine.wrap(ByteBuffer.allocate(0), dst.writableByteBuffer());
+                int bytesProduced = result.bytesProduced();
+                dst.addWritePosi(bytesProduced);
+                if (bytesProduced > 0)
+                {
+                    pipeline.directWrite(dst);
+                }
+                else
+                {
+                    dst.free();
+                }
+                dst = null;
+                SSLEngineResult.Status status = result.getStatus();
+                if (status == SSLEngineResult.Status.OK)
+                {
+                    if (result.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NEED_WRAP)
+                    {
+                        continue;
+                    }
+                    break;
+                }
+                else if (status == SSLEngineResult.Status.CLOSED)
+                {
+                    break;
+                }
+            }
+            catch (SSLException e)
+            {
+                if (dst != null)
+                {
+                    dst.free();
+                }
+                break;
+            }
+        }
         pipeline.shutdownInput();
     }
 
@@ -138,7 +174,7 @@ public class SSLDecoder extends AbstractDecoder
                     }
                     if (bytesProduced > 0)
                     {
-                        next.pipeline().fireWrite(new SSLProtocol().setData(dst));
+                        next.pipeline().directWrite(dst);
                     }
                     else
                     {
@@ -299,17 +335,5 @@ public class SSLDecoder extends AbstractDecoder
             accumulation = null;
         }
         super.readFailed(e, next);
-    }
-
-    @Data
-    @Accessors(chain = true)
-    public static class SSLProtocol implements DataIgnore
-    {
-        /**
-         * 当为true的时候，意味着是关闭ssl连接，需要发送端生成close_notify消息。
-         * 当为false的时候，意味着有数据需要发出
-         */
-        private boolean  closeNotify = false;
-        private IoBuffer data;
     }
 }
