@@ -5,6 +5,7 @@ import cc.jfire.baseutil.RuntimeJVM;
 import cc.jfire.jnet.common.api.Pipeline;
 import cc.jfire.jnet.common.internal.DefaultPipeline;
 import cc.jfire.jnet.common.util.ChannelConfig;
+import cc.jfire.jnet.extend.http.client.HttpClientConfig;
 import cc.jfire.jnet.extend.http.client.HttpConnectionPool;
 import cc.jfire.jnet.extend.http.coder.*;
 import cc.jfire.jnet.extend.reverse.app.SslInfo;
@@ -25,7 +26,7 @@ public class ReverseProxyServer
     private final int                  port;
     private final List<ResourceConfig> configs;
     private final SslInfo              sslInfo;
-    private final HttpConnectionPool   pool = new HttpConnectionPool();
+    private final HttpConnectionPool   pool = new HttpConnectionPool(new HttpClientConfig());
 
     public ReverseProxyServer(int port, List<ResourceConfig> configs)
     {

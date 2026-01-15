@@ -11,6 +11,7 @@ public class HttpRequest implements AutoCloseable
     protected HttpRequestPartHead head = new HttpRequestPartHead();
     protected IoBuffer            body;
     protected String              strBody;
+    protected boolean             ssl  = false;
 
     public void close()
     {
@@ -24,6 +25,8 @@ public class HttpRequest implements AutoCloseable
 
     public HttpRequest setUrl(String url)
     {
+        HttpUrl parsed = HttpUrl.parse(url);
+        this.ssl = parsed.ssl();
         head.setUrl(url);
         return this;
     }
@@ -80,5 +83,10 @@ public class HttpRequest implements AutoCloseable
     {
         this.body = body;
         return this;
+    }
+
+    public boolean isSsl()
+    {
+        return ssl;
     }
 }

@@ -9,25 +9,28 @@ import java.util.concurrent.TimeoutException;
 
 public class HttpConnectionPool
 {
-    private static final int                               DEFAULT_MAX_CONNECTIONS_PER_HOST = 50;
-    private static final int                               DEFAULT_TIMEOUT_SECONDS          = 1;
-    private static final int                               KEEP_ALIVE_SECONDS               = 1800; // 30分钟
-    private final        ConcurrentHashMap<String, Bucket> buckets                          = new ConcurrentHashMap<>();
+    private final HttpClientConfig                   config;
+    private final ConcurrentHashMap<String, Bucket> buckets = new ConcurrentHashMap<>();
 
-    private String buildKey(String host, int port)
+    public HttpConnectionPool(HttpClientConfig config)
     {
-        return host + ":" + port;
+        this.config = config;
     }
 
-    public HttpConnection borrowConnection(String host, int port) throws TimeoutException, InterruptedException
+    private String buildKey(String host, int port, boolean ssl)
     {
-        return borrowConnection(host, port, DEFAULT_TIMEOUT_SECONDS);
+        return (ssl ? "https://" : "http://") + host + ":" + port;
     }
 
-    public HttpConnection borrowConnection(String host, int port, int timeoutSeconds) throws TimeoutException, InterruptedException
+    public HttpConnection borrowConnection(String host, int port, boolean ssl) throws TimeoutException, InterruptedException
     {
-        String key    = buildKey(host, port);
-        Bucket bucket = buckets.computeIfAbsent(key, k -> new Bucket(DEFAULT_MAX_CONNECTIONS_PER_HOST));
+        return borrowConnection(host, port, ssl, config.getAcquireTimeoutSeconds());
+    }
+
+    public HttpConnection borrowConnection(String host, int port, boolean ssl, int timeoutSeconds) throws TimeoutException, InterruptedException
+    {
+        String key    = buildKey(host, port, ssl);
+        Bucket bucket = buckets.computeIfAbsent(key, k -> new Bucket(config.getMaxConnectionsPerHost()));
         // 尽可能从队列获取现有连接
         HttpConnection connection;
         while ((connection = bucket.queue.poll()) != null)
@@ -45,7 +48,7 @@ public class HttpConnectionPool
             // 需要创建新连接
             try
             {
-                connection = new HttpConnection(host, port, KEEP_ALIVE_SECONDS);
+                connection = new HttpConnection(host, port, config, ssl);
                 return connection;
             }
             catch (Exception e)
@@ -62,13 +65,13 @@ public class HttpConnectionPool
         }
     }
 
-    public void returnConnection(String host, int port, HttpConnection connection)
+    public void returnConnection(String host, int port, boolean ssl, HttpConnection connection)
     {
         if (connection == null)
         {
             return;
         }
-        String key    = buildKey(host, port);
+        String key    = buildKey(host, port, ssl);
         Bucket bucket = buckets.get(key);
         if (bucket == null)
         {
@@ -103,9 +106,9 @@ public class HttpConnectionPool
     /**
      * 获取当前连接总数（包括正在使用和队列中的）
      */
-    public int getConnectionCount(String host, int port)
+    public int getConnectionCount(String host, int port, boolean ssl)
     {
-        String key    = buildKey(host, port);
+        String key    = buildKey(host, port, ssl);
         Bucket bucket = buckets.get(key);
         return bucket != null ? bucket.maxConnections - bucket.semaphore.availablePermits() : 0;
     }
@@ -113,9 +116,9 @@ public class HttpConnectionPool
     /**
      * 获取队列中的空闲连接数
      */
-    public int getPoolSize(String host, int port)
+    public int getPoolSize(String host, int port, boolean ssl)
     {
-        String key    = buildKey(host, port);
+        String key    = buildKey(host, port, ssl);
         Bucket bucket = buckets.get(key);
         return bucket != null ? bucket.queue.size() : 0;
     }
@@ -123,9 +126,9 @@ public class HttpConnectionPool
     /**
      * 获取可用的许可数（还能创建多少新连接）
      */
-    public int getAvailablePermits(String host, int port)
+    public int getAvailablePermits(String host, int port, boolean ssl)
     {
-        String key    = buildKey(host, port);
+        String key    = buildKey(host, port, ssl);
         Bucket bucket = buckets.get(key);
         return bucket != null ? bucket.semaphore.availablePermits() : 0;
     }

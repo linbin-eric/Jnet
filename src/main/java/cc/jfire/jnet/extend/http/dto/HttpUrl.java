@@ -2,7 +2,7 @@ package cc.jfire.jnet.extend.http.dto;
 
 import cc.jfire.jnet.common.util.ReflectUtil;
 
-public record HttpUrl(String domain, int port, String path, String hostHeader)
+public record HttpUrl(String domain, int port, String path, String hostHeader, boolean ssl)
 {
     public static HttpUrl parse(String url)
     {
@@ -36,7 +36,7 @@ public record HttpUrl(String domain, int port, String path, String hostHeader)
             int    port       = portStart == -1 ? (isHttps ? 443 : 80) : Integer.parseInt(url.substring(portStart + 1, index));
             String domain     = portStart == -1 ? url.substring(domainStart, index) : url.substring(domainStart, portStart);
             String hostHeader = portStart == -1 ? domain : url.substring(domainStart, index);
-            return new HttpUrl(domain, port, path, hostHeader);
+            return new HttpUrl(domain, port, path, hostHeader, isHttps);
         }
         catch (Throwable e)
         {

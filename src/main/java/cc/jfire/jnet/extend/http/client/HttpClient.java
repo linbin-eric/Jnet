@@ -5,22 +5,48 @@ import cc.jfire.jnet.extend.http.dto.HttpResponsePart;
 
 import java.util.function.Consumer;
 
-public interface HttpClient
+public class HttpClient
 {
-    HttpConnectionPool CONNECTION_POOL = new HttpConnectionPool();
+    private static final HttpClient DEFAULT_INSTANCE = new HttpClient();
 
-    static cc.jfire.jnet.extend.http.dto.HttpResponse newCall(HttpRequest request) throws Exception
+    private final HttpClientConfig   config;
+    private final HttpConnectionPool connectionPool;
+
+    public HttpClient()
+    {
+        this(new HttpClientConfig());
+    }
+
+    public HttpClient(HttpClientConfig config)
+    {
+        this.config         = config;
+        this.connectionPool = new HttpConnectionPool(config);
+    }
+
+    public HttpClientConfig getConfig()
+    {
+        return config;
+    }
+
+    public HttpConnectionPool getConnectionPool()
+    {
+        return connectionPool;
+    }
+
+    /**
+     * 发起同步 HTTP 请求
+     */
+    public cc.jfire.jnet.extend.http.dto.HttpResponse call(HttpRequest request) throws Exception
     {
         String         host           = request.getHead().getDomain();
         int            port           = request.getHead().getPort();
+        boolean        ssl            = request.isSsl();
         HttpConnection httpConnection = null;
         try
         {
-            // 从连接池借用连接（自动创建或复用）
-            httpConnection = CONNECTION_POOL.borrowConnection(host, port, 60);
-            // 执行请求
-            cc.jfire.jnet.extend.http.dto.HttpResponse response = httpConnection.write(request, 60);
-            CONNECTION_POOL.returnConnection(host, port, httpConnection);
+            httpConnection = connectionPool.borrowConnection(host, port, ssl);
+            cc.jfire.jnet.extend.http.dto.HttpResponse response = httpConnection.write(request, config.getReadTimeoutSeconds());
+            connectionPool.returnConnection(host, port, ssl, httpConnection);
             return response;
         }
         catch (Throwable e)
@@ -28,23 +54,26 @@ public interface HttpClient
             request.close();
             if (httpConnection != null)
             {
-                // 异常时关闭连接，连接池会自动处理
                 httpConnection.close();
             }
             throw e;
         }
     }
 
-    static StreamableResponseFuture newStreamCall(HttpRequest request, Consumer<HttpResponsePart> partConsumer, Consumer<Throwable> errorConsumer) throws Exception
+    /**
+     * 发起流式 HTTP 请求
+     */
+    public StreamableResponseFuture streamCall(HttpRequest request, Consumer<HttpResponsePart> partConsumer, Consumer<Throwable> errorConsumer) throws Exception
     {
         String         host           = request.getHead().getDomain();
         int            port           = request.getHead().getPort();
+        boolean        ssl            = request.isSsl();
         HttpConnection httpConnection = null;
         try
         {
-            httpConnection = CONNECTION_POOL.borrowConnection(host, port, 60);
+            httpConnection = connectionPool.borrowConnection(host, port, ssl);
             final HttpConnection finalConnection = httpConnection;
-            // 包装 partConsumer，在响应完成时归还连接
+            final boolean        finalSsl        = ssl;
             Consumer<HttpResponsePart> wrappedPartConsumer = part -> {
                 try
                 {
@@ -57,11 +86,10 @@ public interface HttpClient
                 {
                     if (part.isLast())
                     {
-                        CONNECTION_POOL.returnConnection(host, port, finalConnection);
+                        connectionPool.returnConnection(host, port, finalSsl, finalConnection);
                     }
                 }
             };
-            // 包装 errorConsumer，在发生错误时关闭连接
             Consumer<Throwable> wrappedErrorConsumer = error -> {
                 finalConnection.close();
                 if (errorConsumer != null)
@@ -80,5 +108,31 @@ public interface HttpClient
             }
             throw e;
         }
+    }
+
+    // ==================== 静态便捷方法（向后兼容） ====================
+
+    /**
+     * 使用默认实例发起同步 HTTP 请求（向后兼容）
+     */
+    public static cc.jfire.jnet.extend.http.dto.HttpResponse newCall(HttpRequest request) throws Exception
+    {
+        return DEFAULT_INSTANCE.call(request);
+    }
+
+    /**
+     * 使用默认实例发起流式 HTTP 请求（向后兼容）
+     */
+    public static StreamableResponseFuture newStreamCall(HttpRequest request, Consumer<HttpResponsePart> partConsumer, Consumer<Throwable> errorConsumer) throws Exception
+    {
+        return DEFAULT_INSTANCE.streamCall(request, partConsumer, errorConsumer);
+    }
+
+    /**
+     * 获取默认实例
+     */
+    public static HttpClient getDefault()
+    {
+        return DEFAULT_INSTANCE;
     }
 }

@@ -5,6 +5,7 @@ import cc.jfire.baseutil.YamlReader;
 import cc.jfire.jnet.common.api.PipelineInitializer;
 import cc.jfire.jnet.common.internal.DefaultPipeline;
 import cc.jfire.jnet.common.util.ChannelConfig;
+import cc.jfire.jnet.extend.http.client.HttpClientConfig;
 import cc.jfire.jnet.extend.http.client.HttpConnectionPool;
 import cc.jfire.jnet.extend.http.coder.CorsEncoder;
 import cc.jfire.jnet.extend.http.coder.HttpRequestPartSupportWebSocketDecoderWithPassThough;
@@ -97,7 +98,7 @@ public class TestReverseApp
                         }
                     }
                 }
-                HttpConnectionPool pool = new HttpConnectionPool();
+                HttpConnectionPool pool = new HttpConnectionPool(new HttpClientConfig());
                 PipelineInitializer consumer = pipeline -> {
                     pipeline.addReadProcessor(new HttpRequestPartSupportWebSocketDecoderWithPassThough());
                     pipeline.addReadProcessor(new TransferProcessor(list, pool));
