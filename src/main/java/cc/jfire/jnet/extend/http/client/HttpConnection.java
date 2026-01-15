@@ -113,7 +113,7 @@ public class HttpConnection
                     SSLEngine sslEngine = sslContext.createSSLEngine(domain, port);
                     sslEngine.setUseClientMode(true);
                     ClientSSLDecoder sslDecoder = new ClientSSLDecoder(sslEngine);
-                    ClientSSLEncoder sslEncoder = new ClientSSLEncoder(sslEngine);
+                    SSLEncoder       sslEncoder = new SSLEncoder(sslEngine);
                     sslDecoderHolder[0] = sslDecoder;
                     sslEngine.beginHandshake();
                     pipeline.addReadProcessor(sslDecoder);
@@ -263,7 +263,7 @@ public class HttpConnection
                     SSLEngine sslEngine = sslContext.createSSLEngine(domain, port);
                     sslEngine.setUseClientMode(true);
                     ClientSSLDecoder sslDecoder = new ClientSSLDecoder(sslEngine);
-                    ClientSSLEncoder sslEncoder = new ClientSSLEncoder(sslEngine);
+                    SSLEncoder       sslEncoder = new SSLEncoder(sslEngine);
                     sslDecoderHolder[0] = sslDecoder;
                     sslEngine.beginHandshake();
                     pipeline.addReadProcessor(sslDecoder);
@@ -388,28 +388,26 @@ public class HttpConnection
     /**
      * 通过 HTTP 代理创建连接（支持 HTTP/HTTPS 两种模式）
      *
-     * @param domain             目标服务器域名
-     * @param port               目标服务器端口
-     * @param config             客户端配置
-     * @param proxyHost          代理服务器主机名
-     * @param proxyPort          代理服务器端口
-     * @param ssl                是否使用 SSL（true 为 HTTPS 代理隧道模式，false 为 HTTP 直接代理模式）
+     * @param domain    目标服务器域名
+     * @param port      目标服务器端口
+     * @param config    客户端配置
+     * @param proxyHost 代理服务器主机名
+     * @param proxyPort 代理服务器端口
+     * @param ssl       是否使用 SSL（true 为 HTTPS 代理隧道模式，false 为 HTTP 直接代理模式）
      */
     public HttpConnection(String domain, int port, HttpClientConfig config, String proxyHost, int proxyPort, boolean ssl)
     {
         if (ssl)
         {
             // HTTPS 代理（CONNECT 隧道模式）
-            ChannelConfig channelConfig = new ChannelConfig().setIp(proxyHost).setPort(proxyPort);
-            ClientSSLDecoder[] sslDecoderHolder = new ClientSSLDecoder[1];
-            CountDownLatch tunnelLatch = new CountDownLatch(1);
-            AtomicBoolean tunnelEstablished = new AtomicBoolean(false);
-            AtomicReference<Throwable> tunnelErrorRef = new AtomicReference<>();
-            int secondsOfKeepAlive = config.getKeepAliveSeconds();
-
+            ChannelConfig              channelConfig      = new ChannelConfig().setIp(proxyHost).setPort(proxyPort);
+            ClientSSLDecoder[]         sslDecoderHolder   = new ClientSSLDecoder[1];
+            CountDownLatch             tunnelLatch        = new CountDownLatch(1);
+            AtomicBoolean              tunnelEstablished  = new AtomicBoolean(false);
+            AtomicReference<Throwable> tunnelErrorRef     = new AtomicReference<>();
+            int                        secondsOfKeepAlive = config.getKeepAliveSeconds();
             // 创建隧道读处理器
             ProxyTunnelReadHandler tunnelReadHandler = new ProxyTunnelReadHandler(tunnelLatch, tunnelEstablished, tunnelErrorRef);
-
             clientChannel = ClientChannel.newClient(channelConfig, pipeline -> {
                 try
                 {
@@ -417,7 +415,9 @@ public class HttpConnection
                     TrustManager[] trustAllCerts = new TrustManager[]{new X509TrustManager()
                     {
                         public X509Certificate[] getAcceptedIssuers()                            {return new X509Certificate[0];}
+
                         public void checkClientTrusted(X509Certificate[] certs, String authType) {}
+
                         public void checkServerTrusted(X509Certificate[] certs, String authType) {}
                     }};
                     SSLContext sslContext = SSLContext.getInstance("TLS");
@@ -425,10 +425,9 @@ public class HttpConnection
                     SSLEngine sslEngine = sslContext.createSSLEngine(domain, port);
                     sslEngine.setUseClientMode(true);
                     ClientSSLDecoder sslDecoder = new ClientSSLDecoder(sslEngine);
-                    ClientSSLEncoder sslEncoder = new ClientSSLEncoder(sslEngine);
+                    SSLEncoder       sslEncoder = new SSLEncoder(sslEngine);
                     sslDecoderHolder[0] = sslDecoder;
                     sslEngine.beginHandshake();
-
                     // 配置读取链: ProxyTunnelReadHandler -> ClientSSLDecoder -> HeartBeat -> HttpResponsePartDecoder -> 业务处理器
                     pipeline.addReadProcessor(tunnelReadHandler);
                     pipeline.addReadProcessor(sslDecoder);
@@ -472,7 +471,6 @@ public class HttpConnection
                             }
                         }
                     });
-
                     // 配置写入链: HttpRequestPartEncoder -> HeartBeat -> ClientSSLEncoder
                     pipeline.addWriteProcessor(new HttpRequestPartEncoder());
                     pipeline.addWriteProcessor(new HeartBeat(secondsOfKeepAlive, pipeline));
@@ -484,20 +482,15 @@ public class HttpConnection
                     tunnelLatch.countDown();
                 }
             });
-
             if (!clientChannel.connect())
             {
                 ReflectUtil.throwException(new RuntimeException("无法连接到代理服务器 " + proxyHost + ":" + proxyPort, clientChannel.getConnectionException()));
             }
-
             // 发送 CONNECT 请求（使用 directWrite 直接写出，绕过写处理器链）
-            String connectRequestStr = "CONNECT " + domain + ":" + port + " HTTP/1.1\r\n" +
-                                       "Host: " + domain + ":" + port + "\r\n" +
-                                       "\r\n";
-            IoBuffer connectBuffer = clientChannel.pipeline().allocator().allocate(connectRequestStr.length());
+            String   connectRequestStr = "CONNECT " + domain + ":" + port + " HTTP/1.1\r\n" + "Host: " + domain + ":" + port + "\r\n" + "\r\n";
+            IoBuffer connectBuffer     = clientChannel.pipeline().allocator().allocate(connectRequestStr.length());
             connectBuffer.put(connectRequestStr.getBytes(StandardCharsets.US_ASCII));
             clientChannel.pipeline().directWrite(connectBuffer);
-
             // 等待隧道建立
             try
             {
@@ -512,19 +505,16 @@ public class HttpConnection
                 clientChannel.pipeline().shutdownInput();
                 ReflectUtil.throwException(new RuntimeException("代理连接被中断", e));
             }
-
             if (tunnelErrorRef.get() != null)
             {
                 clientChannel.pipeline().shutdownInput();
                 ReflectUtil.throwException(new RuntimeException("代理隧道建立失败", tunnelErrorRef.get()));
             }
-
             if (!tunnelEstablished.get())
             {
                 clientChannel.pipeline().shutdownInput();
                 ReflectUtil.throwException(new RuntimeException("代理服务器拒绝 CONNECT 请求"));
             }
-
             // 启动 SSL 握手
             if (sslDecoderHolder[0] != null)
             {
@@ -547,8 +537,8 @@ public class HttpConnection
         else
         {
             // HTTP 代理（直接代理模式）
-            int secondsOfKeepAlive = config.getKeepAliveSeconds();
-            ChannelConfig channelConfig = new ChannelConfig().setIp(proxyHost).setPort(proxyPort);
+            int           secondsOfKeepAlive = config.getKeepAliveSeconds();
+            ChannelConfig channelConfig      = new ChannelConfig().setIp(proxyHost).setPort(proxyPort);
             clientChannel = ClientChannel.newClient(channelConfig, pipeline -> {
                 // 配置读取链: HeartBeat -> HttpResponsePartDecoder -> 业务处理器
                 pipeline.addReadProcessor(new HeartBeat(secondsOfKeepAlive, pipeline));
@@ -591,12 +581,10 @@ public class HttpConnection
                         }
                     }
                 });
-
                 // 配置写入链: ProxyHttpRequestEncoder -> HeartBeat
                 pipeline.addWriteProcessor(new ProxyHttpRequestEncoder(domain, port));
                 pipeline.addWriteProcessor(new HeartBeat(secondsOfKeepAlive, pipeline));
             });
-
             if (!clientChannel.connect())
             {
                 ReflectUtil.throwException(new RuntimeException("无法连接到代理服务器 " + proxyHost + ":" + proxyPort, clientChannel.getConnectionException()));
