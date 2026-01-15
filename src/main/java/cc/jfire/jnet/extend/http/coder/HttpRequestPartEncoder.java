@@ -46,6 +46,18 @@ public class HttpRequestPartEncoder implements WriteProcessor<Object>
     }
 
     /**
+     * 构建请求行中的路径部分
+     * 子类可重写此方法以实现自定义路径格式（如代理模式下的完整 URL）
+     *
+     * @param head 请求头
+     * @return 请求行中的路径部分
+     */
+    protected String buildPath(HttpRequestPartHead head)
+    {
+        return head.getPath();
+    }
+
+    /**
      * 检查 headers 中是否存在指定名称的 header（header name 已标准化）
      */
     private boolean containsHeader(Map<String, String> headers, String headerName)
@@ -63,7 +75,7 @@ public class HttpRequestPartEncoder implements WriteProcessor<Object>
         IoBuffer            buffer = next.pipeline().allocator().allocate(1024);
         HttpRequestPartHead head   = request.getHead();
         // 写入请求行
-        String requestLine = STR.format("{} {} {}\r\n", head.getMethod(), head.getPath(), head.getVersion() != null ? head.getVersion() : "HTTP/1.1");
+        String requestLine = STR.format("{} {} {}\r\n", head.getMethod(), buildPath(head), head.getVersion() != null ? head.getVersion() : "HTTP/1.1");
         buffer.put(requestLine.getBytes(StandardCharsets.US_ASCII));
         // 计算 body 长度
         int    contentLength = 0;
@@ -130,7 +142,7 @@ public class HttpRequestPartEncoder implements WriteProcessor<Object>
         next.fireWrite(buffer);
     }
 
-    private void encodeHttpRequestPartHead(HttpRequestPartHead head, WriteProcessorNode next)
+    protected void encodeHttpRequestPartHead(HttpRequestPartHead head, WriteProcessorNode next)
     {
         if (head.getHeadBuffer() != null)
         {
@@ -141,7 +153,7 @@ public class HttpRequestPartEncoder implements WriteProcessor<Object>
         {
             // 按标准格式编码
             IoBuffer buffer      = next.pipeline().allocator().allocate(1024);
-            String   requestLine = STR.format("{} {} {}\r\n", head.getMethod(), head.getPath(), head.getVersion() != null ? head.getVersion() : "HTTP/1.1");
+            String   requestLine = STR.format("{} {} {}\r\n", head.getMethod(), buildPath(head), head.getVersion() != null ? head.getVersion() : "HTTP/1.1");
             buffer.put(requestLine.getBytes(StandardCharsets.US_ASCII));
             writeHeaderValue(head.getHeaders(), buffer);
             next.fireWrite(buffer);
