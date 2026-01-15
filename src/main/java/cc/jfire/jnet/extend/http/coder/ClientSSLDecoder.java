@@ -1,6 +1,7 @@
 package cc.jfire.jnet.extend.http.coder;
 
 import cc.jfire.jnet.common.api.Pipeline;
+import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -21,6 +22,13 @@ public class ClientSSLDecoder extends AbstractSSLDecoder
     public ClientSSLDecoder(SSLEngine sslEngine)
     {
         super(sslEngine);
+    }
+
+    @Override
+    public void pipelineComplete(Pipeline pipeline, ReadProcessorNode next)
+    {
+        startHandshake(pipeline);
+        next.firePipelineComplete(pipeline);
     }
 
     public boolean waitHandshake(long timeout, TimeUnit unit) throws InterruptedException

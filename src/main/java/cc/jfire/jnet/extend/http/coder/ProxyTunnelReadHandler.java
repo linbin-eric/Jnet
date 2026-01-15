@@ -1,5 +1,6 @@
 package cc.jfire.jnet.extend.http.coder;
 
+import cc.jfire.jnet.common.api.Pipeline;
 import cc.jfire.jnet.common.api.ReadProcessor;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
@@ -14,12 +15,29 @@ import java.util.concurrent.TimeUnit;
  */
 public class ProxyTunnelReadHandler implements ReadProcessor<IoBuffer>
 {
-    private final CountDownLatch tunnelLatch       = new CountDownLatch(1);
-    private volatile boolean     tunnelEstablished = false;
-    private volatile Throwable   tunnelError       = null;
+    private final    String            domain;
+    private final    int               port;
+    private final    CountDownLatch    tunnelLatch       = new CountDownLatch(1);
+    private volatile boolean           tunnelEstablished = false;
+    private volatile Throwable         tunnelError       = null;
+    private volatile boolean           tunnelReady       = false;
+    private          IoBuffer          accumulation;
 
-    private volatile boolean  tunnelReady = false;
-    private          IoBuffer accumulation;
+    public ProxyTunnelReadHandler(String domain, int port)
+    {
+        this.domain = domain;
+        this.port   = port;
+    }
+
+    @Override
+    public void pipelineComplete(Pipeline pipeline, ReadProcessorNode next)
+    {
+        // 发送 CONNECT 请求
+        String   connectRequestStr = "CONNECT " + domain + ":" + port + " HTTP/1.1\r\n" + "Host: " + domain + ":" + port + "\r\n\r\n";
+        IoBuffer connectBuffer     = pipeline.allocator().allocate(connectRequestStr.length());
+        connectBuffer.put(connectRequestStr.getBytes(StandardCharsets.US_ASCII));
+        pipeline.directWrite(connectBuffer);
+    }
 
     @Override
     public void read(IoBuffer data, ReadProcessorNode next)
@@ -30,7 +48,6 @@ public class ProxyTunnelReadHandler implements ReadProcessor<IoBuffer>
             next.fireRead(data);
             return;
         }
-
         // 累积数据
         if (accumulation == null)
         {
@@ -41,14 +58,14 @@ public class ProxyTunnelReadHandler implements ReadProcessor<IoBuffer>
             accumulation.put(data);
             data.free();
         }
-
         // 尝试解析 CONNECT 响应
         if (parseConnectResponse())
         {
             tunnelReady       = true;
             tunnelEstablished = true;
             tunnelLatch.countDown();
-
+            // 隧道建立成功，传递 pipelineComplete 事件给后续处理器
+            next.firePipelineComplete(next.pipeline());
             // 如果有剩余数据，传递给 SSL 解码器
             if (accumulation != null && accumulation.remainRead() > 0)
             {
@@ -73,22 +90,16 @@ public class ProxyTunnelReadHandler implements ReadProcessor<IoBuffer>
         {
             return false;
         }
-
         // 查找 \r\n\r\n 标记响应头结束
         int readPosi  = accumulation.getReadPosi();
         int writePosi = accumulation.getWritePosi();
-
         for (int i = readPosi; i < writePosi - 3; i++)
         {
-            if (accumulation.get(i) == '\r' &&
-                accumulation.get(i + 1) == '\n' &&
-                accumulation.get(i + 2) == '\r' &&
-                accumulation.get(i + 3) == '\n')
+            if (accumulation.get(i) == '\r' && accumulation.get(i + 1) == '\n' && accumulation.get(i + 2) == '\r' && accumulation.get(i + 3) == '\n')
             {
                 // 找到响应头结束位置
                 int headerEndPosi = i + 4;
                 int headerLength  = headerEndPosi - readPosi;
-
                 // 解析状态行
                 byte[] headerBytes = new byte[headerLength];
                 for (int j = 0; j < headerLength; j++)
@@ -96,7 +107,6 @@ public class ProxyTunnelReadHandler implements ReadProcessor<IoBuffer>
                     headerBytes[j] = accumulation.get(readPosi + j);
                 }
                 String headerStr = new String(headerBytes, StandardCharsets.US_ASCII);
-
                 // 检查状态码是否为 200
                 if (headerStr.startsWith("HTTP/") && headerStr.contains(" 200 "))
                 {
@@ -114,7 +124,6 @@ public class ProxyTunnelReadHandler implements ReadProcessor<IoBuffer>
                 }
             }
         }
-
         return false;
     }
 

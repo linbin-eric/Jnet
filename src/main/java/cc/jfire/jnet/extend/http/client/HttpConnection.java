@@ -202,7 +202,7 @@ public class HttpConnection
             ClientSSLDecoder[] sslDecoderHolder   = new ClientSSLDecoder[1];
             int                secondsOfKeepAlive = config.getKeepAliveSeconds();
             // 创建隧道读处理器
-            ProxyTunnelReadHandler tunnelReadHandler = new ProxyTunnelReadHandler();
+            ProxyTunnelReadHandler tunnelReadHandler = new ProxyTunnelReadHandler(domain, port);
             clientChannel = ClientChannel.newClient(channelConfig, pipeline -> {
                 try
                 {
@@ -273,11 +273,6 @@ public class HttpConnection
             {
                 ReflectUtil.throwException(new RuntimeException("无法连接到代理服务器 " + proxyHost + ":" + proxyPort, clientChannel.getConnectionException()));
             }
-            // 发送 CONNECT 请求（使用 directWrite 直接写出，绕过写处理器链）
-            String   connectRequestStr = "CONNECT " + domain + ":" + port + " HTTP/1.1\r\n" + "Host: " + domain + ":" + port + "\r\n" + "\r\n";
-            IoBuffer connectBuffer     = clientChannel.pipeline().allocator().allocate(connectRequestStr.length());
-            connectBuffer.put(connectRequestStr.getBytes(StandardCharsets.US_ASCII));
-            clientChannel.pipeline().directWrite(connectBuffer);
             // 等待隧道建立
             try
             {
@@ -302,10 +297,9 @@ public class HttpConnection
                 clientChannel.pipeline().shutdownInput();
                 ReflectUtil.throwException(new RuntimeException("代理服务器拒绝 CONNECT 请求"));
             }
-            // 启动 SSL 握手
+            // 等待 SSL 握手完成
             if (sslDecoderHolder[0] != null)
             {
-                sslDecoderHolder[0].startHandshake(clientChannel.pipeline());
                 try
                 {
                     if (!sslDecoderHolder[0].waitHandshake(30, TimeUnit.SECONDS))

@@ -23,7 +23,8 @@ public interface ReadProcessor<T>
     }
 
     /**
-     * 首次读取注册之前触发
+     * 首次读取注册之前触发。
+     * 但是要注意，由于该事件需要靠前一个节点向后传递，因此也可能出现前一个节点拦截该事件的可能。
      */
     default void pipelineComplete(Pipeline pipeline, ReadProcessorNode next)
     {
