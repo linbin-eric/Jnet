@@ -44,6 +44,64 @@ public class HttpConnection
         this(domain, port, config, null, 0, ssl);
     }
 
+    private SSLEngine buildSSLEngineAndBeginHandShake(String domain, int port)
+    {
+        try
+        {
+            TrustManager[] trustAllCerts = HttpClientConfig.TRUST_ANYONE;
+            SSLContext     sslContext    = SSLContext.getInstance("TLS");
+            sslContext.init(null, trustAllCerts, null);
+            SSLEngine sslEngine = sslContext.createSSLEngine(domain, port);
+            sslEngine.setUseClientMode(true);
+            sslEngine.beginHandshake();
+            return sslEngine;
+        }
+        catch (Throwable e)
+        {
+            ReflectUtil.throwException(e);
+            return null;
+        }
+    }
+
+    class ProcessResponseFuture implements ReadProcessor<HttpResponsePart>
+    {
+        @Override
+        public void read(HttpResponsePart part, ReadProcessorNode next)
+        {
+            try
+            {
+                ResponseFuture future = responseFuture;
+                if (future == null)
+                {
+                    part.free();
+                    next.fireRead(null);
+                    return;
+                }
+                if (part.isLast())
+                {
+                    responseFuture = null;
+                }
+                future.onReceive(part);
+            }
+            catch (Throwable e)
+            {
+                next.pipeline().shutdownInput();
+            }
+        }
+
+        @Override
+        public void readFailed(Throwable e, ReadProcessorNode next)
+        {
+            close();
+            ResponseFuture future = responseFuture;
+            responseFuture = null;
+            if (future != null)
+            {
+                future.onFail(e);
+            }
+        }
+    }
+
     /**
      * 通过 HTTP 代理创建连接（支持 HTTP/HTTPS 两种模式）
      *
@@ -62,113 +120,23 @@ public class HttpConnection
             ChannelConfig channelConfig    = new ChannelConfig().setIp(domain).setPort(port);
             int           keepAliveSeconds = config.getKeepAliveSeconds();
             clientChannel = ClientChannel.newClient(channelConfig, pipeline -> {
+                SSLEncoder sslEncoder = null;
                 if (ssl)
                 {
-                    try
-                    {
-                        TrustManager[] trustManagers = config.getTrustManagers();
-                        SSLContext     sslContext    = SSLContext.getInstance("TLS");
-                        sslContext.init(null, trustManagers, null);
-                        SSLEngine sslEngine = sslContext.createSSLEngine(domain, port);
-                        sslEngine.setUseClientMode(true);
-                        ClientSSLDecoder sslDecoder = new ClientSSLDecoder(sslEngine);
-                        SSLEncoder       sslEncoder = new SSLEncoder(sslEngine);
-                        sslEngine.beginHandshake();
-                        pipeline.addReadProcessor(sslDecoder);
-                        pipeline.addReadProcessor(new HeartBeat(keepAliveSeconds, pipeline));
-                        pipeline.addReadProcessor(new HttpResponsePartDecoder());
-                        pipeline.addReadProcessor(new ReadProcessor<HttpResponsePart>()
-                        {
-                            @Override
-                            public void read(HttpResponsePart part, ReadProcessorNode next)
-                            {
-                                try
-                                {
-                                    ResponseFuture future = responseFuture;
-                                    if (future == null)
-                                    {
-                                        part.free();
-                                        next.fireRead(null);
-                                        return;
-                                    }
-                                    if (part.isLast())
-                                    {
-                                        responseFuture = null;
-                                    }
-                                    future.onReceive(part);
-                                }
-                                catch (Throwable e)
-                                {
-                                    pipeline.shutdownInput();
-                                }
-                            }
-
-                            @Override
-                            public void readFailed(Throwable e, ReadProcessorNode next)
-                            {
-                                close();
-                                ResponseFuture future = responseFuture;
-                                responseFuture = null;
-                                if (future != null)
-                                {
-                                    future.onFail(e);
-                                }
-                            }
-                        });
-                        pipeline.addWriteProcessor(new HttpRequestPartEncoder());
-                        pipeline.addWriteProcessor(new HeartBeat(keepAliveSeconds, pipeline));
-                        pipeline.addWriteProcessor(sslEncoder);
-                        ((DefaultPipeline) pipeline).putPersistenceStore(ClientSSLDecoder.KEY, sslDecoder);
-                    }
-                    catch (Exception e)
-                    {
-                        ReflectUtil.throwException(new RuntimeException("SSL 初始化失败", e));
-                    }
+                    SSLEngine        sslEngine  = buildSSLEngineAndBeginHandShake(domain, port);
+                    ClientSSLDecoder sslDecoder = new ClientSSLDecoder(sslEngine);
+                    pipeline.putPersistenceStore(ClientSSLDecoder.KEY, sslDecoder);
+                    sslEncoder = new SSLEncoder(sslEngine);
+                    pipeline.addReadProcessor(sslDecoder);
                 }
-                else
+                pipeline.addReadProcessor(new HeartBeat(keepAliveSeconds, pipeline));
+                pipeline.addReadProcessor(new HttpResponsePartDecoder());
+                pipeline.addReadProcessor(new ProcessResponseFuture());
+                pipeline.addWriteProcessor(new HttpRequestPartEncoder());
+                pipeline.addWriteProcessor(new HeartBeat(keepAliveSeconds, pipeline));
+                if (sslEncoder != null)
                 {
-                    pipeline.addReadProcessor(new HeartBeat(keepAliveSeconds, pipeline));
-                    pipeline.addReadProcessor(new HttpResponsePartDecoder());
-                    pipeline.addReadProcessor(new ReadProcessor<HttpResponsePart>()
-                    {
-                        @Override
-                        public void read(HttpResponsePart part, ReadProcessorNode next)
-                        {
-                            try
-                            {
-                                ResponseFuture future = responseFuture;
-                                if (future == null)
-                                {
-                                    part.free();
-                                    next.fireRead(null);
-                                    return;
-                                }
-                                if (part.isLast())
-                                {
-                                    responseFuture = null;
-                                }
-                                future.onReceive(part);
-                            }
-                            catch (Throwable e)
-                            {
-                                pipeline.shutdownInput();
-                            }
-                        }
-
-                        @Override
-                        public void readFailed(Throwable e, ReadProcessorNode next)
-                        {
-                            close();
-                            ResponseFuture future = responseFuture;
-                            responseFuture = null;
-                            if (future != null)
-                            {
-                                future.onFail(e);
-                            }
-                        }
-                    });
-                    pipeline.addWriteProcessor(new HttpRequestPartEncoder());
-                    pipeline.addWriteProcessor(new HeartBeat(keepAliveSeconds, pipeline));
+                    pipeline.addWriteProcessor(sslEncoder);
                 }
             });
             if (!clientChannel.connect())
@@ -204,64 +172,22 @@ public class HttpConnection
             clientChannel = ClientChannel.newClient(channelConfig, pipeline -> {
                 try
                 {
-                    // 初始化 SSL 引擎
-                    TrustManager[] trustAllCerts = config.getTrustManagers();
-                    SSLContext     sslContext    = SSLContext.getInstance("TLS");
-                    sslContext.init(null, trustAllCerts, null);
-                    SSLEngine sslEngine = sslContext.createSSLEngine(domain, port);
-                    sslEngine.setUseClientMode(true);
-                    ClientSSLDecoder sslDecoder = new ClientSSLDecoder(sslEngine);
-                    SSLEncoder       sslEncoder = new SSLEncoder(sslEngine);
-                    sslEngine.beginHandshake();
                     // 配置读取链: ProxyTunnelReadHandler -> ClientSSLDecoder -> HeartBeat -> HttpResponsePartDecoder -> 业务处理器
                     pipeline.addReadProcessor(tunnelReadHandler);
+                    pipeline.putPersistenceStore(ProxyTunnelReadHandler.KEY, tunnelReadHandler);
+                    // 初始化 SSL 引擎
+                    SSLEngine        sslEngine  = buildSSLEngineAndBeginHandShake(proxyHost, proxyPort);
+                    ClientSSLDecoder sslDecoder = new ClientSSLDecoder(sslEngine);
+                    pipeline.putPersistenceStore(ClientSSLDecoder.KEY, sslDecoder);
+                    SSLEncoder sslEncoder = new SSLEncoder(sslEngine);
                     pipeline.addReadProcessor(sslDecoder);
                     pipeline.addReadProcessor(new HeartBeat(secondsOfKeepAlive, pipeline));
                     pipeline.addReadProcessor(new HttpResponsePartDecoder());
-                    pipeline.addReadProcessor(new ReadProcessor<HttpResponsePart>()
-                    {
-                        @Override
-                        public void read(HttpResponsePart part, ReadProcessorNode next)
-                        {
-                            try
-                            {
-                                ResponseFuture future = responseFuture;
-                                if (future == null)
-                                {
-                                    part.free();
-                                    next.fireRead(null);
-                                    return;
-                                }
-                                if (part.isLast())
-                                {
-                                    responseFuture = null;
-                                }
-                                future.onReceive(part);
-                            }
-                            catch (Throwable e)
-                            {
-                                pipeline.shutdownInput();
-                            }
-                        }
-
-                        @Override
-                        public void readFailed(Throwable e, ReadProcessorNode next)
-                        {
-                            close();
-                            ResponseFuture future = responseFuture;
-                            responseFuture = null;
-                            if (future != null)
-                            {
-                                future.onFail(e);
-                            }
-                        }
-                    });
+                    pipeline.addReadProcessor(new ProcessResponseFuture());
                     // 配置写入链: HttpRequestPartEncoder -> HeartBeat -> ClientSSLEncoder
                     pipeline.addWriteProcessor(new HttpRequestPartEncoder());
                     pipeline.addWriteProcessor(new HeartBeat(secondsOfKeepAlive, pipeline));
                     pipeline.addWriteProcessor(sslEncoder);
-                    ((DefaultPipeline) pipeline).putPersistenceStore(ClientSSLDecoder.KEY, sslDecoder);
-                    ((DefaultPipeline) pipeline).putPersistenceStore(ProxyTunnelReadHandler.KEY, tunnelReadHandler);
                 }
                 catch (Exception e)
                 {
@@ -296,23 +222,20 @@ public class HttpConnection
                 clientChannel.pipeline().shutdownInput();
                 ReflectUtil.throwException(new RuntimeException("代理服务器拒绝 CONNECT 请求"));
             }
-            ClientSSLDecoder sslDecoder = (ClientSSLDecoder) ((DefaultPipeline) clientChannel.pipeline()).getPersistenceStore(ClientSSLDecoder.KEY);
+            ClientSSLDecoder sslDecoder = (ClientSSLDecoder) clientChannel.pipeline().getPersistenceStore(ClientSSLDecoder.KEY);
             // 等待 SSL 握手完成
-            if (sslDecoder != null)
+            try
             {
-                try
-                {
-                    if (!sslDecoder.waitHandshake(30, TimeUnit.SECONDS))
-                    {
-                        clientChannel.pipeline().shutdownInput();
-                        ReflectUtil.throwException(new RuntimeException("SSL 握手超时"));
-                    }
-                }
-                catch (InterruptedException e)
+                if (!sslDecoder.waitHandshake(30, TimeUnit.SECONDS))
                 {
                     clientChannel.pipeline().shutdownInput();
-                    ReflectUtil.throwException(new RuntimeException("SSL 握手被中断", e));
+                    ReflectUtil.throwException(new RuntimeException("SSL 握手超时"));
                 }
+            }
+            catch (InterruptedException e)
+            {
+                clientChannel.pipeline().shutdownInput();
+                ReflectUtil.throwException(new RuntimeException("SSL 握手被中断", e));
             }
         }
         else
@@ -324,44 +247,7 @@ public class HttpConnection
                 // 配置读取链: HeartBeat -> HttpResponsePartDecoder -> 业务处理器
                 pipeline.addReadProcessor(new HeartBeat(secondsOfKeepAlive, pipeline));
                 pipeline.addReadProcessor(new HttpResponsePartDecoder());
-                pipeline.addReadProcessor(new ReadProcessor<HttpResponsePart>()
-                {
-                    @Override
-                    public void read(HttpResponsePart part, ReadProcessorNode next)
-                    {
-                        try
-                        {
-                            ResponseFuture future = responseFuture;
-                            if (future == null)
-                            {
-                                part.free();
-                                next.fireRead(null);
-                                return;
-                            }
-                            if (part.isLast())
-                            {
-                                responseFuture = null;
-                            }
-                            future.onReceive(part);
-                        }
-                        catch (Throwable e)
-                        {
-                            pipeline.shutdownInput();
-                        }
-                    }
-
-                    @Override
-                    public void readFailed(Throwable e, ReadProcessorNode next)
-                    {
-                        close();
-                        ResponseFuture future = responseFuture;
-                        responseFuture = null;
-                        if (future != null)
-                        {
-                            future.onFail(e);
-                        }
-                    }
-                });
+                pipeline.addReadProcessor(new ProcessResponseFuture());
                 // 配置写入链: ProxyHttpRequestEncoder -> HeartBeat
                 pipeline.addWriteProcessor(new ProxyHttpRequestEncoder(domain, port));
                 pipeline.addWriteProcessor(new HeartBeat(secondsOfKeepAlive, pipeline));
@@ -395,7 +281,6 @@ public class HttpConnection
     {
         if (isConnectionClosed())
         {
-//            log.error("连接已关闭，地址：{}", clientChannel.pipeline().getRemoteAddressWithoutException());
             request.close();
             throw new ClosedChannelException();
         }

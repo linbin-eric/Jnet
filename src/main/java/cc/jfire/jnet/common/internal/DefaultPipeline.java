@@ -213,6 +213,7 @@ public class DefaultPipeline implements InternalPipeline
         }
     }
 
+    @Override
     public void putPersistenceStore(String key, Object value)
     {
         if (persistenceStore == null)
@@ -222,6 +223,7 @@ public class DefaultPipeline implements InternalPipeline
         persistenceStore.put(key, value);
     }
 
+    @Override
     public Object getPersistenceStore(String key)
     {
         if (persistenceStore == null)

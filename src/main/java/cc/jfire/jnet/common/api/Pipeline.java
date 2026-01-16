@@ -55,4 +55,8 @@ public interface Pipeline
     BufferAllocator allocator();
 
     String pipelineId();
+
+    void putPersistenceStore(String key, Object value);
+
+    Object getPersistenceStore(String key);
 }
