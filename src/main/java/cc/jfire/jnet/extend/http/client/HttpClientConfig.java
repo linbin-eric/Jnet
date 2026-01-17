@@ -35,6 +35,19 @@ public class HttpClientConfig
      * SSL 握手超时时间（秒）
      */
     private             int            sslHandshakeTimeoutSeconds = 30;
+    /**
+     * 代理服务器主机名（null 表示不使用代理）
+     */
+    private             String         proxyHost                  = null;
+    /**
+     * 代理服务器端口
+     */
+    private             int            proxyPort                  = 0;
+
+    public boolean hasProxy()
+    {
+        return proxyHost != null && !proxyHost.isEmpty();
+    }
     public static final TrustManager[] TRUST_ANYONE               = new TrustManager[]{new X509TrustManager()
     {
         public X509Certificate[] getAcceptedIssuers()                            {return new X509Certificate[0];}

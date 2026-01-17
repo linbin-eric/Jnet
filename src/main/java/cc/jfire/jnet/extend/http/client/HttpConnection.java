@@ -1,11 +1,9 @@
 package cc.jfire.jnet.extend.http.client;
 
-import cc.jfire.baseutil.TRACEID;
 import cc.jfire.jnet.client.ClientChannel;
 import cc.jfire.jnet.common.api.ReadProcessor;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.common.coder.HeartBeat;
-import cc.jfire.jnet.common.internal.DefaultPipeline;
 import cc.jfire.jnet.common.util.ChannelConfig;
 import cc.jfire.jnet.common.util.ReflectUtil;
 import cc.jfire.jnet.extend.http.coder.*;
@@ -27,21 +25,15 @@ public class HttpConnection
     private final    AtomicBoolean  isClosed = new AtomicBoolean(false);
     @Getter
     private volatile ResponseFuture responseFuture;
-    private final    String         uid      = TRACEID.newTraceId();
 
     public HttpConnection(String domain, int port, int secondsOfKeepAlive)
     {
-        this(domain, port, new HttpClientConfig().setKeepAliveSeconds(secondsOfKeepAlive), null, 0, false);
+        this(domain, port, null, 0, false, secondsOfKeepAlive, 30);
     }
 
     public HttpConnection(String domain, int port, int secondsOfKeepAlive, boolean ssl)
     {
-        this(domain, port, new HttpClientConfig().setKeepAliveSeconds(secondsOfKeepAlive), null, 0, ssl);
-    }
-
-    public HttpConnection(String domain, int port, HttpClientConfig config, boolean ssl)
-    {
-        this(domain, port, config, null, 0, ssl);
+        this(domain, port, null, 0, ssl, secondsOfKeepAlive, 30);
     }
 
     private SSLEngine buildSSLEngineAndBeginHandShake(String domain, int port)
@@ -102,23 +94,28 @@ public class HttpConnection
         }
     }
 
+    public HttpConnection(String domain, int port, String proxyHost, int proxyPort, boolean ssl)
+    {
+        this(domain, port, proxyHost, proxyPort, ssl, 30, 30);
+    }
+
     /**
      * 通过 HTTP 代理创建连接（支持 HTTP/HTTPS 两种模式）
      *
-     * @param domain    目标服务器域名
-     * @param port      目标服务器端口
-     * @param config    客户端配置
-     * @param proxyHost 代理服务器主机名
-     * @param proxyPort 代理服务器端口
-     * @param ssl       是否使用 SSL（true 为 HTTPS 代理隧道模式，false 为 HTTP 直接代理模式）
+     * @param domain                     目标服务器域名
+     * @param port                       目标服务器端口
+     * @param proxyHost                  代理服务器主机名
+     * @param proxyPort                  代理服务器端口
+     * @param ssl                        是否使用 SSL（true 为 HTTPS 代理隧道模式，false 为 HTTP 直接代理模式）
+     * @param keepAliveSeconds           Keep-Alive 时间（秒）
+     * @param sslHandshakeTimeoutSeconds SSL 握手超时时间（秒）
      */
-    public HttpConnection(String domain, int port, HttpClientConfig config, String proxyHost, int proxyPort, boolean ssl)
+    public HttpConnection(String domain, int port, String proxyHost, int proxyPort, boolean ssl, int keepAliveSeconds, int sslHandshakeTimeoutSeconds)
     {
         if (proxyHost == null)
         {
             // 直接连接模式(不使用代理)
-            ChannelConfig channelConfig    = new ChannelConfig().setIp(domain).setPort(port);
-            int           keepAliveSeconds = config.getKeepAliveSeconds();
+            ChannelConfig channelConfig = new ChannelConfig().setIp(domain).setPort(port);
             clientChannel = ClientChannel.newClient(channelConfig, pipeline -> {
                 SSLEncoder sslEncoder = null;
                 if (ssl)
@@ -145,11 +142,11 @@ public class HttpConnection
             }
             if (ssl)
             {
-                ClientSSLDecoder sslDecoder = (ClientSSLDecoder) ((DefaultPipeline) clientChannel.pipeline()).getPersistenceStore(ClientSSLDecoder.KEY);
+                ClientSSLDecoder sslDecoder = (ClientSSLDecoder) clientChannel.pipeline().getPersistenceStore(ClientSSLDecoder.KEY);
                 sslDecoder.startHandshake(clientChannel.pipeline());
                 try
                 {
-                    if (!sslDecoder.waitHandshake(config.getSslHandshakeTimeoutSeconds(), TimeUnit.SECONDS))
+                    if (!sslDecoder.waitHandshake(sslHandshakeTimeoutSeconds, TimeUnit.SECONDS))
                     {
                         clientChannel.pipeline().shutdownInput();
                         ReflectUtil.throwException(new RuntimeException("SSL 握手超时"));
@@ -165,8 +162,7 @@ public class HttpConnection
         else if (ssl)
         {
             // HTTPS 代理（CONNECT 隧道模式）
-            ChannelConfig channelConfig      = new ChannelConfig().setIp(proxyHost).setPort(proxyPort);
-            int           secondsOfKeepAlive = config.getKeepAliveSeconds();
+            ChannelConfig channelConfig = new ChannelConfig().setIp(proxyHost).setPort(proxyPort);
             // 创建隧道读处理器
             ProxyTunnelReadHandler tunnelReadHandler = new ProxyTunnelReadHandler(domain, port);
             clientChannel = ClientChannel.newClient(channelConfig, pipeline -> {
@@ -181,12 +177,12 @@ public class HttpConnection
                     pipeline.putPersistenceStore(ClientSSLDecoder.KEY, sslDecoder);
                     SSLEncoder sslEncoder = new SSLEncoder(sslEngine);
                     pipeline.addReadProcessor(sslDecoder);
-                    pipeline.addReadProcessor(new HeartBeat(secondsOfKeepAlive, pipeline));
+                    pipeline.addReadProcessor(new HeartBeat(keepAliveSeconds, pipeline));
                     pipeline.addReadProcessor(new HttpResponsePartDecoder());
                     pipeline.addReadProcessor(new ProcessResponseFuture());
                     // 配置写入链: HttpRequestPartEncoder -> HeartBeat -> ClientSSLEncoder
                     pipeline.addWriteProcessor(new HttpRequestPartEncoder());
-                    pipeline.addWriteProcessor(new HeartBeat(secondsOfKeepAlive, pipeline));
+                    pipeline.addWriteProcessor(new HeartBeat(keepAliveSeconds, pipeline));
                     pipeline.addWriteProcessor(sslEncoder);
                 }
                 catch (Exception e)
@@ -241,16 +237,15 @@ public class HttpConnection
         else
         {
             // HTTP 代理（直接代理模式）
-            int           secondsOfKeepAlive = config.getKeepAliveSeconds();
-            ChannelConfig channelConfig      = new ChannelConfig().setIp(proxyHost).setPort(proxyPort);
+            ChannelConfig channelConfig = new ChannelConfig().setIp(proxyHost).setPort(proxyPort);
             clientChannel = ClientChannel.newClient(channelConfig, pipeline -> {
                 // 配置读取链: HeartBeat -> HttpResponsePartDecoder -> 业务处理器
-                pipeline.addReadProcessor(new HeartBeat(secondsOfKeepAlive, pipeline));
+                pipeline.addReadProcessor(new HeartBeat(keepAliveSeconds, pipeline));
                 pipeline.addReadProcessor(new HttpResponsePartDecoder());
                 pipeline.addReadProcessor(new ProcessResponseFuture());
                 // 配置写入链: ProxyHttpRequestEncoder -> HeartBeat
                 pipeline.addWriteProcessor(new ProxyHttpRequestEncoder(domain, port));
-                pipeline.addWriteProcessor(new HeartBeat(secondsOfKeepAlive, pipeline));
+                pipeline.addWriteProcessor(new HeartBeat(keepAliveSeconds, pipeline));
             });
             if (!clientChannel.connect())
             {

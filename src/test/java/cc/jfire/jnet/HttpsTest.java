@@ -1,7 +1,6 @@
 package cc.jfire.jnet;
 
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
-import cc.jfire.jnet.extend.http.client.HttpClientConfig;
 import cc.jfire.jnet.extend.http.client.HttpConnection;
 import cc.jfire.jnet.extend.http.dto.HttpRequest;
 import cc.jfire.jnet.extend.http.dto.HttpResponse;
@@ -30,7 +29,7 @@ public class HttpsTest
     @Test
     public void testproxy() throws ClosedChannelException, SocketTimeoutException
     {
-        HttpConnection httpConnection = new HttpConnection("www.google.com",443,new HttpClientConfig(),"127.0.0.1",7879,true);
+        HttpConnection httpConnection = new HttpConnection("www.google.com",443,"127.0.0.1",7879,true,30,30);
         HttpResponse httpResponse = httpConnection.write(new HttpRequest().setUrl("https://www.google.com").get(),60);
         IoBuffer bodyBuffer = httpResponse.getBodyBuffer();
         if (bodyBuffer != null)
