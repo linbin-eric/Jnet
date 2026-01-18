@@ -129,6 +129,12 @@ public class UnPooledBuffer implements IoBuffer
         return oldPosi;
     }
 
+    /**
+     * 扩容到指定容量。
+     * <p>
+     * 注意：bufferCapacity << 1 在超大容量（>= 1GB）下可能发生 int 溢出。
+     * 但在网络框架实际使用中，单个缓冲区不会达到如此大的容量，因此该风险可忽略。
+     */
     protected void expansionCapacity(int newCapacity)
     {
         newCapacity = Math.max(newCapacity, (bufferCapacity << 1));
@@ -646,6 +652,12 @@ public class UnPooledBuffer implements IoBuffer
         return this;
     }
 
+    /**
+     * 当引用计数大于1时，通过分配新内存空间来执行 compact 操作。
+     * <p>
+     * 注意：oldOffset + oldReadPosi 理论上在极大偏移场景下可能发生 int 溢出。
+     * 但实际使用中，offset 和 readPosi 的值都源自同一内存区域，其总和不会超过内存区域大小，因此该风险可忽略。
+     */
     protected void compactByNewSpace(int length)
     {
         int           oldReadPosi      = readPosi;

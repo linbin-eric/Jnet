@@ -123,7 +123,7 @@ public class HeapRw implements RwDelegation
             case DIRECT, UNSAFE ->
             {
                 UnPooledBuffer buffer = (UnPooledBuffer) srcBuf;
-                Bits.copyToArray(buffer.nativeAddress() + buffer.offset() + buffer.getReadPosi(), (byte[]) destMemory, destOffset + destPosi, len);
+                Bits.copyToArray(buffer.nativeAddress() + (long)buffer.offset() + (long)buffer.getReadPosi(), (byte[]) destMemory, destOffset + destPosi, len);
             }
         }
     }

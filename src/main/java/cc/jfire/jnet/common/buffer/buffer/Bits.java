@@ -11,6 +11,9 @@ public final class Bits
 
     /**
      * 从堆内存中拷贝数据到堆外内存
+     * <p>
+     * 注意：当 srcPos 接近 Integer.MAX_VALUE 时，arrayBaseOffset + srcPos 可能发生 int 溢出。
+     * 但在网络框架实际使用中，不会出现接近 2GB 的字节数组，因此该风险可忽略。
      *
      * @param src     拷贝数据源
      * @param srcPos  拷贝起始量
@@ -35,6 +38,9 @@ public final class Bits
 
     /**
      * 从堆外内存拷贝字节数据到堆内内存
+     * <p>
+     * 注意：当 dstPos 接近 Integer.MAX_VALUE 时，arrayBaseOffset + dstPos 可能发生 int 溢出。
+     * 但在网络框架实际使用中，不会出现接近 2GB 的字节数组，因此该风险可忽略。
      *
      * @param srcAddr
      * @param dst
@@ -52,7 +58,7 @@ public final class Bits
         {
             for (int i = 0; i < length; i++)
             {
-                dst[i] = UNSAFE.getByte(srcAddr + i);
+                dst[dstPos + i] = UNSAFE.getByte(srcAddr + i);
             }
         }
     }

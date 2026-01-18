@@ -14,19 +14,19 @@ public class UnsafeRw implements RwDelegation
     @Override
     public void put0(int posi, byte value, Object memory, int offset, long nativeAddress)
     {
-        Bits.put(nativeAddress + offset + posi, value);
+        Bits.put(nativeAddress + (long)offset + (long)posi, value);
     }
 
     @Override
     public void put0(byte[] content, int off, int len, int posi, Object memory, int memoryOffset, long nativeAddress)
     {
-        Bits.copyFromByteArray(content, off, nativeAddress + memoryOffset + posi, len);
+        Bits.copyFromByteArray(content, off, nativeAddress + (long)memoryOffset + (long)posi, len);
     }
 
     @Override
     public void putInt0(int posi, int value, Object memory, int offset, long nativeAddress)
     {
-        Bits.putInt(posi + offset + nativeAddress, value);
+        Bits.putInt(nativeAddress + (long)offset + (long)posi, value);
     }
 
     @Override
@@ -39,13 +39,13 @@ public class UnsafeRw implements RwDelegation
     @Override
     public void putShort0(int posi, short value, Object memory, int offset, long nativeAddress)
     {
-        Bits.putShort(posi + offset + nativeAddress, value);
+        Bits.putShort(nativeAddress + (long)offset + (long)posi, value);
     }
 
     @Override
     public void putLong0(int posi, long value, Object memory, int offset, long nativeAddress)
     {
-        Bits.putLong(posi + offset + nativeAddress, value);
+        Bits.putLong(nativeAddress + (long)offset + (long)posi, value);
     }
 
     @Override
@@ -58,19 +58,19 @@ public class UnsafeRw implements RwDelegation
     @Override
     public byte get0(int posi, Object memory, int offset, long nativeAddress)
     {
-        return Bits.get(posi + offset + nativeAddress);
+        return Bits.get(nativeAddress + (long)offset + (long)posi);
     }
 
     @Override
     public void get0(byte[] content, int off, int len, int posi, Object memory, int memoryOffset, long nativeAddress)
     {
-        Bits.copyToArray(posi + memoryOffset + nativeAddress, content, off, len);
+        Bits.copyToArray(nativeAddress + (long)memoryOffset + (long)posi, content, off, len);
     }
 
     @Override
     public int getInt0(int posi, Object memory, int offset, long nativeAddress)
     {
-        return Bits.getInt(posi + offset + nativeAddress);
+        return Bits.getInt(nativeAddress + (long)offset + (long)posi);
     }
 
     @Override
@@ -82,13 +82,13 @@ public class UnsafeRw implements RwDelegation
     @Override
     public short getShort0(int posi, Object memory, int offset, long nativeAddress)
     {
-        return Bits.getShort(posi + offset + nativeAddress);
+        return Bits.getShort(nativeAddress + (long)offset + (long)posi);
     }
 
     @Override
     public long getLong0(int posi, Object memory, int offset, long nativeAddress)
     {
-        return Bits.getLong(posi + offset + nativeAddress);
+        return Bits.getLong(nativeAddress + (long)offset + (long)posi);
     }
 
     @Override
@@ -116,7 +116,7 @@ public class UnsafeRw implements RwDelegation
     @Override
     public void compact0(Object memory, int offset, long nativeAddress, int readPosition, int length)
     {
-        Bits.copyDirectMemory(offset + nativeAddress + readPosition, offset + nativeAddress, length);
+        Bits.copyDirectMemory(nativeAddress + (long)offset + (long)readPosition, nativeAddress + (long)offset, length);
     }
 
     @Override
@@ -124,11 +124,11 @@ public class UnsafeRw implements RwDelegation
     {
         switch (srcBuf.bufferType())
         {
-            case HEAP -> Bits.copyFromByteArray((byte[]) srcBuf.memory(), srcBuf.offset() + srcBuf.getReadPosi(), destOffset + destNativeAddress + destPosi, len);
+            case HEAP -> Bits.copyFromByteArray((byte[]) srcBuf.memory(), srcBuf.offset() + srcBuf.getReadPosi(), destNativeAddress + (long)destOffset + (long)destPosi, len);
             case DIRECT, UNSAFE, MEMORY ->
             {
                 UnPooledBuffer buffer = (UnPooledBuffer) srcBuf;
-                Bits.copyDirectMemory(buffer.nativeAddress() + buffer.offset() + buffer.getReadPosi(), destOffset + destNativeAddress + destPosi, len);
+                Bits.copyDirectMemory(buffer.nativeAddress() + (long)buffer.offset() + (long)buffer.getReadPosi(), destNativeAddress + (long)destOffset + (long)destPosi, len);
             }
         }
     }

@@ -248,7 +248,7 @@ public class Chunk
 
     public int usage()
     {
-        int result = 100 - (freeBytes * 100 / chunkSize);
+        int result = (int) (100 - ((long) freeBytes * 100 / chunkSize));
         if (result == 0)
         {
             return freeBytes == chunkSize ? 0 : 1;
