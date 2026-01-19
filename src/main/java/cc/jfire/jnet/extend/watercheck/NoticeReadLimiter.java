@@ -40,7 +40,7 @@ public class NoticeReadLimiter extends AtomicInteger implements ReadProcessor<Vo
             setIdle();
             if (counter.get() < limit)
             {
-                if (compareAndExchange(IDLE, WORK) == IDLE)
+                if (compareAndSet(IDLE, WORK))
                 {
                     adaptiveReadCompletionHandler.registerRead();
                 }
@@ -55,7 +55,7 @@ public class NoticeReadLimiter extends AtomicInteger implements ReadProcessor<Vo
 
     public void notifyRead()
     {
-        if (compareAndExchange(IDLE, WORK) == IDLE)
+        if (compareAndSet(IDLE, WORK))
         {
             adaptiveReadCompletionHandler.registerRead();
         }
