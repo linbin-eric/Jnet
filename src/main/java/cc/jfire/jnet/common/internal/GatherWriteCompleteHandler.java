@@ -124,6 +124,7 @@ public class GatherWriteCompleteHandler extends AbstractWriteCompleteHandler imp
             }
         }
         writeListener.writeFailed(e);
+        pipeline.fireWriteFailed(e);
         IoBuffer tmp;
         while ((tmp = queue.poll()) != null)
         {

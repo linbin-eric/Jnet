@@ -25,4 +25,10 @@ public class TailWriteProcessor implements WriteProcessor
     {
         ;
     }
+
+    @Override
+    public void queueEmpty(WriteProcessorNode next)
+    {
+        ;
+    }
 }

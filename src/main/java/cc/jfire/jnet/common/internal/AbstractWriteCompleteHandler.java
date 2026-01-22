@@ -169,7 +169,6 @@ public abstract class AbstractWriteCompleteHandler extends AtomicInteger impleme
             {
                 ;
             }
-            pipeline.fireWriteFailed(e);
         }
     }
 
