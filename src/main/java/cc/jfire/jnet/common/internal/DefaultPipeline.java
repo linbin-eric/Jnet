@@ -39,6 +39,7 @@ public class DefaultPipeline implements InternalPipeline
         this.socketChannel = socketChannel;
         this.channelConfig = channelConfig;
         jvmExistHandler    = channelConfig.getJvmExistHandler();
+        writeHead          = new ConcurrentWriteProcessorNode(this);
     }
 
     @Override
@@ -60,11 +61,6 @@ public class DefaultPipeline implements InternalPipeline
     @Override
     public void addWriteProcessor(WriteProcessor<?> processor)
     {
-        if (writeHead == null)
-        {
-            writeHead = new WriteProcessorNodeImpl(processor, this);
-            return;
-        }
         WriteProcessorNode node = writeHead;
         while (node.getNext() != null)
         {

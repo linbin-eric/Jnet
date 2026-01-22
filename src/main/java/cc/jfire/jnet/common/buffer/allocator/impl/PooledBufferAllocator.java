@@ -15,14 +15,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class PooledBufferAllocator implements BufferAllocator
 {
-    public static final int     PAGESIZE;
-    public static final int     PAGESIZE_SHIFT;
-    public static final int     MAXLEVEL;
-    public static final int     NUM_OF_ARENA;
-    public static final boolean PREFER_DIRECT;
-    private static final Arena[]                        HEAP_ARENAS;
-    private static final Arena[]                        UNSAFE_ARENAS;
-    private static final AtomicInteger                  ARENA_COUNT         = new AtomicInteger();
+    public static final  int           PAGESIZE;
+    public static final  int           PAGESIZE_SHIFT;
+    public static final  int           MAXLEVEL;
+    public static final  int           NUM_OF_ARENA;
+    public static final  boolean       PREFER_DIRECT;
+    private static final Arena[]       HEAP_ARENAS;
+    private static final Arena[]       UNSAFE_ARENAS;
+    private static final AtomicInteger ARENA_COUNT = new AtomicInteger();
 
     static
     {
@@ -47,7 +47,7 @@ public class PooledBufferAllocator implements BufferAllocator
         }
     }
 
-    private final        boolean                        preferDirect;
+    private final boolean                        preferDirect;
     @Getter
     private final Arena                          arena;
     private final BitmapObjectPool<PooledBuffer> bufferPool;
