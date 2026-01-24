@@ -21,13 +21,7 @@ public class TailWriteProcessor implements WriteProcessor
     }
 
     @Override
-    public void writeFailed(WriteProcessorNode next, Throwable e)
-    {
-        ;
-    }
-
-    @Override
-    public void queueEmpty(WriteProcessorNode next)
+    public void channelClosed(WriteProcessorNode next, Throwable e)
     {
         ;
     }

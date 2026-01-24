@@ -164,6 +164,7 @@ public abstract class AbstractWriteCompleteHandler extends AtomicInteger impleme
             try
             {
                 socketChannel.close();
+                pipeline.fireWriteFailed(e);
             }
             catch (IOException ignored)
             {

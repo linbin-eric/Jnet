@@ -113,7 +113,6 @@ public class DefaultWriteCompleteHandler extends AbstractWriteCompleteHandler im
             tmp.free();
         }
         writeListener.writeFailed(e);
-        pipeline.fireWriteFailed(e);
         closeChannel(e);
         quitToIdle();
     }

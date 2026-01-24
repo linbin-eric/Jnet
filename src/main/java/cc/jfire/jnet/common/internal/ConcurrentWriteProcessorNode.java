@@ -39,13 +39,7 @@ public class ConcurrentWriteProcessorNode implements WriteProcessorNode, Runnabl
     }
 
     @Override
-    public void fireQueueEmpty()
-    {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void fireWriteFailed(Throwable e)
+    public void fireChannelClosed(Throwable e)
     {
         queue.offer(e);
         int t_state = this.state;
@@ -68,7 +62,7 @@ public class ConcurrentWriteProcessorNode implements WriteProcessorNode, Runnabl
             {
                 if (avail instanceof Throwable e)
                 {
-                    next.fireWriteFailed(e);
+                    next.fireChannelClosed(e);
                 }
                 else
                 {

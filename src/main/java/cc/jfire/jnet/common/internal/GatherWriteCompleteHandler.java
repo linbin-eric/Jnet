@@ -10,11 +10,11 @@ import java.util.concurrent.TimeUnit;
 
 public class GatherWriteCompleteHandler extends AbstractWriteCompleteHandler implements CompletionHandler<Long, Void>
 {
-    private final int        gatherSize    = 2048;
-    private final IoBuffer[] gatherBuffers = new IoBuffer[gatherSize];
+    private final int          gatherSize        = 2048;
+    private final IoBuffer[]   gatherBuffers     = new IoBuffer[gatherSize];
     private final ByteBuffer[] gatherByteBuffers = new ByteBuffer[gatherSize];
     private       int          completedStart    = 0;
-    private int          writeCount        = 0;
+    private       int          writeCount        = 0;
 
     public GatherWriteCompleteHandler(Pipeline pipeline)
     {
@@ -124,7 +124,6 @@ public class GatherWriteCompleteHandler extends AbstractWriteCompleteHandler imp
             }
         }
         writeListener.writeFailed(e);
-        pipeline.fireWriteFailed(e);
         IoBuffer tmp;
         while ((tmp = queue.poll()) != null)
         {

@@ -39,7 +39,7 @@ public class DefaultPipeline implements InternalPipeline
         this.socketChannel = socketChannel;
         this.channelConfig = channelConfig;
         jvmExistHandler    = channelConfig.getJvmExistHandler();
-        writeHead          = new ConcurrentWriteProcessorNode(this);
+        writeHead          = new RunAndStopWriteProcessorNode(this);
     }
 
     @Override
@@ -200,7 +200,7 @@ public class DefaultPipeline implements InternalPipeline
     {
         try
         {
-            writeHead.fireWriteFailed(e);
+            writeHead.fireChannelClosed(e);
         }
         catch (Throwable e1)
         {

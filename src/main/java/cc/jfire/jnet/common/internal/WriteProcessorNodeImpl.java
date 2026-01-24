@@ -23,15 +23,9 @@ public class WriteProcessorNodeImpl implements WriteProcessorNode
     }
 
     @Override
-    public void fireQueueEmpty()
+    public void fireChannelClosed(Throwable e)
     {
-        processor.queueEmpty(next);
-    }
-
-    @Override
-    public void fireWriteFailed(Throwable e)
-    {
-        processor.writeFailed(next, e);
+        processor.channelClosed(next, e);
     }
 
     @Override

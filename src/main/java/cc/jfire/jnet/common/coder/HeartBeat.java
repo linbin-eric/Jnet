@@ -45,10 +45,10 @@ public class HeartBeat implements ReadProcessor, WriteProcessor
     }
 
     @Override
-    public void writeFailed(WriteProcessorNode next, Throwable e)
+    public void channelClosed(WriteProcessorNode next, Throwable e)
     {
         noNeedWatch = true;
-        next.fireWriteFailed(e);
+        next.fireChannelClosed(e);
     }
 
     class CheckTrigger extends RepeatDelayTrigger
