@@ -77,6 +77,22 @@ public class ConcurrentWriteProcessorNode implements WriteProcessorNode, Runnabl
             }
             else
             {
+                boolean needIdle = true;
+                for (int spin = 0; spin < 32; spin++)
+                {
+                    if (queue.isEmpty())
+                    {
+                        Thread.onSpinWait();
+                    }
+                    else
+                    {
+                        needIdle = false;
+                    }
+                }
+                if (needIdle == false)
+                {
+                    continue;
+                }
                 state = IDLE;
                 if (!queue.isEmpty() && UNSAFE.compareAndSwapInt(this, STATE_OFFSET, IDLE, WORK))
                 {
