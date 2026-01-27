@@ -17,9 +17,11 @@ public class HttpResponse implements AutoCloseable
     private byte[]               bodyBytes;
     private boolean              hasContentLength = false;
     private boolean              hasContentType   = false;
+    private String               cachedBodyText;
 
-    // 初始化 head 的默认值
+    public HttpResponse()
     {
+        // 初始化 head 的默认值
         head.setVersion("HTTP/1.1");
         head.setStatusCode(200);
         head.setReasonPhrase("OK");
@@ -79,6 +81,22 @@ public class HttpResponse implements AutoCloseable
         {
             this.bodyBytes = null;
         }
+    }
+
+    public String getBodyText()
+    {
+        if (cachedBodyText != null)
+        {
+            return cachedBodyText;
+        }
+        if (bodyBuffer != null && bodyBuffer.remainRead() > 0)
+        {
+            byte[] bytes = new byte[bodyBuffer.remainRead()];
+            bodyBuffer.get(bytes);
+            cachedBodyText = new String(bytes, StandardCharsets.UTF_8);
+            return cachedBodyText;
+        }
+        return null;
     }
 
     public void writeBody(IoBuffer buffer)
