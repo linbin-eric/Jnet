@@ -32,7 +32,6 @@ public class RunAndStopWriteProcessorNode implements WriteProcessorNode, Runnabl
     public RunAndStopWriteProcessorNode(Pipeline pipeline)
     {
         this.pipeline = pipeline;
-        thread        = Thread.startVirtualThread(this);
     }
 
     @Override
@@ -53,7 +52,7 @@ public class RunAndStopWriteProcessorNode implements WriteProcessorNode, Runnabl
                     //没成功意味着其他线程成功了，忽略
                 }
             }
-            case WORK_OPEN,WORK_CLOSE ->
+            case WORK_OPEN, WORK_CLOSE ->
             {
                 //已经在工作，忽略
             }
@@ -165,5 +164,10 @@ public class RunAndStopWriteProcessorNode implements WriteProcessorNode, Runnabl
                 }
             }
         }
+    }
+
+    public void start()
+    {
+        thread = Thread.startVirtualThread(this);
     }
 }

@@ -8,9 +8,8 @@ import java.util.function.Consumer;
 
 public class HttpClient
 {
-    private static final HttpClient         DEFAULT_INSTANCE = new HttpClient();
-    private final        HttpClientConfig   config;
-    private final        HttpConnectionPool connectionPool;
+    private final HttpClientConfig   config;
+    private final HttpConnectionPool connectionPool;
 
     public HttpClient()
     {
@@ -98,30 +97,5 @@ public class HttpClient
             }
             throw e;
         }
-    }
-    // ==================== 静态便捷方法（向后兼容） ====================
-
-    /**
-     * 使用默认实例发起同步 HTTP 请求（向后兼容）
-     */
-    public static HttpResponse newCall(HttpRequest request) throws Exception
-    {
-        return DEFAULT_INSTANCE.call(request);
-    }
-
-    /**
-     * 使用默认实例发起流式 HTTP 请求（向后兼容）
-     */
-    public static StreamableResponseFuture newStreamCall(HttpRequest request, Consumer<HttpResponsePart> partConsumer, Consumer<Throwable> errorConsumer) throws Exception
-    {
-        return DEFAULT_INSTANCE.streamCall(request, partConsumer, errorConsumer);
-    }
-
-    /**
-     * 获取默认实例
-     */
-    public static HttpClient getDefault()
-    {
-        return DEFAULT_INSTANCE;
     }
 }

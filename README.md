@@ -433,6 +433,206 @@ public class ProxyWithBackPressure {
 | 反向代理 | 10MB - 100MB | 需要缓冲大量转发数据 |
 | 文件传输 | 100MB+ | 大文件需要更大缓冲区 |
 
+## HTTP 客户端
+
+JNet 提供了高性能的 HTTP 客户端，具有以下特性：
+
+- **线程安全**: HttpClient 是线程安全的，**全局只需创建一个实例**，可在多线程环境下并发使用
+- **内置连接池**: 自动管理连接复用，无需手动管理连接生命周期
+- **自动 Keep-Alive**: 连接自动保持活跃，减少连接建立开销
+- **代理支持**: 支持 HTTP 代理和 HTTPS CONNECT 隧道
+- **流式响应**: 支持流式处理大文件下载或 SSE 场景
+
+### 推荐用法
+
+**重要**: HttpClient 内置连接池，建议在应用中创建单例使用：
+
+```java
+// 推荐：创建单例，整个应用共享
+public class MyApp {
+    // 全局单例，线程安全，支持并发调用
+    private static final HttpClient HTTP_CLIENT = new HttpClient(
+        new HttpClientConfig()
+            .setMaxConnectionsPerHost(100)
+            .setKeepAliveSeconds(1800)
+    );
+
+    public static HttpClient getHttpClient() {
+        return HTTP_CLIENT;
+    }
+}
+```
+
+### 基本用法
+
+```java
+import cc.jfire.jnet.extend.http.client.HttpClient;
+import cc.jfire.jnet.extend.http.dto.HttpRequest;
+import cc.jfire.jnet.extend.http.dto.HttpResponse;
+
+public class HttpClientExample {
+    // 创建单例客户端
+    private static final HttpClient client = new HttpClient();
+
+    public static void main(String[] args) throws Exception {
+        // 创建请求
+        HttpRequest request = new HttpRequest()
+            .setUrl("https://api.example.com/users")
+            .get()
+            .addHeader("Accept", "application/json");
+
+        // 发送请求
+        HttpResponse response = client.call(request);
+
+        System.out.println("状态码: " + response.getStatusCode());
+        System.out.println("响应体: " + response.getBodyText());
+
+        // 释放资源
+        response.close();
+    }
+}
+```
+
+### 发送 POST 请求
+
+```java
+HttpClient client = new HttpClient();
+
+HttpRequest request = new HttpRequest()
+    .setUrl("https://api.example.com/users")
+    .post()
+    .setContentType("application/json")
+    .setBody("{\"name\": \"张三\", \"age\": 25}");
+
+HttpResponse response = client.call(request);
+response.close();
+```
+
+### 配置客户端
+
+```java
+import cc.jfire.jnet.extend.http.client.HttpClient;
+import cc.jfire.jnet.extend.http.client.HttpClientConfig;
+
+public class ConfiguredHttpClient {
+    public static void main(String[] args) throws Exception {
+        // 创建自定义配置
+        HttpClientConfig config = new HttpClientConfig()
+            .setConnectTimeoutSeconds(10)      // 连接超时 10 秒
+            .setReadTimeoutSeconds(60)         // 读取超时 60 秒
+            .setKeepAliveSeconds(1800)         // Keep-Alive 30 分钟
+            .setMaxConnectionsPerHost(50)      // 每主机最大连接数
+            .setAcquireTimeoutSeconds(5)       // 获取连接超时 5 秒
+            .setSslHandshakeTimeoutSeconds(30); // SSL 握手超时 30 秒
+
+        // 创建自定义客户端
+        HttpClient client = new HttpClient(config);
+
+        // 发送请求
+        HttpRequest request = new HttpRequest()
+            .setUrl("https://api.example.com/data")
+            .get();
+
+        HttpResponse response = client.call(request);
+        response.close();
+    }
+}
+```
+
+### 配置代理
+
+```java
+HttpClientConfig config = new HttpClientConfig()
+    .setProxyHost("proxy.example.com")
+    .setProxyPort(8080);
+
+HttpClient client = new HttpClient(config);
+
+// HTTP 请求通过代理直接转发
+HttpRequest httpRequest = new HttpRequest()
+    .setUrl("http://api.example.com/data")
+    .get();
+HttpResponse httpResponse = client.call(httpRequest);
+
+// HTTPS 请求通过 CONNECT 隧道
+HttpRequest httpsRequest = new HttpRequest()
+    .setUrl("https://api.example.com/secure")
+    .get();
+HttpResponse httpsResponse = client.call(httpsRequest);
+```
+
+### 流式响应处理
+
+对于大文件下载或 Server-Sent Events (SSE) 等场景，可以使用流式响应：
+
+```java
+import cc.jfire.jnet.extend.http.client.HttpClient;
+import cc.jfire.jnet.extend.http.client.StreamableResponseFuture;
+import cc.jfire.jnet.extend.http.dto.HttpRequest;
+import cc.jfire.jnet.extend.http.dto.HttpResponsePart;
+import cc.jfire.jnet.extend.http.dto.HttpResponsePartHead;
+import cc.jfire.jnet.extend.http.dto.HttpResponseBodyPart;
+
+public class StreamingExample {
+    private static final HttpClient client = new HttpClient();
+
+    public static void main(String[] args) throws Exception {
+        HttpRequest request = new HttpRequest()
+            .setUrl("https://api.example.com/stream")
+            .get();
+
+        // 流式调用
+        StreamableResponseFuture future = client.streamCall(
+            request,
+            // 响应分片处理器
+            part -> {
+                if (part instanceof HttpResponsePartHead head) {
+                    System.out.println("状态码: " + head.getStatusCode());
+                } else if (part instanceof HttpResponseBodyPart body) {
+                    System.out.println("收到数据块: " + body.getContent().readableBytes() + " 字节");
+                    body.free(); // 释放缓冲区
+                }
+                if (part.isLast()) {
+                    System.out.println("响应接收完成");
+                }
+            },
+            // 错误处理器
+            error -> {
+                System.err.println("请求失败: " + error.getMessage());
+            }
+        );
+    }
+}
+```
+
+### HttpClient 配置参数
+
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| `connectTimeoutSeconds` | 10 | 连接超时时间（秒） |
+| `readTimeoutSeconds` | 60 | 读取超时时间（秒） |
+| `keepAliveSeconds` | 1800 | Keep-Alive 时间（秒） |
+| `maxConnectionsPerHost` | 50 | 每主机最大连接数 |
+| `acquireTimeoutSeconds` | 1 | 从连接池获取连接的超时时间（秒） |
+| `sslHandshakeTimeoutSeconds` | 30 | SSL 握手超时时间（秒） |
+| `proxyHost` | null | 代理服务器主机名 |
+| `proxyPort` | 0 | 代理服务器端口 |
+
+### 连接池机制
+
+HttpClient 内置连接池，自动管理连接的复用和回收：
+
+- **连接复用**: 相同主机的请求会复用已建立的连接
+- **自动清理**: 失效连接会被自动检测并移除
+- **并发控制**: 通过信号量控制每主机的最大连接数
+- **超时获取**: 连接池满时会等待可用连接，超时则抛出异常
+
+```java
+// 获取连接池状态
+HttpClient client = new HttpClient(config);
+// 连接池由 HttpClient 内部管理，无需手动操作
+```
+
 ## 反向代理应用
 
 JNet 内置了一个可配置的反向代理应用 `ReverseApp`。

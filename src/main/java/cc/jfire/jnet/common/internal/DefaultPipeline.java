@@ -168,6 +168,7 @@ public class DefaultPipeline implements InternalPipeline
         addReadProcessor(new TailReadProcessor(adaptiveReadCompletionHandler));
         writeCompleteHandler = new DefaultWriteCompleteHandler(this);
         addWriteProcessor(new TailWriteProcessor(writeCompleteHandler));
+        ((RunAndStopWriteProcessorNode) writeHead).start();
         try
         {
             readHead.firePipelineComplete(this);
