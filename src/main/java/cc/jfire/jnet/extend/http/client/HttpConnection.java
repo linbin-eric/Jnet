@@ -171,8 +171,8 @@ public class HttpConnection
                     // 配置读取链: ProxyTunnelReadHandler -> ClientSSLDecoder -> HeartBeat -> HttpResponsePartDecoder -> 业务处理器
                     pipeline.addReadProcessor(tunnelReadHandler);
                     pipeline.putPersistenceStore(ProxyTunnelReadHandler.KEY, tunnelReadHandler);
-                    // 初始化 SSL 引擎
-                    SSLEngine        sslEngine  = buildSSLEngineAndBeginHandShake(proxyHost, proxyPort);
+                    // 初始化 SSL 引擎（使用目标服务器域名，而非代理服务器地址）
+                    SSLEngine        sslEngine  = buildSSLEngineAndBeginHandShake(domain, port);
                     ClientSSLDecoder sslDecoder = new ClientSSLDecoder(sslEngine);
                     pipeline.putPersistenceStore(ClientSSLDecoder.KEY, sslDecoder);
                     SSLEncoder sslEncoder = new SSLEncoder(sslEngine);
