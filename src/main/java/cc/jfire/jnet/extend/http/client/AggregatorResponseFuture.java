@@ -5,10 +5,14 @@ import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 import cc.jfire.jnet.common.util.UNSAFE;
 import cc.jfire.jnet.extend.http.dto.*;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.nio.channels.ClosedChannelException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
+import java.util.zip.GZIPInputStream;
 
 /**
  * 聚合模式的 ResponseFuture 实现。
@@ -202,9 +206,48 @@ public class AggregatorResponseFuture implements ResponseFuture
             response.getHead().setReasonPhrase(headPart.getReasonPhrase());
             response.getHead().setHeaders(headPart.getHeaders());
         }
+        if (bodyBuffer != null && headPart != null)
+        {
+            String contentEncoding = headPart.getHeaders().get("Content-Encoding");
+            if ("gzip".equalsIgnoreCase(contentEncoding))
+            {
+                bodyBuffer = decompressGzip(bodyBuffer);
+            }
+        }
         response.setBodyBuffer(bodyBuffer);
         bodyBuffer = null;
         return response;
+    }
+
+    private IoBuffer decompressGzip(IoBuffer compressedBuffer)
+    {
+        int compressedSize = compressedBuffer.remainRead();
+        if (compressedSize == 0)
+        {
+            return compressedBuffer;
+        }
+        byte[] compressedBytes = new byte[compressedSize];
+        compressedBuffer.get(compressedBytes);
+        compressedBuffer.free();
+        try (ByteArrayInputStream bais = new ByteArrayInputStream(compressedBytes);
+             GZIPInputStream gzis = new GZIPInputStream(bais);
+             ByteArrayOutputStream baos = new ByteArrayOutputStream())
+        {
+            byte[] buffer = new byte[4096];
+            int    len;
+            while ((len = gzis.read(buffer)) != -1)
+            {
+                baos.write(buffer, 0, len);
+            }
+            byte[]   decompressedBytes  = baos.toByteArray();
+            IoBuffer decompressedBuffer = allocator.allocate(decompressedBytes.length);
+            decompressedBuffer.put(decompressedBytes);
+            return decompressedBuffer;
+        }
+        catch (IOException e)
+        {
+            throw new RuntimeException("Failed to decompress gzip body", e);
+        }
     }
 
     @Override
