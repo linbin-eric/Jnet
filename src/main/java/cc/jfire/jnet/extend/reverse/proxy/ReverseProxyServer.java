@@ -51,8 +51,7 @@ public class ReverseProxyServer
         }
         ChannelConfig channelConfig = new ChannelConfig();
         channelConfig.setPort(port);
-        BackPresure inBackPresure       = BackPresure.noticeWaterLevel(1024 * 1024 * 100);
-        BackPresure upstreamBackPresure = BackPresure.noticeWaterLevel(1024 * 1024 * 100);
+
         if (sslInfo.isEnable())
         {
             // 1. 加载 JKS 文件
@@ -60,6 +59,8 @@ public class ReverseProxyServer
             Consumer<Pipeline> s = pipeline -> {
                 try
                 {
+                    BackPresure inBackPresure       = BackPresure.noticeWaterLevel(1024 * 1024 * 100);
+                    BackPresure upstreamBackPresure = BackPresure.noticeWaterLevel(1024 * 1024 * 100);
                     ((DefaultPipeline) pipeline).putPersistenceStore(BackPresure.UP_STREAM_BACKPRESURE, upstreamBackPresure);
                     ((DefaultPipeline) pipeline).putPersistenceStore(BackPresure.IN_BACKPRESURE, inBackPresure);
                     KeyStore keyStore = KeyStore.getInstance("JKS");
@@ -121,6 +122,8 @@ public class ReverseProxyServer
         else
         {
             Consumer<Pipeline> s = pipeline -> {
+                BackPresure inBackPresure       = BackPresure.noticeWaterLevel(1024 * 1024 * 100);
+                BackPresure upstreamBackPresure = BackPresure.noticeWaterLevel(1024 * 1024 * 100);
                 ((DefaultPipeline) pipeline).putPersistenceStore(BackPresure.UP_STREAM_BACKPRESURE, upstreamBackPresure);
                 ((DefaultPipeline) pipeline).putPersistenceStore(BackPresure.IN_BACKPRESURE, inBackPresure);
                 pipeline.addReadProcessor(new HttpRequestPartDecoder());
