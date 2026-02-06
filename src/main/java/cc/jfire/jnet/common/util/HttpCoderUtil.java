@@ -106,9 +106,9 @@ public class HttpCoderUtil
             }
             else
             {
-                buffer.put((entry.getKey() + ": ").getBytes(StandardCharsets.US_ASCII));
+                buffer.put((entry.getKey() + ": ").getBytes(StandardCharsets.UTF_8));
             }
-            buffer.put(entry.getValue().getBytes(StandardCharsets.US_ASCII));
+            buffer.put(entry.getValue().getBytes(StandardCharsets.UTF_8));
             buffer.put(NEW_LINE);
         }
         buffer.put(NEW_LINE);
@@ -123,7 +123,7 @@ public class HttpCoderUtil
             {
                 if (ioBuffer.get(i) == ':')
                 {
-                    headerName = normalizeHeaderName(StandardCharsets.US_ASCII.decode(ioBuffer.readableByteBuffer(i)).toString());
+                    headerName = normalizeHeaderName(StandardCharsets.UTF_8.decode(ioBuffer.readableByteBuffer(i)).toString());
                     ioBuffer.setReadPosi(i + 2);
                     break;
                 }
@@ -132,7 +132,7 @@ public class HttpCoderUtil
             {
                 if (ioBuffer.get(i) == '\r')
                 {
-                    headerValue = StandardCharsets.US_ASCII.decode(ioBuffer.readableByteBuffer(i)).toString();
+                    headerValue = StandardCharsets.UTF_8.decode(ioBuffer.readableByteBuffer(i)).toString();
                     ioBuffer.setReadPosi(i + 2);
                     break;
                 }
