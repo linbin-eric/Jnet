@@ -4,12 +4,10 @@ import cc.jfire.baseutil.STR;
 import cc.jfire.jnet.common.api.WriteProcessor;
 import cc.jfire.jnet.common.api.WriteProcessorNode;
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
-import cc.jfire.jnet.extend.http.dto.HttpRequest;
-import cc.jfire.jnet.extend.http.dto.HttpRequestChunkedBodyPart;
-import cc.jfire.jnet.extend.http.dto.HttpRequestFixLengthBodyPart;
-import cc.jfire.jnet.extend.http.dto.HttpRequestPartHead;
+import cc.jfire.jnet.extend.http.dto.*;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 
 import static cc.jfire.jnet.common.util.HttpCoderUtil.writeHeaderValue;
@@ -77,6 +75,12 @@ public class HttpRequestPartEncoder implements WriteProcessor<Object>
         // 写入请求行
         String requestLine = STR.format("{} {} {}\r\n", head.getMethod(), buildPath(head), head.getVersion() != null ? head.getVersion() : "HTTP/1.1");
         buffer.put(requestLine.getBytes(StandardCharsets.US_ASCII));
+        // multipart/form-data 编码
+        if (request.isMultipart())
+        {
+            encodeMultipartRequest(request, head, buffer, next);
+            return;
+        }
         // 计算 body 长度
         int    contentLength = 0;
         byte[] strBodyBytes  = null;
@@ -173,6 +177,58 @@ public class HttpRequestPartEncoder implements WriteProcessor<Object>
         if (body.getPart() != null)
         {
             next.fireWrite(body.getPart());
+        }
+    }
+
+    private void encodeMultipartRequest(HttpRequest request, HttpRequestPartHead head, IoBuffer buffer, WriteProcessorNode next)
+    {
+        String boundary  = "----JNetBoundary" + Long.toHexString(System.nanoTime());
+        byte[] bodyBytes = buildMultipartBody(request.getMultipartParts(), boundary);
+        // 移除可能存在的 Transfer-Encoding 避免 CL+TE 歧义
+        head.getHeaders().remove(TRANSFER_ENCODING_HEADER);
+        head.getHeaders().put("Content-Type", "multipart/form-data; boundary=" + boundary);
+        head.getHeaders().put(CONTENT_LENGTH_HEADER, String.valueOf(bodyBytes.length));
+        writeHeaderValue(head.getHeaders(), buffer);
+        buffer.put(bodyBytes);
+        request.close();
+        next.fireWrite(buffer);
+    }
+
+    private byte[] buildMultipartBody(List<MultipartPart> parts, String boundary)
+    {
+        byte[] crlf            = "\r\n".getBytes(StandardCharsets.US_ASCII);
+        byte[] boundaryLine    = ("--" + boundary).getBytes(StandardCharsets.US_ASCII);
+        byte[] endBoundaryLine = ("--" + boundary + "--").getBytes(StandardCharsets.US_ASCII);
+        try (java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();)
+        {
+            for (MultipartPart part : parts)
+            {
+                baos.write(boundaryLine);
+                baos.write(crlf);
+                StringBuilder disposition = new StringBuilder("Content-Disposition: form-data; name=\"");
+                disposition.append(part.getName()).append("\"");
+                if (part.isFile())
+                {
+                    disposition.append("; filename=\"").append(part.getFilename()).append("\"");
+                }
+                baos.write(disposition.toString().getBytes(StandardCharsets.UTF_8));
+                baos.write(crlf);
+                if (part.isFile() && part.getContentType() != null)
+                {
+                    baos.write(("Content-Type: " + part.getContentType()).getBytes(StandardCharsets.US_ASCII));
+                    baos.write(crlf);
+                }
+                baos.write(crlf);
+                baos.write(part.getContent());
+                baos.write(crlf);
+            }
+            baos.write(endBoundaryLine);
+            baos.write(crlf);
+            return baos.toByteArray();
+        }
+        catch (java.io.IOException e)
+        {
+            throw new RuntimeException(e);
         }
     }
 }

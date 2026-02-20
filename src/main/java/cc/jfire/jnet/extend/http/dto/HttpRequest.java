@@ -4,14 +4,18 @@ import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 import lombok.Data;
 import lombok.ToString;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Data
 @ToString(exclude = "body")
 public class HttpRequest implements AutoCloseable
 {
-    protected HttpRequestPartHead head = new HttpRequestPartHead();
-    protected IoBuffer            body;
-    protected String              strBody;
-    protected boolean             ssl  = false;
+    protected HttpRequestPartHead    head = new HttpRequestPartHead();
+    protected IoBuffer               body;
+    protected String                 strBody;
+    protected boolean                ssl  = false;
+    protected List<MultipartPart>    multipartParts;
 
     public void close()
     {
@@ -88,5 +92,35 @@ public class HttpRequest implements AutoCloseable
     public boolean isSsl()
     {
         return ssl;
+    }
+
+    public HttpRequest addTextPart(String name, String value)
+    {
+        if (multipartParts == null)
+        {
+            multipartParts = new ArrayList<>();
+        }
+        multipartParts.add(MultipartPart.text(name, value));
+        return this;
+    }
+
+    public HttpRequest addFilePart(String name, String filename, String contentType, byte[] content)
+    {
+        if (multipartParts == null)
+        {
+            multipartParts = new ArrayList<>();
+        }
+        multipartParts.add(MultipartPart.file(name, filename, contentType, content));
+        return this;
+    }
+
+    public HttpRequest addFilePart(String name, String filename, byte[] content)
+    {
+        return addFilePart(name, filename, null, content);
+    }
+
+    public boolean isMultipart()
+    {
+        return multipartParts != null && !multipartParts.isEmpty();
     }
 }
