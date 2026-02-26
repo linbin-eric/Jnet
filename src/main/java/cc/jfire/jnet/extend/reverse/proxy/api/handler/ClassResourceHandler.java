@@ -45,7 +45,7 @@ public final class ClassResourceHandler extends AbstractIOResourceHandler
         head.close();
         HttpResponse response = new HttpResponse();
         response.addHeader("Content-Type", contentType);
-        response.setBodyBytes(tuper.bytes());
+        response.setBodyBytes(tuper.bytes(),pipeline.allocator());
         pipeline.fireWrite(response);
     }
 

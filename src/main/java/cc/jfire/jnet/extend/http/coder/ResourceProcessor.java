@@ -97,7 +97,7 @@ public class ResourceProcessor implements ReadProcessor<Object>
                     httpRequest.close();
                     HttpResponse response = new HttpResponse();
                     response.addHeader("Content-Type", staticResource.contentType);
-                    response.setBodyBytes(staticResource.content);
+                    response.setBodyBytes(staticResource.content,next.pipeline().allocator());
                     response.addHeader("Cache-Control", "no-cache");
                     response.addHeader("Connection", "keep-alive");
                     next.pipeline().fireWrite(response);
@@ -145,7 +145,7 @@ public class ResourceProcessor implements ReadProcessor<Object>
                     httpRequest.close();
                     HttpResponse response = new HttpResponse();
                     response.addHeader("Content-Type", staticResource.contentType);
-                    response.setBodyBytes(staticResource.content);
+                    response.setBodyBytes(staticResource.content,next.pipeline().allocator());
                     response.addHeader("Cache-Control", "max-age=3600");
                     next.pipeline().fireWrite(response);
                 }

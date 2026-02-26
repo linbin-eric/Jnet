@@ -62,7 +62,7 @@ public final class FileResourceHandler extends AbstractIOResourceHandler
                 head.close();
                 HttpResponse response = new HttpResponse();
                 response.addHeader("Content-Type", contentType);
-                response.setBodyBytes(bytes);
+                response.setBodyBytes(bytes, pipeline.allocator());
                 pipeline.fireWrite(response);
             }
             catch (IOException e)
@@ -75,7 +75,7 @@ public final class FileResourceHandler extends AbstractIOResourceHandler
             head.close();
             HttpResponse response = new HttpResponse();
             response.addHeader("Content-Type", "text/html;charset=utf-8");
-            response.setBodyText(STR.format("not available path:{},not find in :{}", requestUrl, resourceFile.getAbsolutePath()));
+            response.setBodyText(STR.format("not available path:{},not find in :{}", requestUrl, resourceFile.getAbsolutePath()), pipeline.allocator());
             pipeline.fireWrite(response);
         }
     }

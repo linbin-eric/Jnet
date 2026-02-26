@@ -134,7 +134,7 @@ public abstract class AbstractResourceEncoder implements ReadProcessor
                 request.close();
                 HttpResponse response = new HttpResponse();
                 response.addHeader("Content-Type", staticResource.contentType());
-                response.setBodyBytes(staticResource.content());
+                response.setBodyBytes(staticResource.content(), next.pipeline().allocator());
                 response.addHeader("Cache-Control", "max-age=3600");
                 next.pipeline().fireWrite(response);
             }
@@ -176,14 +176,14 @@ public abstract class AbstractResourceEncoder implements ReadProcessor
                 {
                     HttpResponse response = new HttpResponse();
                     response.addHeader("Content-Type", contentType);
-                    response.setBodyBytes(IoUtil.readAllBytes(inputStream));
+                    response.setBodyBytes(IoUtil.readAllBytes(inputStream), next.pipeline().allocator());
                     next.pipeline().fireWrite(response);
                 }
                 catch (IOException e)
                 {
                     HttpResponse response = new HttpResponse();
                     response.addHeader("Content-Type", "text");
-                    response.setBodyText("error:" + e.getMessage());
+                    response.setBodyText("error:" + e.getMessage(), next.pipeline().allocator());
                     next.pipeline().fireWrite(response);
                 }
             }

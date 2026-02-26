@@ -1,5 +1,6 @@
 package cc.jfire.jnet.extend.http.dto;
 
+import cc.jfire.jnet.common.buffer.allocator.BufferAllocator;
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 import cc.jfire.jnet.common.util.HttpCoderUtil;
 import lombok.Data;
@@ -14,7 +15,7 @@ public class HttpResponse implements AutoCloseable
     private HttpResponsePartHead head             = new HttpResponsePartHead();
     // 响应体，两种形式，优先级：bodyBuffer > bodyBytes
     private IoBuffer             bodyBuffer;
-    private byte[]               bodyBytes;
+    //    private byte[]               bodyBytes;
     private boolean              hasContentLength = false;
     private boolean              hasContentType   = false;
     private String               cachedBodyText;
@@ -52,10 +53,6 @@ public class HttpResponse implements AutoCloseable
             {
                 addHeader("Content-Length", String.valueOf(bodyBuffer.remainRead()));
             }
-            else if (bodyBytes != null)
-            {
-                addHeader("Content-Length", String.valueOf(bodyBytes.length));
-            }
             else
             {
                 addHeader("Content-Length", "0");
@@ -71,15 +68,28 @@ public class HttpResponse implements AutoCloseable
         }
     }
 
-    public void setBodyText(String bodyText)
+    public void setBodyText(String bodyText, BufferAllocator allocator)
     {
         if (bodyText != null)
         {
-            this.bodyBytes = bodyText.getBytes(StandardCharsets.UTF_8);
+            if (bodyBuffer != null)
+            {
+                bodyBuffer.free();
+                bodyBuffer = null;
+            }
+            bodyBuffer = allocator.allocate(1024);
+            bodyBuffer.put(bodyText.getBytes(StandardCharsets.UTF_8));
         }
         else
         {
-            this.bodyBytes = null;
+            if (bodyBuffer != null)
+            {
+                bodyBuffer.free();
+            }
+            else
+            {
+                ;
+            }
         }
     }
 
@@ -107,10 +117,6 @@ public class HttpResponse implements AutoCloseable
             bodyBuffer.free();
             bodyBuffer = null;
         }
-        else if (bodyBytes != null)
-        {
-            buffer.put(bodyBytes);
-        }
     }
 
     public void free()
@@ -127,5 +133,16 @@ public class HttpResponse implements AutoCloseable
     public void close() throws Exception
     {
         free();
+    }
+
+    public void setBodyBytes(byte[] content, BufferAllocator allocator)
+    {
+        if (bodyBuffer != null)
+        {
+            bodyBuffer.free();
+            bodyBuffer = null;
+        }
+        bodyBuffer = allocator.allocate(1024);
+        bodyBuffer.put(content);
     }
 }

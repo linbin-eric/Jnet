@@ -61,7 +61,7 @@ public class SampleHttpServer
                         data.close();
                         HttpResponse resp = new HttpResponse();
                         resp.addHeader("Content-Type", "text/html");
-                        resp.setBodyText("hello y");
+                        resp.setBodyText("hello y",next.pipeline().allocator());
                         next.pipeline().fireWrite(resp);
                     }
                 });

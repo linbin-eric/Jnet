@@ -25,6 +25,7 @@ public class ProxyHttpHandler implements ResourceHandler
     private final String        backendHostHeader;
     private final String        backendBasePath;
     private       ClientChannel clientChannel;
+
     public ProxyHttpHandler(String match, String proxy, MatchMode matchMode)
     {
         this.matchMode = matchMode;
@@ -218,7 +219,7 @@ public class ProxyHttpHandler implements ResourceHandler
     {
         HttpResponse response = new HttpResponse();
         response.getHead().setStatusCode(statusCode);
-        response.setBodyText(message);
+        response.setBodyText(message, pipeline.allocator());
         pipeline.fireWrite(response);
     }
 

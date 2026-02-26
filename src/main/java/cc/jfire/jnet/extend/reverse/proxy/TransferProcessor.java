@@ -90,7 +90,7 @@ public class TransferProcessor implements ReadProcessor<Object>
         HttpResponse response = new HttpResponse();
         response.getHead().setStatusCode(404);
         response.getHead().setReasonPhrase("Not Found");
-        response.setBodyText("not found address:" + path);
+        response.setBodyText("not found address:" + path,next.pipeline().allocator());
         next.pipeline().fireWrite(response);
     }
 
