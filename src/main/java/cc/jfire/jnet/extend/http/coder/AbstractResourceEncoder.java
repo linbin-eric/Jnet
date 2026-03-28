@@ -152,7 +152,7 @@ public abstract class AbstractResourceEncoder implements ReadProcessor
         public FileResourceEncoder(String resourcePathPrefix, String urlPrefix)
         {
             super(resourcePathPrefix, urlPrefix);
-            File dirOfMainClass = RuntimeJVM.getDirOfMainClass();
+            File dirOfMainClass = RuntimeJVM.getFileOfMainClass().getParentFile();
             dir = new File(dirOfMainClass, resourcePathPrefix);
             if (!dir.exists() || !dir.isDirectory())
             {

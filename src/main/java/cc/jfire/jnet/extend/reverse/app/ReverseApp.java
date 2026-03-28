@@ -20,7 +20,7 @@ public class ReverseApp
     public static void main(String[] args)
     {
         RuntimeJVM.registerMainClass();
-        File file = new File(RuntimeJVM.getDirOfMainClass().getParentFile().getParentFile(), "reverse.config");
+        File file = new File(RuntimeJVM.getFileOfMainClass().getParentFile(), "reverse.config");
         if (RuntimeJVM.detectRunningInJar())
         {
             RuntimeJVM.checkMainStart("ReverseApp", "ReverseApp-copy");

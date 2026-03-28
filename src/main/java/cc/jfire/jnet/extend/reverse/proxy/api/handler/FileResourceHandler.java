@@ -25,7 +25,7 @@ public final class FileResourceHandler extends AbstractIOResourceHandler
         }
         else
         {
-            File tmp = RuntimeJVM.getDirOfMainClass();
+            File tmp = RuntimeJVM.getFileOfMainClass().getParentFile();
             while (path.startsWith("../"))
             {
                 tmp  = tmp.getParentFile();

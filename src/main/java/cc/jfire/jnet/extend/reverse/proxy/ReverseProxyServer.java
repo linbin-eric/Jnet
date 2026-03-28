@@ -45,7 +45,7 @@ public class ReverseProxyServer
     @SneakyThrows
     public void start()
     {
-        if (RuntimeJVM.getDirOfMainClass() == null)
+        if (RuntimeJVM.getFileOfMainClass() == null)
         {
             throw new NullPointerException("Main Class not register");
         }
@@ -74,7 +74,7 @@ public class ReverseProxyServer
                     }
                     else
                     {
-                        try (FileInputStream fileInputStream = new FileInputStream(new File(RuntimeJVM.getDirOfMainClass(), filePath)))
+                        try (FileInputStream fileInputStream = new FileInputStream(new File(RuntimeJVM.getFileOfMainClass().getParentFile(), filePath)))
                         {
                             keyStore.load(fileInputStream, sslInfo.getPassword().toCharArray());
                         }
