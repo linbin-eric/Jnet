@@ -11,6 +11,7 @@ import cc.jfire.jnet.extend.http.coder.*;
 import cc.jfire.jnet.extend.reverse.app.SslInfo;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceConfig;
 import cc.jfire.jnet.extend.watercheck.BackPresure;
+import cc.jfire.jnet.extend.websocket.coder.WebSocketUpgradeDecoder;
 import cc.jfire.jnet.server.AioServer;
 import lombok.SneakyThrows;
 
@@ -104,7 +105,7 @@ public class ReverseProxyServer
                     SSLDecoder sslDecoder = new SSLDecoder(sslEngine);
                     SSLEncoder sslEncoder = new SSLEncoder(sslEngine);
                     pipeline.addReadProcessor(sslDecoder);
-                    pipeline.addReadProcessor(new HttpRequestPartSupportWebSocketDecoderWithPassThough());
+                    pipeline.addReadProcessor(new WebSocketUpgradeDecoder());
                     pipeline.addReadProcessor(new TransferProcessor(configs, pool));
                     pipeline.addReadProcessor(inBackPresure.readLimiter());
                     pipeline.addWriteProcessor(new CorsEncoder());
@@ -126,7 +127,7 @@ public class ReverseProxyServer
                 BackPresure upstreamBackPresure = BackPresure.noticeWaterLevel(1024 * 1024 * 100);
                 ((DefaultPipeline) pipeline).putPersistenceStore(BackPresure.UP_STREAM_BACKPRESURE, upstreamBackPresure);
                 ((DefaultPipeline) pipeline).putPersistenceStore(BackPresure.IN_BACKPRESURE, inBackPresure);
-                pipeline.addReadProcessor(new HttpRequestPartDecoder());
+                pipeline.addReadProcessor(new WebSocketUpgradeDecoder());
                 pipeline.addReadProcessor(new TransferProcessor(configs, pool));
                 pipeline.addReadProcessor(inBackPresure.readLimiter());
                 pipeline.addWriteProcessor(new CorsEncoder());

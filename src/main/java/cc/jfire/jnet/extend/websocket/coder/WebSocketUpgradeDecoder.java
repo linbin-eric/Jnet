@@ -1,6 +1,5 @@
 package cc.jfire.jnet.extend.websocket.coder;
 
-import cc.jfire.baseutil.TRACEID;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 import cc.jfire.jnet.extend.http.coder.HttpRequestPartDecoder;
@@ -16,8 +15,7 @@ import cc.jfire.jnet.extend.websocket.util.WebSocketHandshakeUtil;
  */
 public class WebSocketUpgradeDecoder extends HttpRequestPartDecoder
 {
-    private       boolean webSocketMode = false;
-    private final String  uid           = TRACEID.newTraceId();
+    private boolean webSocketMode = false;
 
     @Override
     protected void process0(ReadProcessorNode next)
@@ -43,9 +41,6 @@ public class WebSocketUpgradeDecoder extends HttpRequestPartDecoder
         // 检查是否是 WebSocket 握手请求
         if (WebSocketHandshakeUtil.isWebSocketUpgrade(head))
         {
-            // 发送 101 Switching Protocols 响应
-            IoBuffer upgradeResponse = WebSocketHandshakeUtil.buildUpgradeResponse(head, next.pipeline().allocator());
-            next.pipeline().fireWrite(upgradeResponse);
             next.fireRead(new WebSocketAttachHttpRequest(head));
             webSocketMode = true;
             // 返回是否需要继续处理

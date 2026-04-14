@@ -7,6 +7,7 @@ import cc.jfire.jnet.extend.http.client.HttpConnectionPool;
 import cc.jfire.jnet.extend.http.dto.*;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceConfig;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceHandler;
+import cc.jfire.jnet.extend.websocket.coder.WebSocketAttachHttpRequest;
 
 import java.util.Comparator;
 import java.util.List;
@@ -32,6 +33,11 @@ public class TransferProcessor implements ReadProcessor<Object>
         else if (data instanceof HttpRequestPart part)
         {
             processHttpRequestPart(part, next);
+        }
+        else if (data instanceof WebSocketAttachHttpRequest request)
+        {
+            webSocketMode = true;
+            processHttpRequestPart(request.head(), next);
         }
     }
 
@@ -76,11 +82,6 @@ public class TransferProcessor implements ReadProcessor<Object>
             if (handler.process(head, next.pipeline()))
             {
                 currentHandler = handler;
-                // 检查是否是 WebSocket 握手请求
-                if (head.isWebSocketUpgrade())
-                {
-                    webSocketMode = true;
-                }
                 return;
             }
         }
@@ -90,7 +91,7 @@ public class TransferProcessor implements ReadProcessor<Object>
         HttpResponse response = new HttpResponse();
         response.getHead().setStatusCode(404);
         response.getHead().setReasonPhrase("Not Found");
-        response.setBodyText("not found address:" + path,next.pipeline().allocator());
+        response.setBodyText("not found address:" + path, next.pipeline().allocator());
         next.pipeline().fireWrite(response);
     }
 
