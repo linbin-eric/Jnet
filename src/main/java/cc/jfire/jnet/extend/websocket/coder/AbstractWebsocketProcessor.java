@@ -20,12 +20,14 @@ public abstract class AbstractWebsocketProcessor implements ReadProcessor<Object
         }
         else
         {
-            next.pipeline().shutdownInput();
-            throw new IllegalArgumentException("不支持的数据类型");
+            next.fireRead(data);
         }
     }
 
-    protected abstract void processWebSocketAttachHttpRequest(WebSocketAttachHttpRequest data, Pipeline pipeline);
+    protected void processWebSocketAttachHttpRequest(WebSocketAttachHttpRequest data, Pipeline pipeline)
+    {
+        data.head().close();
+    }
 
     protected abstract void processWebSocketFrame(WebSocketFrame data, ReadProcessorNode next);
 }

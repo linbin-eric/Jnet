@@ -10,28 +10,16 @@ public abstract class AbstractDecoder implements ReadProcessor<IoBuffer>
 
     public void read(IoBuffer data, ReadProcessorNode next)
     {
-        try
+        if (accumulation == null)
         {
-            if (accumulation == null)
-            {
-                accumulation = data;
-            }
-            else
-            {
-                accumulation.put(data);
-                data.free();
-            }
-            process0(next);
+            accumulation = data;
         }
-        catch (Throwable e)
+        else
         {
-            if (accumulation != null)
-            {
-                accumulation.free();
-                accumulation = null;
-            }
-            next.pipeline().shutdownInput();
+            accumulation.put(data);
+            data.free();
         }
+        process0(next);
     }
 
     protected abstract void process0(ReadProcessorNode next);

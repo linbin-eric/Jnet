@@ -40,6 +40,8 @@ public class ChannelConfig
     private int                       port              = -1;
     private int                       backLog           = 50;
     private Consumer<Throwable>       jvmExistHandler   = e -> {
+        System.err.println("出现未处理的异常，现在要退出了");
+        e.printStackTrace();
     };
     private Supplier<BufferAllocator> allocatorSupplier = () -> new PooledBufferAllocator(5000, true, PooledBufferAllocator.getArena(true));
     //    private Supplier<BufferAllocator> allocatorSupplier = () ->new UnPoolBufferAllocator(true);

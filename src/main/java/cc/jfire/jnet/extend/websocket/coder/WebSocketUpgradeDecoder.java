@@ -45,11 +45,8 @@ public class WebSocketUpgradeDecoder extends HttpRequestPartDecoder
         {
             // 发送 101 Switching Protocols 响应
             IoBuffer upgradeResponse = WebSocketHandshakeUtil.buildUpgradeResponse(head, next.pipeline().allocator());
-            next.fireRead(new WebSocketAttachHttpRequest(head));
             next.pipeline().fireWrite(upgradeResponse);
-            // 释放请求头资源
-//            head.close();
-            // 进入 WebSocket 透传模式
+            next.fireRead(new WebSocketAttachHttpRequest(head));
             webSocketMode = true;
             // 返回是否需要继续处理
             if (accumulation == null)
