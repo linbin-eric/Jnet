@@ -4,15 +4,23 @@ import cc.jfire.jnet.common.api.ReadProcessor;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 import cc.jfire.jnet.extend.http.dto.*;
+import cc.jfire.jnet.extend.websocket.dto.WebSocketAttachHttpRequest;
+import lombok.Data;
 
+@Data
 public class HttpRequestAggregator implements ReadProcessor<Object>
 {
-    private HttpRequestPartHead head;
-    private IoBuffer            body;
+    private       HttpRequestPartHead head;
+    private       IoBuffer            body;
+    private final boolean             hasWebSocket;
 
     @Override
     public void read(Object data, ReadProcessorNode next)
     {
+        if (hasWebSocket && data instanceof WebSocketAttachHttpRequest request)
+        {
+            data = request.head();
+        }
         if (data instanceof HttpRequestPart)
         {
             if (data instanceof HttpRequestPartHead)

@@ -7,7 +7,7 @@ import cc.jfire.jnet.extend.http.client.HttpConnectionPool;
 import cc.jfire.jnet.extend.http.dto.*;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceConfig;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceHandler;
-import cc.jfire.jnet.extend.websocket.coder.WebSocketAttachHttpRequest;
+import cc.jfire.jnet.extend.websocket.dto.WebSocketAttachHttpRequest;
 
 import java.util.Comparator;
 import java.util.List;

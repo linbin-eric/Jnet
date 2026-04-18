@@ -51,7 +51,7 @@ public class SampleHttpServer
                 sslEngine.beginHandshake();
                 pipeline.addReadProcessor(sslRequestDecoder);
                 pipeline.addReadProcessor(new HttpRequestPartDecoder());
-                pipeline.addReadProcessor(new HttpRequestAggregator());
+                pipeline.addReadProcessor(new HttpRequestAggregator(false));
                 pipeline.addReadProcessor(new OptionsProcessor());
                 pipeline.addReadProcessor(new ReadProcessor<HttpRequest>()
                 {

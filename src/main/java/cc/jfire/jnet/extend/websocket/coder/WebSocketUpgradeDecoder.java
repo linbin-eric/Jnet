@@ -3,6 +3,7 @@ package cc.jfire.jnet.extend.websocket.coder;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.extend.http.coder.HttpRequestPartDecoder;
 import cc.jfire.jnet.extend.http.dto.HttpRequestPartHead;
+import cc.jfire.jnet.extend.websocket.dto.WebSocketAttachHttpRequest;
 import cc.jfire.jnet.extend.websocket.util.WebSocketHandshakeUtil;
 
 public class WebSocketUpgradeDecoder extends HttpRequestPartDecoder
@@ -33,7 +34,7 @@ public class WebSocketUpgradeDecoder extends HttpRequestPartDecoder
         if (WebSocketHandshakeUtil.isWebSocketUpgrade(head))
         {
             webSocketMode = true;
-            next.fireRead(head);
+            next.fireRead(new WebSocketAttachHttpRequest(head));
             // 返回是否需要继续处理
             if (accumulation == null)
             {

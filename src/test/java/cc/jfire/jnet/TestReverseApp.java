@@ -8,12 +8,12 @@ import cc.jfire.jnet.common.util.ChannelConfig;
 import cc.jfire.jnet.extend.http.client.HttpClientConfig;
 import cc.jfire.jnet.extend.http.client.HttpConnectionPool;
 import cc.jfire.jnet.extend.http.coder.CorsEncoder;
-import cc.jfire.jnet.extend.http.coder.HttpRequestPartSupportWebSocketDecoderWithPassThough;
 import cc.jfire.jnet.extend.http.coder.HttpRespEncoder;
 import cc.jfire.jnet.extend.reverse.app.SslInfo;
 import cc.jfire.jnet.extend.reverse.proxy.TransferProcessor;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceConfig;
 import cc.jfire.jnet.extend.watercheck.BackPresure;
+import cc.jfire.jnet.extend.websocket.coder.WebSocketUpgradeDecoder;
 import cc.jfire.jnet.server.AioServer;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -100,7 +100,7 @@ public class TestReverseApp
                 }
                 HttpConnectionPool pool = new HttpConnectionPool(new HttpClientConfig());
                 PipelineInitializer consumer = pipeline -> {
-                    pipeline.addReadProcessor(new HttpRequestPartSupportWebSocketDecoderWithPassThough());
+                    pipeline.addReadProcessor(new WebSocketUpgradeDecoder());
                     pipeline.addReadProcessor(new TransferProcessor(list, pool));
                     BackPresure inBackPresure       = BackPresure.noticeWaterLevel(1024 * 1024 * 100);
                     BackPresure upstreamBackPresure = BackPresure.noticeWaterLevel(1024 * 1024 * 100);
