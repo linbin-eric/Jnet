@@ -1,18 +1,10 @@
 package cc.jfire.jnet.extend.websocket.coder;
 
 import cc.jfire.jnet.common.api.ReadProcessorNode;
-import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
 import cc.jfire.jnet.extend.http.coder.HttpRequestPartDecoder;
 import cc.jfire.jnet.extend.http.dto.HttpRequestPartHead;
 import cc.jfire.jnet.extend.websocket.util.WebSocketHandshakeUtil;
 
-/**
- * 支持 WebSocket 升级的 HTTP 请求解码器。
- * 继承 HttpRequestPartDecoder，在检测到 WebSocket 握手请求后：
- * 1. 自动发送 101 Switching Protocols 响应
- * 2. 不向后传递 HTTP 请求头
- * 3. 切换到透传模式，后续数据作为 IoBuffer 直接传递给下一个处理器（WebSocketFrameDecoder）
- */
 public class WebSocketUpgradeDecoder extends HttpRequestPartDecoder
 {
     private boolean webSocketMode = false;
@@ -25,9 +17,8 @@ public class WebSocketUpgradeDecoder extends HttpRequestPartDecoder
         {
             if (accumulation != null && accumulation.remainRead() > 0)
             {
-                IoBuffer data = accumulation;
+                next.fireRead(accumulation);
                 accumulation = null;
-                next.fireRead(data);
             }
             return;
         }
@@ -41,8 +32,8 @@ public class WebSocketUpgradeDecoder extends HttpRequestPartDecoder
         // 检查是否是 WebSocket 握手请求
         if (WebSocketHandshakeUtil.isWebSocketUpgrade(head))
         {
-            next.fireRead(new WebSocketAttachHttpRequest(head));
             webSocketMode = true;
+            next.fireRead(head);
             // 返回是否需要继续处理
             if (accumulation == null)
             {

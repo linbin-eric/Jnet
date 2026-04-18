@@ -68,8 +68,13 @@ public class WebSocketHandshakeUtil
     public static IoBuffer buildUpgradeResponse(HttpRequestPartHead head, BufferAllocator allocator)
     {
         String secWebSocketKey = getSecWebSocketKey(head);
-        String acceptKey       = computeAcceptKey(secWebSocketKey);
-        String sb = "HTTP/1.1 101 Switching Protocols\r\n" + "Upgrade: websocket\r\n" + "Connection: Upgrade\r\n" + "Sec-WebSocket-Accept: " + acceptKey + "\r\n" + "\r\n";
+        return buildUpgradeResponse(secWebSocketKey, allocator);
+    }
+
+    public static IoBuffer buildUpgradeResponse(String secWebSocketKey, BufferAllocator allocator)
+    {
+        String   acceptKey     = computeAcceptKey(secWebSocketKey);
+        String   sb            = "HTTP/1.1 101 Switching Protocols\r\n" + "Upgrade: websocket\r\n" + "Connection: Upgrade\r\n" + "Sec-WebSocket-Accept: " + acceptKey + "\r\n" + "\r\n";
         byte[]   responseBytes = sb.getBytes(StandardCharsets.US_ASCII);
         IoBuffer buffer        = allocator.allocate(responseBytes.length);
         buffer.put(responseBytes);

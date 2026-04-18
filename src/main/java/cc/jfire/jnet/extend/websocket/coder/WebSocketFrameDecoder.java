@@ -21,9 +21,9 @@ public class WebSocketFrameDecoder implements ReadProcessor<Object>
     private       boolean        fin;
     private       int            opcode;
     private       boolean        masked;
-    private       long   payloadLength;
-    private final byte[] maskingKey = new byte[4];
-    private       int    extendedLengthBytes; // 0, 2, 或 8
+    private       long           payloadLength;
+    private final byte[]         maskingKey      = new byte[4];
+    private       int            extendedLengthBytes; // 0, 2, 或 8
     // 分片消息缓存
     private final List<IoBuffer> fragmentBuffers = new ArrayList<>();
     private       int            fragmentOpcode  = -1;
@@ -33,36 +33,45 @@ public class WebSocketFrameDecoder implements ReadProcessor<Object>
         this.serverMode = serverMode;
     }
 
+    /**
+     * 只处理 IoBuffer 类型，其他类型直接透传.
+     * 对于 IoBuffer 类型，识别为 websocket 的协议数据，会持续接码，直到解析为完整的一帧，才向后传递该帧的数据
+     *
+     * @param data
+     * @param next
+     */
     @Override
     public void read(Object data, ReadProcessorNode next)
     {
-        // 只处理 IoBuffer 类型，其他类型直接透传
-        if (!(data instanceof IoBuffer ioBuffer))
+        if (data instanceof IoBuffer == false)
         {
             next.fireRead(data);
-            return;
         }
-        try
+        else
         {
-            if (accumulation == null)
+            try
             {
-                accumulation = ioBuffer;
+                IoBuffer ioBuffer = (IoBuffer) data;
+                if (accumulation == null)
+                {
+                    accumulation = ioBuffer;
+                }
+                else
+                {
+                    accumulation.put(ioBuffer);
+                    ioBuffer.free();
+                }
+                process0(next);
             }
-            else
+            catch (Throwable e)
             {
-                accumulation.put(ioBuffer);
-                ioBuffer.free();
+                if (accumulation != null)
+                {
+                    accumulation.free();
+                    accumulation = null;
+                }
+                next.pipeline().shutdownInput();
             }
-            process0(next);
-        }
-        catch (Throwable e)
-        {
-            if (accumulation != null)
-            {
-                accumulation.free();
-                accumulation = null;
-            }
-            next.pipeline().shutdownInput();
         }
     }
 
