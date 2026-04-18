@@ -1,5 +1,6 @@
 package cc.jfire.jnet.extend.websocket.coder;
 
+import cc.jfire.baseutil.uniqueid.WinterId;
 import cc.jfire.jnet.common.api.ReadProcessor;
 import cc.jfire.jnet.common.api.ReadProcessorNode;
 import cc.jfire.jnet.common.buffer.buffer.IoBuffer;
@@ -14,19 +15,20 @@ public class WebSocketFrameDecoder implements ReadProcessor<Object>
     /**
      * true=服务端模式（要求MASK=1），false=客户端模式（要求MASK=0）
      */
-    private final boolean        serverMode;
-    private       IoBuffer       accumulation;
-    private       DecodeState    state           = DecodeState.FRAME_HEADER;
+    private final       boolean        serverMode;
+    private             IoBuffer       accumulation;
+    private             DecodeState    state                 = DecodeState.FRAME_HEADER;
     // 当前帧解析状态
-    private       boolean        fin;
-    private       int            opcode;
-    private       boolean        masked;
-    private       long           payloadLength;
-    private final byte[]         maskingKey      = new byte[4];
-    private       int            extendedLengthBytes; // 0, 2, 或 8
+    private             boolean        fin;
+    private             int            opcode;
+    private             boolean        masked;
+    private             long           payloadLength;
+    private final       byte[]         maskingKey            = new byte[4];
+    private             int            extendedLengthBytes; // 0, 2, 或 8
     // 分片消息缓存
-    private final List<IoBuffer> fragmentBuffers = new ArrayList<>();
-    private       int            fragmentOpcode  = -1;
+    private final       List<IoBuffer> fragmentBuffers       = new ArrayList<>();
+    private             int            fragmentOpcode        = -1;
+    public static final String         ACTIVE_SEND_CLOSE_KEY = "ACTIVE_SEND_CLOSE_KEY_" + WinterId.instance().generate();
 
     public WebSocketFrameDecoder(boolean serverMode)
     {
@@ -290,26 +292,34 @@ public class WebSocketFrameDecoder implements ReadProcessor<Object>
             }
             case WebSocketFrame.OPCODE_CLOSE ->
             {
-                // 解析关闭状态码和原因
-                int    closeCode   = 1000;
-                String closeReason = "";
-                if (payload != null && payload.remainRead() >= 2)
+                boolean activeSendClose = (boolean) next.pipeline().getPersistenceStore(ACTIVE_SEND_CLOSE_KEY);
+                if (activeSendClose)
                 {
-                    closeCode = payload.getShort() & 0xFFFF;
-                    if (payload.remainRead() > 0)
-                    {
-                        byte[] reasonBytes = new byte[payload.remainRead()];
-                        payload.get(reasonBytes);
-                        closeReason = new String(reasonBytes, StandardCharsets.UTF_8);
-                    }
+                    ;
                 }
-                frame.setCloseCode(closeCode);
-                frame.setCloseReason(closeReason);
-                // 自动发送Close响应
-                WebSocketFrame closeResp = WebSocketFrame.createClose(closeCode, closeReason);
-                next.pipeline().fireWrite(closeResp);
-                // 传递Close帧给上层
-                next.fireRead(frame);
+                else
+                {
+                    // 解析关闭状态码和原因
+                    int    closeCode   = 1000;
+                    String closeReason = "";
+                    if (payload != null && payload.remainRead() >= 2)
+                    {
+                        closeCode = payload.getShort() & 0xFFFF;
+                        if (payload.remainRead() > 0)
+                        {
+                            byte[] reasonBytes = new byte[payload.remainRead()];
+                            payload.get(reasonBytes);
+                            closeReason = new String(reasonBytes, StandardCharsets.UTF_8);
+                        }
+                    }
+                    frame.setCloseCode(closeCode);
+                    frame.setCloseReason(closeReason);
+                    // 自动发送Close响应
+                    WebSocketFrame closeResp = WebSocketFrame.createClose(closeCode, closeReason);
+                    next.pipeline().fireWrite(closeResp);
+                    // 传递Close帧给上层
+                    next.fireRead(frame);
+                }
                 // 关闭输入
                 next.pipeline().shutdownInput();
             }

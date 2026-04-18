@@ -131,6 +131,10 @@ public class WebSocketFrameEncoder implements WriteProcessor<Object>
                 buffer.put(payload, payloadLength);
             }
         }
+        if (payload != null)
+        {
+            payload.free();
+        }
         return buffer;
     }
 
