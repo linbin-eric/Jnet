@@ -2,7 +2,7 @@ package cc.jfire.jnet.extend.reverse.app;
 
 import cc.jfire.baseutil.IoUtil;
 import cc.jfire.baseutil.RuntimeJVM;
-import cc.jfire.baseutil.YamlReader;
+import cc.jfire.baseutil.yaml.YamlReader;
 import cc.jfire.jnet.extend.reverse.proxy.ReverseProxyServer;
 import cc.jfire.jnet.extend.reverse.proxy.api.ResourceConfig;
 import lombok.SneakyThrows;

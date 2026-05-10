@@ -1,7 +1,7 @@
 package cc.jfire.jnet;
 
 import cc.jfire.baseutil.IoUtil;
-import cc.jfire.baseutil.YamlReader;
+import cc.jfire.baseutil.yaml.YamlReader;
 import cc.jfire.jnet.common.api.PipelineInitializer;
 import cc.jfire.jnet.common.internal.DefaultPipeline;
 import cc.jfire.jnet.common.util.ChannelConfig;
