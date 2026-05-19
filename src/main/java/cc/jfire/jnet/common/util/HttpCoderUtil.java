@@ -114,32 +114,129 @@ public class HttpCoderUtil
         buffer.put(NEW_LINE);
     }
 
+    /**
+     * AI 生成：按 CRLF 逐行解析 HTTP header，保证格式错误时受控失败且读指针持续推进。
+     */
     public static void findAllHeaders(IoBuffer ioBuffer, BiConsumer<String, String> consumer)
     {
-        String headerName = null, headerValue = null;
-        while (ioBuffer.get(ioBuffer.getReadPosi()) != '\r' || ioBuffer.get(ioBuffer.getReadPosi() + 1) != '\n')
+        while (true)
         {
-            for (int i = ioBuffer.getReadPosi(); i < ioBuffer.getWritePosi(); i++)
+            int lineStart = ioBuffer.getReadPosi();
+            int writePosi = ioBuffer.getWritePosi();
+            if (writePosi - lineStart < 2)
             {
-                if (ioBuffer.get(i) == ':')
+                throw invalidHeader("incomplete header block");
+            }
+            if (ioBuffer.get(lineStart) == '\r')
+            {
+                if (ioBuffer.get(lineStart + 1) == '\n')
                 {
-                    headerName = normalizeHeaderName(StandardCharsets.UTF_8.decode(ioBuffer.readableByteBuffer(i)).toString());
-                    ioBuffer.setReadPosi(i + 2);
+                    ioBuffer.setReadPosi(lineStart + 2);
+                    return;
+                }
+                throw invalidHeader("CR must be followed by LF");
+            }
+
+            int lineEnd = findCrlf(ioBuffer, lineStart, writePosi);
+            if (lineEnd == -1)
+            {
+                throw invalidHeader("header line must end with CRLF");
+            }
+            int colon = findByte(ioBuffer, lineStart, lineEnd, (byte) ':');
+            if (colon == -1)
+            {
+                throw invalidHeader("header line missing ':'");
+            }
+
+            String headerName = decodeRange(ioBuffer, lineStart, colon).trim();
+            if (headerName.isEmpty())
+            {
+                throw invalidHeader("header name is empty");
+            }
+
+            int valueStart = colon + 1;
+            while (valueStart < lineEnd)
+            {
+                byte b = ioBuffer.get(valueStart);
+                if (b != ' ' && b != '\t')
+                {
                     break;
                 }
+                valueStart++;
             }
-            for (int i = ioBuffer.getReadPosi(); i < ioBuffer.getWritePosi(); i++)
+            int valueEnd = lineEnd;
+            while (valueEnd > valueStart)
             {
-                if (ioBuffer.get(i) == '\r')
+                byte b = ioBuffer.get(valueEnd - 1);
+                if (b != ' ' && b != '\t')
                 {
-                    headerValue = StandardCharsets.UTF_8.decode(ioBuffer.readableByteBuffer(i)).toString();
-                    ioBuffer.setReadPosi(i + 2);
                     break;
                 }
+                valueEnd--;
             }
-            consumer.accept(headerName, headerValue);
+
+            String headerValue = decodeRange(ioBuffer, valueStart, valueEnd);
+            ioBuffer.setReadPosi(lineEnd + 2);
+            if (ioBuffer.getReadPosi() <= lineStart)
+            {
+                throw invalidHeader("read position did not advance");
+            }
+            consumer.accept(normalizeHeaderName(headerName), headerValue);
         }
-        ioBuffer.addReadPosi(2);
+    }
+
+    /**
+     * AI 生成：在限定范围内查找 CRLF，并把孤立 CR 识别为非法 header。
+     */
+    private static int findCrlf(IoBuffer ioBuffer, int start, int end)
+    {
+        for (int i = start; i + 1 < end; i++)
+        {
+            if (ioBuffer.get(i) == '\r')
+            {
+                if (ioBuffer.get(i + 1) == '\n')
+                {
+                    return i;
+                }
+                throw invalidHeader("CR must be followed by LF");
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * AI 生成：在限定范围内查找单个目标字节，避免扫描越过当前 header 行。
+     */
+    private static int findByte(IoBuffer ioBuffer, int start, int end, byte target)
+    {
+        for (int i = start; i < end; i++)
+        {
+            if (ioBuffer.get(i) == target)
+            {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * AI 生成：临时移动读指针解码指定区间，解码后恢复原读指针。
+     */
+    private static String decodeRange(IoBuffer ioBuffer, int start, int end)
+    {
+        int oldReadPosi = ioBuffer.getReadPosi();
+        ioBuffer.setReadPosi(start);
+        String value = StandardCharsets.UTF_8.decode(ioBuffer.readableByteBuffer(end)).toString();
+        ioBuffer.setReadPosi(oldReadPosi);
+        return value;
+    }
+
+    /**
+     * AI 生成：统一构造 header 解析异常，便于调用方识别协议格式错误。
+     */
+    private static IllegalArgumentException invalidHeader(String reason)
+    {
+        return new IllegalArgumentException("Invalid HTTP header: " + reason);
     }
 
     public static void findContentLength(Map<String, String> headers, Consumer<Long> contentLengthConsumer)
