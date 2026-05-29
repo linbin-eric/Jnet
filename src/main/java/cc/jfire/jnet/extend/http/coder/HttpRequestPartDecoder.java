@@ -103,8 +103,17 @@ public class HttpRequestPartDecoder extends AbstractDecoder
                 int headEndPosi = lastCheck + 4;
                 int headLength  = headEndPosi - headStartPosi;
                 lastCheck = -1;
-                HttpCoderUtil.findAllHeaders(accumulation, reqHead::addHeader);
-                HttpCoderUtil.findContentLength(reqHead.getHeaders(), reqHead::setContentLength);
+                try
+                {
+                    HttpCoderUtil.findAllHeaders(accumulation, reqHead::addHeader);
+                    HttpCoderUtil.findContentLength(reqHead.getHeaders(), reqHead::setContentLength);
+                }
+                catch (IllegalArgumentException e)
+                {
+                    readFailed(e, next);
+                    next.pipeline().shutdownInput();
+                    return false;
+                }
                 accumulation.setReadPosi(headStartPosi);
                 if (accumulation.remainRead() == headLength)
                 {

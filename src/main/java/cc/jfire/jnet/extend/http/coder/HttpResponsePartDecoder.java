@@ -109,8 +109,17 @@ public class HttpResponsePartDecoder extends AbstractDecoder
             if (accumulation.get(lastCheck) == '\r' && accumulation.get(lastCheck + 1) == '\n' && accumulation.get(lastCheck + 2) == '\r' && accumulation.get(lastCheck + 3) == '\n')
             {
                 lastCheck = -1;
-                HttpCoderUtil.findAllHeaders(accumulation, respHead::addHeader);
-                HttpCoderUtil.findContentLength(respHead.getHeaders(), respHead::setContentLength);
+                try
+                {
+                    HttpCoderUtil.findAllHeaders(accumulation, respHead::addHeader);
+                    HttpCoderUtil.findContentLength(respHead.getHeaders(), respHead::setContentLength);
+                }
+                catch (IllegalArgumentException e)
+                {
+                    readFailed(e, next);
+                    next.pipeline().shutdownInput();
+                    return false;
+                }
                 int bodyStartPosi = accumulation.getReadPosi();
                 int headLength    = bodyStartPosi - headStartPosi;
                 if (headLength > 0)
