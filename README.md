@@ -541,6 +541,8 @@ public class ConfiguredHttpClient {
 
 ### 配置代理
 
+默认代理类型为 `ProxyType.HTTP`，保持旧版本只配置 `proxyHost` / `proxyPort` 的行为。
+
 ```java
 HttpClientConfig config = new HttpClientConfig()
     .setProxyHost("proxy.example.com")
@@ -560,6 +562,28 @@ HttpRequest httpsRequest = new HttpRequest()
     .get();
 HttpResponse httpsResponse = client.call(httpsRequest);
 ```
+
+SOCKS5 代理需要显式设置代理类型：
+
+```java
+HttpClientConfig config = new HttpClientConfig()
+    .setProxyType(ProxyType.SOCKS5)
+    .setProxyHost("127.0.0.1")
+    .setProxyPort(7890);
+```
+
+SOCKS5 用户名密码认证：
+
+```java
+HttpClientConfig config = new HttpClientConfig()
+    .setProxyType(ProxyType.SOCKS5)
+    .setProxyHost("127.0.0.1")
+    .setProxyPort(7890)
+    .setProxyUsername("user")
+    .setProxyPassword("password");
+```
+
+SOCKS5 当前支持 CONNECT、IPv4、域名、IPv6、无认证和用户名密码认证；不支持 SOCKS4、BIND、UDP ASSOCIATE。
 
 ### 流式响应处理
 

@@ -43,6 +43,18 @@ public class HttpClientConfig
      * 代理服务器端口
      */
     private             int            proxyPort                  = 0;
+    /**
+     * 代理类型，默认 HTTP 代理以保持兼容
+     */
+    private             ProxyType      proxyType                  = ProxyType.HTTP;
+    /**
+     * SOCKS5 用户名。为 null 或空字符串时不启用用户名密码认证
+     */
+    private             String         proxyUsername;
+    /**
+     * SOCKS5 密码。为 null 或空字符串时不启用用户名密码认证
+     */
+    private             String         proxyPassword;
 
     public boolean hasProxy()
     {

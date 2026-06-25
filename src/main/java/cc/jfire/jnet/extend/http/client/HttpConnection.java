@@ -28,12 +28,12 @@ public class HttpConnection
 
     public HttpConnection(String domain, int port, int secondsOfKeepAlive)
     {
-        this(domain, port, null, 0, false, secondsOfKeepAlive, 30);
+        this(domain, port, new HttpClientConfig().setKeepAliveSeconds(secondsOfKeepAlive), false);
     }
 
     public HttpConnection(String domain, int port, int secondsOfKeepAlive, boolean ssl)
     {
-        this(domain, port, null, 0, ssl, secondsOfKeepAlive, 30);
+        this(domain, port, new HttpClientConfig().setKeepAliveSeconds(secondsOfKeepAlive), ssl);
     }
 
     private SSLEngine buildSSLEngineAndBeginHandShake(String domain, int port)
@@ -112,11 +112,125 @@ public class HttpConnection
      */
     public HttpConnection(String domain, int port, String proxyHost, int proxyPort, boolean ssl, int keepAliveSeconds, int sslHandshakeTimeoutSeconds)
     {
-        if (proxyHost == null)
+        this(domain, port, new HttpClientConfig().setProxyHost(proxyHost).setProxyPort(proxyPort).setKeepAliveSeconds(keepAliveSeconds).setSslHandshakeTimeoutSeconds(sslHandshakeTimeoutSeconds), ssl);
+    }
+
+    public HttpConnection(String domain, int port, HttpClientConfig config, boolean ssl)
+    {
+        ProxyType proxyType = config.getProxyType() == null ? ProxyType.HTTP : config.getProxyType();
+        if (!config.hasProxy())
         {
-            // 直接连接模式(不使用代理)
-            ChannelConfig channelConfig = new ChannelConfig().setIp(domain).setPort(port);
-            clientChannel = ClientChannel.newClient(channelConfig, pipeline -> {
+            clientChannel = buildDirect(domain, port, ssl, config.getKeepAliveSeconds(), config.getSslHandshakeTimeoutSeconds());
+        }
+        else if (proxyType == ProxyType.SOCKS5)
+        {
+            clientChannel = buildSocks5Proxy(domain, port, ssl, config);
+        }
+        else
+        {
+            clientChannel = buildHttpProxy(domain, port, ssl, config);
+        }
+    }
+
+    private ClientChannel buildDirect(String domain, int port, boolean ssl, int keepAliveSeconds, int sslHandshakeTimeoutSeconds)
+    {
+        ChannelConfig channelConfig = new ChannelConfig().setIp(domain).setPort(port);
+        ClientChannel channel       = ClientChannel.newClient(channelConfig, pipeline -> {
+            SSLEncoder sslEncoder = null;
+            if (ssl)
+            {
+                SSLEngine        sslEngine  = buildSSLEngineAndBeginHandShake(domain, port);
+                ClientSSLDecoder sslDecoder = new ClientSSLDecoder(sslEngine);
+                pipeline.putPersistenceStore(ClientSSLDecoder.KEY, sslDecoder);
+                sslEncoder = new SSLEncoder(sslEngine);
+                pipeline.addReadProcessor(sslDecoder);
+            }
+            pipeline.addReadProcessor(new HeartBeat(keepAliveSeconds, pipeline));
+            pipeline.addReadProcessor(new HttpResponsePartDecoder());
+            pipeline.addReadProcessor(new ProcessResponseFuture());
+            pipeline.addWriteProcessor(new HttpRequestPartEncoder());
+            pipeline.addWriteProcessor(new HeartBeat(keepAliveSeconds, pipeline));
+            if (sslEncoder != null)
+            {
+                pipeline.addWriteProcessor(sslEncoder);
+            }
+        });
+        if (!channel.connect())
+        {
+            ReflectUtil.throwException(new RuntimeException("无法连接 " + domain + ":" + port, channel.getConnectionException()));
+        }
+        if (ssl)
+        {
+            waitSslHandshake(channel, sslHandshakeTimeoutSeconds);
+        }
+        return channel;
+    }
+
+    private ClientChannel buildHttpProxy(String domain, int port, boolean ssl, HttpClientConfig config)
+    {
+        String proxyHost                  = config.getProxyHost();
+        int    proxyPort                  = config.getProxyPort();
+        int    keepAliveSeconds           = config.getKeepAliveSeconds();
+        int    sslHandshakeTimeoutSeconds = config.getSslHandshakeTimeoutSeconds();
+        if (ssl)
+        {
+            ChannelConfig          channelConfig     = new ChannelConfig().setIp(proxyHost).setPort(proxyPort);
+            ProxyTunnelReadHandler tunnelReadHandler = new ProxyTunnelReadHandler(domain, port);
+            ClientChannel channel = ClientChannel.newClient(channelConfig, pipeline -> {
+                try
+                {
+                    pipeline.addReadProcessor(tunnelReadHandler);
+                    pipeline.putPersistenceStore(ProxyTunnelReadHandler.KEY, tunnelReadHandler);
+                    SSLEngine        sslEngine  = buildSSLEngineAndBeginHandShake(domain, port);
+                    ClientSSLDecoder sslDecoder = new ClientSSLDecoder(sslEngine);
+                    pipeline.putPersistenceStore(ClientSSLDecoder.KEY, sslDecoder);
+                    SSLEncoder sslEncoder = new SSLEncoder(sslEngine);
+                    pipeline.addReadProcessor(sslDecoder);
+                    pipeline.addReadProcessor(new HeartBeat(keepAliveSeconds, pipeline));
+                    pipeline.addReadProcessor(new HttpResponsePartDecoder());
+                    pipeline.addReadProcessor(new ProcessResponseFuture());
+                    pipeline.addWriteProcessor(new HttpRequestPartEncoder());
+                    pipeline.addWriteProcessor(new HeartBeat(keepAliveSeconds, pipeline));
+                    pipeline.addWriteProcessor(sslEncoder);
+                }
+                catch (Exception e)
+                {
+                    tunnelReadHandler.setTunnelError(e);
+                }
+            });
+            connectProxyChannel(channel, "代理服务器", proxyHost, proxyPort);
+            waitHttpProxyTunnel(channel, tunnelReadHandler, sslHandshakeTimeoutSeconds);
+            waitSslHandshake(channel, sslHandshakeTimeoutSeconds);
+            return channel;
+        }
+        else
+        {
+            ChannelConfig channelConfig = new ChannelConfig().setIp(proxyHost).setPort(proxyPort);
+            ClientChannel channel = ClientChannel.newClient(channelConfig, pipeline -> {
+                pipeline.addReadProcessor(new HeartBeat(keepAliveSeconds, pipeline));
+                pipeline.addReadProcessor(new HttpResponsePartDecoder());
+                pipeline.addReadProcessor(new ProcessResponseFuture());
+                pipeline.addWriteProcessor(new ProxyHttpRequestEncoder(domain, port));
+                pipeline.addWriteProcessor(new HeartBeat(keepAliveSeconds, pipeline));
+            });
+            connectProxyChannel(channel, "代理服务器", proxyHost, proxyPort);
+            return channel;
+        }
+    }
+
+    private ClientChannel buildSocks5Proxy(String domain, int port, boolean ssl, HttpClientConfig config)
+    {
+        String                  proxyHost                  = config.getProxyHost();
+        int                     proxyPort                  = config.getProxyPort();
+        int                     keepAliveSeconds           = config.getKeepAliveSeconds();
+        int                     sslHandshakeTimeoutSeconds = config.getSslHandshakeTimeoutSeconds();
+        ChannelConfig           channelConfig              = new ChannelConfig().setIp(proxyHost).setPort(proxyPort);
+        Socks5TunnelReadHandler tunnelReadHandler          = new Socks5TunnelReadHandler(domain, port, config.getProxyUsername(), config.getProxyPassword());
+        ClientChannel channel = ClientChannel.newClient(channelConfig, pipeline -> {
+            try
+            {
+                pipeline.addReadProcessor(tunnelReadHandler);
+                pipeline.putPersistenceStore(Socks5TunnelReadHandler.KEY, tunnelReadHandler);
                 SSLEncoder sslEncoder = null;
                 if (ssl)
                 {
@@ -135,122 +249,101 @@ public class HttpConnection
                 {
                     pipeline.addWriteProcessor(sslEncoder);
                 }
-            });
-            if (!clientChannel.connect())
-            {
-                ReflectUtil.throwException(new RuntimeException("无法连接 " + domain + ":" + port, clientChannel.getConnectionException()));
             }
-            if (ssl)
+            catch (Exception e)
             {
-                ClientSSLDecoder sslDecoder = (ClientSSLDecoder) clientChannel.pipeline().getPersistenceStore(ClientSSLDecoder.KEY);
-                sslDecoder.startHandshake(clientChannel.pipeline());
-                try
-                {
-                    if (!sslDecoder.waitHandshake(sslHandshakeTimeoutSeconds, TimeUnit.SECONDS))
-                    {
-                        clientChannel.pipeline().shutdownInput();
-                        ReflectUtil.throwException(new RuntimeException("SSL 握手超时"));
-                    }
-                }
-                catch (InterruptedException e)
-                {
-                    clientChannel.pipeline().shutdownInput();
-                    ReflectUtil.throwException(new RuntimeException("SSL 握手被中断", e));
-                }
+                tunnelReadHandler.setTunnelError(e);
+            }
+        });
+        connectProxyChannel(channel, "SOCKS5 代理服务器", proxyHost, proxyPort);
+        waitSocks5Tunnel(channel, tunnelReadHandler, sslHandshakeTimeoutSeconds);
+        if (ssl)
+        {
+            waitSslHandshake(channel, sslHandshakeTimeoutSeconds);
+        }
+        return channel;
+    }
+
+    private void connectProxyChannel(ClientChannel channel, String proxyName, String proxyHost, int proxyPort)
+    {
+        if (!channel.connect())
+        {
+            ReflectUtil.throwException(new RuntimeException("无法连接到" + proxyName + " " + proxyHost + ":" + proxyPort, channel.getConnectionException()));
+        }
+    }
+
+    private void waitHttpProxyTunnel(ClientChannel channel, ProxyTunnelReadHandler tunnelReadHandler, int timeoutSeconds)
+    {
+        try
+        {
+            if (!tunnelReadHandler.awaitTunnelEstablished(timeoutSeconds, TimeUnit.SECONDS))
+            {
+                channel.pipeline().shutdownInput();
+                ReflectUtil.throwException(new RuntimeException("代理隧道建立超时"));
             }
         }
-        else if (ssl)
+        catch (InterruptedException e)
         {
-            // HTTPS 代理（CONNECT 隧道模式）
-            ChannelConfig channelConfig = new ChannelConfig().setIp(proxyHost).setPort(proxyPort);
-            // 创建隧道读处理器
-            ProxyTunnelReadHandler tunnelReadHandler = new ProxyTunnelReadHandler(domain, port);
-            clientChannel = ClientChannel.newClient(channelConfig, pipeline -> {
-                try
-                {
-                    // 配置读取链: ProxyTunnelReadHandler -> ClientSSLDecoder -> HeartBeat -> HttpResponsePartDecoder -> 业务处理器
-                    pipeline.addReadProcessor(tunnelReadHandler);
-                    pipeline.putPersistenceStore(ProxyTunnelReadHandler.KEY, tunnelReadHandler);
-                    // 初始化 SSL 引擎（使用目标服务器域名，而非代理服务器地址）
-                    SSLEngine        sslEngine  = buildSSLEngineAndBeginHandShake(domain, port);
-                    ClientSSLDecoder sslDecoder = new ClientSSLDecoder(sslEngine);
-                    pipeline.putPersistenceStore(ClientSSLDecoder.KEY, sslDecoder);
-                    SSLEncoder sslEncoder = new SSLEncoder(sslEngine);
-                    pipeline.addReadProcessor(sslDecoder);
-                    pipeline.addReadProcessor(new HeartBeat(keepAliveSeconds, pipeline));
-                    pipeline.addReadProcessor(new HttpResponsePartDecoder());
-                    pipeline.addReadProcessor(new ProcessResponseFuture());
-                    // 配置写入链: HttpRequestPartEncoder -> HeartBeat -> ClientSSLEncoder
-                    pipeline.addWriteProcessor(new HttpRequestPartEncoder());
-                    pipeline.addWriteProcessor(new HeartBeat(keepAliveSeconds, pipeline));
-                    pipeline.addWriteProcessor(sslEncoder);
-                }
-                catch (Exception e)
-                {
-                    tunnelReadHandler.setTunnelError(e);
-                }
-            });
-            if (!clientChannel.connect())
+            Thread.currentThread().interrupt();
+            channel.pipeline().shutdownInput();
+            ReflectUtil.throwException(new RuntimeException("代理连接被中断", e));
+        }
+        if (tunnelReadHandler.getTunnelError() != null)
+        {
+            channel.pipeline().shutdownInput();
+            ReflectUtil.throwException(new RuntimeException("代理隧道建立失败", tunnelReadHandler.getTunnelError()));
+        }
+        if (!tunnelReadHandler.isTunnelEstablished())
+        {
+            channel.pipeline().shutdownInput();
+            ReflectUtil.throwException(new RuntimeException("代理服务器拒绝 CONNECT 请求"));
+        }
+    }
+
+    private void waitSocks5Tunnel(ClientChannel channel, Socks5TunnelReadHandler tunnelReadHandler, int timeoutSeconds)
+    {
+        try
+        {
+            if (!tunnelReadHandler.awaitTunnelEstablished(timeoutSeconds, TimeUnit.SECONDS))
             {
-                ReflectUtil.throwException(new RuntimeException("无法连接到代理服务器 " + proxyHost + ":" + proxyPort, clientChannel.getConnectionException()));
-            }
-            // 等待隧道建立
-            try
-            {
-                if (!tunnelReadHandler.awaitTunnelEstablished(30, TimeUnit.SECONDS))
-                {
-                    clientChannel.pipeline().shutdownInput();
-                    ReflectUtil.throwException(new RuntimeException("代理隧道建立超时"));
-                }
-            }
-            catch (InterruptedException e)
-            {
-                clientChannel.pipeline().shutdownInput();
-                ReflectUtil.throwException(new RuntimeException("代理连接被中断", e));
-            }
-            if (tunnelReadHandler.getTunnelError() != null)
-            {
-                clientChannel.pipeline().shutdownInput();
-                ReflectUtil.throwException(new RuntimeException("代理隧道建立失败", tunnelReadHandler.getTunnelError()));
-            }
-            if (!tunnelReadHandler.isTunnelEstablished())
-            {
-                clientChannel.pipeline().shutdownInput();
-                ReflectUtil.throwException(new RuntimeException("代理服务器拒绝 CONNECT 请求"));
-            }
-            ClientSSLDecoder sslDecoder = (ClientSSLDecoder) clientChannel.pipeline().getPersistenceStore(ClientSSLDecoder.KEY);
-            // 等待 SSL 握手完成
-            try
-            {
-                if (!sslDecoder.waitHandshake(30, TimeUnit.SECONDS))
-                {
-                    clientChannel.pipeline().shutdownInput();
-                    ReflectUtil.throwException(new RuntimeException("SSL 握手超时"));
-                }
-            }
-            catch (InterruptedException e)
-            {
-                clientChannel.pipeline().shutdownInput();
-                ReflectUtil.throwException(new RuntimeException("SSL 握手被中断", e));
+                channel.pipeline().shutdownInput();
+                ReflectUtil.throwException(new RuntimeException("SOCKS5 代理隧道建立超时"));
             }
         }
-        else
+        catch (InterruptedException e)
         {
-            // HTTP 代理（直接代理模式）
-            ChannelConfig channelConfig = new ChannelConfig().setIp(proxyHost).setPort(proxyPort);
-            clientChannel = ClientChannel.newClient(channelConfig, pipeline -> {
-                // 配置读取链: HeartBeat -> HttpResponsePartDecoder -> 业务处理器
-                pipeline.addReadProcessor(new HeartBeat(keepAliveSeconds, pipeline));
-                pipeline.addReadProcessor(new HttpResponsePartDecoder());
-                pipeline.addReadProcessor(new ProcessResponseFuture());
-                // 配置写入链: ProxyHttpRequestEncoder -> HeartBeat
-                pipeline.addWriteProcessor(new ProxyHttpRequestEncoder(domain, port));
-                pipeline.addWriteProcessor(new HeartBeat(keepAliveSeconds, pipeline));
-            });
-            if (!clientChannel.connect())
+            Thread.currentThread().interrupt();
+            channel.pipeline().shutdownInput();
+            ReflectUtil.throwException(new RuntimeException("SOCKS5 代理连接被中断", e));
+        }
+        if (tunnelReadHandler.getTunnelError() != null)
+        {
+            channel.pipeline().shutdownInput();
+            ReflectUtil.throwException(new RuntimeException("SOCKS5 代理隧道建立失败", tunnelReadHandler.getTunnelError()));
+        }
+        if (!tunnelReadHandler.isTunnelEstablished())
+        {
+            channel.pipeline().shutdownInput();
+            ReflectUtil.throwException(new RuntimeException("SOCKS5 代理服务器拒绝 CONNECT 请求"));
+        }
+    }
+
+    private void waitSslHandshake(ClientChannel channel, int timeoutSeconds)
+    {
+        ClientSSLDecoder sslDecoder = (ClientSSLDecoder) channel.pipeline().getPersistenceStore(ClientSSLDecoder.KEY);
+        try
+        {
+            if (!sslDecoder.waitHandshake(timeoutSeconds, TimeUnit.SECONDS))
             {
-                ReflectUtil.throwException(new RuntimeException("无法连接到代理服务器 " + proxyHost + ":" + proxyPort, clientChannel.getConnectionException()));
+                channel.pipeline().shutdownInput();
+                ReflectUtil.throwException(new RuntimeException("SSL 握手超时"));
             }
+        }
+        catch (InterruptedException e)
+        {
+            Thread.currentThread().interrupt();
+            channel.pipeline().shutdownInput();
+            ReflectUtil.throwException(new RuntimeException("SSL 握手被中断", e));
         }
     }
 
@@ -354,10 +447,14 @@ public class HttpConnection
 
     public void close()
     {
+        if (clientChannel == null)
+        {
+            isClosed.set(true);
+            return;
+        }
         if (!isClosed.compareAndExchange(false, true))
         {
             clientChannel.pipeline().shutdownInput();
         }
     }
 }
-

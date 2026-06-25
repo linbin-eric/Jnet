@@ -8,34 +8,70 @@ public record HttpUrl(String domain, int port, String path, String hostHeader, b
     {
         try
         {
-            int     index       = 0;
-            int     domainStart = 0;
-            boolean isHttps     = false;
+            int     domainStart;
+            boolean isHttps = false;
             if (url.startsWith("http://"))
             {
-                index       = url.indexOf("/", 8);
                 domainStart = 7;
             }
             else if (url.startsWith("https://"))
             {
-                index       = url.indexOf("/", 9);
                 domainStart = 8;
-                isHttps     = true;
+                isHttps = true;
+            }
+            else
+            {
+                domainStart = 0;
             }
             // 保持与原 HttpRequest#setUrl 一致：若不是 http/https 开头，则按旧逻辑继续解析（domainStart/index 默认为 0）
-            if (index == -1)
+            int pathStart = url.indexOf("/", domainStart);
+            if (pathStart == -1)
             {
-                index = url.length();
+                pathStart = url.length();
             }
-            int portStart = url.indexOf(':', domainStart);
-            if (portStart > index)
+            String authority  = url.substring(domainStart, pathStart);
+            String path       = pathStart == url.length() ? "/" : url.substring(pathStart);
+            String domain;
+            String hostHeader;
+            int    port;
+            if (authority.startsWith("["))
             {
-                portStart = -1;
+                int end = authority.indexOf(']');
+                if (end == -1)
+                {
+                    throw new IllegalArgumentException("非法 IPv6 URL: " + url);
+                }
+                domain     = authority.substring(1, end);
+                hostHeader = authority;
+                if (authority.length() > end + 1)
+                {
+                    if (authority.charAt(end + 1) != ':')
+                    {
+                        throw new IllegalArgumentException("非法 IPv6 URL: " + url);
+                    }
+                    port = Integer.parseInt(authority.substring(end + 2));
+                }
+                else
+                {
+                    port = isHttps ? 443 : 80;
+                }
             }
-            String path       = index == url.length() ? "/" : url.substring(index);
-            int    port       = portStart == -1 ? (isHttps ? 443 : 80) : Integer.parseInt(url.substring(portStart + 1, index));
-            String domain     = portStart == -1 ? url.substring(domainStart, index) : url.substring(domainStart, portStart);
-            String hostHeader = portStart == -1 ? domain : url.substring(domainStart, index);
+            else
+            {
+                int portStart = authority.lastIndexOf(':');
+                if (portStart != -1)
+                {
+                    domain     = authority.substring(0, portStart);
+                    port       = Integer.parseInt(authority.substring(portStart + 1));
+                    hostHeader = authority;
+                }
+                else
+                {
+                    domain     = authority;
+                    port       = isHttps ? 443 : 80;
+                    hostHeader = authority;
+                }
+            }
             return new HttpUrl(domain, port, path, hostHeader, isHttps);
         }
         catch (Throwable e)
@@ -46,4 +82,3 @@ public record HttpUrl(String domain, int port, String path, String hostHeader, b
         }
     }
 }
-
