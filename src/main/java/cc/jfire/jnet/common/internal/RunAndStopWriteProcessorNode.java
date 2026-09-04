@@ -1,6 +1,7 @@
 package cc.jfire.jnet.common.internal;
 
 import cc.jfire.jnet.common.api.Pipeline;
+import cc.jfire.jnet.common.api.WriteCompletionHandler;
 import cc.jfire.jnet.common.api.WriteProcessorNode;
 import cc.jfire.jnet.common.util.UNSAFE;
 import lombok.Getter;
@@ -15,19 +16,22 @@ public class RunAndStopWriteProcessorNode implements WriteProcessorNode, Runnabl
     @Getter
     @Setter
     private              WriteProcessorNode      next;
-    private static final int                     IDLE_OPEN     = 1;
-    private static final int                     WORK_OPEN     = 2;
-    private static final int                     WORK_CLOSE    = 4;
-    private static final int                     TERMINATION   = 10;
-    private static final long                    STATE_OFFSET  = UNSAFE.getFieldOffset("state", RunAndStopWriteProcessorNode.class);
-    private final        MpscLinkedQueue<Object> queue         = new MpscLinkedQueue<>();
-    private volatile     int                     state         = WORK_OPEN;
+    private static final int                     WORK_IDLE        = 0b000;
+    private static final int                     WORK_BUSY        = 0b001;
+    private static final int                     SHUTDOWN         = 0b010;
+    private static final int                     TERMINATION_IDLE = 0b100;
+    private static final int                     TERMINATION_BUSY = 0b101;
+    private static final long                    STATE_OFFSET     = UNSAFE.getFieldOffset("state", RunAndStopWriteProcessorNode.class);
+    private final        MpscLinkedQueue<Object> queue            = new MpscLinkedQueue<>();
+    private volatile     int                     state            = WORK_IDLE;
     private              Thread                  thread;
     private              Throwable               e;
-    private static final int                     UN_FIRE       = 0;
-    private static final int                     FIRED         = 1;
-    private volatile     int                     fireE         = UN_FIRE;
-    private static final long                    FIRE_E_OFFSET = UNSAFE.getFieldOffset("fireE", RunAndStopWriteProcessorNode.class);
+    private static final int                     UN_FIRE          = 0;
+    private static final int                     FIRED            = 1;
+    private volatile     int                     fireE            = UN_FIRE;
+    private static final long                    FIRE_E_OFFSET    = UNSAFE.getFieldOffset("fireE", RunAndStopWriteProcessorNode.class);
+    @Setter
+    private              WriteCompletionHandler  writeCompletionHandler;
 
     public RunAndStopWriteProcessorNode(Pipeline pipeline)
     {
@@ -41,9 +45,9 @@ public class RunAndStopWriteProcessorNode implements WriteProcessorNode, Runnabl
         int t_state = state;
         switch (t_state)
         {
-            case IDLE_OPEN ->
+            case WORK_IDLE ->
             {
-                if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, IDLE_OPEN, WORK_OPEN))
+                if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, WORK_IDLE, WORK_BUSY))
                 {
                     LockSupport.unpark(thread);
                 }
@@ -52,15 +56,15 @@ public class RunAndStopWriteProcessorNode implements WriteProcessorNode, Runnabl
                     //没成功意味着其他线程成功了，忽略
                 }
             }
-            case WORK_OPEN, WORK_CLOSE ->
+            case WORK_BUSY, SHUTDOWN, TERMINATION_BUSY ->
             {
                 //已经在工作，忽略
             }
-            case TERMINATION ->
+            case TERMINATION_IDLE ->
             {
-                if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, TERMINATION, WORK_CLOSE))
+                if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, TERMINATION_IDLE, TERMINATION_BUSY))
                 {
-                    Thread.startVirtualThread(this);
+                    start();
                 }
                 else
                 {
@@ -71,28 +75,54 @@ public class RunAndStopWriteProcessorNode implements WriteProcessorNode, Runnabl
     }
 
     @Override
+    public void fireShutdown()
+    {
+        while (true)
+        {
+            int t_state = state;
+            switch (t_state)
+            {
+                case WORK_IDLE ->
+                {
+                    if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, WORK_IDLE, SHUTDOWN))
+                    {
+                        LockSupport.unpark(thread);
+                        return;
+                    }
+                }
+                case WORK_BUSY -> UNSAFE.compareAndSwapInt(this, STATE_OFFSET, WORK_BUSY, SHUTDOWN);
+                case TERMINATION_BUSY, TERMINATION_IDLE, SHUTDOWN ->
+                {
+                    return;
+                }
+            }
+        }
+    }
+
+    @Override
     public void fireChannelClosed(Throwable e)
     {
         this.e = e;
-        int t_state = state;
-        switch (t_state)
+        while (true)
         {
-            case IDLE_OPEN ->
+            int t_state = state;
+            switch (t_state)
             {
-                if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, IDLE_OPEN, WORK_CLOSE))
+                case WORK_IDLE ->
                 {
-                    LockSupport.unpark(thread);
+                    if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, WORK_IDLE, TERMINATION_BUSY))
+                    {
+                        LockSupport.unpark(thread);
+                        return;
+                    }
+                }
+                case WORK_BUSY -> UNSAFE.compareAndSwapInt(this, STATE_OFFSET, WORK_BUSY, TERMINATION_BUSY);
+                case SHUTDOWN -> UNSAFE.compareAndSwapInt(this, STATE_OFFSET, SHUTDOWN, TERMINATION_BUSY);
+                case TERMINATION_BUSY, TERMINATION_IDLE ->
+                {
                     return;
                 }
             }
-            case WORK_OPEN ->
-            {
-                if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, WORK_OPEN, WORK_CLOSE))
-                {
-                    return;
-                }
-            }
-            case WORK_CLOSE, TERMINATION -> throw new IllegalStateException();
         }
     }
 
@@ -115,52 +145,62 @@ public class RunAndStopWriteProcessorNode implements WriteProcessorNode, Runnabl
             else
             {
                 int t_state = state;
-                if (t_state == WORK_OPEN)
+                switch (t_state)
                 {
-                    if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, WORK_OPEN, IDLE_OPEN))
+                    case WORK_BUSY ->
                     {
-                        if (queue.isEmpty())
+                        if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, WORK_BUSY, WORK_IDLE))
                         {
-                            do
+                            if (queue.isEmpty())
                             {
-                                LockSupport.park();
+                                do
+                                {
+                                    LockSupport.park();
+                                    t_state = state;
+                                } while (t_state == WORK_IDLE);
+                            }
+                            else
+                            {
                                 t_state = state;
-                            } while (t_state == IDLE_OPEN);
+                                if (t_state == WORK_IDLE)
+                                {
+                                    //不需要关心结果了，成功了需要继续循环；失败了，意味着别的线程将当前唤醒了，还是需要继续循环
+                                    UNSAFE.compareAndSwapInt(this, STATE_OFFSET, WORK_IDLE, WORK_BUSY);
+                                }
+                            }
                         }
                         else
                         {
+                            //如果 cas 失败，可能性有：shutdown，termination
                             t_state = state;
-                            if (t_state == IDLE_OPEN)
+                            if (t_state != SHUTDOWN && t_state != TERMINATION_IDLE && t_state != TERMINATION_BUSY)
                             {
-                                UNSAFE.compareAndSwapInt(this, STATE_OFFSET, IDLE_OPEN, WORK_OPEN);
+                                System.exit(2);
                             }
                         }
                     }
-                    else
+                    case SHUTDOWN ->
                     {
-                        //如果 cas 失败，状态只会是 work_close。
-                        t_state = state;
-                        if (t_state != WORK_CLOSE)
+                        next.fireShutdown();
+                        writeCompletionHandler.noticeClose();
+                        UNSAFE.compareAndSwapInt(this, STATE_OFFSET, SHUTDOWN, WORK_BUSY);
+                    }
+                    case TERMINATION_BUSY ->
+                    {
+                        if (fireE == UN_FIRE && UNSAFE.compareAndSwapInt(this, FIRE_E_OFFSET, UN_FIRE, FIRED))
                         {
-                            throw new IllegalStateException();
+                            next.fireChannelClosed(e);
                         }
-                    }
-                }
-                else
-                {
-                    state = TERMINATION;
-                    if (fireE == UN_FIRE && UNSAFE.compareAndSwapInt(this, FIRE_E_OFFSET, UN_FIRE, FIRED))
-                    {
-                        next.fireChannelClosed(e);
-                    }
-                    if (!queue.isEmpty())
-                    {
-                        if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, TERMINATION, WORK_CLOSE))
+                        state = TERMINATION_IDLE;
+                        if (!queue.isEmpty())
                         {
-                            Thread.startVirtualThread(this);
+                            if (UNSAFE.compareAndSwapInt(this, STATE_OFFSET, TERMINATION_IDLE, TERMINATION_BUSY))
+                            {
+                                start();
+                            }
                         }
+                        return;
                     }
-                    return;
                 }
             }
         }
@@ -168,6 +208,7 @@ public class RunAndStopWriteProcessorNode implements WriteProcessorNode, Runnabl
 
     public void start()
     {
-        thread = Thread.startVirtualThread(this);
+        thread = Thread.ofVirtual().unstarted(this);
+        thread.start();
     }
 }

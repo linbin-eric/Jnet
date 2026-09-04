@@ -70,17 +70,9 @@ public class DefaultPipeline implements InternalPipeline
     }
 
     @Override
-    public void shutdownInput()
+    public void shutdown()
     {
-        try
-        {
-            socketChannel.shutdownInput();
-        }
-        catch (Throwable ex)
-        {
-            ;
-        }
-        writeCompleteHandler.noticeClose();
+        writeHead.fireShutdown();
     }
 
     @Override
@@ -168,6 +160,7 @@ public class DefaultPipeline implements InternalPipeline
         addReadProcessor(new TailReadProcessor(adaptiveReadCompletionHandler));
         writeCompleteHandler = new DefaultWriteCompleteHandler(this);
         addWriteProcessor(new TailWriteProcessor(writeCompleteHandler));
+        ((RunAndStopWriteProcessorNode) writeHead).setWriteCompletionHandler(writeCompleteHandler);
         ((RunAndStopWriteProcessorNode) writeHead).start();
         try
         {
@@ -197,7 +190,7 @@ public class DefaultPipeline implements InternalPipeline
     }
 
     @Override
-    public void fireWriteFailed(Throwable e)
+    public void fireChannelClosed(Throwable e)
     {
         try
         {

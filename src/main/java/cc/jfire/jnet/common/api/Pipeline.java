@@ -26,7 +26,7 @@ public interface Pipeline
 
     void addWriteProcessor(WriteProcessor<?> processor);
 
-    void shutdownInput();
+    void shutdown();
 
     AsynchronousSocketChannel socketChannel();
 

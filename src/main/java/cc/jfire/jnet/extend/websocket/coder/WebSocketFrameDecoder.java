@@ -72,7 +72,7 @@ public class WebSocketFrameDecoder implements ReadProcessor<Object>
                     accumulation.free();
                     accumulation = null;
                 }
-                next.pipeline().shutdownInput();
+                next.pipeline().shutdown();
             }
         }
     }
@@ -321,7 +321,7 @@ public class WebSocketFrameDecoder implements ReadProcessor<Object>
                     next.fireRead(frame);
                 }
                 // 关闭输入
-                next.pipeline().shutdownInput();
+                next.pipeline().shutdown();
             }
         }
     }

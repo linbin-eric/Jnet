@@ -35,7 +35,7 @@ public class HeadCheckTotalLengthDecoder extends AbstractDecoder
             {
                 if (accumulation.get() != headCheck[i])
                 {
-                    next.pipeline().shutdownInput();
+                    next.pipeline().shutdown();
                     return;
                 }
             }

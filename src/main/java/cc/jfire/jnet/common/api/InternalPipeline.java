@@ -10,5 +10,5 @@ public interface InternalPipeline extends Pipeline
 
     void fireReadFailed(Throwable e);
 
-    void fireWriteFailed(Throwable e);
+    void fireChannelClosed(Throwable e);
 }

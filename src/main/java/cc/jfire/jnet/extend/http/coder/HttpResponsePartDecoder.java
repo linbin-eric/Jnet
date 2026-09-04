@@ -117,7 +117,7 @@ public class HttpResponsePartDecoder extends AbstractDecoder
                 catch (IllegalArgumentException e)
                 {
                     readFailed(e, next);
-                    next.pipeline().shutdownInput();
+                    next.pipeline().shutdown();
                     return false;
                 }
                 int bodyStartPosi = accumulation.getReadPosi();

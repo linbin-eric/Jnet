@@ -158,6 +158,6 @@ public class AdaptiveReadCompletionHandler implements CompletionHandler<Integer,
          * 在这个地方调用保证了这些方法的起点都是当前的线程.
          */
         pipeline.fireReadFailed(e);
-        pipeline.shutdownInput();
+        pipeline.shutdown();
     }
 }

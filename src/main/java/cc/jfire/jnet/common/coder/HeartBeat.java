@@ -59,7 +59,7 @@ public class HeartBeat implements ReadProcessor, WriteProcessor
                 if (System.currentTimeMillis() - prevTime > heartBeatDuration)
                 {
                     noNeedWatch = true;
-                    pipeline.shutdownInput();
+                    pipeline.shutdown();
                 }
                 else
                 {

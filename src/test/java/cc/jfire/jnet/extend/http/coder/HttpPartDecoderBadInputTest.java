@@ -129,7 +129,7 @@ public class HttpPartDecoderBadInputTest
         }
 
         @Override
-        public void shutdownInput()
+        public void shutdown()
         {
             shutdown = true;
         }

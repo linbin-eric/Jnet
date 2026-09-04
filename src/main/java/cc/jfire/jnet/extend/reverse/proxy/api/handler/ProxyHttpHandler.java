@@ -147,7 +147,7 @@ public class ProxyHttpHandler implements ResourceHandler
                         public void readFailed(Throwable e, ReadProcessorNode next)
                         {
                             closeClientChannel();
-                            pipeline.shutdownInput();
+                            pipeline.shutdown();
                         }
                     });
                     backendPipeline.addReadProcessor(upStreamBackpresure.readLimiter());
@@ -171,7 +171,7 @@ public class ProxyHttpHandler implements ResourceHandler
         if (!clientChannel.alive())
         {
             head.close();
-            pipeline.shutdownInput();
+            pipeline.shutdown();
             return true; // 已处理
         }
         try
@@ -182,7 +182,7 @@ public class ProxyHttpHandler implements ResourceHandler
         {
             head.close();
             closeClientChannel();
-            pipeline.shutdownInput();
+            pipeline.shutdown();
             return true; // 已处理
         }
         return true; // 已处理
@@ -210,7 +210,7 @@ public class ProxyHttpHandler implements ResourceHandler
     {
         if (clientChannel != null)
         {
-            clientChannel.pipeline().shutdownInput();
+            clientChannel.pipeline().shutdown();
             clientChannel = null;
         }
     }

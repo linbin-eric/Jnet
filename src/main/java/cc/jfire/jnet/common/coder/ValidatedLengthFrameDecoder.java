@@ -88,7 +88,7 @@ public class ValidatedLengthFrameDecoder extends AbstractDecoder
             int actualMagic = accumulation.getInt(readPosi);
             if (actualMagic != magic)
             {
-                next.pipeline().shutdownInput();
+                next.pipeline().shutdown();
                 return;
             }
             int length = accumulation.getInt(readPosi + 4);
@@ -100,7 +100,7 @@ public class ValidatedLengthFrameDecoder extends AbstractDecoder
             short actualCrc   = accumulation.getShort(readPosi + 8);
             if (expectedCrc != actualCrc)
             {
-                next.pipeline().shutdownInput();
+                next.pipeline().shutdown();
                 return;
             }
             int totalLength = HEADER_SIZE + length;

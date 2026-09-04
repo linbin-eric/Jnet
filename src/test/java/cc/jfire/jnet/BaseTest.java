@@ -156,7 +156,7 @@ public class BaseTest
         System.out.println("验证通过");
         for (ClientChannel each : clients)
         {
-            each.pipeline().shutdownInput();
+            each.pipeline().shutdown();
         }
         logger.info("测试完毕");
         aioServer.termination();

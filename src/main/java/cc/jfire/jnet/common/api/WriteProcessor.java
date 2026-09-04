@@ -7,6 +7,11 @@ public interface WriteProcessor<T>
         next.fireWrite(data);
     }
 
+    default void shutdown(WriteProcessorNode next)
+    {
+        next.fireShutdown();
+    }
+
     default void channelClosed(WriteProcessorNode next, Throwable e)
     {
         next.fireChannelClosed(e);

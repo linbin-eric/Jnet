@@ -98,7 +98,7 @@ public class AbstractSSLDecoder extends AbstractDecoder
                 break;
             }
         }
-        pipeline.shutdownInput();
+        pipeline.shutdown();
     }
 
     protected void handshake(ReadProcessorNode next, SSLEngineResult.HandshakeStatus hs)
@@ -145,7 +145,7 @@ public class AbstractSSLDecoder extends AbstractDecoder
                     {
                         dst.free();
                     }
-                    next.pipeline().shutdownInput();
+                    next.pipeline().shutdown();
                     return;
                 }
             }
@@ -180,7 +180,7 @@ public class AbstractSSLDecoder extends AbstractDecoder
                     {
                         dst.free();
                     }
-                    next.pipeline().shutdownInput();
+                    next.pipeline().shutdown();
                     return;
                 }
             }
@@ -275,7 +275,7 @@ public class AbstractSSLDecoder extends AbstractDecoder
                 accumulation.free();
                 accumulation = null;
             }
-            next.pipeline().shutdownInput();
+            next.pipeline().shutdown();
         }
     }
 

@@ -77,7 +77,7 @@ public class HttpConnection
             }
             catch (Throwable e)
             {
-                next.pipeline().shutdownInput();
+                next.pipeline().shutdown();
             }
         }
 
@@ -278,24 +278,24 @@ public class HttpConnection
         {
             if (!tunnelReadHandler.awaitTunnelEstablished(timeoutSeconds, TimeUnit.SECONDS))
             {
-                channel.pipeline().shutdownInput();
+                channel.pipeline().shutdown();
                 ReflectUtil.throwException(new RuntimeException("代理隧道建立超时"));
             }
         }
         catch (InterruptedException e)
         {
             Thread.currentThread().interrupt();
-            channel.pipeline().shutdownInput();
+            channel.pipeline().shutdown();
             ReflectUtil.throwException(new RuntimeException("代理连接被中断", e));
         }
         if (tunnelReadHandler.getTunnelError() != null)
         {
-            channel.pipeline().shutdownInput();
+            channel.pipeline().shutdown();
             ReflectUtil.throwException(new RuntimeException("代理隧道建立失败", tunnelReadHandler.getTunnelError()));
         }
         if (!tunnelReadHandler.isTunnelEstablished())
         {
-            channel.pipeline().shutdownInput();
+            channel.pipeline().shutdown();
             ReflectUtil.throwException(new RuntimeException("代理服务器拒绝 CONNECT 请求"));
         }
     }
@@ -306,24 +306,24 @@ public class HttpConnection
         {
             if (!tunnelReadHandler.awaitTunnelEstablished(timeoutSeconds, TimeUnit.SECONDS))
             {
-                channel.pipeline().shutdownInput();
+                channel.pipeline().shutdown();
                 ReflectUtil.throwException(new RuntimeException("SOCKS5 代理隧道建立超时"));
             }
         }
         catch (InterruptedException e)
         {
             Thread.currentThread().interrupt();
-            channel.pipeline().shutdownInput();
+            channel.pipeline().shutdown();
             ReflectUtil.throwException(new RuntimeException("SOCKS5 代理连接被中断", e));
         }
         if (tunnelReadHandler.getTunnelError() != null)
         {
-            channel.pipeline().shutdownInput();
+            channel.pipeline().shutdown();
             ReflectUtil.throwException(new RuntimeException("SOCKS5 代理隧道建立失败", tunnelReadHandler.getTunnelError()));
         }
         if (!tunnelReadHandler.isTunnelEstablished())
         {
-            channel.pipeline().shutdownInput();
+            channel.pipeline().shutdown();
             ReflectUtil.throwException(new RuntimeException("SOCKS5 代理服务器拒绝 CONNECT 请求"));
         }
     }
@@ -335,14 +335,14 @@ public class HttpConnection
         {
             if (!sslDecoder.waitHandshake(timeoutSeconds, TimeUnit.SECONDS))
             {
-                channel.pipeline().shutdownInput();
+                channel.pipeline().shutdown();
                 ReflectUtil.throwException(new RuntimeException("SSL 握手超时"));
             }
         }
         catch (InterruptedException e)
         {
             Thread.currentThread().interrupt();
-            channel.pipeline().shutdownInput();
+            channel.pipeline().shutdown();
             ReflectUtil.throwException(new RuntimeException("SSL 握手被中断", e));
         }
     }
@@ -381,12 +381,12 @@ public class HttpConnection
         }
         catch (SocketTimeoutException e)
         {
-            clientChannel.pipeline().shutdownInput();
+            clientChannel.pipeline().shutdown();
             throw e;
         }
         catch (Exception e)
         {
-            clientChannel.pipeline().shutdownInput();
+            clientChannel.pipeline().shutdown();
             if (e instanceof ClosedChannelException ex)
             {
                 throw ex;
@@ -454,7 +454,7 @@ public class HttpConnection
         }
         if (!isClosed.compareAndExchange(false, true))
         {
-            clientChannel.pipeline().shutdownInput();
+            clientChannel.pipeline().shutdown();
         }
     }
 }

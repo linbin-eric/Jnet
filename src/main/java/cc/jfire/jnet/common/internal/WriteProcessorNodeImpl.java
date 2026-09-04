@@ -23,6 +23,12 @@ public class WriteProcessorNodeImpl implements WriteProcessorNode
     }
 
     @Override
+    public void fireShutdown()
+    {
+        processor.shutdown(next);
+    }
+
+    @Override
     public void fireChannelClosed(Throwable e)
     {
         processor.channelClosed(next, e);

@@ -201,55 +201,52 @@ import cc.jfire.jnet.extend.http.coder.*;
 import cc.jfire.jnet.extend.websocket.coder.*;
 import cc.jfire.jnet.extend.websocket.dto.WebSocketFrame;
 import cc.jfire.jnet.server.AioServer;
+
 import java.nio.charset.StandardCharsets;
 
-public class WebSocketServer {
-    public static void main(String[] args) {
+public class WebSocketServer
+{
+    public static void main(String[] args)
+    {
         ChannelConfig config = new ChannelConfig().setPort(8080);
-
         AioServer server = AioServer.newAioServer(config, pipeline -> {
             // HTTP 升级到 WebSocket
             pipeline.addReadProcessor(new HttpRequestPartDecoder());
             pipeline.addReadProcessor(new HttpRequestAggregator());
             pipeline.addReadProcessor(new WebSocketUpgradeDecoder());
-
             // WebSocket 帧处理
             pipeline.addReadProcessor(new WebSocketFrameDecoder(true)); // 服务端模式
-
             // 业务处理器
-            pipeline.addReadProcessor(new ReadProcessor<WebSocketFrame>() {
+            pipeline.addReadProcessor(new ReadProcessor<WebSocketFrame>()
+            {
                 @Override
-                public void read(WebSocketFrame frame, ReadProcessorNode next) {
-                    if (frame.getOpcode() == WebSocketFrame.OPCODE_TEXT) {
+                public void read(WebSocketFrame frame, ReadProcessorNode next)
+                {
+                    if (frame.getOpcode() == WebSocketFrame.OPCODE_TEXT)
+                    {
                         // 处理文本消息
-                        String message = StandardCharsets.UTF_8
-                            .decode(frame.getPayload().readableByteBuffer())
-                            .toString();
-
+                        String message = StandardCharsets.UTF_8.decode(frame.getPayload().readableByteBuffer()).toString();
                         System.out.println("收到消息: " + message);
-
                         // 回复消息
-                        String response = "Echo: " + message;
+                        String         response      = "Echo: " + message;
                         WebSocketFrame responseFrame = new WebSocketFrame();
                         responseFrame.setFin(true);
                         responseFrame.setOpcode(WebSocketFrame.OPCODE_TEXT);
                         responseFrame.setPayloadText(response);
-
                         pipeline.fireWrite(responseFrame);
-                    } else if (frame.getOpcode() == WebSocketFrame.OPCODE_CLOSE) {
-                        System.out.println("客户端关闭连接");
-                        pipeline.shutdownInput();
                     }
-
+                    else if (frame.getOpcode() == WebSocketFrame.OPCODE_CLOSE)
+                    {
+                        System.out.println("客户端关闭连接");
+                        pipeline.shutdown();
+                    }
                     frame.free();
                 }
             });
-
             // WebSocket 编码器
             pipeline.addWriteProcessor(new WebSocketFrameEncoder(false)); // 服务端模式
             pipeline.addWriteProcessor(new HttpRespEncoder(pipeline.allocator()));
         });
-
         server.start();
         System.out.println("WebSocket 服务器已启动: ws://localhost:8080");
     }
@@ -446,52 +443,57 @@ import cc.jfire.jnet.extend.http.dto.HttpRequest;
 import cc.jfire.jnet.extend.http.dto.HttpResponse;
 import cc.jfire.jnet.server.AioServer;
 
-public class ErrorHandlingServer {
-    public static void main(String[] args) {
+public class ErrorHandlingServer
+{
+    public static void main(String[] args)
+    {
         ChannelConfig config = new ChannelConfig().setPort(8080);
-
         AioServer server = AioServer.newAioServer(config, pipeline -> {
             pipeline.addReadProcessor(new HttpRequestPartDecoder());
             pipeline.addReadProcessor(new HttpRequestAggregator());
-
-            pipeline.addReadProcessor(new ReadProcessor<HttpRequest>() {
+            pipeline.addReadProcessor(new ReadProcessor<HttpRequest>()
+            {
                 @Override
-                public void read(HttpRequest request, ReadProcessorNode next) {
-                    try {
+                public void read(HttpRequest request, ReadProcessorNode next)
+                {
+                    try
+                    {
                         // 可能抛出异常的业务逻辑
                         processRequest(request, pipeline);
-                    } catch (Exception e) {
+                    }
+                    catch (Exception e)
+                    {
                         // 捕获异常并返回错误响应
                         System.err.println("处理请求失败: " + e.getMessage());
-
                         HttpResponse errorResponse = new HttpResponse();
                         errorResponse.setStatusCode(500);
                         errorResponse.addHeader("Content-Type", "text/plain");
                         errorResponse.setBodyText("Internal Server Error");
-
                         pipeline.fireWrite(errorResponse);
-                    } finally {
+                    }
+                    finally
+                    {
                         request.close();
                     }
                 }
 
                 @Override
-                public void readFailed(Throwable e, ReadProcessorNode next) {
+                public void readFailed(Throwable e, ReadProcessorNode next)
+                {
                     System.err.println("读取失败: " + e.getMessage());
-                    next.pipeline().shutdownInput();
+                    next.pipeline().shutdown();
                 }
 
-                private void processRequest(HttpRequest request, Pipeline pipeline) {
+                private void processRequest(HttpRequest request, Pipeline pipeline)
+                {
                     HttpResponse response = new HttpResponse();
                     response.addHeader("Content-Type", "text/plain");
                     response.setBodyText("Success");
                     pipeline.fireWrite(response);
                 }
             });
-
             pipeline.addWriteProcessor(new HttpRespEncoder(pipeline.allocator()));
         });
-
         server.start();
         System.out.println("服务器已启动，支持错误处理");
     }

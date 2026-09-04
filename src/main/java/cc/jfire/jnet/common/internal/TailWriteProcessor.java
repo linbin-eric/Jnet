@@ -21,6 +21,12 @@ public class TailWriteProcessor implements WriteProcessor
     }
 
     @Override
+    public void shutdown(WriteProcessorNode next)
+    {
+        ;
+    }
+
+    @Override
     public void channelClosed(WriteProcessorNode next, Throwable e)
     {
         ;

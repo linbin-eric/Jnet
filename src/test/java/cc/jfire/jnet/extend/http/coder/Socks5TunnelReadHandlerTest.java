@@ -245,7 +245,7 @@ public class Socks5TunnelReadHandlerTest
         }
 
         @Override
-        public void shutdownInput()
+        public void shutdown()
         {
         }
 
