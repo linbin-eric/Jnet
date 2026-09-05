@@ -23,7 +23,7 @@ public class RunAndStopWriteProcessorNode implements WriteProcessorNode, Runnabl
     private static final int                     TERMINATION_BUSY = 0b101;
     private static final long                    STATE_OFFSET     = UNSAFE.getFieldOffset("state", RunAndStopWriteProcessorNode.class);
     private final        MpscLinkedQueue<Object> queue            = new MpscLinkedQueue<>();
-    private volatile     int                     state            = WORK_IDLE;
+    private volatile     int                     state            = WORK_BUSY;
     private              Thread                  thread;
     private              Throwable               e;
     private static final int                     UN_FIRE          = 0;
