@@ -159,6 +159,7 @@ public class DefaultPipeline implements InternalPipeline
         adaptiveReadCompletionHandler = new AdaptiveReadCompletionHandler(this);
         addReadProcessor(new TailReadProcessor(adaptiveReadCompletionHandler));
         writeCompleteHandler = new DefaultWriteCompleteHandler(this);
+        writeCompleteHandler.setWriteListener(writeListener);
         addWriteProcessor(new TailWriteProcessor(writeCompleteHandler));
         ((RunAndStopWriteProcessorNode) writeHead).setWriteCompletionHandler(writeCompleteHandler);
         ((RunAndStopWriteProcessorNode) writeHead).start();
@@ -171,7 +172,6 @@ public class DefaultPipeline implements InternalPipeline
             jvmExistHandler.accept(e);
             System.exit(127);
         }
-        writeCompleteHandler.setWriteListener(writeListener);
         adaptiveReadCompletionHandler.start();
     }
 

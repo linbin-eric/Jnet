@@ -65,5 +65,6 @@ public class NoticeReadLimiter extends AtomicInteger implements ReadProcessor<Vo
     public void pipelineComplete(Pipeline pipeline, ReadProcessorNode next)
     {
         adaptiveReadCompletionHandler = ((DefaultPipeline) pipeline).getAdaptiveReadCompletionHandler();
+        next.firePipelineComplete(pipeline);
     }
 }
